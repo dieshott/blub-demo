@@ -5430,6 +5430,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false) {
     startOfTurn(u, turn);
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
+    // held by an enemy Guardian next to it: no moving at all (not even to the
+    // power-up); it hits what it reaches (a medic heals whom it reaches)
+    if (foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) {
+      if (u.cls === 'sweet' && medic(u, true)) return;
+      return hitAround(u);
+    }
     // the power-up of the round: grab it when it is in reach and nobody is,
     // unless a teammate is closer to it
     if (item && !inReach(u).length) {
@@ -5440,12 +5446,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false) {
         if (over < 0 && u.alive) hitAround(u);
         return;
       }
-    }
-    // held by an enemy Guardian next to it: no moving away; it hits what it
-    // reaches (a medic heals whom it reaches)
-    if (foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) {
-      if (u.cls === 'sweet' && medic(u, true)) return;
-      return hitAround(u);
     }
     if (u.cls === 'sweet' && medic(u)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
