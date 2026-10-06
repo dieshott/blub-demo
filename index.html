@@ -416,9 +416,13 @@ body.no-scroll{overflow:hidden}
 .tag.me{background:var(--gold);color:var(--ink);border:2px solid var(--ink)}
 .say{position:absolute;left:0;top:0;transform:translate(-50%,-100%);font-family:var(--f-display);font-size:10px;background:#fff;color:var(--ink);border:3px solid var(--ink);padding:6px 8px;pointer-events:none;white-space:nowrap;z-index:4}
 .say::after{content:"";position:absolute;left:50%;bottom:-10px;margin-left:-5px;border:5px solid transparent;border-top-color:var(--ink)}
-.field-empty{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:6;display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;background:rgba(255,246,248,.92);border:4px dashed var(--ink);padding:16px 18px;max-width:calc(100% - 32px)}
-.field-empty b{font-family:var(--f-display);font-size:11px;line-height:1.6}
-.field-empty a{font-family:var(--f-display);font-size:10px}
+/* an empty Meadow: a strip above the field, so fights on the field stay in view */
+.field-empty{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:var(--paper);border:4px dashed var(--ink);padding:10px 14px;margin-bottom:10px}
+.field-empty .fe-txt{display:flex;flex-direction:column;gap:2px;flex:1 1 260px;min-width:0}
+.field-empty b{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.6}
+.field-empty span{font-size:14px;line-height:1.35;color:#6d5d86}
+.field-empty .fe-acts{display:flex;flex-wrap:wrap;gap:8px}
+@media (max-width:560px){.field-empty{padding:8px 10px;gap:8px}.field-empty .fe-acts .btn{font-size:9px;padding:8px 9px}}
 .chat{position:absolute;left:8px;bottom:8px;width:min(440px,calc(100% - 16px));z-index:5;display:flex;flex-direction:column;gap:4px}
 .chat-log{display:flex;flex-direction:column;gap:2px;align-items:flex-start;pointer-events:none}
 .chat-log div{font-family:var(--f-data);font-size:20px;line-height:1.15;color:#fff;background:rgba(0,0,0,.5);padding:1px 8px 2px;text-shadow:2px 2px 0 #000;max-width:100%;overflow-wrap:anywhere;animation:line 10s linear forwards}
@@ -1105,6 +1109,10 @@ body.no-scroll{overflow:hidden}
           <button type="button" class="btn small pink" id="rcWatch">Watch the last Royale</button>
         </article>
       </div>
+      <div class="field-empty" id="fieldEmpty" hidden>
+        <div class="fe-txt"><b>Nobody in the Meadow yet</b><span>Make your team and put your captain here, or watch two bot teams fight on the board below.</span></div>
+        <div class="fe-acts"><a class="btn small" href="#make">Blub Maker</a><button type="button" class="btn small gold" data-botshow>Watch a bot fight</button></div>
+      </div>
       <div class="field" id="field">
         <canvas id="fieldCv" aria-label="The Meadow with every Blub. Click a Blub for details, or anywhere else to walk your own Blub there."></canvas>
         <div id="fieldTags"></div>
@@ -1112,7 +1120,6 @@ body.no-scroll{overflow:hidden}
         <div class="royale-hud" id="royaleHud" hidden><div class="rh-title"><b id="rhTitle">Meadow Royale</b><span id="rhLeft"></span></div><div class="rh-row" id="rhRow"></div><p class="bh-msg" id="rhMsg" aria-live="polite"></p></div>
         <div class="field-banner" id="fieldBanner" hidden aria-live="polite"></div>
         <button type="button" class="btn small fs-exit" id="fsExit" hidden>Exit full screen</button>
-        <div class="field-empty" id="fieldEmpty" hidden><b>Nobody in the Meadow yet</b><span>Make the first Blub and put it here, or watch two bots fight first.</span><a href="#make">Go to the Blub Maker</a><button type="button" class="btn small gold" data-botshow>Watch a bot fight</button></div>
         <div class="arena" id="arena" hidden role="region" aria-label="5 vs 5 duel">
           <div class="ar-hud">
             <div class="ar-side you"><b id="arNameA"></b><span class="ar-bars" id="arBarsA"></span></div>
