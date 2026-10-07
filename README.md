@@ -9,9 +9,11 @@ block from The Sift, the pink dimension.
   battle builds. Your captain wears the crown.
 - Play Blub Jump for play-BLUB and spend it in the shop.
 - Build a squad in the Squad Arena (the Duel Hall): give each of your five
-  Blubs a role, a weapon, gear, a power and a start tile, then fight 5 vs 5
-  against bot squads on a 15x15 arena, with a new arena and a random power-up
-  every round. Or watch two bot squads fight.
+  Blubs a role, a weapon, gear, a power and a start tile, rename them right
+  in the builder, and dig in two objects of your trench kit (sandbags, a
+  watchtower, barbed wire, a mortar, a foxhole, pop mines or an ammo crate).
+  Then fight 5 vs 5 against bot squads on a 15x15 arena, with a new arena and
+  a random power-up every round. Or watch two bot squads fight.
 
 Test phase: everything runs in your browser and nothing is stored on a
 server. Wallet sign-in, the shared Meadow and online duels open at launch.
