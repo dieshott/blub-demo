@@ -10648,6 +10648,33 @@ const SquadView = (() => {
     // quick to follow it up, slow to settle back
     return Math.round(c.amp * (f < 0.35 ? Math.sin((f / 0.35) * (Math.PI / 2)) : 0.5 + 0.5 * Math.cos(((f - 0.35) / 0.65) * Math.PI)));
   }
+  // ---- The director. On the big moments the camera cuts in close: the arena drawn
+  // as usual, then the 120 x 128 window round the action shown at exactly twice
+  // the size (a cut, never a zoom through fractions, so every pixel stays a square
+  // pixel), with black bars closing in top and bottom like a film. Around the
+  // impact itself the clock can run slow. None of it with reduced motion, at 4x or
+  // while seeking; a cut never starts on top of another.
+  function closeUp(t0, dur, cx, cy, o) {
+    if (!P || P.calm || P.speed >= 4 || P.seeking) return;
+    const opt = o || {};
+    if (P.shots.some((v) => t0 < v.t1 + 300 && t0 + dur > v.t0)) return;
+    P.shots.push({ t0, t1: t0 + dur, cx, cy, follow: opt.follow || null });
+    if (opt.slow) P.slows.push({ t0: opt.slow[0], t1: opt.slow[1], f: opt.f || 0.35 });
+  }
+  const shotAt = (t) => (P.calm ? null : P.shots.find((v) => t >= v.t0 && t < v.t1) || null);
+  // How fast the clock runs right now, on top of the chosen speed: slow round an
+  // impact the director asked for; with Auto tempo, quicker through the stretches
+  // where nothing much happens (walking, the pause between turns).
+  const TEMPO = { move: 1.5, turn: 1.8, cturn: 1.8, misc: 1.3 };
+  function tempoAt(t) {
+    for (const v of P.slows) if (t >= v.t0 && t < v.t1) return v.f;
+    if (!P.autoTempo || P.calm || P.speed >= 4) return 1;
+    const B = P.rd.beats;
+    if (P.bi == null || P.bi >= B.length || B[P.bi].t > t) P.bi = 0;
+    while (P.bi < B.length - 1 && B[P.bi + 1].t <= t) P.bi++;
+    const b = B[P.bi];
+    return (b && t < b.t + b.dur && TEMPO[b.kind]) || 1;
+  }
   function shake(t0) {
     if (!P.shakeOn || P.calm || P.speed >= 4 || t0 - P.shakeT < 600) return;
     P.shakeT = t0;
@@ -11805,8 +11832,10 @@ const SquadView = (() => {
   }
 
   function render(now) {
-    const x = P.ctx;
     const t = P.clock;
+    const shot = shotAt(t);
+    if (shot && !P.buf) P.buf = canvas(CW, CH);
+    const x = shot ? P.buf.getContext('2d') : P.ctx;
     const S = P.S;
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.imageSmoothingEnabled = false;
@@ -11992,6 +12021,27 @@ const SquadView = (() => {
       x.fillRect(0, 0, CW, CH);
       x.globalAlpha = 1;
     }
+    if (shot) cutIn(shot, t);
+  }
+  // the close-up: the window round the action at twice the size, bars in and out
+  function cutIn(shot, t) {
+    const c = P.ctx;
+    const [fx, fy] = shot.follow ? shot.follow(t) : [shot.cx, shot.cy];
+    const W = CW / 2;
+    const H = CH / 2;
+    const sx = clamp(Math.round(fx - W / 2), 0, CW - W);
+    const sy = clamp(Math.round(fy - H / 2), 0, CH - H);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.imageSmoothingEnabled = false;
+    c.drawImage(P.buf, sx, sy, W, H, 0, 0, W * 2, H * 2);
+    const e = t - shot.t0;
+    const left = shot.t1 - t;
+    const bar = Math.round(12 * Math.min(1, e / 90, left / 90));
+    c.fillStyle = '#000000';
+    c.fillRect(0, 0, CW, bar);
+    c.fillRect(0, CH - bar, CW, bar);
+    // the cut itself lands on a white frame
+    if (e < 50) ditherRect(c, 0, 0, CW, CH, '#FFFFFF', 0.5 * (1 - e / 50));
   }
 
   // ---- what each beat and event looks like
@@ -12505,6 +12555,8 @@ const SquadView = (() => {
           d.hurt = T;
           const crit = e.res === 'crit';
           if (crit) {
+            // a really big one gets a quick close-up
+            if (e.dmg >= 9) closeUp(T - 140 * k, 520 * k, dx, dy - 6, { slow: [T - 70 * k, T + 50 * k], f: 0.4 });
             label(T, String(e.dmg), '#FFD447', dx, top, true, 2);
             addParts(14, dx, dy, ['#FFD447', '#FFFFFF', '#FFF3B0'], 0.09, 0.0002, 420 * k, T, true);
             ringFx(T, dx, dy, 220 * k, '#FFF3B0', 4, 12, false, 0.9);
@@ -12678,6 +12730,7 @@ const SquadView = (() => {
 
         // the landing
         const I = T + F;
+        closeUp(I - 300 * k, 820 * k, cx, cy - 12, { slow: [I - 240 * k, I + 80 * k] });
         atClock(I, () => {
           hold(120);
           sfx('crit');
@@ -12845,6 +12898,7 @@ const SquadView = (() => {
             x.drawImage(bang, cx + 6, cy - 28);
           }
         });
+        closeUp(t1 + YANK * 0.4, t4 - t1 - YANK * 0.4 + 260 * k, cx, cy - 8);
         atClock(t3, () => sfx('miss'));
         atClock(t4, () => shake(t4));
         label(t3 + DROP * 0.5, 'RUGGED!', '#E2566E', cx, cy - 18, true, 2);
@@ -12902,6 +12956,7 @@ const SquadView = (() => {
         const p = S.props.find((v) => v.id === e.id);
         if (!p) return;
         const [cx, cy] = tileC(p.x, p.y);
+        closeUp(T - 80 * k, 700 * k, cx, cy - 10);
         shake(T);
         sfx('crit');
         if (e.id === 'candle') {
@@ -12941,6 +12996,7 @@ const SquadView = (() => {
           const img = fxFrame('airdrop', 1);
           x.drawImage(kk < 0.6 ? img : ghostOf(img, 'airdrop1', 1 - (kk - 0.6) / 0.4), cx - 16, y1 - 2);
         });
+        closeUp(T + C - 320 * k, 760 * k, cx, cy - 14);
         atClock(T + C, () => sfx('power'));
         addParts(16, cx, cy - 8, ['#4BE08F', '#9FE3A8', '#FFFFFF', '#FFD447'], 0.07, -0.0001, 800 * k, T + C, true, [-Math.PI, 0]);
         return;
@@ -12990,6 +13046,7 @@ const SquadView = (() => {
             x.fillRect(Math.round(lerp(ex, tx, q / n)), Math.round(lerp(ey, ty - 4, q / n)), 1, 1);
           }
         });
+        closeUp(T + C - 320 * k, 720 * k, 0, 0, { follow: () => centreOf(d), slow: [T + C - 140 * k, T + C + 40 * k] });
         atClock(T + C, () => {
           hold(90);
           shake(T + C);
@@ -13100,6 +13157,7 @@ const SquadView = (() => {
         });
         // the landing
         const L = T + GO + FLY;
+        closeUp(L - 260 * k, 700 * k, tx, ty - 10, { slow: [L - 170 * k, L + 30 * k] });
         atClock(L, () => {
           hold(70);
           shake(L);
@@ -13185,6 +13243,7 @@ const SquadView = (() => {
             x.drawImage(kk < 0.75 ? fxFrame('bee', Math.floor(el / 50) & 1) : ghostOf(fxFrame('bee', 0), 'bee0', 1 - (kk - 0.75) / 0.25), bx, by);
           });
         }
+        closeUp(T + GL - 40 * k, POT + 420 * k, cx, cy - 20);
         atClock(T + GL, () => shake(T + GL));
         atClock(T + GL + POT * 0.6, () => sfx('miss'));
         label(T + GL, 'HONEYPOT!', '#FFD447', cx, cy - 46, true, 2);
@@ -13304,6 +13363,7 @@ const SquadView = (() => {
           x.drawImage(fxFrame('fluke', fr), ax - 24, cy + 4 - 40);
         });
         // the slam
+        closeUp(T + SLAP - 320 * k, 820 * k, ax, cy - 14, { slow: [T + SLAP - 160 * k, T + SLAP + 40 * k] });
         atClock(T + SLAP, () => {
           hold(110);
           shake(T + SLAP);
@@ -13428,6 +13488,7 @@ const SquadView = (() => {
         });
         // the crash
         atClock(GO, () => sfx('zap'));
+        closeUp(I - 200 * k, 820 * k, cx0, Math.round((cyE + (away ? -12 : 4) + cy0) / 2), { slow: [I - 110 * k, I + 70 * k] });
         atClock(I, () => {
           hold(110);
           shake(I);
@@ -13828,6 +13889,7 @@ const SquadView = (() => {
         const u = U[e.u];
         const [ux, uy] = centreOf(u);
         const slow = b && b.slow ? 1.6 : 1;
+        if (b && b.slow) closeUp(T - 160 * k, 1150 * k, ux, uy - 6, { slow: [T - 100 * k, T + 260 * k] });
         addParts(14, ux, uy, ['#FFFFFF', '#E9DDF2', '#B9A9D6'], 0.05 / slow, -0.00002, 520 * k * slow, T, true);
         ringFx(T, ux, uy + 4, 360 * k * slow, '#FFFFFF', 3, 13, false, 0.6);
         const ghost = P.spr[u.id].ghost;
@@ -14085,9 +14147,10 @@ const SquadView = (() => {
     const bCalm = btn('sqv-t', null, [], 'Calm playback');
     const bShake = btn('sqv-t', null, [], 'Screen shake');
     const bChest = btn('sqv-t', null, [], 'Skip chest reveal');
+    const bTempo = btn('sqv-t', null, [], 'Auto tempo');
     const bSnd = btn('sqv-t sqv-snd', null, [], 'Sound');
     const optH = el('p', 'sqv-oh', 'Playback');
-    opts.append(optH, bCalm, bShake, bChest, bSnd);
+    opts.append(optH, bCalm, bShake, bTempo, bChest, bSnd);
     row.append(bPlay, bPrev, bNext, spd, bSkip, bEnd, bMore);
     ctl.append(prog, row);
     const logBox = el('ol', 'sqv-log');
@@ -14108,7 +14171,7 @@ const SquadView = (() => {
       /* sound is optional */
     }
 
-    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, them, you, wrap, stage, cv, ticker, ban, pop, card, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bSnd, logBox, over, live };
+    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, them, you, wrap, stage, cv, ticker, ban, pop, card, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
 
     close.onclick = () => finish();
     bPlay.onclick = () => togglePause();
@@ -14130,6 +14193,12 @@ const SquadView = (() => {
     };
     // for the daily player: the chest's results still show in the rosters and as
     // the events happen, without the reels every round
+    // quicker through the walking, full time for the big moments
+    bTempo.onclick = () => {
+      P.autoTempo = !P.autoTempo;
+      savePrefs();
+      paintToggles();
+    };
     bChest.onclick = () => {
       P.chestSkip = !P.chestSkip;
       savePrefs();
@@ -14226,7 +14295,7 @@ const SquadView = (() => {
     const sp = Object.assign({}, p.spd || {});
     sp[P.viewer < 0 ? 'show' : 'own'] = P.speed;
     try {
-      lsPatch({ sqview: { spd: sp, calm: !!P.userCalm, shake: !!P.shakeOn, chest: !!P.chestSkip } });
+      lsPatch({ sqview: { spd: sp, calm: !!P.userCalm, shake: !!P.shakeOn, chest: !!P.chestSkip, tempo: !!P.autoTempo } });
     } catch (err) {
       /* storage is optional */
     }
@@ -14246,6 +14315,7 @@ const SquadView = (() => {
     D.bCalm.title = P.rm ? 'Your device asks for reduced motion' : '';
     D.bShake.setAttribute('aria-pressed', String(!!P.shakeOn));
     D.bChest.setAttribute('aria-pressed', String(!!P.chestSkip));
+    D.bTempo.setAttribute('aria-pressed', String(!!P.autoTempo));
     D.root.classList.toggle('calm', !!P.calm);
   }
   function togglePause() {
@@ -14633,7 +14703,7 @@ const SquadView = (() => {
       teamLabels: teams.map((t) => t.label),
       sideLabels: viewer < 0 ? { you: teams[0].label, rival: teams[1].label } : { you: 'You', rival: teams[1 - me].label === (me ? 'Team A' : 'Team B') ? 'Rival' : teams[1 - me].label },
       title: typeof match.title === 'string' && match.title.trim() ? match.title.trim().slice(0, 60) : 'Squad Arena',
-      speed, paused: false, rm: !!(mq && mq.matches), userCalm: !!pf.calm, shakeOn: pf.shake !== false, chestSkip: !!pf.chest, mq,
+      speed, paused: false, rm: !!(mq && mq.matches), userCalm: !!pf.calm, shakeOn: pf.shake !== false, chestSkip: !!pf.chest, autoTempo: pf.tempo !== false, mq,
       fx: [], parts: [], nums: [], marks: [], decals: [], actors: [], sayQ: [], sayT: 0, logLines: [], ticker: '',
       craters: [], shells: [], ov: {}, cause: {}, objs: [], objRows: [], objCell: new Map(), sandCell: new Set(),
       shakeT: -1e9, flashT: -1e9, itemT: -1e9, sfxLast: 0, sfxPend: null, phase: 'intro', ri: 0, clock: 0, qi: 0,
@@ -14753,6 +14823,9 @@ const SquadView = (() => {
     P.lastBoom = null;
     P.later = [];
     P.cam = null;
+    P.shots = [];
+    P.slows = [];
+    P.bi = 0;
     P.wreckAt = 0;
     P.holdT = 0;
     P.actors = [];
@@ -14793,7 +14866,7 @@ const SquadView = (() => {
     if (P.phase !== 'round') return;
     // a hit-stop holds the clock where it is, so the frame it landed on stays up
     if (P.holdT > 0) P.holdT -= dt;
-    else P.clock += dt * P.speed;
+    else P.clock += dt * P.speed * tempoAt(P.clock);
     runLater();
     runQ();
     roundTimers();
@@ -14855,6 +14928,9 @@ const SquadView = (() => {
     // nothing held over from before the jump: no pending bang, no frozen frame
     P.later = [];
     P.cam = null;
+    P.shots = [];
+    P.slows = [];
+    P.bi = 0;
     P.wreckAt = 0;
     P.holdT = 0;
     P.seeking = true;
