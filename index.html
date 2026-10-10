@@ -1736,7 +1736,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 19e92ca · 10 Oct 15:36 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build f9b6fa1 · 10 Oct 19:17 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -15361,7 +15361,7 @@ const SquadView = (() => {
       }
       D.pips.setAttribute('aria-hidden', 'true');
     }
-    const tn = S && P.phase === 'round' ? 'Turn ' + Math.max(1, S.turn) + '/' + SE.TURNS : P.phase === 'outro' ? 'Final' : 'Intro';
+    const tn = S && P.phase === 'round' ? 'Turn ' + Math.max(1, S.turn) + '/' + SE.TURNS : P.phase === 'outro' ? 'Final' : P.chestOnly ? 'Round ' + (P.ri + 1) : 'Intro';
     if (D.turn.textContent !== tn) D.turn.textContent = tn;
     const sc = scoreNow();
     if (D.title.textContent !== P.title) D.title.textContent = P.title;
@@ -15643,7 +15643,7 @@ const SquadView = (() => {
     const dt = Math.min(50, P.last ? now - P.last : 16);
     P.last = now;
     if (!P.paused) advance(dt);
-    if (P.phase !== 'intro' || P.ic > 2600) render(now);
+    if (P.phase !== 'intro' || P.chestOnly || P.ic > 2600) render(now);
     flushSfx(now);
     flushSay(now);
     if (P.dirty || P.textDirty || P.phase === 'round') updateUi();
@@ -15692,9 +15692,28 @@ const SquadView = (() => {
   function nextRound() {
     if (P.ri + 1 < P.rounds.length) {
       loadRound(P.ri + 1);
+      roundChest();
       return;
     }
     outro();
+  }
+  // Every round has a chest of its own: before the second and third the chest drops
+  // again over the new arena, the same reveal without the squads before it (and not
+  // at all with "Skip chest reveal" on).
+  function roundChest() {
+    const chest = buildChest();
+    if (!chest) return;
+    const o = D.over;
+    o.textContent = '';
+    o.hidden = false;
+    o.className = 'sqv-over sqi' + (P.calm ? ' still' : '');
+    o.append(chest);
+    D.ban.className = 'sqv-ban';
+    P.introEls = null;
+    P.chestOnly = true;
+    P.phase = 'intro';
+    P.ic = 0;
+    P.dirty = true;
   }
 
   // ---- seeking: rebuild the state from the start of the round up to a turn
@@ -15917,6 +15936,7 @@ const SquadView = (() => {
     return c;
   }
   function buildIntro() {
+    P.chestOnly = false;
     const o = D.over;
     o.textContent = '';
     o.hidden = false;
@@ -15959,6 +15979,7 @@ const SquadView = (() => {
     updateIntro(0);
   }
   function updateIntro(t) {
+    if (P.chestOnly) return updateChest(P.calm ? 0 : t);
     const E = P.introEls;
     if (!E) return;
     const st = P.calm;
@@ -16190,6 +16211,7 @@ const SquadView = (() => {
   }
   // how long the whole intro runs, the chest included
   function introTotal() {
+    if (P.chestOnly) return P.chestEls ? (P.calm ? CM.still : P.chestEls.T.done) : 0;
     if (P.calm) return MS.still + (P.chestEls ? CM.still : 0);
     return P.chestEls ? CM.at + P.chestEls.T.done : MS.mIntro;
   }
@@ -16201,6 +16223,7 @@ const SquadView = (() => {
     if (!P || P.phase !== 'intro') return;
     P.introEls = null;
     P.chestEls = null;
+    P.chestOnly = false;
     D.over.hidden = true;
     D.over.textContent = '';
     P.phase = 'round';
