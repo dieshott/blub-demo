@@ -1736,7 +1736,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 04f5448 · 10 Oct 14:50 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 19e92ca · 10 Oct 15:36 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5223,8 +5223,8 @@ const RULES = lock({
   laserRange: 2, laserDmg: 1, laserDodge: 50, // Laser Eyes Totem: +laserRange reach, and it keeps only laserDodge% of its dodge
   copiumAt: 50, copiumRange: 2, copiumSoak: 35, // Copium Tank
   apeDmg: 1, // Ape Together Banner: per Blub standing next to a team mate
-  propAt: 4, // the contested six: a prop still unclaimed by then picks a side through a Blub
-  exitHp: 15, exitRange: 4, exitSkip: 1, // Exit Liquidity: the decoy, and the turn the last hit costs
+  propAt: 4, // the contested five: a prop still unclaimed by then picks a side through a Blub
+  exitFrom: 3, exitTo: 7, exitSize: 2, // Exit Liquidity: in one of these turns the floor gives way, exitSize tiles square
   // the buffs
   airdropHp: 8, airdropFrom: 3, airdropTo: 7,
   sniperDmg: 7,
@@ -5358,7 +5358,7 @@ const EVENTS = lock([
   ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and +${RULES.laserDmg} damage, but dodges only ${RULES.laserDodge}% as well.`],
   ['copium', 'Copium Tank', `The owner's Blubs under ${RULES.copiumAt}% HP within ${RULES.copiumRange} tiles take ${RULES.copiumSoak}% less damage.`],
   ['ape', 'Ape Together Banner', `The owner's Blubs deal +${RULES.apeDmg} damage while a team mate stands right beside them.`],
-  ['exit', 'Exit Liquidity', `A cardboard Blub with ${RULES.exitHp} HP. Nearest and Finisher Blubs within ${RULES.exitRange} tiles go for it first; whoever lands the last hit is rugged and skips ${RULES.exitSkip} turn. Ranged and Backline ignore it.`],
+  ['exit', 'Exit Liquidity', `Some turn between ${RULES.exitFrom} and ${RULES.exitTo}, without a warning, the floor gives way under a random Blub: a ${RULES.exitSize}x${RULES.exitSize} hole, and every Blub on it falls through and is out of the round. The hole stays.`],
 ]);
 // turn: the turn it fires, 0 when it waits for a Blub to touch it.
 // hidden: the other squad does not see it until it goes off.
@@ -5378,7 +5378,7 @@ const EVENT_STATS = lock({
   laser: { turn: 0, contested: 1, spots: 'line' },
   copium: { turn: 0, contested: 1, spots: 'line' },
   ape: { turn: 0, contested: 1, spots: 'line' },
-  exit: { turn: 0, contested: 1, spots: 'line' },
+  exit: { turn: 0, spots: 'mid' },
 });
 // Each squad gets one perk a round, drawn on its own: green (a buff) or red (a nerf),
 // each as likely, and then any of the six, each as likely. Both squads may well
@@ -6600,10 +6600,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
-    // the contested props: the decoy pulls the ones it fools, and a Blub left
-    // standing at the other side's candle with nobody in reach chops at it
-    const dp = decoyFor(u);
-    if (dp) return goFor(u, dp);
+    // a Blub left standing at the other side's candle with nobody in reach chops at it
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
     if (cp && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
     fight(u);
@@ -7084,12 +7081,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     checkOver();
   }
 
-  // ---- The contested six. Each stands on the centre line from the start, a solid
+  // ---- The contested five. Each stands on the centre line from the start, a solid
   // thing nobody walks through, and serves the squad that first has a Blub beside it
   // at the start of a turn (both at once: the chest's stream decides). From then on
-  // it is theirs for the round. The candle and the cardboard decoy can be knocked
-  // down; the others stand to the end.
-  const CONTEST = ['candle', 'diamond', 'laser', 'copium', 'ape', 'exit'];
+  // it is theirs for the round. The candle can be knocked down; the others stand to
+  // the end.
+  const CONTEST = ['candle', 'diamond', 'laser', 'copium', 'ape'];
   const props = []; // { id, c, x, y, was, team (-1 until claimed), hp, since, size, holder, down }
   for (const e of live) {
     if (CONTEST.indexOf(e.id) < 0) continue;
@@ -7104,7 +7101,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       continue;
     }
     restep(c);
-    const hp = e.id === 'candle' ? RULES.candleHp : e.id === 'exit' ? RULES.exitHp : 0;
+    const hp = e.id === 'candle' ? RULES.candleHp : 0;
     props.push({ id: e.id, c, x, y, was, team: -1, hp, since: 0, size: 0, holder: -1, down: false });
   }
   if (props.length) push({ t: 'props', list: props.map((p) => ({ id: p.id, at: [p.x, p.y], hp: p.hp })) });
@@ -7159,8 +7156,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
     }
   }
-  // a Blub of the other side takes a swing at the candle or the decoy: no dodging a
-  // thing that does not move, the weapon's plain damage
+  // a Blub of the other side takes a swing at the candle: no dodging a thing that
+  // does not move, the weapon's plain damage
   function hitProp(u, p) {
     const dmg = Math.min(p.hp, punch(u));
     p.hp -= dmg;
@@ -7171,26 +7168,66 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     tiles[p.c] = p.was;
     restep(p.c);
     push({ t: 'propdown', id: p.id, by: u.id });
-    // Exit Liquidity: whoever finishes the decoy off has been played, and sits out
-    if (p.id === 'exit') {
-      u.skip = RULES.exitSkip;
-      push({ t: 'played', u: u.id });
-    }
   }
-  // The decoy pulls in the other side's Nearest and Finisher Blubs that fight up
-  // close, from exitRange tiles; shooters and Backline hunters are not fooled.
-  function decoyFor(u) {
-    const p = owned('exit', 1 - u.team);
-    if (!p || W(u).range >= 3 || (u.tac !== 'nearest' && u.tac !== 'weakest')) return null;
-    return cheb(u.x, u.y, p.x, p.y) <= RULES.exitRange ? p : null;
+
+  // ---- Exit Liquidity. In a turn the chest's stream picks (exitFrom to exitTo), with
+  // no warning, the floor gives way under a Blub of its own choosing: an exitSize
+  // square hole round it, and every Blub standing on it falls through and is out of
+  // the round (no totem brings it back). The hole stays: nobody walks there again,
+  // but shots fly over it. It opens on plain floor only, never on an object, a trap,
+  // the power-up's tile, a launch pad or the crater, and never cuts the arena in
+  // two; a Blub with no such hole round it is not picked. With nowhere it fits, it
+  // waits a turn.
+  const exitEv = live.find((e) => e.id === 'exit');
+  const padAt = live.filter((e) => e.id === 'rocket').map((e) => idx(e.cells[0][0], e.cells[0][1]));
+  let exitAt = exitEv ? RULES.exitFrom + Math.floor(cr() * (RULES.exitTo - RULES.exitFrom + 1)) : 0;
+  // the BFS in connected() starts on these two, so they never sink
+  const holeOk = (c) => tiles[c] === GRASS && c !== CENTRE && c !== idx(7, 0) && c !== idx(7, SIZE - 1) && c !== rug && c !== honey && !cats.includes(c) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c] && !padAt.includes(c) && !(crater && crater.cells.indexOf(c) >= 0) && !(item && idx(item.x, item.y) === c);
+  // every hole that would fit round u, each as a list of cells
+  function holesAround(u) {
+    const S = RULES.exitSize;
+    const out = [];
+    for (let oy = 0; oy < S; oy++)
+      for (let ox = 0; ox < S; ox++) {
+        const x0 = u.x - ox;
+        const y0 = u.y - oy;
+        if (x0 < 0 || y0 < 0 || x0 + S > SIZE || y0 + S > SIZE) continue;
+        const cells = [];
+        for (let y = y0; y < y0 + S; y++) for (let x = x0; x < x0 + S; x++) cells.push(idx(x, y));
+        if (!cells.every(holeOk)) continue;
+        for (const c of cells) tiles[c] = SAND;
+        const ok = connected(tiles);
+        for (const c of cells) tiles[c] = GRASS;
+        if (ok) out.push({ at: [x0, y0], cells });
+      }
+    return out;
   }
-  function goFor(u, p) {
-    const reach = W(u).range;
-    if (cheb(u.x, u.y, p.x, p.y) > reach) {
-      const P = search(u, 999, (x, y) => cheb(x, y, p.x, p.y) <= reach);
-      if (P.found.length) walk(u, route(P, P.found[0]));
+  function exitTurn(turn) {
+    if (!exitEv || exitAt < 0 || turn < exitAt) return;
+    // the chest's stream picks a Blub, then one of the holes round it
+    const pool = U.filter((v) => v.alive);
+    let pick = null;
+    while (pool.length && !pick) {
+      const v = pool.splice(Math.floor(cr() * pool.length), 1)[0];
+      const fits = holesAround(v);
+      if (fits.length) pick = { v, ...fits[Math.floor(cr() * fits.length)] };
     }
-    if (u.alive && over < 0 && !p.down && cheb(u.x, u.y, p.x, p.y) <= reach) hitProp(u, p);
+    if (!pick) return;
+    exitAt = -1;
+    // all four first, then the steps round them (a diagonal squeezes past two of them)
+    for (const c of pick.cells) tiles[c] = SAND;
+    for (const c of pick.cells) restep(c);
+    const fell = U.filter((v) => v.alive && pick.cells.indexOf(idx(v.x, v.y)) >= 0);
+    // 'sink' is the floor giving way; 'fall' is each Blub that goes down with it
+    push({ t: 'sink', u: pick.v.id, at: pick.at, cells: pick.cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]), fell: fell.map((v) => v.id) });
+    for (const v of fell) {
+      v.alive = false;
+      v.hp = 0;
+      living[v.team] = living[v.team].filter((w) => w !== v);
+      occ[idx(v.x, v.y)] = -1;
+      push({ t: 'fall', u: v.id });
+    }
+    checkOver();
   }
 
   // the rug gives back first; the crater goes next, so one opened this turn does not
@@ -7258,6 +7295,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (over < 0) for (const e of live) if (e.id === 'whale') whaleTurn(e, turn);
     if (over < 0) for (const e of live) if (e.id === 'rocket') rocketTurn(e, turn);
     if (over < 0) lamboTurn(turn);
+    if (over < 0) exitTurn(turn);
     if (over < 0) deadlines(turn);
   }
 
@@ -7638,6 +7676,7 @@ const SquadView = (() => {
     A: '#8A5C06', // gold, under o
     C: '#7A1B2C', D: '#FFB3C0', // red, under R and over F
     E: '#3A2A66', H: '#E0D6FA', // purple, under V and over v
+    K: '#150C20', // the dark at the bottom of a hole, under k
     I: '#B4F7EE', // teal, over m
     J: '#A34B0E', L: '#FFBE85', // orange, either side of f
   };
@@ -7887,15 +7926,16 @@ const SquadView = (() => {
         'kiNniNNNNNNaaakkkkkaaNnnnaaaNnak', 'kiNniNNNNNNNaaaaaaaainnnnaaaNnak', 'kiNniNNNNNNNaaaaaaaaNnnnnaaaNnak', 'kiNniNNNNNNaWaaaaaaNaaaaaaaaNnak',
         'kiNniNNNNNaiaaaaaaaaaaaaaaaaNnak', 'kiNnNiNNNNaaaaaaaaaaaaaaaaaaNnak', 'kiNnkkkkkkkkkkkkkkkkkkkkkkkkNnak', 'kiNnk......................kNnak',
         'kiNnk......................kNnak', 'kiNnk......................kNnak', 'kNnak......................knaak', '.kkk........................kkk.'],
-      // Exit Liquidity: a flat cardboard Blub holding its own sign
-      exit: ['.kkkkkkkkkkkkkkkk...............', 'kWWWWWWWWWiiiiiiNk..............', 'kWiiiiiiiNNNNNNNnk..............', 'kWiwwwwwYYYYYYyNnk..............',
-        'kWiwYyyyyyyyyyANnk..............', 'kWiYyyyyyyyyooANnkk.............', 'kWiYyyyyyoooooANniNk............', 'kWiyooAAAAAAAAANnNNNk...........',
-        'kWiiiNNNNNNNNNNNnNNNNk..........', 'kiNNnnnnnnnnnnnnnnNNNNk.........', '.kkkkkWiaaNNNNNNNNNNNak.........', '....kWiiaaNNNNNNNNNNNNnk........',
-        '....kWiNaakkkNNNkkkkNnak........', '....kWNNaakkkNNNkkkkNnak........', '....kWNNNkkkkNNNkkkkiaak........', '....kiNNNkkkkNNNkkkkNaak........',
-        '....kiNNNkkkkNNNkkkkNaak........', '....kiNNNNNNNNNNNiNNnaak........', '....kiNNNNNNNNnNinnnnaak........', '....kiNNNNNNNNNNNnnnnaak........',
-        '....kiNNNNNNNNNNaannnaak........', '....kiNNNNNaaaaaaaNnnaak........', '....kiNNNNNaaaaaaaNnnaaak.......', '....kiNNNNNNNiNNNNnnnaaak.......',
-        '....kiNNNNnNinnnnnnnnaaaak......', '....kiNNNNNinnnnnnnnnaaaaak.....', '....kiNNNNNnaaaaaaaaaaaaaak.....', '....kiNnnaaaaaaaaaaaaaakaaak....',
-        '...kaaaakkkkkkkkkkkkaaaaaaak....', '...kaaaak..........kaaaakaaak...', '...kaaaak..........kaaaakaaak...', '....kkkk............kkkk.kaak...'],
+      // Exit Liquidity: a hole in the floor, the earth and the dark in it, a red chart
+      // still falling at the bottom, and the green EXIT sign pointing down into it
+      exit: ['.....kkkkkkkkkkkkkkkkkkkkkkk....', '.....kGGGGGGGGGGGGGGGGGGGGGk....', '.....kgwwwgwgwgwgwwwgggwgggk....', '.....kgwgggwgwgwggwggggwgggk....',
+        '.....kgwwgggwggwggwggwwwwwgk....', '.....kgwgggwgwgwggwgggwwwggk....', '.....kgwwwgwgwgwggwggggwgggk....', '.....kqqqqqqqqqqqqqqqqqqqqqk....',
+        '.....kkkkkkkkkkkkkkkkkkkkkkk....', '..............knak..............', '..............knak..............', '.........kkkkkknakkkkkk.........',
+        '.......kkcccccknakccccckk.......', '.....kkPkpppppknakPPPPPPckk.....', '....kPPPkkkpppknakkPPPkkcppk....', '...kPPPkckckkkknakckkkcckpppk...',
+        '..kPPPkcNnncccnnnnNcccnNckpppk..', '.kPPPkcnnnnnnNnnannnnnnnnckppkk.', 'kccccknnaaannnaaKaannnannnckccck', 'kppppknnaaanaaaaaaanaaaaannkPPPk',
+        'kpppkkaaKKKaKaKKKKKaKaKaKakPPPPk', 'cppkpkkaKFKaaKKKKKKaaKKKankPPPPP', 'kcpppkkKKKFKFFKKKKKKKKKKKakPPPck', 'kccpkcKKKKKFKKFKKKKKKKKKKKkPPcck',
+        'kcccknKKKKKKCKCFRFCKCKKKKKKkccck', '.kccknKKKKKKKRKRFRFKKKKKKKKkcck.', '..kcckKKKKKKCKCKRKCFKKKKKKkcck..', '...kcckKKkkkKKKKKKkkkKKKkkcck...',
+        '....kcckkpppkkKKkkPPPkkkccck....', '.....kkcccppppkkcPPPPPccckk.....', '.......kkcccccccccccccckk.......', '.........kkkkkkkkkkkkkk.........'],
     },
     buff: {
       // Airdrop: a crate coming down under a chute
@@ -8136,6 +8176,17 @@ const SquadView = (() => {
     // lighting a letter that an earlier lighting pass already wrote would light it
     // a second time.
   };
+  // Exit Liquidity's hole across its two tiles (32 px): the ragged rim, and the
+  // cracks that run out to it from the middle before the floor goes
+  const SINK_RIM = [[4, 4], [7, 2], [11, 3], [14, 1], [18, 3], [22, 2], [25, 3], [28, 5], [30, 8], [29, 12], [31, 16], [29, 20], [30, 24], [28, 28], [24, 30], [20, 29], [16, 31], [12, 29], [8, 30], [5, 28], [2, 25], [3, 21], [1, 17], [3, 13], [2, 9]];
+  const SINK_CRACKS = [
+    [[15, 15], [12, 12], [10, 9], [8, 6], [7, 3]],
+    [[16, 14], [19, 11], [21, 8], [24, 5], [25, 3]],
+    [[17, 16], [21, 17], [24, 15], [27, 17], [30, 16]],
+    [[16, 17], [18, 21], [20, 24], [21, 27], [20, 29]],
+    [[14, 17], [12, 21], [10, 24], [8, 27], [6, 28]],
+    [[14, 15], [10, 16], [7, 14], [4, 15], [2, 13]],
+  ];
   // the effects themselves: id -> how many frames, and how to draw frame i
   const FX_ART = {
     // Wen Lambo, 32 across, its foot (the bottom of the tyres) at y 27 and centred on
@@ -8735,7 +8786,7 @@ const SquadView = (() => {
       if (w === 3) FG.put(g, 4, 3, 'A');
       return g;
     }],
-    // ---- the contested six, standing on the centre line. Their foot is the bottom
+    // ---- the contested five, standing on the centre line. Their foot is the bottom
     // middle of the frame.
     // Green Candle, as on a chart: a green body with its wick above and below, one
     // block taller for every turn it has stood (frame = blocks, 0-5).
@@ -8829,23 +8880,135 @@ const SquadView = (() => {
       for (let y = 27; y <= 29; y++) for (let x = 7; x <= 12; x++) FG.put(g, x, y, 'S');
       return FG.outline(g);
     }],
-    // Exit Liquidity: a cardboard cut-out of a Blub on a prop at its back, the face
-    // drawn on in marker. 0 standing; 1 knocked flat.
-    exit: [2, 32, (i) => {
-      let g = FG.grid(32);
-      if (i === 0) {
-        FG.disc(g, 16, 17, 8.5, '1');
-        for (const x of [10, 21]) for (let y = 5; y <= 10; y++) FG.put(g, x + (y < 7 ? (x < 16 ? 1 : -1) : 0), y, '1');
-        for (let y = 24; y <= 29; y++) for (let x = 10; x <= 21; x++) FG.put(g, x, y, '1');
-      } else for (let y = 24; y <= 29; y++) for (let x = 4; x <= 27; x++) FG.put(g, x, y, '1');
-      g = FG.volume(g, '1', 'gold');
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) g[y][x] = { w: 'N', Y: 'N', y: 'N', o: 'n', A: 'n' }[g[y][x]] || g[y][x];
-      if (i === 0) {
-        // marker face, and the crease down the middle of the card
-        for (const [x, y] of [[13, 15], [13, 16], [19, 15], [19, 16], [14, 20], [15, 21], [16, 21], [17, 21], [18, 20]]) FG.put(g, x, y, 'k');
-        for (let y = 9; y <= 28; y += 2) FG.put(g, 16, y, 'n');
-      } else for (const [x, y] of [[9, 26], [10, 26], [20, 26], [21, 26], [14, 27], [15, 27], [16, 27]]) FG.put(g, x, y, 'k');
-      return FG.outline(g);
+    // Exit Liquidity, 32 across: two tiles of floor giving way, laid over the floor.
+    // 0 the first cracks running out from the middle; 1 cracked through to the
+    // ragged rim, the red of the liquidity glowing in the seams; 2 and 3 the hole
+    // that stays (the glow deep down pulses between them): the far wall of floor
+    // slab and earth with roots hanging off it, the dark going down, and at the
+    // bottom a red chart, still falling.
+    sink: [4, 32, (i) => {
+      const g = FG.grid(32);
+      const dot = (x, y, c) => FG.put(g, x, y, c);
+      // a one pixel line, Bresenham; put(x, y, n) for the n-th pixel
+      const seg = (x0, y0, x1, y1, put) => {
+        const dx = Math.abs(x1 - x0);
+        const dy = -Math.abs(y1 - y0);
+        const sx = x0 < x1 ? 1 : -1;
+        const sy = y0 < y1 ? 1 : -1;
+        let e = dx + dy;
+        for (let n = 0; n < 64; n++) {
+          put(x0, y0, n);
+          if (x0 === x1 && y0 === y1) return;
+          const e2 = 2 * e;
+          if (e2 >= dy) {
+            e += dy;
+            x0 += sx;
+          }
+          if (e2 <= dx) {
+            e += dx;
+            y0 += sy;
+          }
+        }
+      };
+      const dith = (x, y, p) => (FG.BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16 < p;
+      if (i < 2) {
+        // the cracks: the first two legs of each, then (1) all the way out, the first
+        // leg wider and glowing red, and here and there the rim itself splitting
+        SINK_CRACKS.forEach((c, ci) => {
+          const legs = i ? c.length - 1 : 2;
+          for (let l = 0; l < legs; l++)
+            seg(c[l][0], c[l][1], c[l + 1][0], c[l + 1][1], (x, y, n) => {
+              dot(x, y, 'k');
+              if (i && l === 0) {
+                dot(x + 1, y, 'k');
+                if (n % 3 !== ci % 3) dot(x, y, 'F');
+              } else if (i && l === 1 && n % 4 === 1) dot(x, y, 'r');
+            });
+        });
+        if (i)
+          SINK_RIM.forEach((p, k) => {
+            const q = SINK_RIM[(k + 1) % SINK_RIM.length];
+            if (k % 3 === 0) seg(p[0], p[1], q[0], q[1], (x, y, n) => n % 4 !== 3 && dot(x, y, 'k'));
+          });
+        return g;
+      }
+      // the hole, inside the ragged rim
+      FG.poly(g, SINK_RIM, '1');
+      const inn = (x, y) => FG.at(g, x, y) !== '.';
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (g[y][x] === '1') g[y][x] = 'K';
+      // the far wall, column by column from the top of the hole: the broken edge of the
+      // floor slab, then earth of an uneven depth, darkening into the hole
+      const tops = [];
+      for (let x = 0; x < 32; x++) {
+        let top = -1;
+        for (let y = 0; y < 32 && top < 0; y++) if (inn(x, y)) top = y;
+        tops[x] = top;
+        if (top < 0) continue;
+        const earth = 2 + ((x * 5 + 3) % 4 === 0 ? 2 : (x * 3) % 4 === 1 ? 1 : 0);
+        const band = ['P', 'c'];
+        for (let d = 0; d < earth; d++) band.push(d === 0 && (x * 7) % 5 === 1 ? 'N' : 'n');
+        band.push('a');
+        band.forEach((c, d) => FG.at(g, x, top + d) === 'K' && (g[top + d][x] = c));
+        const end = top + band.length;
+        for (let d = 0; d < 3; d++) if (FG.at(g, x, end + d) === 'K' && !dith(x, end + d, (d + 1) / 4)) g[end + d][x] = d < 2 ? 'a' : 'k';
+      }
+      // roots hanging off the earth into the dark
+      for (const [x, len] of [[7, 3], [12, 5], [13, 2], [19, 4], [24, 3]]) {
+        const top = tops[x];
+        if (top < 0) continue;
+        for (let d = 4; d < 6 + len; d++) {
+          const rx = x + (d > 6 ? 1 : 0);
+          if (FG.at(g, rx, top + d) !== '.') g[top + d][rx] = d < 5 + len ? 'a' : 'n';
+        }
+      }
+      // the walls: the left one in shadow, the right one catching the light near the top
+      for (let y = 0; y < 32; y++)
+        for (let x = 0; x < 32; x++) {
+          if (g[y][x] !== 'K') continue;
+          if (!inn(x - 1, y) && y < 22 && !dith(x, y, (y - 8) / 14)) g[y][x] = 'k';
+          else if (!inn(x + 1, y) && y < 18) g[y][x] = y < 13 ? 'n' : 'a';
+        }
+      // the liquidity, leaving: a red glow far down, and a chart still dumping
+      const hot = i === 3;
+      for (let y = 18; y < 31; y++)
+        for (let x = 6; x < 27; x++) {
+          if (g[y][x] !== 'K') continue;
+          const q = ((x + 0.5 - 16) / 6.5) ** 2 + ((y + 0.5 - 24.5) / 2.8) ** 2;
+          if (q < 1 && dith(x, y, (hot ? 0.5 : 0.26) * (1 - q * 0.7))) g[y][x] = q < 0.2 && hot ? 'R' : 'C';
+        }
+      const chart = [[9, 20], [11, 22], [13, 21], [16, 25], [18, 24], [21, 27]];
+      for (let k = 0; k < chart.length - 1; k++) seg(chart[k][0], chart[k][1], chart[k + 1][0], chart[k + 1][1], (x, y) => 'KC'.includes(FG.at(g, x, y)) && dot(x, y, hot ? 'F' : 'r'));
+      // the rim, and the floor crumbling round it: short cracks off the edge, chips
+      const was = g.map((r) => r.slice());
+      const wasIn = (x, y) => y >= 0 && y < 32 && x >= 0 && x < 32 && was[y][x] !== '.';
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (was[y][x] === '.' && (wasIn(x - 1, y) || wasIn(x + 1, y) || wasIn(x, y - 1) || wasIn(x, y + 1))) g[y][x] = 'k';
+      for (const [x0, y0, x1, y1] of [[2, 9, 0, 7], [25, 3, 27, 0], [31, 16, 31, 13], [28, 28, 31, 31], [16, 31, 15, 31], [1, 17, 0, 19]]) seg(x0, y0, x1, y1, (x, y) => dot(x, y, 'k'));
+      for (const [x, y] of [[5, 0], [20, 0], [31, 9], [0, 12], [10, 31], [26, 31], [31, 21]]) if (FG.at(g, x, y) === '.') dot(x, y, 'c');
+      return g;
+    }],
+    // The sign Exit Liquidity leaves at its hole: green, EXIT and an arrow pointing
+    // down it, on a post. Its foot is at y 22, x 11; 1 is it landing, squashed.
+    exitsign: [2, 24, (i) => {
+      const g = FG.grid(24);
+      const y0 = i ? 3 : 2;
+      for (let y = y0; y <= 10; y++) for (let x = 0; x <= 22; x++) g[y][x] = y === y0 || y === 10 || x === 0 || x === 22 ? 'k' : y === 3 ? 'G' : y === 9 ? 'q' : 'g';
+      const L = { E: ['111', '1..', '11.', '1..', '111'], X: ['1.1', '1.1', '.1.', '1.1', '1.1'], I: ['1', '1', '1', '1', '1'], T: ['111', '.1.', '.1.', '.1.', '.1.'] };
+      let lx = 2;
+      for (const ch of 'EXIT') {
+        L[ch].forEach((r, dy) => [...r].forEach((c, dx) => c === '1' && (g[4 + dy][lx + dx] = 'w')));
+        lx += L[ch][0].length + 1;
+      }
+      ['..w..', '..w..', 'wwwww', '.www.', '..w..'].forEach((r, dy) => [...r].forEach((c, dx) => c === 'w' && (g[4 + dy][16 + dx] = 'w')));
+      // the post, and the dirt it went into
+      for (let y = 11; y <= 21; y++) {
+        g[y][10] = 'n';
+        g[y][11] = 'a';
+        g[y][9] = 'k';
+        g[y][12] = 'k';
+      }
+      for (let x = 8; x <= 13; x++) g[22][x] = x === 8 || x === 13 ? 'k' : 'a';
+      if (i) for (const [x, y] of [[6, 22], [16, 22], [7, 21], [15, 21]]) g[y][x] = 'c';
+      return g;
     }],
     // A bee: striped body, a sting, and wings that blur between two frames.
     bee: [2, 9, (i) => {
@@ -9327,9 +9490,7 @@ const SquadView = (() => {
       case 'prophit':
         return u + ' hits the ' + nameOf('ev', e.id) + ' for ' + e.dmg + '.';
       case 'propdown':
-        return e.id === 'exit' ? 'The cardboard Blub goes down. That was Exit Liquidity.' : 'The ' + nameOf('ev', e.id) + ' comes down!';
-      case 'played':
-        return u + ' got played: it sits out a turn.';
+        return 'The ' + nameOf('ev', e.id) + ' comes down!';
       case 'airdrop':
         return 'AIRDROP! A crate comes down for ' + lb(e.team) + "'s weakest Blub.";
       case 'snipe':
@@ -9348,6 +9509,10 @@ const SquadView = (() => {
         return e.res === 'absorb' ? "The Lambo pops " + d + "'s bubble." : 'The Lambo hits ' + d + ': -' + e.dmg + '.';
       case 'rug':
         return 'RUGGED! The floor goes out from under ' + u + '.';
+      case 'sink':
+        return 'EXIT LIQUIDITY! The floor gives way under ' + u + '.';
+      case 'fall':
+        return u + ' falls through: out of the round.';
       case 'honey':
         return 'HONEYPOT! The power-up was a trap: ' + u + ' is stuck in honey and cannot attack.';
       case 'sticky':
@@ -10123,13 +10288,18 @@ const SquadView = (() => {
     // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
     pick: 1500, pickHit: 1150,
     // each squad's perk coming down in its crate as the round starts, and time to read it
-    perks: 5400, perksHit: 1500,
+    // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
+    perks: 4000, perksHit: 1300,
     claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     rocket: 2350, rocketEmpty: 1500,
     // the Lambo: climbing in, revving, a tile of road at a time, and the crash after
     lamboIn: 350, lamboRev: 420, lamboTile: 85, lamboAfter: 850,
+    // Exit Liquidity: the floor rumbles and cracks and gives way at sinkHit; each Blub
+    // on it hangs in the air for sinkHang and drops (sinkEach after the one before),
+    // and the sign drops in at sinkSign
+    sink: 3300, sinkHit: 1150, sinkHang: 340, sinkEach: 110, sinkSign: 2150,
   };
   // The chest reveal, in milliseconds from the moment the squads step aside. The
   // spin itself was settled long before this: everything here is only the telling.
@@ -10140,6 +10310,11 @@ const SquadView = (() => {
     read: 4500, // after the last band stops: time to read what the events do
     still: 5200, // reduced motion: no racing, just everything that fell, to read
   };
+  // Exit Liquidity's sign: where it stands against the hole's corner (its foot on the
+  // far rim), and how long it takes to drop in
+  const SIGN_X = 13;
+  const SIGN_Y = -18;
+  const SIGN_DROP = 290;
   const CARD = 72; // a card on a band, in CSS pixels: a 32x32 icon at 2x, framed
   const PITCH = CARD + 8;
   // the chest, in two halves so the lid can swing: 16 wide, painted at 4x
@@ -10152,6 +10327,10 @@ const SquadView = (() => {
 
   // a round longer than this at 1x is played a little faster (never below half speed)
   const ROUND_BUDGET = 40000;
+  // ...but only its routine: these beats are scenes, choreographed with their camera,
+  // and keep their time however long the round runs (as does the last knock-out)
+  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim']);
+  const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
   // Turns a round's events into beats on a clock. Each beat lists the events it applies and when.
@@ -10241,10 +10420,6 @@ const SquadView = (() => {
             p.dur += MS.walletEach;
             return;
           }
-          if (t === 'played' && p.kind === 'propdown') {
-            attachTo(p, i);
-            return;
-          }
           if (t === 'fog' && p.kind === 'mist') {
             attachTo(p, i);
             return;
@@ -10265,6 +10440,13 @@ const SquadView = (() => {
             const py = pos[e.u] ? pos[e.u][1] : (N - 1) / 2;
             p.list.push({ ei: i, off: MS.whaleSlap + Math.round(Math.abs(py - (N - 1) / 2) * MS.whaleTile) });
             pos[e.u] = e.to.slice();
+            return;
+          }
+          // Exit Liquidity: whoever stands on the hole goes down as the floor gives way
+          if (t === 'fall' && p.kind === 'sink') {
+            p.list.push({ ei: i, off: MS.sinkHit + MS.sinkHang + (p.n || 0) * MS.sinkEach });
+            p.n = (p.n || 0) + 1;
+            pos[e.u] = null;
             return;
           }
           if (t === 'attack' && p.kind === 'attack' && p.e.u === e.u && e.n === 1 && !p.contact2) {
@@ -10392,6 +10574,10 @@ const SquadView = (() => {
           add({ kind: t, dur: MS[t], contact: 0, list: [{ ei: i, off: 0 }], e });
           return;
         }
+        if (t === 'sink') {
+          parent = add({ kind: 'sink', dur: MS.sink, contact: MS.sinkHit, list: [{ ei: i, off: 0 }], e });
+          return;
+        }
         if (t === 'whale') {
           parent = add({ kind: 'wave', dur: MS.wave, contact: 0, list: [{ ei: i, off: 0 }], e });
           return;
@@ -10437,17 +10623,21 @@ const SquadView = (() => {
       flush();
       if (pre.length) add({ kind: 'misc', dur: 0, contact: 0, list: [] });
     }
-    // squeeze very long rounds, the same factor for every beat
+    // squeeze very long rounds: the same factor for every routine beat, in what time
+    // the scenes leave over
     let fight = 0;
+    let scenes = 0;
     beats.forEach((b) => {
-      if (b.kind !== 'rintro' && b.kind !== 'end') fight += b.dur;
+      if (!keepsTime(b)) fight += b.dur;
+      else if (b.kind !== 'rintro' && b.kind !== 'end') scenes += b.dur;
     });
-    const f = !calm && fight > ROUND_BUDGET ? Math.max(0.5, ROUND_BUDGET / fight) : 1;
+    const room = ROUND_BUDGET - scenes;
+    const f = !calm && fight > room ? Math.max(0.5, room / fight) : 1;
     let t = 0;
     const Q = [];
     const turns = [];
     beats.forEach((b) => {
-      let k = b.kind === 'rintro' || b.kind === 'end' ? 1 : f;
+      let k = keepsTime(b) ? 1 : f;
       // at 4x an attack still gets 90 ms of real time
       if (speed >= 4 && b.kind === 'attack' && b.dur * k < 360) k = 360 / b.dur;
       b.t = t;
@@ -10485,7 +10675,7 @@ const SquadView = (() => {
       })),
       item: null, mist: 0, winner: -1, turn: 0, actors: [], ended: false, blown: {}, aims: {},
       // the chest: the pill on its way up the curve, the hole it leaves, the weather
-      curve: null, crater: null, fud: null, bait: null, cats: [], props: [], spent: {}, perkSeen: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0,
+      curve: null, crater: null, fud: null, bait: null, cats: [], props: [], spent: {}, perkSeen: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0, sink: null,
     };
   }
   function fold(S, e) {
@@ -10595,7 +10785,7 @@ const SquadView = (() => {
       case 'paper':
         S.spent[Math.floor(e.u / SE.TEAM) + ':paper'] = 1;
         break;
-      // the contested six: laid, claimed, grown, knocked at and down
+      // the contested five: laid, claimed, grown, knocked at and down
       case 'props':
         S.props = e.list.map((p) => ({ id: p.id, x: p.at[0], y: p.at[1], team: -1, size: 0, hp: p.hp, max: p.hp, down: false }));
         break;
@@ -10683,6 +10873,17 @@ const SquadView = (() => {
         U[e.u].hp = 0;
         U[e.u].st = {};
         U[e.u].dug = false;
+        break;
+      // Exit Liquidity: the hole, there for good, and each Blub that went down it
+      case 'sink':
+        S.sink = { cells: e.cells, at: e.at };
+        break;
+      case 'fall':
+        U[e.u].alive = false;
+        U[e.u].hp = 0;
+        U[e.u].st = {};
+        U[e.u].dug = false;
+        U[e.u].fell = true;
         break;
       case 'end':
         S.winner = e.winner;
@@ -11074,6 +11275,8 @@ const SquadView = (() => {
         oy -= Math.round(u.jerk.dy * 2 * f);
       }
     }
+    // the floor shaking under it: Exit Liquidity about to give way
+    if (u.quake && !P.calm && t >= u.quake.t0 && t < u.quake.t1) ox += Math.floor((t - u.quake.t0) / 50) & 1 ? 1 : -1;
     // dug into a foxhole: lower, and the lower half hidden behind the front lip
     const sink = extra ? 0 : sinkOf(u, t, p);
     if (sink) {
@@ -11394,6 +11597,139 @@ const SquadView = (() => {
       x.fillRect(cx - 5 + ((i * 5) % 9), cy + 5 - Math.round(ph * (TILE - 5)), r, r);
     });
   }
+  // ---- Exit Liquidity's hole on screen: its top left corner (px), and the row its
+  // far edge is in (the sign is drawn with that row)
+  function sinkRect() {
+    const k = P.S && P.S.sink;
+    if (!k) return null;
+    let x0 = 1e9;
+    let y0 = 1e9;
+    for (const [tx, ty] of k.cells) {
+      const [cx, cy] = tileC(tx, ty);
+      x0 = Math.min(x0, cx - 8);
+      y0 = Math.min(y0, cy - 8);
+    }
+    return { x0, y0, row: Math.round((y0 - TOP) / TILE) };
+  }
+  // the hole, once the floor has gone: on the floor under everything, the red at the
+  // bottom pulsing
+  function drawSink(x, t, now) {
+    if (!(P.sinkAt <= t)) return;
+    const r = sinkRect();
+    if (r) x.drawImage(fxFrame('sink', 2 + (P.calm ? 0 : Math.floor(now / 520) & 1)), r.x0, r.y0);
+  }
+  // the inside of the rim as a stencil, and a scratch canvas to cut pictures with it
+  let sinkCut = null;
+  function inRim(x, x0, y0, paint) {
+    if (!sinkCut) {
+      const g = FG.grid(32);
+      FG.poly(g, SINK_RIM, '1');
+      const mask = canvas(32, 32);
+      const m = mask.getContext('2d');
+      m.fillStyle = '#000000';
+      for (let y = 0; y < 32; y++) for (let i = 0; i < 32; i++) if (g[y][i] === '1') m.fillRect(i, y, 1, 1);
+      sinkCut = { mask, ids: g, scratch: canvas(32, 32) };
+    }
+    const c = sinkCut.scratch.getContext('2d');
+    c.globalCompositeOperation = 'source-over';
+    c.clearRect(0, 0, 32, 32);
+    paint(c);
+    c.globalCompositeOperation = 'destination-in';
+    c.drawImage(sinkCut.mask, 0, 0);
+    c.globalCompositeOperation = 'source-over';
+    x.drawImage(sinkCut.scratch, x0, y0);
+  }
+  // The collapse: the floor inside the rim breaks along the very cracks that ran across
+  // it (the 'sink' art's frame 1), each piece the arena's own floor with its share of
+  // the cracks, so the moment it goes looks exactly like the moment before. Once per hole.
+  function sinkSlabs(x0, y0) {
+    if (P.slabs && P.slabs.at === x0 + ',' + y0) return P.slabs.list;
+    const g = FG.grid(32);
+    FG.poly(g, SINK_RIM, '1');
+    const crack = FX_ART.sink[2](1);
+    const inside = (p) => g[p >> 5][p & 31] === '1';
+    const cracked = (p) => crack[p >> 5][p & 31] !== '.';
+    const ids = new Int16Array(1024).fill(-1);
+    const near = (p, fn) => {
+      const x = p & 31;
+      const y = p >> 5;
+      for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+        if (x + dx < 0 || x + dx > 31 || y + dy < 0 || y + dy > 31) continue;
+        if (fn((y + dy) * 32 + x + dx)) return true;
+      }
+      return false;
+    };
+    // the floor between the cracks: one piece for each patch they close off
+    let n = 0;
+    for (let p = 0; p < 1024; p++) {
+      if (!inside(p) || cracked(p) || ids[p] >= 0) continue;
+      const q = [p];
+      ids[p] = n;
+      for (let h = 0; h < q.length; h++)
+        near(q[h], (m) => {
+          if (ids[m] < 0 && inside(m) && !cracked(m)) {
+            ids[m] = n;
+            q.push(m);
+          }
+          return false;
+        });
+      n++;
+    }
+    // the cracks themselves go with a piece beside them
+    for (let pass = 0; pass < 4; pass++)
+      for (let p = 0; p < 1024; p++) if (ids[p] < 0 && inside(p)) near(p, (m) => ids[m] >= 0 && ((ids[p] = ids[m]), true));
+    const src = P.map.ground.getContext('2d').getImageData(x0, y0, 32, 32).data;
+    const list = [];
+    for (let id = 0; id < n; id++) {
+      const c = canvas(32, 32);
+      const cx = c.getContext('2d');
+      const img = cx.createImageData(32, 32);
+      let cnt = 0;
+      let sx = 0;
+      let sy = 0;
+      for (let p = 0; p < 1024; p++) {
+        if (ids[p] !== id) continue;
+        cnt++;
+        sx += p & 31;
+        sy += p >> 5;
+        const o = p * 4;
+        const ch = crack[p >> 5][p & 31];
+        const hex = ch !== '.' ? IP[ch] : null;
+        img.data[o] = hex ? parseInt(hex.slice(1, 3), 16) : src[o];
+        img.data[o + 1] = hex ? parseInt(hex.slice(3, 5), 16) : src[o + 1];
+        img.data[o + 2] = hex ? parseInt(hex.slice(5, 7), 16) : src[o + 2];
+        img.data[o + 3] = 255;
+      }
+      if (!cnt) continue;
+      cx.putImageData(img, 0, 0);
+      // the middle goes first and the rim after it, each piece a moment of its own,
+      // tipping a pixel in towards the middle as it goes
+      const mx = sx / cnt - 15.5;
+      const my = sy / cnt - 15.5;
+      list.push({ c, delay: Math.round(Math.hypot(mx, my) * 9) + ((id * 37) % 40), side: mx > 2 ? -1 : mx < -2 ? 1 : 0 });
+    }
+    P.slabs = { at: x0 + ',' + y0, list };
+    return list;
+  }
+  // ghostOf for a picture with no name of its own (a slab of floor, a falling Blub),
+  // cached on the picture itself
+  const fadeCache = new WeakMap();
+  function fadeOf(img, a) {
+    const step = Math.round(clamp(a, 0, 1) * 16);
+    if (step >= 16) return img;
+    let m = fadeCache.get(img);
+    if (!m) fadeCache.set(img, (m = new Map()));
+    let c = m.get(step);
+    if (c) return c;
+    c = canvas(img.width, img.height);
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height);
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (FG.BAYER[(y & 3) * 4 + (x & 3)] >= step) d.data[(y * c.width + x) * 4 + 3] = 0;
+    g.putImageData(d, 0, 0);
+    m.set(step, c);
+    return c;
+  }
   // The FUD cloud: a storm parked over its patch. The patch goes dark under it with a
   // clear dashed edge, red candles rain out of it, lightning cracks down now and then,
   // the fear goes up off it in words, and whoever is standing under it sweats.
@@ -11617,15 +11953,15 @@ const SquadView = (() => {
     blob(x, cx, cy + 6, 10, 2, '#1B1229', 0.3);
     x.drawImage(fxFrame('catapult', (up ? 0 : 3) + f), cx - 12, cy - 16);
   }
-  // One of the contested six on the centre line. Unclaimed, a grey ring pulses under
+  // One of the contested five on the centre line. Unclaimed, a grey ring pulses under
   // it (somebody come and take it); claimed, it stands on a ring in its squad's
   // colour. A hit shakes it.
   function drawProp(x, p, t, now) {
     const [cx, cy] = tileC(p.x, p.y);
-    if (p.down && p.id !== 'exit') return;
+    if (p.down) return;
     const col = p.team < 0 ? '#C9C9D6' : colors[P.sideOf(p.team)].fill;
     const pulse = p.team < 0 && !P.calm ? 0.25 + 0.25 * Math.abs(Math.sin(now / 420)) : 0.6;
-    if (!p.down) blob(x, cx, cy + 6, 9, 2, col, pulse);
+    blob(x, cx, cy + 6, 9, 2, col, pulse);
     const shake = !P.calm && p.hitT != null && t - p.hitT >= 0 && t - p.hitT < 160 ? (Math.floor((t - p.hitT) / 40) % 2 ? 1 : -1) : 0;
     const blink = P.calm ? 0 : Math.floor(now / 500) % 2;
     let id = p.id;
@@ -11634,14 +11970,13 @@ const SquadView = (() => {
     else if (id === 'diamond') fr = blink;
     else if (id === 'laser') fr = p.team >= 0 ? 1 : 0;
     else if (id === 'ape') fr = P.calm ? 0 : Math.floor(now / 260) % 2;
-    else if (id === 'exit') fr = p.down ? 1 : 0;
     const sz = FX_ART[id][1];
     const foot = id === 'candle' ? 38 : 29;
     x.drawImage(fxFrame(id, fr), Math.round(cx - sz / 2 + shake), cy + 6 - foot);
-    // the candle and the decoy wear their HP once they have taken a hit
-    if ((id === 'candle' || id === 'exit') && !p.down && p.hp < p.max) {
+    // the candle wears its HP once it has taken a hit
+    if (id === 'candle' && p.hp < p.max) {
       const w = 12;
-      const top = cy + 6 - foot + (id === 'candle' ? 33 - 6 - p.size * 4 - 9 : 2) - 4;
+      const top = cy + 6 - foot + 33 - 6 - p.size * 4 - 9 - 4;
       x.fillStyle = INK;
       x.fillRect(cx - w / 2 - 1, top - 1, w + 2, 4);
       x.fillStyle = '#4BE08F';
@@ -12050,6 +12385,7 @@ const SquadView = (() => {
         x.globalAlpha = 1;
       }
       drawCraters(x);
+      drawSink(x, t, now);
       for (const f of P.fx) if (f.under && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
       drawShells(x, t, now, true);
     }
@@ -12077,6 +12413,7 @@ const SquadView = (() => {
     const rk = rocketSpot();
     const lk = lamboSpot();
     const wk = S.wreck ? { cx: tileC(S.wreck[0], S.wreck[1])[0], cy: tileC(S.wreck[0], S.wreck[1])[1], row: scr(S.wreck[0], S.wreck[1])[1] } : null;
+    const sk = P.signAt <= t ? sinkRect() : null;
     for (let r = 0; r < N; r++) {
       const strip = P.map.blocks[r];
       if (strip && drop >= 1) x.drawImage(strip, 0, TOP + r * TILE - 6);
@@ -12094,6 +12431,7 @@ const SquadView = (() => {
       if (rk && r === rk.row) inRow(x, r, drop, () => drawRocket(x, rk, t, now));
       if (lk && r === lk.row && !S.lamboGone) inRow(x, r, drop, () => drawLambo(x, lk, t, now));
       if (wk && r === wk.row && !(P.wreckAt > t)) drawWreck(x, wk.cx, wk.cy, t, now);
+      if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
       const ol = P.objRows[r];
@@ -12706,6 +13044,12 @@ const SquadView = (() => {
       const [sx, sy] = scr(u.x, u.y);
       P.decals.push({ x: sx * TILE, y: TOP + sy * TILE });
     }
+    // Exit Liquidity: the hole shows once the floor has gone, its sign once it is in
+    if (e.t === 'sink') {
+      const kk = b && b.k ? b.k : 1;
+      P.sinkAt = P.calm ? T : T + MS.sinkHit * kk;
+      P.signAt = P.calm ? T : T + (MS.sinkSign + SIGN_DROP) * kk;
+    }
     if (e.t === 'blast' || e.t === 'boom') {
       const [sx, sy] = scr(e.at[0], e.at[1]);
       P.craters.push({ x: sx * TILE, y: TOP + sy * TILE, turn: S.turn, kind: e.t === 'blast' ? 'shell' : 'mine' });
@@ -12716,8 +13060,9 @@ const SquadView = (() => {
         u.hpT = P.seeking ? -1e9 : T;
       }
     });
-    if (P.seeking) return;
+    // the log follows a jump too, so it always tells what led up to the spot on screen
     log(e);
+    if (P.seeking) return;
     P.dirty = true;
     if (P.calm) return;
     fx(e, T, b, k);
@@ -13044,6 +13389,130 @@ const SquadView = (() => {
       // under it, off to the side and away. For a moment the Blub just hangs there over
       // the hole, looking down, the way it does in the cartoons. Then it drops, and the
       // floor closes over it.
+      // Exit Liquidity. No warning but the floor itself: it shakes under whoever is
+      // standing there, cracks run out from the middle with the red glowing in them,
+      // and then it gives way, its slabs dropping into the dark one after another, the
+      // middle first, while the dust comes up round the rim. Each Blub on it has a
+      // 'fall' of its own; when it is quiet again, the sign drops in at the far edge.
+      case 'sink': {
+        const r = sinkRect();
+        if (!r) return;
+        const { x0, y0 } = r;
+        const cx = x0 + 16;
+        const cy = y0 + 16;
+        const HIT = MS.sinkHit * k;
+        const I = T + HIT;
+        const doomed = (e.fell || []).map((id) => U[id]);
+        for (const u of doomed) u.quake = { t0: T + 200 * k, t1: I };
+        sfx('power');
+        // the rumble: the floor inside the rim shaking, then the cracks over it
+        addFx(T, HIT, (x, kk, el) => {
+          const j = el < 200 * k ? 0 : Math.floor(el / (50 * k)) & 1 ? 1 : -1;
+          if (j) inRim(x, x0, y0, (g) => g.drawImage(P.map.ground, x0, y0, 32, 32, j, 0, 32, 32));
+          if (el > 300 * k) x.drawImage(fxFrame('sink', el > 720 * k ? 1 : 0), x0, y0);
+        }, true);
+        for (let q = 0; q < 8; q++) addParts(2, x0 + 5 + ((q * 11) % 23), y0 + 6 + ((q * 7) % 21), ['#FFE3EA', '#D88FA3'], 0.03, 0.0002, 320 * k, T + (200 + q * 110) * k, false, [Math.PI * 1.2, Math.PI * 1.8]);
+        atClock(T + 720 * k, () => sfx('zap'));
+        // whoever is on it has noticed
+        addFx(T + 500 * k, HIT - 500 * k, (x, kk, el) => {
+          for (const u of doomed) {
+            const [ux, uy] = centreOf(u);
+            const up = Math.floor(el / (90 * k)) & 1;
+            x.drawImage(pxText('!', INK, 1), ux + 7, uy - 26 - up);
+            x.drawImage(pxText('!', '#FFFFFF', 1), ux + 6, uy - 27 - up);
+          }
+        });
+        // as it goes, each Blub on it hangs there in the air a moment, shaking, until
+        // its own fall takes over (the arena stops drawing it here)
+        doomed.forEach((u, n) => {
+          const [hx, hy] = tileC(u.x, u.y);
+          const H = (MS.sinkHang + n * MS.sinkEach) * k;
+          const img = P.spr[u.id].get(u.face || 1, 'o');
+          u.air = [I, I + H + 600 * k];
+          addFx(I, H, (x, kk, el) => {
+            x.drawImage(img, hx - 8 + (Math.floor(el / (40 * k)) & 1 ? 1 : 0), hy - 13);
+            x.drawImage(pxText('!', INK, 1), hx + 7, hy - 26);
+            x.drawImage(pxText('!', '#FFFFFF', 1), hx + 6, hy - 27);
+          });
+        });
+        // the collapse: slabs of the real floor falling into the hole, cut off at the rim
+        const slabs = sinkSlabs(x0, y0);
+        addFx(I, 720 * k, (x, kk, el) => {
+          const ms = el / k;
+          inRim(x, x0, y0, (g) => {
+            for (const s of slabs) {
+              const e2 = ms - s.delay;
+              if (e2 < 0) {
+                g.drawImage(s.c, 0, 0);
+                continue;
+              }
+              const dy = 1 + Math.round(0.00045 * e2 * e2);
+              if (dy < 32) g.drawImage(fadeOf(s.c, 1 - dy / 30), Math.round(s.side * Math.min(1, e2 / 220)), dy);
+            }
+          });
+        }, true);
+        // the red down there flares once the slabs are out of the way
+        addFx(I + 160 * k, 600 * k, (x, kk) => inRim(x, x0, y0, (g) => ditherRect(g, 6, 16, 20, 13, '#E2566E', 0.3 * (1 - kk))), true);
+        // dust puffing out along the sides and the near rim, low on the floor, so it never
+        // hides the Blubs going down; and bits of floor and earth thrown up
+        for (const [px, py, s] of [[1, 12, -1], [31, 14, 1], [3, 28, -1], [29, 29, 1], [16, 31, 0]]) {
+          addFx(I + ((px * 13 + py * 7) % 90) * k, 520 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(x0 + px - 8 + (s * el * 0.016) / k), Math.round(y0 + py - 9 - (el * 0.006) / k)), true);
+        }
+        addParts(12, cx, y0 + 26, ['#FFE3EA', '#D88FA3', '#C27088', '#5A3618'], 0.07, 0.00035, 520 * k, I, true, [Math.PI * 1.15, Math.PI * 1.85]);
+        atClock(I, () => {
+          shake(I);
+          hold(90);
+          sfx('ko');
+          banner('EXIT LIQUIDITY', 'ev', 'exit', 1800);
+        });
+        // the sign drops in at the far edge, once the dust is down
+        const S0 = T + MS.sinkSign * k;
+        const DROP = SIGN_DROP * k;
+        addFx(S0, DROP, (x, kk, el) => {
+          const fall = DROP - 90 * k;
+          if (el < fall) x.drawImage(fxFrame('exitsign', 0), x0 + SIGN_X, y0 + SIGN_Y - Math.round((1 - (el / fall) ** 2) * 34));
+          else x.drawImage(fxFrame('exitsign', 1), x0 + SIGN_X, y0 + SIGN_Y);
+        });
+        atClock(S0 + DROP - 90 * k, () => {
+          sfx('block');
+          addParts(6, x0 + SIGN_X + 11, y0 + SIGN_Y + 22, ['#FFE3EA', '#C27088'], 0.04, 0.0003, 300 * k, P.clock, false, [Math.PI * 1.1, Math.PI * 1.9]);
+        });
+        label(S0 + DROP, 'EXIT LIQUIDITY', '#7DF0A0', cx, y0 + SIGN_Y - 1, true);
+        // the camera: in close as the cracks run, slow as it gives way and they hang
+        // there, out again once the sign stands
+        closeUp(T + 260 * k, (MS.sinkSign + SIGN_DROP + 420 - 260) * k, cx, cy - 10, { slow: [I - 80 * k, I + 440 * k], f: 0.45 });
+        return;
+      }
+      // A Blub on Exit Liquidity's hole, after its moment hanging in the air: it drops
+      // into the dark, tumbling, the near rim hiding it, and the chart has the last word
+      case 'fall': {
+        const u = U[e.u];
+        const r = sinkRect();
+        const [cx, cy] = tileC(u.x, u.y);
+        const DROP = 420 * k;
+        const look = P.spr[u.id];
+        const face = u.face || 1;
+        const lip = r ? r.y0 + 29 : cy + 8;
+        sfx('miss');
+        addFx(T, DROP, (x, f, el) => {
+          const fc = f > 0.25 && Math.floor(el / (70 * k)) & 1 ? -face : face;
+          const oy = Math.round(f * f * 38);
+          const img = look.get(fc, 'o');
+          x.save();
+          x.beginPath();
+          x.rect(0, 0, CW, lip);
+          x.clip();
+          x.drawImage(f > 0 ? fadeOf(img, 1 - f * 0.85) : img, cx - 8, cy - 13 + oy);
+          x.restore();
+          if (f < 0.7) {
+            // the air rushing past it
+            x.fillStyle = '#FFFFFF';
+            for (const dx of [-5, 0, 5]) x.fillRect(cx + dx, cy - 20 + oy - (dx ? 0 : 3), 1, 3);
+          }
+        });
+        label(T + DROP, '-100%', '#FF5C77', cx, (r ? r.y0 : cy) + 2, true);
+        return;
+      }
       case 'rug': {
         const u = U[e.u];
         const [cx, cy] = tileC(e.at[0], e.at[1]);
@@ -13126,7 +13595,7 @@ const SquadView = (() => {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         const side = P.sideOf(e.team);
         const c = colors[side];
-        const short = { candle: 'GREEN CANDLE', diamond: 'DIAMOND HANDS', laser: 'LASER EYES', copium: 'COPIUM', ape: 'APES TOGETHER', exit: 'EXIT LIQUIDITY' }[e.id] || 'CLAIMED';
+        const short = { candle: 'GREEN CANDLE', diamond: 'DIAMOND HANDS', laser: 'LASER EYES', copium: 'COPIUM', ape: 'APES TOGETHER' }[e.id] || 'CLAIMED';
         sfx('power');
         label(T, short, c.light, cx, cy - 34, true);
         label(T + 220 * k, (P.sideLabels[side] || side).toUpperCase(), c.fill, cx, cy - 24, false);
@@ -13182,12 +13651,7 @@ const SquadView = (() => {
           addFx(T, 480 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), Math.round(cy - 8)));
         return;
       }
-      case 'played': {
-        const u = U[e.u];
-        const [cx, cy] = centreOf(u);
-        label(T + 200 * k, 'PLAYED', '#D9A05B', cx, cy - 22, true);
-        return;
-      }
+
       // A squad's perk lands: the crate thumps down, the lid springs, and the perk's
       // card rises out of it and hangs there over the crate until the fight starts.
       case 'perk': {
@@ -13837,7 +14301,7 @@ const SquadView = (() => {
         }, true);
         for (let q = 1; q < H; q++) atClock(T + when(q), () => sfx('click'));
         const [cx, cy] = centreOf(tgt);
-        const name = { nuke: 'THE PILL', fud: 'FUD', rug: 'RUG PULL', honeypot: 'HONEYPOT', rocket: 'TO THE MOON', lambo: 'WEN LAMBO', sendit: 'SEND IT', candle: 'GREEN CANDLE', diamond: 'DIAMOND HANDS', laser: 'LASER EYES', copium: 'COPIUM', ape: 'APES TOGETHER', exit: 'EXIT LIQUIDITY' }[e.id] || 'PICKED';
+        const name = { nuke: 'THE PILL', fud: 'FUD', rug: 'RUG PULL', honeypot: 'HONEYPOT', rocket: 'TO THE MOON', lambo: 'WEN LAMBO', sendit: 'SEND IT', candle: 'GREEN CANDLE', diamond: 'DIAMOND HANDS', laser: 'LASER EYES', copium: 'COPIUM', ape: 'APES TOGETHER' }[e.id] || 'PICKED';
         label(T + STOP, name, '#FFD447', cx, cy - 36, true);
         label(T + STOP + 120 * k, P.names[e.u].toUpperCase(), colors[tgt.side].light, cx, cy - 26, true);
         closeUp(T + STOP - 60 * k, (MS.pick - MS.pickHit) * k + 200 * k, cx, cy - 10);
@@ -14681,7 +15145,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'played', 'crashed', 'pick', 'gas']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -14818,13 +15282,14 @@ const SquadView = (() => {
         if (u.alive && u.ammo) sts.push('ammo');
         if (u.alive && u.gone) sts.push('rugged');
         const acting = P.actors.includes(r.id) && P.phase === 'round';
-        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting].join('|');
+        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting, u.fell].join('|');
         if (key === r.key) return;
         r.key = key;
         r.hp.textContent = '';
         // phones show the numbers only: 'HP 28/28' does not fit next to the portrait
         if (u.alive && u.gone) r.hp.append(el('span', 'long', 'Rugged!'), el('span', 'short', 'RUG'));
         else if (u.alive) r.hp.append(el('span', 'long', 'HP ' + u.hp + '/' + u.max), el('span', 'short num', u.hp + '/' + u.max));
+        else if (u.fell) r.hp.append(el('span', 'long', 'Exited'), el('span', 'short', 'EXIT'));
         else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
         r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
         r.b.classList.toggle('ko', !u.alive);
@@ -14840,7 +15305,7 @@ const SquadView = (() => {
         });
         if (u.held && !sts.length) r.sts.append(icon('item', u.held, 14));
         else if (u.held) r.sts.append(icon('item', u.held, 14));
-        r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
+        r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
       }),
     );
     D.you.cnt.textContent = alive.you + '/5';
@@ -15152,6 +15617,8 @@ const SquadView = (() => {
     P.slows = [];
     P.bi = 0;
     P.wreckAt = 0;
+    P.sinkAt = 0;
+    P.signAt = 0;
     P.holdT = 0;
     P.actors = [];
     P.beat = null;
@@ -15245,6 +15712,9 @@ const SquadView = (() => {
       P.craters = [];
       P.cause = {};
     }
+    // the log is told again from the start of the round up to the new spot
+    P.logLines = [];
+    P.ticker = '';
     P.fx = [];
     P.parts = [];
     P.nums = [];
@@ -15258,6 +15728,8 @@ const SquadView = (() => {
     P.slows = [];
     P.bi = 0;
     P.wreckAt = 0;
+    P.sinkAt = 0;
+    P.signAt = 0;
     P.holdT = 0;
     P.seeking = true;
     const Q = P.rd.Q;
@@ -15275,6 +15747,7 @@ const SquadView = (() => {
       u.atk = null;
       u.hop = null;
       u.jerk = null;
+      u.quake = null;
       u.riseT = -1e9;
       u.hpFrom = u.hp;
     });
@@ -15361,6 +15834,9 @@ const SquadView = (() => {
         sh(u.atk, 't0');
         sh(u.hop, 't0');
         sh(u.jerk, 't0');
+        sh(u.quake, 't0');
+        sh(u.quake, 't1');
+        if (u.air) u.air = [u.air[0] + shift, u.air[1] + shift];
         ['flash', 'hpT', 'koT', 'nap', 'hurt', 'riseT'].forEach((f) => (u[f] += shift));
       });
       P.shells.forEach((x) => {
@@ -15372,6 +15848,20 @@ const SquadView = (() => {
         sh(v.wob, 't0');
       });
       ['shakeT', 'flashT', 'itemT', 'mistT'].forEach((f) => P[f] != null && (P[f] += shift));
+      // the director's cuts and slow spells, what waits for its moment on the clock,
+      // and the things that turn up mid-round (the wreck, the hole and its sign) move
+      // with everything else, so a speed change never cuts a scene short
+      (P.shots || []).forEach((v) => {
+        sh(v, 't0');
+        sh(v, 't1');
+      });
+      (P.slows || []).forEach((v) => {
+        sh(v, 't0');
+        sh(v, 't1');
+      });
+      (P.later || []).forEach((l) => sh(l, 't0'));
+      sh(P.cam, 't0');
+      ['wreckAt', 'sinkAt', 'signAt'].forEach((f) => P[f] && (P[f] += shift));
       if (P.beat) P.beat = nd.beats[oldRd.beats.indexOf(P.beat)] || null;
     }
     if (P.phase === 'intro' && P.rd) {
@@ -15529,7 +16019,7 @@ const SquadView = (() => {
         laser: `Claim it: your nearest Blub gets +${R.laserRange} reach and +${R.laserDmg} damage.`,
         copium: `Claim it: your hurt Blubs near it take ${R.copiumSoak}% less.`,
         ape: `Claim it: +${R.apeDmg} damage for every Blub beside a team mate.`,
-        exit: `Claim it: a cardboard decoy the enemy wastes its swings on.`,
+        exit: `Turn ${R.exitFrom}-${R.exitTo}, no warning: the floor opens under a Blub. Whoever stands on it is out.`,
       },
       buff: {
         airdrop: `Turn ${R.airdropFrom}-${R.airdropTo}: your weakest Blub gets +${R.airdropHp} HP and its power back.`,
@@ -16193,12 +16683,28 @@ const SquadView = (() => {
       cxBlub(x, 30, 52, -1, 'h', Math.floor(t / 400 + 1) % 2);
       cxText(x, '+1 TOGETHER', '#FFD447', 36, 4);
     },
+    // the floor shakes and cracks, gives way under the Blub, which hangs there and
+    // drops; then the sign lands at the far edge
     exit(x, t) {
-      const down = t > 1500;
-      x.drawImage(fxFrame('exit', down ? 1 : 0), 48 - 16 + (t > 700 && t < 1500 && Math.floor(t / 40) % 2 ? 1 : 0), 58 - 29);
-      cxBlub(x, 22, 52, 1, down ? 'o' : 'n', 0);
-      if (t > 700 && t < 1500 && Math.floor((t - 700) / 400) % 2 === 0) cxText(x, '5', '#FFFFFF', 48, 22);
-      if (down) cxText(x, 'PLAYED', '#D9A05B', 22, 28);
+      const x0 = 20;
+      const y0 = 30;
+      const HIT = 900;
+      if (t < HIT) {
+        if (t > 250) x.drawImage(fxFrame('sink', t > 600 ? 1 : 0), x0, y0);
+      } else x.drawImage(fxFrame('sink', 2 + (Math.floor(t / 400) & 1)), x0, y0);
+      if (t < HIT) cxBlub(x, 36 + (t > 200 && Math.floor(t / 50) % 2 ? 1 : 0), 46, 1, t < 500 ? 'n' : 'o', 0);
+      else if (t < HIT + 750) {
+        const f = ease(t, HIT + 350, HIT + 750);
+        x.save();
+        x.beginPath();
+        x.rect(0, 0, CX, y0 + 29);
+        x.clip();
+        x.drawImage(codexBlub().get(f > 0.25 && Math.floor(t / 70) % 2 ? -1 : 1, 'o'), 36 - 8 + (f === 0 && Math.floor(t / 45) % 2 ? 1 : 0), 46 - 13 + Math.round(f * f * 34));
+        x.restore();
+      }
+      if ((t > 500 && t < HIT + 350)) cxText(x, '!', '#FFFFFF', 46, 22);
+      if (t > 1700) x.drawImage(fxFrame('exitsign', t < 1900 ? 0 : t < 1990 ? 1 : 0), x0 + SIGN_X, y0 + SIGN_Y - (t < 1900 ? Math.round((1 - ease(t, 1700, 1900) ** 2) * 30) : 0));
+      if (t > HIT + 750) cxText(x, '-100%', '#FF5C77', 36, 4);
     },
   };
   // the memepowers: the card's icon, and a little of what it does
@@ -16396,8 +16902,8 @@ const SquadHall = (() => {
     strength: null, sSig: '', inView: false, pending: null, bots: [], botSeed: 0, modal: null, pick: 'cur', rand: null,
     team: null, prefill: null, online: null, back: null, seenOnce: false, me: undefined, offArm: null,
     // the builder's moment-to-moment state (never saved): a lifted Blub, the spots objects left
-    // (k -> {x, y}, this visit only), the object being pressed or flashing, the rating's popover
-    lift: false, spots: {}, justSel: false, press: null, flash: null, popOpen: false, rateOpen: false, rateLast: null, ratePrev: null, rateLv: null,
+    // (k -> {x, y}, this visit only), a Blub being dragged, the object flashing, the rating's popover
+    lift: false, spots: {}, justSel: false, drag: null, noClick: 0, flash: null, popOpen: false, rateOpen: false, rateLast: null, ratePrev: null, rateLv: null,
   };
   const R = {}; // the hall's elements, made in ready()
   const mqMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -16406,7 +16912,7 @@ const SquadHall = (() => {
   // touch screens tap, mice click: the builder's words follow the device
   const touchy = matchMedia('(hover: none)');
   const tword = () => (touchy.matches ? 'tap' : 'click');
-  const dword = () => (touchy.matches ? 'Double-tap' : 'Double-click');
+  const Tword = () => (touchy.matches ? 'Tap' : 'Click');
   const newSeed = () => (crypto.getRandomValues(new Uint32Array(1))[0] % 2147483000) + 1;
   const hasView = k => typeof SquadView !== 'undefined' && SquadView && typeof SquadView[k] === 'function';
 
@@ -16711,7 +17217,7 @@ const SquadHall = (() => {
   }
   // a saved squad with the roles that follow their Blub's personality brought up to date
   const fitted = d => { const c = copyDraft(d); if (c) followTeam(c); return c; };
-  function loadDraft(d, note){ cancelGate(); st.draft = fitted(d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {}; changed(); say(R.barMsg, note || '', true); Sfx.play('click'); hop(-1); }
+  function loadDraft(d, note){ st.draft = fitted(d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {}; changed(); say(R.barMsg, note || '', true); Sfx.play('click'); hop(-1); }
 
   // ---- how strong is a squad? 192 practice fights on fixed seeds against a fixed gauntlet
   // of 48 squads (32 random bots, 10 squads built from the role presets, 6 of those built
@@ -16941,7 +17447,7 @@ const SquadHall = (() => {
   }
   // the parts of the builder that show the picked Blub
   function renderUnit(){ renderFive(); renderStage(); renderChoices(); renderStats(); renderStrip(); }
-  function changed(){ cancelGate(); saveDraft(); keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); }
+  function changed(){ saveDraft(); keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); }
   // the sheet's Edit buttons and the strip's Edit: that Blub's parts, in sight
   function editBlub(i){
     if (i !== st.sel) select(i);
@@ -17329,9 +17835,12 @@ const SquadHall = (() => {
   // ---- zone 2, the formation: rows 12-14 are yours; 9-11 (no man's land) take wire, mines and
   // sandbags. The trench kit's shelf lies under the board, inside the same frame.
   const FADE_W = 0.72; // a no man's land row is this tall next to one of yours
-  const helpText = () => (touchy.matches
-    ? 'Tap a Blub to pick it, then a tile to move it. Tap the picked Blub again, then another Blub, to swap them. Tap an object once to move it (or to put the picked Blub on a watchtower, foxhole or wire); double-tap it to take it out. Double-tap an object in the trench kit to dig it in (2 at most). Keys: 1-5 pick a Blub, arrows move, Enter picks up and places, M moves an object, Delete takes it out, Escape stops.'
-    : 'Click a Blub to pick it, then a tile to move it. Click the picked Blub again, then another Blub, to swap them. Click an object once to move it (or to put the picked Blub on a watchtower, foxhole or wire); double-click it to take it out. Double-click an object in the trench kit to dig it in (2 at most). Dragging works too. Keys: 1-5 pick a Blub, arrows move, Enter picks up and places, M moves an object, Delete takes it out, Escape stops.');
+  const helpText = () => {
+    const T = Tword(), t = tword();
+    return 'Drag a Blub or an object to move it. Or ' + t + ' a Blub to pick it, then a tile. ' + T + ' the picked Blub again, then another Blub, to swap them. ' +
+      T + ' an object in the trench kit to dig it in, and again to take it out (' + KMAX + ' at most). ' + T + ' an object on the board, then a tile, to move it (a watchtower, foxhole or wire takes the picked Blub instead). ' +
+      'Keys: 1-5 pick a Blub, arrows move, Enter picks up and places, M moves an object, Delete takes it out, Escape stops.';
+  };
   const NML_HINT = 'Blubs start on your own three rows. Wire, mines and sandbags may go out here: dig one in from the trench kit.';
   function buildBoard(){
     const zone = h('div', {class: 'sq-zone sq-fzone sq-deploy'});
@@ -17364,16 +17873,17 @@ const SquadHall = (() => {
     R.help = h('p', {class: 'sq-desc', id: 'sqBoardHelp'}, helpText());
     zone.append(head, h('div', {class: 'sq-dgrid'}, h('div', {class: 'sq-dmain'}, R.bStrip, R.frame), R.kitSide), R.help);
     R.boardBox = board; R.cv = cv; R.grid = grid;
-    // tap / click, keyboard and (mouse only) drag
+    // tap / click, keyboard and drag (mouse, pen and finger: a cell with a Blub or an
+    // object on it does not scroll the page, so a finger on it drags; the empty ones do)
     let drag = null;
     const cellOf = e => { const c = document.elementFromPoint(e.clientX, e.clientY); return c && c.closest ? c.closest('.sq-cell') : null; };
     grid.addEventListener('pointerdown', e => {
       const c = e.target.closest('.sq-cell'); if (!c) return;
       const x = +c.dataset.x, y = +c.dataset.y, k = unitAt(x, y), o = objAt(x, y);
       st.ptr = e.pointerType; st.justSel = false;
-      // a tap somewhere else ends the wait for a second tap on an object: its single tap counts now
-      if (gate && (k >= 0 || !o || gate.key !== 'board:' + o.k)) flushGate();
-      if (e.pointerType !== 'mouse' || st.place) return;
+      if (!e.isPrimary) return;
+      // an object being moved can still be dragged itself; any other press is a tap that places it
+      if (st.place){ if (k < 0 && o && o.k === st.place) drag = {obj: o.k, x, y, moved: false}; return; }
       if (k >= 0){
         // a lifted Blub waits for the click on the other one (a swap); no drag then
         if (st.lift && k !== st.sel) return;
@@ -17385,24 +17895,32 @@ const SquadHall = (() => {
       const cell = cellOf(e), at = cell ? [+cell.dataset.x, +cell.dataset.y] : null;
       if (drag){
         if (at && (at[0] !== drag.x || at[1] !== drag.y)) drag.moved = true;
-        if (drag.obj){ if (drag.moved){ cancelGate(); st.place = drag.obj; st.hover = at; paintBoard(); } return; }
+        if (drag.obj){ if (drag.moved){ st.place = drag.obj; st.hover = at; paintBoard(); } return; }
         R.cells.forEach(n => n.classList.toggle('drop', n === cell && !(+n.dataset.x === drag.x && +n.dataset.y === drag.y)));
+        // the Blub itself goes along, floating over the tile it would land on
+        if (drag.moved){
+          const to = at && E.DEPLOY_ROWS.includes(at[1]) ? at : null;
+          if (String(to) !== String(st.drag && st.drag.at)){ st.drag = {k: drag.k, at: to}; paintBoard(); }
+        }
         return;
       }
       if (e.pointerType === 'mouse' && st.place && String(at) !== String(st.hover)){ st.hover = at; paintBoard(); }
     });
     grid.addEventListener('pointerleave', () => { if (st.hover && !drag){ st.hover = null; paintBoard(); } });
+    // the click a drag may leave behind (a mouse sends one, a finger usually not) is
+    // ignored for a moment, never later
     const endDrag = e => {
       if (!drag) return;
       const d0 = drag; drag = null; R.cells.forEach(n => n.classList.remove('drop'));
+      if (st.drag){ st.drag = null; paintBoard(); }
       if (e.type !== 'pointerup' || !d0.moved){ if (d0.obj && d0.moved){ st.place = null; st.hover = null; paintBoard(); } return; }
       const cell = cellOf(e);
-      if (d0.obj){ if (cell) st.noClick = true; if (!cell || !placeObj(d0.obj, +cell.dataset.x, +cell.dataset.y)){ st.place = null; st.hover = null; paintBoard(); renderStrip(); } return; }
-      if (cell){ place(+cell.dataset.x, +cell.dataset.y); st.noClick = true; }
+      if (d0.obj){ if (cell) st.noClick = performance.now() + 500; if (!cell || !placeObj(d0.obj, +cell.dataset.x, +cell.dataset.y)){ st.place = null; st.hover = null; paintBoard(); renderStrip(); } return; }
+      if (cell){ place(+cell.dataset.x, +cell.dataset.y); st.noClick = performance.now() + 500; }
     };
     addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
     grid.addEventListener('click', e => {
-      if (st.noClick){ st.noClick = false; return; }
+      if (st.noClick){ const late = performance.now() > st.noClick; st.noClick = 0; if (!late) return; }
       const c = e.target.closest('.sq-cell'); if (!c) return;
       const x = +c.dataset.x, y = +c.dataset.y, k = unitAt(x, y), o = objAt(x, y);
       st.cur = [x, y];
@@ -17430,7 +17948,6 @@ const SquadHall = (() => {
       focusCur();
     });
     grid.addEventListener('keydown', e => {
-      flushGate();
       const u = st.draft.units[st.sel], mo = st.place ? st.draft.objs.find(o => o.k === st.place) : null;
       const cur = st.cur || (mo ? [mo.x, mo.y] : [u.x, u.y]);
       const mv = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[e.key];
@@ -17474,38 +17991,12 @@ const SquadHall = (() => {
   }
   const unitAt = (x, y) => st.draft.units.findIndex(u => u.x === x && u.y === y);
   function boardSay(text, ok){ say(R.bMsg, text || '', ok); }
-  // one tap on an object picks it up to move (a watchtower, foxhole or wire on your rows takes
-  // the picked Blub instead); a second tap within DBL ms takes it out
+  // one tap on an object picks it up to move, at once (a watchtower, foxhole or wire on your
+  // rows takes the picked Blub instead); taking it out is one tap on it in the trench kit
   function tapObj(o, x, y){
-    const k = o.k, single = () => {
-      if (OST(k).stand && E.DEPLOY_ROWS.includes(y)) place(x, y);
-      else pickObj(k, {scroll: false});
-    };
-    tapGate('board:' + k, single, () => takeOut(k));
+    if (OST(o.k).stand && E.DEPLOY_ROWS.includes(y)) place(x, y);
+    else pickObj(o.k, {scroll: false});
   }
-
-  // ---- telling a single from a double click or tap, without a 'dblclick' listener
-  const DBL = 350;
-  // the shelf: a second click on the same slot within DBL ms (or the browser's own double click)
-  let lastTap = {key: '', t: 0, used: false};
-  function isDouble(key, e){
-    const now = performance.now();
-    const hit = lastTap.key === key && !lastTap.used && (now - lastTap.t <= DBL || (e && e.detail === 2));
-    lastTap = {key, t: now, used: hit};
-    return hit;
-  }
-  // the board: a single tap on an object waits DBL ms for a second one (its outline shows at once)
-  let gate = null;
-  function tapGate(key, single, dbl){
-    if (gate && gate.key === key && performance.now() - gate.t <= DBL){ clearTimeout(gate.timer); gate = null; st.press = null; dbl(); return; }
-    flushGate();
-    st.press = key; paintBoard();
-    const g = gate = {key, t: performance.now(), single, timer: setTimeout(() => { if (gate !== g) return; gate = null; st.press = null; single(); paintBoard(); }, DBL)};
-  }
-  // run a waiting single tap now (another tap or a key came first)
-  function flushGate(){ if (!gate) return; const g = gate; clearTimeout(g.timer); gate = null; st.press = null; g.single(); paintBoard(); }
-  // drop a waiting single tap (the squad changed under it)
-  function cancelGate(){ if (!gate) return; clearTimeout(gate.timer); gate = null; st.press = null; }
 
   // ---- Blubs: pick, lift, move and swap
   function place(x, y){
@@ -17542,13 +18033,12 @@ const SquadHall = (() => {
   function pickObj(k, o){
     if (!st.draft.objs.some(p => p.k === k)) return;
     if (st.place === k) return stopPlacing();
-    cancelGate();
     st.lift = false;
     st.place = k; st.objSel = k; st.bad = null; st.hover = null;
     const ob = st.draft.objs.find(p => p.k === k);
     if (!st.cur || st.ptr !== 'mouse') st.cur = [ob.x, ob.y];
     Sfx.play('click'); paintBoard(); renderStrip(); keepFocus(renderKit);
-    boardSay('Moving the ' + OBJ[k][1] + ': ' + tword() + ' a tile. Green fits, red says why not.', true);
+    boardSay('Moving the ' + OBJ[k][1] + ': ' + tword() + ' a tile or drag it there. Green fits, red says why not.', true);
     if (!o || o.scroll !== false) showBoard();
   }
   // the strip, the board and the shelf in sight while an object moves: below the sticky five
@@ -17750,7 +18240,9 @@ const SquadHall = (() => {
         paintObj(x, lift ? {...it.o} : it.o, lift ? {...G, ry: j => G.ry(j) - lift} : G, st.place === it.o.k && ghost ? 0.45 : 1);
         return;
       }
-      const u = it.u, i = it.i, [X, Y, cW, cH] = tile(u.x, u.y - 9), on = i === st.sel && !st.place, up = on && st.lift;
+      // a Blub being dragged is drawn floating over the tile it would land on
+      const dg = st.drag && st.drag.k === it.i && st.drag.at ? st.drag.at : null;
+      const u = it.u, i = it.i, [X, Y, cW, cH] = dg ? tile(dg[0], dg[1] - 9) : tile(u.x, u.y - 9), on = i === st.sel && !st.place, up = on && (st.lift || !!dg);
       const mid = X + cW / 2, foot = Y + cH - Math.round(cH * 0.14);
       const rw = Math.round(cW * 0.42), rh = Math.max(px * 2, Math.round(cH * 0.1)), rise = up ? 3 * s : 0, ringY = foot - rise;
       // a lifted Blub floats (ring and all) over its dark shadow, inside a dashed gold tile
@@ -17781,14 +18273,12 @@ const SquadHall = (() => {
       }
     });
     if (ghost) paintObj(x, ghost, G, 0.85);
-    // the object looked at in the kit (nothing moving), a gold glow on one just dug in, and a
-    // white outline on one just tapped (waiting to see if a second tap comes)
+    // the object looked at in the kit (nothing moving), and a gold glow on one just dug in
     const seen = !st.place && st.objSel ? d.objs.find(p => p.k === st.objSel) : null;
     if (seen) frameTiles(seen);
     const fl = st.flash ? d.objs.find(p => p.k === st.flash.k) : null;
     if (fl){ x.fillStyle = 'rgba(255,212,71,.45)'; cellsOf(fl).forEach(([a, b]) => { const [X, Y, cW, cH] = tile(a, b - 9); x.fillRect(X, Y, cW, cH); }); }
-    const pr = st.press ? d.objs.find(p => 'board:' + p.k === st.press) : null;
-    if (pr){ x.fillStyle = '#fff'; cellsOf(pr).forEach(([a, b]) => { const [X, Y, cW, cH] = tile(a, b - 9), w = 2 * px; x.fillRect(X, Y, cW, w); x.fillRect(X, Y + cH - w, cW, w); x.fillRect(X, Y, w, cH); x.fillRect(X + cW - w, Y, w, cH); }); }
+
     // names for screen readers, and the roving tab stop
     const mv = st.place ? d.objs.find(p => p.k === st.place) : null;
     const tab = st.cur || (mv ? [mv.x, mv.y] : [u0.x, u0.y]);
@@ -17797,12 +18287,15 @@ const SquadHall = (() => {
       const label = 'Column ' + (cx0 + 1) + ', ' + ROW_NAME[cy0] + ', ' + (k < 0 && !o ? 'empty' : [k >= 0 ? nameOf(k) + ', ' + CLS[d.units[k].cls][1] + (k ? '' : ' (captain)') + (k === st.sel && st.lift ? ', lifted' : '') : '', o ? (k >= 0 ? 'on the ' : '') + OBJ[o.k][1] + (o.k === st.place ? ', being moved' : '') : ''].filter(Boolean).join(', '));
       if (c.getAttribute('aria-label') !== label) c.setAttribute('aria-label', label);
       c.setAttribute('aria-selected', String(st.place ? !!(o && o.k === st.place) : k === st.sel));
+      // a finger on a Blub or an object drags it; on an empty tile it scrolls the page
+      const grab = k >= 0 || o ? 'none' : '';
+      if (c.style.touchAction !== grab) c.style.touchAction = grab;
       c.tabIndex = cx0 === tab[0] && cy0 === tab[1] ? 0 : -1;
     });
   }
 
-  // ---- the trench kit's shelf: 7 slots in a toolbar; one click looks, a double click (or
-  // Enter) digs in or takes out. The details and buttons sit beside the board (R.kitDesc).
+  // ---- the trench kit's shelf: 7 slots in a toolbar; one click (or Enter) digs an object in
+  // or takes it out. The details and buttons sit beside the board (R.kitDesc).
   function buildKit(){
     R.kitN = h('small');
     R.kitHint = h('span', {class: 'sq-khint'});
@@ -17831,16 +18324,12 @@ const SquadHall = (() => {
     return h('div', {class: 'sq-tkit', role: 'region', 'aria-labelledby': 'sqKitT'},
       h('div', {class: 'sq-khead'}, h('span', {class: 'sq-lbl', id: 'sqKitT'}, 'Trench kit ', R.kitN), R.kitHint),
       R.kitCards,
-      h('span', {class: 'sr', id: 'sqKitKeys'}, 'Enter, Space or a double-click digs it in or takes it out. M moves it, Delete takes it out. Up to ' + KMAX + ' at a time.'),
+      h('span', {class: 'sr', id: 'sqKitKeys'}, 'A click, Enter or Space digs it in or takes it out. M moves it, Delete takes it out. Up to ' + KMAX + ' at a time.'),
       R.kitMsg);
   }
   function kitSay(text, ok){ say(R.kitMsg, text, ok); }
-  // a click or tap on a slot: a second one in time toggles it; Enter, Space and screen
-  // readers (no click count) toggle at once; a first one only looks at it
-  function kitClick(k, e){
-    if (!e.detail || isDouble('kit:' + k, e)) return kitToggle(k);
-    kitInspect(k);
-  }
+  // a click or tap on a slot digs it in or takes it out, there and then (and shows its details)
+  function kitClick(k){ kitToggle(k); }
   // look at an object: the slot's dashed outline and the details change in place (the
   // node stays for the second click), and a dug-in object gets a gold frame on the board
   function kitInspect(k, quiet){
@@ -17863,14 +18352,14 @@ const SquadHall = (() => {
     const d = st.draft, box = R.kitCards, n = d.objs.length, full = n >= KMAX;
     box.textContent = '';
     R.kitN.textContent = n + '/' + KMAX; R.kitN.classList.toggle('full', full); R.kitN.classList.toggle('nudge', nudging());
-    R.kitHint.textContent = dword() + ': dig in / take out · max ' + KMAX;
+    R.kitHint.textContent = Tword() + ': dig in / take out · max ' + KMAX;
     box.setAttribute('aria-label', 'Trench kit objects, ' + n + ' of ' + KMAX + ' dug in');
     const stop = st.objSel || (d.objs[0] && d.objs[0].k) || E.OBJECTS[0][0];
     E.OBJECTS.forEach(([k, nm]) => {
       const o = d.objs.find(p => p.k === k), moving = st.place === k;
       const b = h('button', {type: 'button', class: 'sq-kc' + (o ? ' on' + (nudging() ? ' nudge' : '') : full ? ' full' : '') + (st.objSel === k ? ' cur' : '') + (moving ? ' mv' : ''), 'aria-pressed': String(!!o), 'data-k': 'obj:' + k,
         tabindex: k === stop ? '0' : '-1', 'aria-describedby': 'sqKitDesc sqKitKeys',
-        'aria-label': nm + (o ? ', dug in at ' + spotName(o) + (moving ? ', being moved' : '') : full ? ', in the kit, kit full' : ', in the kit'), onclick: e => kitClick(k, e)},
+        'aria-label': nm + (o ? ', dug in at ' + spotName(o) + (moving ? ', being moved' : '') : full ? ', in the kit, kit full' : ', in the kit'), onclick: () => kitClick(k)},
       objIcon(k, wide.matches ? 32 : 28), h('span', {class: 'sq-kc-n'}, shy(nm)), o && wide.matches ? h('span', {class: 'sq-kc-spot'}, shortSpot(o)) : null);
       if (o) b.append(h('i', {class: 'sq-kc-tag', 'aria-hidden': 'true'}, '✓'));
       b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') kitDetail(k); });
@@ -17896,11 +18385,11 @@ const SquadHall = (() => {
       const tw = k === 'tower' ? unitAt(o.x, o.y) : -1;
       box.append(h('p', {class: 'sq-kd-s'}, 'Dug in at ' + spotName(o) + '.' + (k === 'mines' ? ' Hidden from your rival until one goes off.' : '')));
       if (k === 'tower' && (tw < 0 || !shooter(d.units[tw]))) box.append(h('p', {class: 'sq-kd-s warn'}, tw < 0 ? 'Nobody stands on it yet: put a Blub with a bow or wand there.' : nameOf(tw) + ' has no bow or wand: only a shooter holds the tower.'));
-      box.append(h('p', {class: 'sq-kd-h'}, dword() + ' it here or on the board to take it out.'));
+      box.append(h('p', {class: 'sq-kd-h'}, Tword() + ' it in the trench kit to take it out. Drag it on the board to move it.'));
       acts.append(button(st.place === k ? 'Done moving' : 'Move', st.place === k ? 'gold' : '', () => { if (st.place === k){ stopPlacing(); focusCur(); } else { pickObj(k); focusCur(); } }, {'data-k': 'objmv:' + k}),
         button('Take out', 'pink', () => { takeOut(k); const b = R.kitCards.querySelector('[data-k="obj:' + k + '"]'); if (b) try { b.focus({preventScroll: true}); } catch {} }, {'data-k': 'objrm:' + k}));
     } else if (!full){
-      box.append(h('p', {class: 'sq-kd-s off'}, 'In the kit.'), h('p', {class: 'sq-kd-h'}, dword() + ' it in the trench kit, or press Dig it in.'));
+      box.append(h('p', {class: 'sq-kd-s off'}, 'In the kit.'), h('p', {class: 'sq-kd-h'}, Tword() + ' it in the trench kit, or press Dig it in.'));
       acts.append(button('Dig it in', 'gold', () => digIn(k), {'data-k': 'objadd:' + k}));
     } else {
       box.append(h('p', {class: 'sq-kd-s off'}, 'In the kit.'), h('p', {class: 'sq-kd-h'}, 'Kit full: take one out first, or swap it in below.'));
@@ -17948,7 +18437,7 @@ const SquadHall = (() => {
     // the kit card
     const kit = [h('span', {class: 'sq-lbl'}, 'Trench kit ', h('small', null, d.objs.length + '/' + KMAX))];
     if (d.objs.length) d.objs.forEach(o => kit.push(h('p', {class: 'sq-skit'}, objIcon(o.k, 16), h('span', null, h('b', null, OBJ[o.k][1]), h('small', null, spotName(o))))));
-    else kit.push(h('p', {class: 'sq-sline'}, 'Nothing dug in yet. ' + dword() + ' an object in the trench kit.'));
+    else kit.push(h('p', {class: 'sq-sline'}, 'Nothing dug in yet. ' + Tword() + ' an object in the trench kit.'));
     R.sheetKit.replaceChildren(...kit);
   }
   // a squad in small: five faces and its objects
