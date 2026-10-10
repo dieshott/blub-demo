@@ -5188,20 +5188,21 @@ const RULES = lock({
   nukeTurn: 5, nukeCore: 10, nukeRing: 4,
   nukeCrater: 2, nukeCraterTurns: 3, nukeRug: 10, // nukeRug% of the time the dev sold and nothing happens
   fudTurn: 3, fudRange: 2, fudMiss: 40, fudTurns: 2,
-  rugTurns: 2, // Rug Pull: turns out of the fight before it stands on its start tile again
-  honeyTurns: 3, // Honeypot: turns it cannot attack
-  whaleTurn: 10, whalePush: 2,
+  rugTurns: 2, rugAt: 4, // Rug Pull: turns out of the fight; by rugAt it slides under a Blub of its own choosing
+  honeyTurns: 3, honeyAt: 3, // Honeypot: turns it cannot attack; by honeyAt it lands in a Blub's paws
+  whaleTurn: 7, whalePush: 2,
   // Moon Rocket: lifts off on rocketTurn and takes the nearest Blub within
   // rocketReach tiles. Only someone standing on the pad itself (reach 0) left it
   // empty 92% of the time; a reach of 1 takes a passenger about a third of it.
   rocketTurn: 6, rocketReach: 1,
-  lamboDmg: 6,
-  sendHop: 4, sendSplash: 3, sendTake: 25, // Send It: tiles flown, damage beside the landing, extra damage taken that turn
+  lamboDmg: 6, lamboCrash: 3, lamboAt: 4, // Wen Lambo: on whoever it hits, else on the driver; by lamboAt a Blub gets the keys
+  sendHop: 4, sendSplash: 3, sendTake: 25, sendAt: 4, // Send It: tiles flown, damage beside the landing, extra damage taken that turn; by sendAt it flings a Blub
   candleHp: 12, candleDmg: 1, candleMax: 5, // Green Candle: +candleDmg a block, a block a turn up to candleMax, falls at candleHp damage
   diamondRange: 2, // Diamond Hands: owner's Blubs this close cannot be moved, frozen or pushed back
   laserRange: 2, // Laser Eyes Totem: +laserRange reach, and no dodging
   copiumAt: 30, copiumRange: 2, copiumSoak: 20, // Copium Tank
   apeDmg: 1, // Ape Together Banner: per Blub standing next to a team mate
+  propAt: 4, // the contested six: a prop still unclaimed by then picks a side through a Blub
   exitHp: 15, exitRange: 4, exitSkip: 1, // Exit Liquidity: the decoy, and the turn the last hit costs
   // the buffs
   airdropHp: 8, airdropFrom: 3, airdropTo: 7,
@@ -6629,6 +6630,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // goes (a parked car, a wreck), and the page builds the board it draws from what
   // this returns, so it gets the start and the events tell it what changed when.
   const startTiles = tiles.slice();
+  // The Blubs never go out of their way for what the chest throws in, so every
+  // event that waits for somebody has a turn of its own (RULES.*At) when, if
+  // nobody has set it off yet, it picks a Blub itself: any Blub still standing, of
+  // either squad, each as likely, drawn from the chest's own stream. For that Blub
+  // it may be good news or bad. 'pick' says so before it happens.
+  function pickBlub(id, skip) {
+    const all = U.filter((v) => v.alive && !(skip && skip(v)));
+    if (!all.length) return null;
+    const u = all[Math.floor(cr() * all.length)];
+    push({ t: 'pick', id, u: u.id });
+    return u;
+  }
   let crater = null; // the nuke's leftovers: { cells, until }
   // Where the pill's shadow wanders before it settles. It decides nothing, so it
   // comes from the chest's own stream and the fight's rolls stay where they were.
@@ -6657,16 +6670,44 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const u of inside) hurt(u, RULES.nukeCrater, 'fume', null);
     if (inside.length) checkOver();
   }
-  // the pill climbs its bonding curve, locks onto a tile, and graduates
+  // The pill climbs its bonding curve and, the turn before it graduates, locks onto
+  // the tile where it would do the most: the core and ring damage it would deal, to
+  // both squads alike, added up. When it comes down it homes in on the best tile
+  // within 2 of that, because the crowd will have moved. Ties: the chest's stream.
+  let nukeOn = null; // { at }
+  function nukeSpot(near) {
+    let best = -1;
+    let top = [];
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++) {
+        if (near && cheb(x, y, near[0], near[1]) > 2) continue;
+        let v = 0;
+        for (const u of U) {
+          if (!u.alive) continue;
+          const d = cheb(u.x, u.y, x, y);
+          v += d <= 1 ? RULES.nukeCore : d === 2 ? RULES.nukeRing : 0;
+        }
+        if (v > best) {
+          best = v;
+          top = [[x, y]];
+        } else if (v === best) top.push([x, y]);
+      }
+    return top[Math.floor(cr() * top.length)];
+  }
   function nukeTurn(e, turn) {
-    const [tx, ty] = e.cells[0];
     if (turn < RULES.nukeTurn) {
       const lock = turn >= RULES.nukeTurn - 1;
-      const at = lock ? [tx, ty] : nukePath[turn - 1] || [tx, ty];
+      let at = nukePath[turn - 1] || e.cells[0];
+      if (lock) {
+        nukeOn = { at: nukeSpot(null) };
+        at = nukeOn.at;
+      }
       push({ t: 'curve', n: turn, pct: Math.round((turn * 100) / RULES.nukeTurn), at, lock: lock ? 1 : 0 });
       return;
     }
     if (turn > RULES.nukeTurn) return;
+    const tgt = e.rug ? (nukeOn ? nukeOn.at : e.cells[0]) : nukeSpot(nukeOn ? nukeOn.at : null);
+    const [tx, ty] = tgt;
     // one in ten the dev sold and the pill never graduates
     if (e.rug) {
       push({ t: 'curve', n: turn, pct: 100, at: [tx, ty], lock: 1, rug: 1 });
@@ -6688,10 +6729,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // ---- FUD Cloud. It rolls in on its turn and hangs over its patch for a while;
   // whoever swings from inside it is a good deal less sure of the shot.
   let fud = null; // { cells, until }
+  let fudAt = null;
   const inFud = (u) => !!fud && fud.cells.indexOf(idx(u.x, u.y)) >= 0;
   function fudTurn(e, turn) {
     if (turn === RULES.fudTurn) {
-      const [tx, ty] = e.cells[0];
+      // it rolls in over a Blub of its own choosing
+      const v = pickBlub('fud');
+      const [tx, ty] = v ? [v.x, v.y] : e.cells[0];
+      fudAt = [tx, ty];
       const cells = [];
       for (let y = ty - RULES.fudRange; y <= ty + RULES.fudRange; y++)
         for (let x = tx - RULES.fudRange; x <= tx + RULES.fudRange; x++)
@@ -6699,12 +6744,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       fud = { cells, until: turn + RULES.fudTurns - 1 };
       push({ t: 'fud', on: 1, at: [tx, ty], cells: cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
     } else if (fud && turn > fud.until) {
-      push({ t: 'fud', on: 0, at: [tx0(e), ty0(e)], cells: [] });
+      push({ t: 'fud', on: 0, at: fudAt || e.cells[0], cells: [] });
       fud = null;
     }
   }
-  const tx0 = (e) => e.cells[0][0];
-  const ty0 = (e) => e.cells[0][1];
 
   // ---- Whale. On its turn a wave rolls over the arena and shoves everybody back
   // towards their own side. Each squad's own rearmost Blub moves first, so a squad
@@ -6752,6 +6795,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const top = near.filter((v) => key(v) === best);
       u = top[Math.floor(cr() * top.length)];
     }
+    // nobody close enough: it comes down for a Blub of its own choosing, anywhere
+    if (!u) u = pickBlub('rocket');
     let to = null;
     const from = u ? [u.x, u.y] : null;
     if (u) {
@@ -6807,17 +6852,27 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       } else tiles[c] = under;
     }
   }
-  function lamboTurn() {
+  // Nobody has climbed in by lamboAt: then the Lambo turns up for a Blub of its own
+  // choosing, right where it stands, and it floors it from there. Whoever drives it
+  // into a wall or off the edge without hitting anybody hurts itself instead.
+  function lamboTurn(turn) {
     if (!lambo) return;
-    const cx = lambo.at % SIZE;
-    const cy = (lambo.at - cx) / SIZE;
+    let cx = lambo.at % SIZE;
+    let cy = (lambo.at - cx) / SIZE;
     const near = U.filter((v) => v.alive && cheb(v.x, v.y, cx, cy) <= 1);
-    if (!near.length) return;
-    // a straight neighbour gets in before a diagonal one; the chest's stream settles a tie
-    const key = (v) => Math.abs(v.x - cx) + Math.abs(v.y - cy);
-    const best = Math.min(...near.map(key));
-    const top = near.filter((v) => key(v) === best);
-    const u = top[Math.floor(cr() * top.length)];
+    let u = null;
+    let given = false;
+    if (near.length) {
+      // a straight neighbour gets in before a diagonal one; the chest's stream settles a tie
+      const key = (v) => Math.abs(v.x - cx) + Math.abs(v.y - cy);
+      const best = Math.min(...near.map(key));
+      const top = near.filter((v) => key(v) === best);
+      u = top[Math.floor(cr() * top.length)];
+    } else if (turn >= RULES.lamboAt) {
+      u = pickBlub('lambo');
+      given = true;
+    }
+    if (!u) return;
     const car = lambo;
     lambo = null;
     tiles[car.at] = car.under;
@@ -6825,6 +6880,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     restep(car.at);
     occ[idx(u.x, u.y)] = -1;
     const from = [u.x, u.y];
+    if (given) {
+      cx = u.x;
+      cy = u.y;
+    }
     const dy = u.team === 0 ? -1 : 1;
     const path = [];
     let y = cy;
@@ -6845,7 +6904,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const was = tiles[end];
     tiles[end] = SAND;
     let wreck = [cx, y];
-    if (connected(tiles)) shot[end] = SAND;
+    // handed the keys with a wall right in front: it burns out where it stands
+    if (given && !path.length) {
+      tiles[end] = was;
+      wreck = null;
+    } else if (connected(tiles)) shot[end] = SAND;
     else {
       tiles[end] = was;
       wreck = null;
@@ -6856,8 +6919,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.x = out[0];
     u.y = out[1];
     occ[idx(u.x, u.y)] = u.id;
-    push({ t: 'lambo', u: u.id, from, at: [cx, cy], path, hit: hit ? hit.id : -1, wreck, out });
+    push({ t: 'lambo', u: u.id, from, at: [cx, cy], path, hit: hit ? hit.id : -1, wreck, out, ...(given ? { given: 1 } : {}) });
     if (hit) hurt(hit, RULES.lamboDmg, 'rammed', null);
+    else hurt(u, RULES.lamboCrash, 'crashed', null);
     checkOver();
   }
 
@@ -6902,13 +6966,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (crater && crater.cells.indexOf(c) >= 0) return false;
     return !(item && item.x === x && item.y === y);
   };
-  function pullRug(u) {
+  // early: it went at the start of a turn (picked), so this turn counts as one gone
+  function pullRug(u, early) {
     rug = -1;
     const at = [u.x, u.y];
     u.alive = false;
     living[u.team] = living[u.team].filter((v) => v !== u);
     occ[idx(u.x, u.y)] = -1;
-    const back = now + RULES.rugTurns + 1;
+    const back = now + RULES.rugTurns + (early ? 0 : 1);
     gone.push({ u, back });
     push({ t: 'rug', u: u.id, at, back });
   }
@@ -6968,7 +7033,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           break;
         }
     // nowhere to come down: the arm snaps and nothing happens
-    push({ t: 'sendit', u: u.id, from, to });
+    push({ t: 'sendit', u: u.id, from, to, cat: [c % SIZE, (c - (c % SIZE)) / SIZE] });
     if (!to) return;
     occ[idx(u.x, u.y)] = -1;
     u.x = to[0];
@@ -7115,6 +7180,33 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
     }
   }
+  // what is still waiting for somebody on its turn picks a Blub itself
+  function deadlines(turn) {
+    if (over < 0 && rug >= 0 && turn >= RULES.rugAt) {
+      const v = pickBlub('rug');
+      if (v) pullRug(v, true);
+    }
+    if (over < 0 && honey >= 0 && turn >= RULES.honeyAt) {
+      // a squad with the Alpha Leak saw the honeypot for what it is
+      const v = pickBlub('honeypot', (w) => meme[w.team].buff === 'alpha');
+      if (v) springHoney(v);
+    }
+    if (turn >= RULES.sendAt)
+      for (const c of cats.slice()) {
+        if (over >= 0) break;
+        const v = pickBlub('sendit');
+        if (v) sendIt(v, c);
+      }
+    if (turn >= RULES.propAt)
+      for (const p of props) {
+        if (p.down || p.team >= 0) continue;
+        const v = pickBlub(p.id);
+        if (!v) continue;
+        p.team = v.team;
+        p.since = turn;
+        push({ t: 'claim', id: p.id, team: p.team, at: [p.x, p.y], u: v.id });
+      }
+  }
   function runEvents(turn) {
     memeTurn(turn);
     claimTurn(turn);
@@ -7124,7 +7216,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (over < 0) for (const e of live) if (e.id === 'fud') fudTurn(e, turn);
     if (over < 0) for (const e of live) if (e.id === 'whale') whaleTurn(e, turn);
     if (over < 0) for (const e of live) if (e.id === 'rocket') rocketTurn(e, turn);
-    if (over < 0) lamboTurn();
+    if (over < 0) lamboTurn(turn);
+    if (over < 0) deadlines(turn);
   }
 
   for (let turn = 1; turn <= TURNS && over < 0; turn++) {
@@ -9115,6 +9208,7 @@ const SquadView = (() => {
     nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ',
     thud: 'A Blub off the catapult lands right on ',
     sniped: 'The Sniper Bot takes out ',
+    crashed: 'The Lambo crash finishes off ',
   };
   // objs (optional): the round's objects, to say whose mortar takes aim
   function describe(e, names, labels, objs) {
@@ -9178,7 +9272,11 @@ const SquadView = (() => {
       case 'lambo':
         return e.hit >= 0 ? u + ' floors the Lambo straight into ' + nm(e.hit) + '!' : u + ' floors the Lambo and wraps it round ' + (e.wreck ? 'a wall' : 'nothing at all') + '.';
       case 'claim':
-        return lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
+        return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
+      case 'pick':
+        return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
+      case 'crashed':
+        return e.res === 'absorb' ? 'The crash pops ' + d + "'s bubble." : d + ' wraps the Lambo round a wall: -' + e.dmg + '.';
       case 'prophit':
         return u + ' hits the ' + nameOf('ev', e.id) + ' for ' + e.dmg + '.';
       case 'propdown':
@@ -9975,6 +10073,8 @@ const SquadView = (() => {
     // Send It: the arm swings, the Blub flies, and lands at sendHit
     sendit: 1350, sendHit: 900, sendSnap: 700,
     // the memepowers in the fight
+    // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
+    pick: 1500, pickHit: 1150,
     claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
@@ -10101,7 +10201,7 @@ const SquadView = (() => {
             return;
           }
           // the chest: what the pill and its crater cost rides on the blast itself
-          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || (t === 'rammed' && p.kind === 'lambo') || (t === 'thud' && p.kind === 'sendit')) {
+          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || ((t === 'rammed' || t === 'crashed') && p.kind === 'lambo') || (t === 'thud' && p.kind === 'sendit')) {
             attachTo(p, i);
             return;
           }
@@ -10167,6 +10267,11 @@ const SquadView = (() => {
         }
         if (t === 'mist') {
           parent = add({ kind: 'mist', dur: MS.mist, contact: MS.mistHit, list: [{ ei: i, off: 0 }], e });
+          return;
+        }
+        if (t === 'pick') {
+          parent = null;
+          add({ kind: 'pick', dur: MS.pick, contact: MS.pickHit, list: [{ ei: i, off: 0 }], e });
           return;
         }
         if (t === 'claim' || t === 'grow' || t === 'prophit' || t === 'propdown') {
@@ -10394,6 +10499,7 @@ const SquadView = (() => {
       case 'rammed':
       case 'thud':
       case 'sniped':
+      case 'crashed':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         break;
@@ -10449,7 +10555,8 @@ const SquadView = (() => {
         S.cats = e.cells.map(([x, y]) => ({ x, y, fired: false, dir: 0 }));
         break;
       case 'sendit': {
-        const c = S.cats.find((v) => v.x === e.from[0] && v.y === e.from[1]);
+        const cc = e.cat || e.from;
+        const c = S.cats.find((v) => v.x === cc[0] && v.y === cc[1]);
         if (c) {
           c.fired = true;
           c.dir = e.to ? (scr(e.to[0], e.to[1])[1] < scr(e.from[0], e.from[1])[1] ? -1 : 1) : 0;
@@ -12484,7 +12591,7 @@ const SquadView = (() => {
     }
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed'].includes(e.t)) P.cause[e.d] = e.t;
     fold(S, e);
     if (e.t === 'ko') {
       const u = U[e.u];
@@ -13114,7 +13221,8 @@ const SquadView = (() => {
       // the arena marks it so.
       case 'sendit': {
         const u = U[e.u];
-        const cat = S.cats.find((v) => v.x === e.from[0] && v.y === e.from[1]);
+        const cc = e.cat || e.from;
+        const cat = S.cats.find((v) => v.x === cc[0] && v.y === cc[1]);
         if (cat) cat.t0 = T;
         const [fx0, fy0] = tileC(e.from[0], e.from[1]);
         sfx('power');
@@ -13473,7 +13581,9 @@ const SquadView = (() => {
           const rev = revving && !P.calm ? (Math.floor(el / 35) % 2 ? 1 : -1) : 0;
           const pop = revving && Math.floor((el - IN) / (60 * k)) % 3 === 2;
           const f = el < IN ? 0 : away ? (el >= IN + REV || pop ? 3 : 2) : 1;
-          x.drawImage(fxFrame('lambo', f), Math.round(cx0 - 16 + rev), Math.round(at(el) - 21));
+          // handed to a Blub out of nowhere, it drops out of the sky onto its tile first
+          const drop = e.given && el < IN ? Math.round((1 - el / IN) ** 2 * 70) : 0;
+          x.drawImage(fxFrame('lambo', f), Math.round(cx0 - 16 + rev), Math.round(at(el) - 21 - drop));
         });
         // the meme, as it pulls away
         const word = pxText('WEN LAMBO', '#FFD447', 2);
@@ -13525,6 +13635,68 @@ const SquadView = (() => {
           x.drawImage(dazed, Math.round(lerp(cx0 - 8, ox - 8, kk)), Math.round(lerp(cyE - 18, oy - 13, kk) - Math.sin(Math.PI * kk) * 24));
         });
         driver.hop = { kind: 'toss', t0: I + 380 * k, dur: 220 * k, h: 5 };
+        return;
+      }
+      // no one in its way: the driver goes into the wall instead
+      case 'crashed': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') {
+          label(T + 380 * k, 'POP', '#BDE7FF', dx, dy - 14, true);
+          return;
+        }
+        d.hurt = T + 380 * k;
+        d.flash = T + 380 * k;
+        label(T + 380 * k, String(e.dmg), '#FF5C77', dx, dy - 14, true, 2);
+        label(T + 520 * k, 'OOF', '#FFFFFF', dx, dy - 28, false);
+        return;
+      }
+      // The roulette: something on the board picks a Blub for itself. A spotlight
+      // hops from Blub to Blub, quick and then slower, and stops on the one it is;
+      // the camera cuts in on it with the thing's name over its head.
+      case 'pick': {
+        const all = U.filter((v) => v.alive && !v.gone);
+        const tgt = U[e.u];
+        if (!tgt || !all.length) return;
+        const H = Math.min(14, 6 + all.length);
+        const ti = Math.max(0, all.indexOf(tgt));
+        const step = all.length > 3 ? 3 : 1;
+        const seq = Array.from({ length: H }, (_, q) => all[(((ti - (H - 1 - q) * step) % all.length) + all.length) % all.length]);
+        const STOP = MS.pickHit * k;
+        const when = (q) => STOP * Math.pow(q / (H - 1), 1.9);
+        sfx('read');
+        addFx(T, MS.pick * k, (x, kk, el) => {
+          let q = 0;
+          while (q < H - 1 && el >= when(q + 1)) q++;
+          const v = el >= STOP ? tgt : seq[q];
+          const [vx, vy] = centreOf(v);
+          const done = el >= STOP;
+          // the beam coming down on it, and a ring on the floor round its feet
+          ditherRect(x, vx - 6, TOP, 13, Math.max(0, vy - 6 - TOP), '#FFF3B0', done ? 0.45 : 0.25);
+          x.fillStyle = done && Math.floor(el / 90) % 2 ? '#FFFFFF' : '#FFD447';
+          for (let a = 0; a < 20; a++) {
+            const ang = (a / 20) * Math.PI * 2;
+            x.fillRect(Math.round(vx + Math.cos(ang) * 9), Math.round(vy + 6 + Math.sin(ang) * 3), 1, 1);
+          }
+          // and an arrow over its head, bobbing
+          const bob = Math.floor(el / 120) % 2;
+          const ay = vy - 26 - bob;
+          x.fillStyle = INK;
+          x.fillRect(vx - 4, ay - 1, 9, 4);
+          x.fillRect(vx - 2, ay + 3, 5, 2);
+          x.fillRect(vx - 1, ay + 5, 3, 1);
+          x.fillStyle = '#FFD447';
+          x.fillRect(vx - 3, ay, 7, 2);
+          x.fillRect(vx - 1, ay + 2, 3, 2);
+          x.fillRect(vx, ay + 4, 1, 1);
+        }, true);
+        for (let q = 1; q < H; q++) atClock(T + when(q), () => sfx('click'));
+        const [cx, cy] = centreOf(tgt);
+        const name = { nuke: 'THE PILL', fud: 'FUD', rug: 'RUG PULL', honeypot: 'HONEYPOT', rocket: 'TO THE MOON', lambo: 'WEN LAMBO', sendit: 'SEND IT', candle: 'GREEN CANDLE', diamond: 'DIAMOND HANDS', laser: 'LASER EYES', copium: 'COPIUM', ape: 'APES TOGETHER', exit: 'EXIT LIQUIDITY' }[e.id] || 'PICKED';
+        label(T + STOP, name, '#FFD447', cx, cy - 36, true);
+        label(T + STOP + 120 * k, P.names[e.u].toUpperCase(), colors[tgt.side].light, cx, cy - 26, true);
+        closeUp(T + STOP - 60 * k, (MS.pick - MS.pickHit) * k + 200 * k, cx, cy - 10);
+        atClock(T + STOP, () => sfx('power'));
         return;
       }
       // the car's blow, the moment it lands: a big gold number and a flinch
@@ -14362,7 +14534,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'played']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'played', 'crashed', 'pick']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
