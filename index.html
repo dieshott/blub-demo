@@ -955,7 +955,7 @@ body.no-scroll{overflow:hidden}
 /* ---- the chest reveal: what the round throws in, before a Blub has moved */
 .sqi-box{transition:opacity .3s steps(3),transform .3s steps(3)}
 .sqi-box.gone{opacity:0;transform:scale(.88);pointer-events:none}
-.sqc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 10px;opacity:0;transition:opacity .3s steps(3)}
+.sqc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:10px;padding:12px 10px;overflow-y:auto;opacity:0;transition:opacity .3s steps(3)}
 .sqc:has(.sqc-box.in){opacity:1}
 .sqc.away{opacity:0;transform:scale(1.06);transition:opacity .4s steps(4),transform .4s steps(4)}
 .sqc-box{position:relative;width:64px;height:56px;flex:none}
@@ -969,15 +969,26 @@ body.no-scroll{overflow:hidden}
 .sqc-count{font-family:var(--f-display);font-size:clamp(20px,6vw,34px);line-height:1;color:#fff;text-shadow:3px 3px 0 #000;opacity:0;transform:scale(.6);transition:transform .2s steps(3),opacity .2s steps(3);min-height:34px}
 .sqc-count.in{opacity:1;transform:none}
 .sqc-count.set{color:var(--gold);text-shadow:3px 3px 0 #000,0 0 0 2px #000}
-.sqc-reels,.sqc-teams{display:flex;justify-content:center;gap:10px;width:100%;max-width:620px;opacity:0;transition:opacity .3s steps(3)}
-.sqc-reels{flex-wrap:wrap}
-.sqc-reels.in,.sqc-teams.in{opacity:1}
+/* the three spins take the stage one at a time (all at once with reduced motion) */
+/* the bands of a spin stand one under the other, all the same width */
+.sqc-p{display:none;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:640px}
+.sqc-p.in{display:flex;animation:sqc-in .3s steps(3) 1}
+@keyframes sqc-in{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+.sqc-stage{margin:0;font-family:var(--f-display);font-size:clamp(11px,3vw,14px);line-height:1.4;color:var(--gold);text-shadow:2px 2px 0 #000;letter-spacing:.06em;text-transform:uppercase;white-space:pre;opacity:0}
+.sqc-stage.in{opacity:1}
+.sqc-stage.good{color:#4BE08F}.sqc-stage.bad{color:#FF5C77}
+.sqc-sum{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:40px;opacity:0}
+.sqc-sum.in{opacity:1}
+.sqc-chip{display:grid;place-items:center;width:38px;height:38px;background:#2B1D3F;border:2px solid #000;box-shadow:inset 0 -3px 0 var(--gold);animation:sqc-in .3s steps(3) 1}
+.sqc-chip.buff{box-shadow:inset 0 -3px 0 #4FB36B}.sqc-chip.nerf{box-shadow:inset 0 -3px 0 #E2566E}
+.sqc-chip .sqc-q{font-size:16px}
+.sqc-desc{margin:0;max-width:min(330px,86vw);font-family:var(--f-data);font-size:18px;line-height:1.1;color:#E9E2F5;text-align:center;opacity:0;transition:opacity .25s steps(3)}
+.sqc-desc.in{opacity:1}
+.sqc.still .sqc-p{display:flex}
 .sqc-slot{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
 .sqc-reel{position:relative;width:min(344px,86vw);height:88px;overflow:hidden;background:#17102270;border:3px solid #000;box-shadow:inset 0 -3px 0 #3E2C58}
-.sqc-slot.small .sqc-reel{width:min(168px,45vw);height:70px}
 .sqc-strip{position:absolute;top:0;left:0;display:flex;gap:8px;height:100%;align-items:center;will-change:transform}
 .sqc-card{flex:none;width:72px;height:74px;display:grid;place-items:center;background:#2B1D3F;border:2px solid #000;box-shadow:inset 0 -2px 0 #3E2C58}
-.sqc-slot.small .sqc-card{width:72px;height:56px}
 .sqc-card .sq-ico{image-rendering:pixelated}
 .sqc-card.shut{background:#1b1129;border-style:dashed;border-color:#8E7BB8}
 .sqc-q{font-family:var(--f-display);font-size:30px;color:var(--gold);text-shadow:2px 2px 0 #000}
@@ -988,14 +999,13 @@ body.no-scroll{overflow:hidden}
 @keyframes sqc-land{0%{transform:translateX(var(--x,0))}50%{margin-left:-4px}100%{margin-left:0}}
 .sqc-reel.good.done{border-color:#4FB36B}
 .sqc-reel.bad.done{border-color:#E2566E}
-.sqc-name{margin:0;min-height:13px;font-family:var(--f-display);font-size:9px;line-height:1.4;color:#fff;text-align:center;max-width:100%;overflow-wrap:anywhere}
-.sqc-teams{align-items:flex-start}
+.sqc-name{margin:0;min-height:13px;font-family:var(--f-display);font-size:10px;line-height:1.4;color:#fff;text-align:center;max-width:100%;overflow-wrap:anywhere}
 .sqc-team{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
 .sqc-who{margin:0;font-family:var(--f-display);font-size:8px;letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;border:2px solid #000;color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sqc-team.you .sqc-who{background:var(--you-d);box-shadow:inset 0 -2px 0 var(--you)}
 .sqc-team.rival .sqc-who{background:var(--riv-d);box-shadow:inset 0 -2px 0 var(--riv)}
 /* a narrow screen stacks the bands instead of standing them side by side */
-@media (max-width:560px){.sqc{gap:7px}.sqc-teams{flex-direction:column;align-items:center;gap:7px}.sqc-team{flex-direction:row;flex-wrap:wrap;justify-content:center}}
+@media (max-width:560px){.sqc{gap:7px}.sqc-p{gap:7px}}
 /* reduced motion: the chest is simply open and the cards are simply there */
 .sqv-over.still .sqc,.sqv-over.still .sqc-box{transition:none}
 .sqv-over.still .sqc-glow.on{animation:none}
@@ -5185,11 +5195,11 @@ const RULES = lock({
   // How many events fall: whole percents, together 100.
   chestOne: 65, chestTwo: 30, chestThree: 5,
   // Bonding Curve Nuke: the pill climbs its curve and graduates on `nukeTurn`.
-  nukeTurn: 5, nukeCore: 10, nukeRing: 4,
+  nukeTurn: 5, nukeCore: 15, nukeRing: 6,
   nukeCrater: 2, nukeCraterTurns: 3, nukeRug: 10, // nukeRug% of the time the dev sold and nothing happens
   fudTurn: 3, fudRange: 2, fudMiss: 40, fudTurns: 2,
   rugTurns: 2, rugAt: 4, // Rug Pull: turns out of the fight; by rugAt it slides under a Blub of its own choosing
-  honeyTurns: 3, honeyAt: 3, // Honeypot: turns it cannot attack; by honeyAt it lands in a Blub's paws
+  honeyTurns: 1, honeyAt: 3, // Honeypot: turns it cannot attack; by honeyAt it lands in a Blub's paws
   whaleTurn: 7, whalePush: 2,
   // Moon Rocket: lifts off on rocketTurn and takes the nearest Blub within
   // rocketReach tiles. Only someone standing on the pad itself (reach 0) left it
@@ -5198,21 +5208,22 @@ const RULES = lock({
   lamboDmg: 6, lamboCrash: 3, lamboAt: 4, // Wen Lambo: on whoever it hits, else on the driver; by lamboAt a Blub gets the keys
   sendHop: 4, sendSplash: 3, sendTake: 25, sendAt: 4, // Send It: tiles flown, damage beside the landing, extra damage taken that turn; by sendAt it flings a Blub
   candleHp: 12, candleDmg: 1, candleMax: 5, // Green Candle: +candleDmg a block, a block a turn up to candleMax, falls at candleHp damage
-  diamondRange: 2, // Diamond Hands: owner's Blubs this close cannot be moved, frozen or pushed back
-  laserRange: 2, // Laser Eyes Totem: +laserRange reach, and no dodging
-  copiumAt: 30, copiumRange: 2, copiumSoak: 20, // Copium Tank
+  diamondRange: 3, // Diamond Hands: owner's Blubs this close cannot be moved, frozen or pushed back
+  laserRange: 2, laserDmg: 1, laserDodge: 50, // Laser Eyes Totem: +laserRange reach, and it keeps only laserDodge% of its dodge
+  copiumAt: 50, copiumRange: 2, copiumSoak: 35, // Copium Tank
   apeDmg: 1, // Ape Together Banner: per Blub standing next to a team mate
   propAt: 4, // the contested six: a prop still unclaimed by then picks a side through a Blub
   exitHp: 15, exitRange: 4, exitSkip: 1, // Exit Liquidity: the decoy, and the turn the last hit costs
   // the buffs
   airdropHp: 8, airdropFrom: 3, airdropTo: 7,
   sniperDmg: 7,
-  devwalletShare: 30, devwalletTurn: 8,
-  wagmiHp: 3,
+  devwalletShare: 50, devwalletTurn: 8,
+  wagmiHp: 2,
   pumpTurns: 3, pumpDmg: 1,
   // the nerfs
-  paperAt: 50, paperTurns: 2,
-  gasTurns: 1, // powers charge this many turns slower
+  paperAt: 50, paperTurns: 1,
+  gasTurns: 1, gasHp: 2, // Gas Fees: powers charge this much slower, and every one used costs gasHp
+  ngmiMiss: 2, // NGMI: the squad's first attacks that always miss
   bagMove: 1,
   rektHp: 5,
 });
@@ -5326,14 +5337,14 @@ const EVENTS = lock([
   ['nuke', 'Bonding Curve Nuke', `A pill climbs its bonding curve and graduates in turn ${RULES.nukeTurn}: ${RULES.nukeCore} damage on the 3x3 core and ${RULES.nukeRing} on the ring around it, then ${RULES.nukeCraterTurns} turns of crater that costs ${RULES.nukeCrater} a turn and stops every shot. ${RULES.nukeRug}% of the time the dev sold and nothing happens.`],
   ['fud', 'FUD Cloud', `Rolls in on turn ${RULES.fudTurn}: for ${RULES.fudTurns} turns every Blub within ${RULES.fudRange} tiles misses ${RULES.fudMiss}% more often.`],
   ['rug', 'Rug Pull', `The tile drops away under the first Blub that steps on it: ${RULES.rugTurns} turns out of the fight, then back on its start tile. Hidden until it goes off.`],
-  ['honeypot', 'Honeypot', `Glitters exactly like a power-up. Whoever grabs it cannot attack for ${RULES.honeyTurns} turns. Hidden until it goes off.`],
+  ['honeypot', 'Honeypot', `Glitters exactly like a power-up. Whoever grabs it cannot attack for ${RULES.honeyTurns} turn${RULES.honeyTurns === 1 ? '' : 's'}. Hidden until it goes off.`],
   ['whale', 'Whale', `Turn ${RULES.whaleTurn}: a wave shoves every Blub ${RULES.whalePush} tiles back towards its own side.`],
   ['rocket', 'Moon Rocket', `Lifts off in turn ${RULES.rocketTurn} with the nearest Blub within ${RULES.rocketReach} tile${RULES.rocketReach === 1 ? '' : 's'} on board, and drops it behind the enemy line.`],
   ['lambo', 'Wen Lambo', `The first Blub to climb in drives straight on until it hits something: ${RULES.lamboDmg} damage, and the wreck stays behind as a wall.`],
   ['sendit', 'Send It', `A catapult tile in each half, mirrored. The first Blub on it flies ${RULES.sendHop} tiles ahead, deals ${RULES.sendSplash} to everything beside the landing, and takes ${RULES.sendTake}% more damage that turn.`],
   ['candle', 'Green Candle', `Grows a block every turn, up to ${RULES.candleMax}. The owner's Blubs beside it deal +${RULES.candleDmg} for every block. ${RULES.candleHp} HP, and everything it gave falls with it.`],
   ['diamond', 'Diamond Hands', `The owner's Blubs within ${RULES.diamondRange} tiles cannot be moved, frozen or pushed back.`],
-  ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and stops dodging altogether.`],
+  ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and +${RULES.laserDmg} damage, but dodges only ${RULES.laserDodge}% as well.`],
   ['copium', 'Copium Tank', `The owner's Blubs under ${RULES.copiumAt}% HP within ${RULES.copiumRange} tiles take ${RULES.copiumSoak}% less damage.`],
   ['ape', 'Ape Together Banner', `The owner's Blubs deal +${RULES.apeDmg} damage while a team mate stands right beside them.`],
   ['exit', 'Exit Liquidity', `A cardboard Blub with ${RULES.exitHp} HP. Nearest and Finisher Blubs within ${RULES.exitRange} tiles go for it first; whoever lands the last hit is rugged and skips ${RULES.exitSkip} turn. Ranged and Backline ignore it.`],
@@ -5369,12 +5380,12 @@ const BUFFS = lock([
   ['alpha', 'Alpha Leak', `The squad knows what the other side hid: its Blubs walk around mines, foxholes and traps, and play around the enemy's Sniper Bot.`],
 ]);
 const NERFS = lock([
-  ['paper', 'Paper Hands', `The first own Blub under ${RULES.paperAt}% HP runs back for ${RULES.paperTurns} turns.`],
-  ['gas', 'Gas Fees', `Powers charge ${RULES.gasTurns} turn slower.`],
+  ['paper', 'Paper Hands', `The first own Blub under ${RULES.paperAt}% HP runs back for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
+  ['gas', 'Gas Fees', `Every power costs gas: ${RULES.gasHp} HP from the Blub that uses it, and they charge ${RULES.gasTurns} turn${RULES.gasTurns === 1 ? '' : 's'} slower.`],
   ['bagholder', 'Bagholder', `The slowest Blub loses ${RULES.bagMove} move.`],
   ['jeet', 'Jeet', `The captain loses its +${RULES.captainHp} HP.`],
   ['rekt', 'Rekt', `One random Blub starts ${RULES.rektHp} HP down.`],
-  ['ngmi', 'NGMI', 'The squad’s very first attack always misses.'],
+  ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss} attacks always miss.`],
 ]);
 const CHEST_SALT = 4; // the chest's random stream
 // What the chest's own effects need to roll (which Blub gets Rekt, and so on) comes
@@ -5859,6 +5870,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // Sniper Bot: one shot, on the first enemy that uses a power. A squad with the
   // Alpha Leak saw it set up and never walks into it.
   function powerUsed(u) {
+    // Gas Fees: the power is paid for
+    if (meme[u.team].nerf === 'gas' && u.alive && over < 0) {
+      hurt(u, RULES.gasHp, 'gas', null);
+      checkOver();
+    }
     const t = 1 - u.team;
     if (meme[t].buff !== 'sniper' || meme[t].sniped || !u.alive || over >= 0) return;
     if (meme[u.team].buff === 'alpha') return;
@@ -5971,17 +5987,17 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           cover = 4;
         }
       }
-      // the Laser Eyes Totem's Blub does not dodge at all (the roll is made all the same)
-      if (r() * 100 < (laserOn(d) ? 0 : Math.min(45, d.dodge + extra))) res = 'miss';
+      // the Laser Eyes Totem's Blub dodges only so well, staring like that
+      if (r() * 100 < Math.floor((Math.min(45, d.dodge + extra) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
     }
     // the FUD cloud: a swing taken from inside it goes wide far more often. A Bubble
     // Wand still never misses, because that is the whole of what it is for.
     if (res === 'hit' && !w.sure && inFud(u) && r() * 100 < RULES.fudMiss) res = 'miss';
-    // NGMI: whatever the dice said, the squad's very first swing of the round goes
+    // NGMI: whatever the dice said, the squad's first ngmiMiss swings of the round go
     // wide. It overrides afterwards instead of skipping the rolls, so the fight's
     // own stream stays where it would have been.
-    if (meme[u.team].nerf === 'ngmi' && !meme[u.team].opened) {
-      meme[u.team].opened = 1;
+    if (meme[u.team].nerf === 'ngmi' && meme[u.team].opened < RULES.ngmiMiss) {
+      meme[u.team].opened++;
       res = 'miss';
     }
     const guard = gd >= 0 ? { gd } : null;
@@ -7090,6 +7106,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     let b = 0;
     const c = owned('candle', u.team);
     if (c && cheb(u.x, u.y, c.x, c.y) <= 1) b += c.size * RULES.candleDmg;
+    if (laserOn(u)) b += RULES.laserDmg;
     // apes together strong: a Blub with a team mate beside it
     if (owned('ape', u.team) && living[u.team].some((w) => w !== u && cheb(u.x, u.y, w.x, w.y) <= 1)) b += RULES.apeDmg;
     return b;
@@ -9209,6 +9226,7 @@ const SquadView = (() => {
     thud: 'A Blub off the catapult lands right on ',
     sniped: 'The Sniper Bot takes out ',
     crashed: 'The Lambo crash finishes off ',
+    gas: 'Gas fees finish off ',
   };
   // objs (optional): the round's objects, to say whose mortar takes aim
   function describe(e, names, labels, objs) {
@@ -9275,6 +9293,8 @@ const SquadView = (() => {
         return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
       case 'pick':
         return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
+      case 'gas':
+        return e.res === 'absorb' ? 'The gas fee pops ' + d + "'s bubble." : d + ' pays gas for that: -' + e.dmg + '.';
       case 'crashed':
         return e.res === 'absorb' ? 'The crash pops ' + d + "'s bubble." : d + ' wraps the Lambo round a wall: -' + e.dmg + '.';
       case 'prophit':
@@ -9355,7 +9375,7 @@ const SquadView = (() => {
         const S = {
           frozen: ' is frozen solid.', trapped: ' is trapped in a bubble.', rage: ' is raging: +' + SE.RULES.rageDmg + ' damage.', bubble: ' gets a bubble shield.',
           blade: "'s weapon gleams: +2 damage.", feather: ' feels light as a feather.', totem: ' carries the Sift Totem.',
-          honey: ' is glued in honey: no attacks for now.', paper: ' waves the white flag.', laser: ' gets the laser eyes: +' + SE.RULES.laserRange + ' reach, no dodging.',
+          honey: ' is glued in honey: no attacks for now.', paper: ' waves the white flag.', laser: ' gets the laser eyes: +' + SE.RULES.laserRange + ' reach, +' + SE.RULES.laserDmg + ' damage, half the dodge.',
         };
         return u + (S[e.s] || ' changes.');
       }
@@ -10087,9 +10107,10 @@ const SquadView = (() => {
   const CM = {
     at: MS.mIntro, // the chest takes over from the squad intro
     drop: 0, open: 600, count: 1000, race: 1600,
-    stop: 3200, step: 600, // the first event band stops, each next one `step` later
-    buff: 4600, nerf: 5100, fly: 5800, done: 6400,
-    still: 1800, // reduced motion: no racing, just show what fell
+    stop: 3200, step: 900, // the first event band stops, each next one `step` later
+    read: 2600, // after a spin's last band stops: time to read what it does
+    spin: 2400, // a buff or nerf spin, from the start of its race to its last stop
+    still: 5200, // reduced motion: no racing, just everything that fell, to read
   };
   const CARD = 72; // a card on a band, in CSS pixels: a 32x32 icon at 2x, framed
   const PITCH = CARD + 8;
@@ -10500,6 +10521,7 @@ const SquadView = (() => {
       case 'thud':
       case 'sniped':
       case 'crashed':
+      case 'gas':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         break;
@@ -10651,7 +10673,7 @@ const SquadView = (() => {
     laser: [['.....', 'rr.rr', 'rw.rw', '.....', '.....'], { r: '#FF2E4C', w: '#FFFFFF' }],
     rugged: [['f.f.f', 'rrrrr', 'ryRyr', 'rrrrr', 'f.f.f'], { f: '#FFF3B0', r: '#B8324A', y: '#FFD447', R: '#E2566E' }],
   };
-  const STATUS_NAME = { dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach, no dodging', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -12591,7 +12613,7 @@ const SquadView = (() => {
     }
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas'].includes(e.t)) P.cause[e.d] = e.t;
     fold(S, e);
     if (e.t === 'ko') {
       const u = U[e.u];
@@ -13637,6 +13659,16 @@ const SquadView = (() => {
         driver.hop = { kind: 'toss', t0: I + 380 * k, dur: 220 * k, h: 5 };
         return;
       }
+      // Gas Fees: the power is paid for, a little red number and a coin flying off
+      case 'gas': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') return;
+        d.hurt = T;
+        label(T, '-' + e.dmg + ' GAS', '#FF5C77', dx, dy - 22, false);
+        addFx(T, 600 * k, (x, kk) => x.drawImage(fxFrame('coin', Math.floor(kk * 8) % 4), Math.round(dx + 4 + kk * 10), Math.round(dy - 14 - Math.sin(kk * Math.PI) * 12)));
+        return;
+      }
       // no one in its way: the driver goes into the wall instead
       case 'crashed': {
         const d = U[e.d];
@@ -14534,7 +14566,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'played', 'crashed', 'pick']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'played', 'crashed', 'pick', 'gas']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -15355,14 +15387,66 @@ const SquadView = (() => {
     else c.append(icon(kind, id, 64));
     return c;
   }
+  // What a card does, in one short line for the reveal (the catalog's full text is
+  // in the codex and the tooltips). Built from RULES like the catalog itself.
+  function shortOf(kind, id) {
+    const R = SE.RULES;
+    const s = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const T = {
+      ev: {
+        nuke: `Turn ${R.nukeTurn}: lands where it hurts most. ${R.nukeCore} damage in the core, ${R.nukeRing} around it.`,
+        fud: `Turn ${R.fudTurn}: a storm over one Blub. Swings from under it miss far more.`,
+        rug: `A trap. The first Blub on it drops out for ${s(R.rugTurns, 'turn')}.`,
+        honeypot: `Looks like a power-up. Whoever grabs it can't attack for ${s(R.honeyTurns, 'turn')}.`,
+        whale: `Turn ${R.whaleTurn}: a wave shoves every Blub ${R.whalePush} tiles back.`,
+        rocket: `Turn ${R.rocketTurn}: flies one Blub behind the enemy line.`,
+        lambo: `The first Blub in floors it: ${R.lamboDmg} damage to whoever it hits.`,
+        sendit: `A catapult each side: ${R.sendHop} tiles through the air, ${R.sendSplash} damage on landing.`,
+        candle: `Claim it: +${R.candleDmg} damage a block beside it, and it grows every turn.`,
+        diamond: `Claim it: your Blubs near it can't be frozen, knocked or shoved.`,
+        laser: `Claim it: your nearest Blub gets +${R.laserRange} reach and +${R.laserDmg} damage.`,
+        copium: `Claim it: your hurt Blubs near it take ${R.copiumSoak}% less.`,
+        ape: `Claim it: +${R.apeDmg} damage for every Blub beside a team mate.`,
+        exit: `Claim it: a cardboard decoy the enemy wastes its swings on.`,
+      },
+      buff: {
+        airdrop: `Turn ${R.airdropFrom}-${R.airdropTo}: your weakest Blub gets +${R.airdropHp} HP and its power back.`,
+        sniper: `${R.sniperDmg} damage on the first enemy that uses a power.`,
+        devwallet: `Turn ${R.devwalletTurn}: ${R.devwalletShare}% of the damage taken comes back.`,
+        wagmi: `Every Blub starts with +${R.wagmiHp} HP.`,
+        pump: `+${R.pumpDmg} damage for the first ${s(R.pumpTurns, 'turn')}.`,
+        alpha: `Sees the traps: walks around them, never falls for the honeypot or the sniper.`,
+      },
+      nerf: {
+        paper: `The first Blub under ${R.paperAt}% runs away for ${s(R.paperTurns, 'turn')}.`,
+        gas: `Every power costs its Blub ${R.gasHp} HP, and comes a turn later.`,
+        bagholder: `The slowest Blub loses ${s(R.bagMove, 'step')}.`,
+        jeet: `The captain loses its +${R.captainHp} HP.`,
+        rekt: `One Blub starts ${R.rektHp} HP down.`,
+        ngmi: `The first ${R.ngmiMiss} attacks always miss.`,
+      },
+    };
+    return (T[kind] && T[kind][id]) || descOf(kind, id);
+  }
   // one band: REEL_LEN cards in a row behind a window with a line down the middle
-  function chestReel(kind, cards, stopAt, shut, cls) {
+  function chestReel(kind, cards, race, stopAt, shut, cls) {
     const root = el('div', 'sqc-reel' + (cls ? ' ' + cls : ''));
     const strip = el('div', 'sqc-strip');
     cards.forEach((id, i) => strip.append(chestCard(kind, id, shut && i === SE.REEL_STOP)));
     root.append(strip, el('div', 'sqc-line'));
-    return { root, strip, stop: stopAt, kind, last: -1 };
+    return { root, strip, race, stop: stopAt, kind, last: -1 };
   }
+  // a band with its name and its one line under it; every band is as wide as the next
+  function chestSlot(b) {
+    b.label = el('p', 'sqc-name', '');
+    b.desc = el('p', 'sqc-desc', '');
+    const slot = el('div', 'sqc-slot');
+    slot.append(b.root, b.label, b.desc);
+    return slot;
+  }
+  // The chest reveal in three spins, one after the other, each with time to read:
+  // how many events and which, then each squad's buff, then each squad's nerf. A
+  // strip along the top keeps what has already fallen in view.
   function buildChest() {
     const spin = P.rounds[P.ri] && P.rounds[P.ri].R.chest;
     if (!spin || P.chestSkip) return null;
@@ -15374,47 +15458,52 @@ const SquadView = (() => {
     const body = canvas(16, 8, 'sqc-body spr');
     paintRows(body.getContext('2d'), CHEST_BOX, IP, 0, 0, 1);
     box.append(glow, lid, body);
+    const stage = el('p', 'sqc-stage', '');
+    const sum = el('div', 'sqc-sum');
     const count = el('div', 'sqc-count');
     const countNum = el('b', '', '');
     count.append(countNum);
 
-    // a band for each event that fell
-    const reels = el('div', 'sqc-reels');
+    // the timings: every event band stops on its own, then each spin gets its read
+    const n = spin.events.length;
+    const T = { evStop: (i) => CM.stop + i * CM.step };
+    T.buff = T.evStop(n - 1) + CM.read;
+    T.nerf = T.buff + CM.spin + CM.read;
+    T.fly = T.nerf + CM.spin + CM.read;
+    T.done = T.fly + 600;
+
+    // 1: the events
+    const reels = el('div', 'sqc-p sqc-reels');
     const bands = spin.reels.events.map((cards, i) => {
       const e = spin.events[i];
-      const b = chestReel('ev', cards, CM.stop + i * CM.step, !!e.hidden);
+      const b = chestReel('ev', cards, CM.race, T.evStop(i), !!e.hidden);
       b.id = e.id;
       b.hidden = !!e.hidden;
-      b.label = el('p', 'sqc-name', '');
-      const slot = el('div', 'sqc-slot');
-      slot.append(b.root, b.label);
-      reels.append(slot);
+      reels.append(chestSlot(b));
       return b;
     });
 
-    // and two small ones per squad: the green stops first, then the red
-    const teams = el('div', 'sqc-teams');
-    const mem = [];
-    for (const side of ['rival', 'you']) {
-      const t = side === 'you' ? P.me : 1 - P.me;
-      const col = el('div', 'sqc-team ' + side);
-      col.append(el('p', 'sqc-who', side === 'you' ? P.sideLabels.you : P.sideLabels.rival));
-      for (const [kind, cards, id, at] of [
-        ['buff', spin.reels.buffs[t], spin.teams[t].buff, CM.buff],
-        ['nerf', spin.reels.nerfs[t], spin.teams[t].nerf, CM.nerf],
-      ]) {
-        const b = chestReel(kind, cards, at, false, kind === 'buff' ? 'good' : 'bad');
-        b.id = id;
-        b.label = el('p', 'sqc-name', '');
-        const slot = el('div', 'sqc-slot small');
-        slot.append(b.root, b.label);
-        col.append(slot);
-        mem.push(b);
+    // 2 and 3: a band for each squad, the rival's stopping first
+    const panel = (kind, at) => {
+      const p = el('div', 'sqc-p sqc-teams ' + kind);
+      const list = [];
+      for (const [k, side] of [['rival', 'rival'], ['you', 'you']].entries()) {
+        const t = side[1] === 'you' ? P.me : 1 - P.me;
+        const col = el('div', 'sqc-team ' + side[1]);
+        col.append(el('p', 'sqc-who', P.sideLabels[side[1]]));
+        const cards = kind === 'buff' ? spin.reels.buffs[t] : spin.reels.nerfs[t];
+        const b = chestReel(kind, cards, at + 400, at + CM.spin - 500 + k * 500, false, kind === 'buff' ? 'good' : 'bad');
+        b.id = spin.teams[t][kind];
+        col.append(chestSlot(b));
+        p.append(col);
+        list.push(b);
       }
-      teams.append(col);
-    }
-    root.append(box, count, reels, teams);
-    P.chestEls = { root, box, lid, glow, count, countNum, reels, teams, bands, mem, spin, rung: {} };
+      return { p, list };
+    };
+    const buffs = panel('buff', T.buff);
+    const nerfs = panel('nerf', T.nerf);
+    root.append(box, stage, sum, count, reels, buffs.p, nerfs.p);
+    P.chestEls = { root, box, lid, glow, stage, sum, count, countNum, reels, bands, buffs, nerfs, spin, T, rung: {}, summed: {} };
     // the whole thing in words, for anyone who is not watching it
     const say1 = 'The chest drops ' + spin.count + (spin.count === 1 ? ' event' : ' events') + ': ';
     const names = spin.events.map((e) => (e.hidden ? 'a hidden one' : nameOf('ev', e.id)));
@@ -15428,13 +15517,17 @@ const SquadView = (() => {
     // the line sits on the middle of the winning card, not the middle of its slot:
     // a card is CARD wide in a PITCH grid, so half a card is what has to line up
     const end = view / 2 - (SE.REEL_STOP * PITCH + CARD / 2);
+    const name = b.hidden ? 'Hidden' : nameOf(b.kind, b.id);
+    const line = b.hidden ? 'A trap: you will see it when it goes off.' : shortOf(b.kind, b.id);
     if (still) {
       b.strip.style.transform = 'translateX(' + end.toFixed(1) + 'px)';
       b.root.classList.add('done');
-      b.label.textContent = b.hidden ? 'Hidden until it goes off' : nameOf(b.kind, b.id);
+      b.label.textContent = name;
+      b.desc.textContent = line;
+      b.desc.classList.add('in');
       return;
     }
-    const p = span(t, CM.race, b.stop);
+    const p = span(t, b.race, b.stop);
     const from = view + PITCH * 2;
     const x = from + (end - from) * easeOut(p);
     b.strip.style.transform = 'translateX(' + x.toFixed(1) + 'px)';
@@ -15447,12 +15540,29 @@ const SquadView = (() => {
       b.last = at;
       if (p < 0.97) sfx('click');
     }
-    b.label.textContent = done ? (b.hidden ? 'Hidden until it goes off' : nameOf(b.kind, b.id)) : '';
+    if (done && !b.rung) {
+      b.rung = true;
+      sfx(b.kind === 'nerf' ? 'miss' : 'read');
+    }
+    b.label.textContent = done ? name : '';
+    b.desc.textContent = done ? line : '';
+    b.desc.classList.toggle('in', t >= b.stop + 250);
+  }
+  // what has fallen so far, kept along the top as the next spin takes the stage
+  function sumChip(C, key, kind, id, hidden) {
+    if (C.summed[key]) return;
+    C.summed[key] = 1;
+    const c = el('span', 'sqc-chip ' + kind);
+    if (hidden) c.append(el('b', 'sqc-q', '?'));
+    else c.append(icon(kind, id, 32));
+    c.title = hidden ? 'Hidden' : nameOf(kind, id);
+    C.sum.append(c);
   }
   function updateChest(t) {
     const C = P.chestEls;
     if (!C) return;
     const still = P.calm;
+    const T = C.T;
     const ring = (key, when, name) => {
       if (!when || C.rung[key]) return;
       C.rung[key] = 1;
@@ -15472,26 +15582,41 @@ const SquadView = (() => {
     ring('land', t >= CM.open - 300, 'sift');
     ring('open', t >= CM.open, 'bell');
 
+    // which of the three spins has the stage
+    const phase = still ? 0 : t < T.buff ? 1 : t < T.nerf ? 2 : 3;
+    C.stage.textContent = still ? 'The chest' : phase === 1 ? '1/3  Events' : phase === 2 ? '2/3  Buffs' : '3/3  Nerfs';
+    C.stage.className = 'sqc-stage' + (phase === 2 ? ' good' : phase === 3 ? ' bad' : '') + (still || t >= CM.count ? ' in' : '');
+    if (!still && phase > 1) ring('p' + phase, true, 'bell');
+
     // the counter rattles between 1, 2 and 3 and then clicks onto what fell
-    if (still || t >= CM.race) C.countNum.textContent = '×' + C.spin.count;
+    if (still || t >= CM.race) C.countNum.textContent = '×' + C.spin.count + (C.spin.count === 1 ? ' event' : ' events');
     else if (t >= CM.count) C.countNum.textContent = '×' + (1 + (Math.floor(t / 70) % 3));
     else C.countNum.textContent = '';
-    C.count.classList.toggle('in', still || t >= CM.count);
+    C.count.classList.toggle('in', still || (t >= CM.count && phase === 1));
     C.count.classList.toggle('set', still || t >= CM.race);
     ring('count', t >= CM.race, 'power');
 
     for (const b of C.bands) runReel(b, t, still);
-    for (const b of C.mem) runReel(b, t, still);
-    ring('mem', t >= CM.nerf, 'read');
+    for (const b of C.buffs.list) runReel(b, t, still);
+    for (const b of C.nerfs.list) runReel(b, t, still);
 
-    C.reels.classList.toggle('in', still || t >= CM.race - 200);
-    C.teams.classList.toggle('in', still || t >= CM.buff - 400);
-    C.root.classList.toggle('away', !still && t >= CM.fly);
+    C.reels.classList.toggle('in', still || (phase === 1 && t >= CM.race - 200));
+    C.buffs.p.classList.toggle('in', still || phase === 2);
+    C.nerfs.p.classList.toggle('in', still || phase === 3);
+    // the strip along the top: each spin's results join it once the next one starts
+    if (!still) {
+      if (phase >= 2) C.spin.events.forEach((e, i) => sumChip(C, 'e' + i, 'ev', e.id, e.hidden));
+      if (phase >= 3) C.buffs.list.forEach((b, i) => sumChip(C, 'b' + i, 'buff', b.id));
+      if (t >= T.fly) C.nerfs.list.forEach((b, i) => sumChip(C, 'n' + i, 'nerf', b.id));
+    }
+    C.sum.classList.toggle('in', !still && phase >= 2);
+    C.root.classList.toggle('still', still);
+    C.root.classList.toggle('away', !still && t >= T.fly + 200);
   }
   // how long the whole intro runs, the chest included
   function introTotal() {
     if (P.calm) return MS.still + (P.chestEls ? CM.still : 0);
-    return P.chestEls ? CM.at + CM.done : MS.mIntro;
+    return P.chestEls ? CM.at + P.chestEls.T.done : MS.mIntro;
   }
 
   function skipIntro() {
