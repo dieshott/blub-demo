@@ -1730,24 +1730,59 @@ body.no-scroll{overflow:hidden}
 .sq-elo .up{color:var(--up)}.sq-elo .down{color:#FF9DB0}
 .sq-cardimg{width:100%;height:auto;display:block;border:3px solid #000;image-rendering:pixelated;background:#0C2125}
 @media (max-width:420px){.sq-mbox{padding:16px 12px}.sq-rscore{font-size:40px}.sq-cap canvas{width:32px;height:40px}}
+/* the team page: the head with its link to the arena, the three tabs under the five, and
+ * the Blub Maker panel (looks) moved in from the old Meadow view */
+.sec-head > .sq-heada{display:flex;flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap;flex:1 0 100%}
+/* the three strategies over the five: the active one gold, an empty one dashed */
+.sq-strat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 6px}
+.sq-strat .sq-stb{display:flex;align-items:center;gap:8px;min-height:48px;padding:6px 10px;font-family:var(--f-data);font-size:15px;line-height:1.1;text-align:left;color:var(--sq-text);background:var(--sq-panel2);border:3px solid #000;box-shadow:0 4px 0 #000;cursor:pointer}
+.sq-strat .sq-stb b{flex:0 0 auto;display:grid;place-items:center;width:24px;height:24px;font-family:var(--f-display);font-size:10px;color:#000;background:var(--sq-hi)}
+.sq-strat .sq-stb[aria-checked="true"]{background:var(--gold);color:#000}
+.sq-strat .sq-stb[aria-checked="true"] b{background:#000;color:var(--gold)}
+.sq-strat .sq-stb.empty{color:var(--sq-soft);border-style:dashed;box-shadow:none}
+.sq-strat .sq-stb:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sq-btools select{min-height:44px;max-width:180px;font-family:var(--f-data);font-size:15px;color:var(--sq-text);background:var(--sq-deep);border:3px solid #000;padding:0 8px}
+.sq-plan .sq-sline span{color:var(--sq-lbl)}
+/* the chip over the five: which strategy is being edited (a tap shows them all) */
+.sq-schip{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:4px 10px 4px 4px;font-family:var(--f-data);font-size:15px;color:#000;background:var(--gold);border:3px solid #000;box-shadow:0 3px 0 #000;cursor:pointer}
+.sq-schip b{display:grid;place-items:center;width:24px;height:24px;font-family:var(--f-display);font-size:10px;color:var(--gold);background:#000}
+.sq-schip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sq-sthd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sq-stzone .sq-desc{margin-top:8px}
+/* where the strategies are kept, and the button that keeps them with the account */
+.sq-syncrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+.sq-ssync{margin:0;font-size:14px;color:var(--sq-soft)}
+.sq-ssync.ok{color:#7DF0A0}.sq-ssync.warn{color:var(--gold)}.sq-ssync.bad{color:#FF8FA3}
+/* phones: the five come first, so the page head keeps to its title and buttons */
+@media (max-width:520px){.team-sec .sq-head p,.arena-sec .sq-head p{display:none}}
+@media (max-width:520px){.sq-strat .sq-stb{font-size:13px;padding:6px;gap:6px}.sq-strat .sq-stb b{width:20px;height:20px}}
+.sq-tabs{display:flex;margin:12px 0 4px;border:3px solid #000;background:var(--sq-deep);box-shadow:0 4px 0 #000}
+.sq-tabs [role="tab"]{flex:1 1 0;min-height:44px;padding:0 8px;font-family:var(--f-display);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--sq-soft);background:transparent;border:0;border-right:3px solid #000;cursor:pointer}
+.sq-tabs [role="tab"]:last-child{border-right:0}
+.sq-tabs [role="tab"][aria-selected="true"]{background:var(--gold);color:#000}
+.sq-tabs [role="tab"]:focus-visible{outline:3px solid #fff;outline-offset:-7px}
+.sq-tabnote{margin:8px 0 10px;font-size:14px;line-height:1.35;color:var(--sq-soft)}
+.sq-looks{background:var(--pink);border:3px solid #000;box-shadow:0 4px 0 #000;padding:14px;color:var(--ink)}
+.sq-looks :is(#mkTeam,.mk-mode,#mkBuild,#wallet,#buybar,.oven){display:none!important}
+.sq-looks .maker{margin:0}
 @media (prefers-reduced-motion:reduce){.arena-sec *,.sq-modal *{animation:none!important;transition:none!important}}
 /* ==== end squad arena css ==== */
 </style>
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build f9b6fa1 · 10 Oct 19:17 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 5640b99 · 10 Oct 20:12 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
     <ul>
-      <li><a href="#sift">The Sift</a></li>
-      <li><a href="#pair">Pair</a></li>
-      <li><a href="#use">Use case</a></li>
+      <li><a href="#team" data-nav="team">Team</a></li>
+      <li><a href="#arena" data-nav="arena">Arena</a></li>
+      <li><a href="#pair">Coin</a></li>
       <li><a href="#tokenomics">Tokenomics</a></li>
       <li><a href="#roadmap">Roadmap</a></li>
     </ul>
-    <div class="nav-cta"><a class="btn small gold" href="#meadow" data-nav="meadow">Meadow</a><a class="btn small pink" href="#swap">Buy $BLUB</a></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small gold" href="#arena" data-nav="arena">Arena</a><a class="btn small pink" href="#swap">Buy $BLUB</a></div>
   </div>
 </nav>
 
@@ -1762,12 +1797,11 @@ body.no-scroll{overflow:hidden}
     <div class="hero-copy">
       <span class="eyebrow hero-new">Pixel game · Solana memecoin</span>
       <h1 class="blocks" id="headline" aria-label="$BLUB"></h1>
-      <p class="lead hero-new">Blub is a small blue block from The Sift<span class="hero-more">, the pink dimension</span>. Build a team<span class="hero-more"> of five</span>, win the crown<span class="hero-more"> in the Meadow and earn <span class="app-nowrap">play-BLUB</span> in Blub Jump. $BLUB is Blub’s own coin, paired with MSFT</span>.</p>
+      <p class="lead hero-new">Blub is a small blue block from The Sift<span class="hero-more">, the pink dimension</span>. Build a team<span class="hero-more"> of five</span>, give every Blub a role<span class="hero-more"> and a plan, and fight other wallets in 5v5 squad battles. $BLUB is Blub’s own coin, paired with MSFT</span>.</p>
       <p class="lead hero-back" id="heroBack">Welcome back to The Sift.</p>
-      <!-- interim call to action for returning visitors: phase 4 removes it when the Continue card (#hubNext) lands -->
-      <a class="btn md gold hero-back" href="#play"><i data-ic="play" aria-hidden="true"></i>Play Blub Jump</a>
+      <a class="btn md gold hero-back" href="#arena"><i data-ic="play" aria-hidden="true"></i>To the arena</a>
       <div class="hero-actions hero-new">
-        <a class="btn lg gold" href="#play"><i data-ic="play" aria-hidden="true"></i>Play Blub Jump</a>
+        <a class="btn lg gold" href="#team"><i data-ic="play" aria-hidden="true"></i>Build your team</a>
         <button type="button" class="btn lg ghost" data-botshow><span class="hero-more">Watch a bot fight</span><span class="hero-less">Bot fight</span></button>
       </div>
       <a class="hero-link hero-new" href="#pair">What is $BLUB? See the coin</a>
@@ -1853,7 +1887,7 @@ body.no-scroll{overflow:hidden}
 </section>
 
 <div class="edge" data-top="#FFE9EE" data-bot="#DDF1FC"></div>
-<section id="use" class="sec">
+<section id="use" class="sec" hidden>
   <span id="recipe"></span>
   <div class="wrap">
     <div class="sec-head">
@@ -1928,6 +1962,16 @@ body.no-scroll{overflow:hidden}
 
 </div>
 
+<!-- the game: the team page (looks, battle builds, the plan) and the arena (duels,
+     practice, the season) -->
+<main id="team" hidden>
+  <section id="teamSec" class="sec duel-sec arena-sec team-sec" aria-labelledby="teamTitle"><div class="wrap" id="teamRoot"></div></section>
+</main>
+<main id="arena" hidden>
+  <section id="duels" class="sec duel-sec arena-sec" aria-labelledby="arenaTitle"><div class="wrap" id="arenaRoot"></div></section>
+</main>
+<!-- the old Meadow view, out of sight until the clean-up removes it; the Blub Maker's
+     panel (.maker) moves from here into the team page -->
 <main id="meadow" hidden>
   <section class="w-head">
     <div class="wrap w-head-in">
@@ -2000,9 +2044,7 @@ body.no-scroll{overflow:hidden}
     </div>
   </section>
 
-  <div class="edge" data-top="#FFE9EE" data-bot="#173A40"></div>
-  <section id="duels" class="sec duel-sec arena-sec" aria-labelledby="arenaTitle"><div class="wrap" id="arenaRoot"></div></section>
-  <div class="edge" data-top="#173A40" data-bot="#F59AB0"></div>
+  <div class="edge" data-top="#FFE9EE" data-bot="#F59AB0"></div>
   <section id="make" class="sec" style="background:var(--pink)">
     <div class="wrap">
       <div class="sec-head">
@@ -2012,7 +2054,7 @@ body.no-scroll{overflow:hidden}
       <div class="maker">
         <div class="stage-card">
           <div class="team-bar" id="mkTeam" role="tablist" aria-label="Your team"></div>
-          <div class="team-acts"><p class="note dark" id="mkTeamNote">Your captain: it walks in the Meadow and is a little tougher in duels (+2 HP).</p><button type="button" class="btn small" id="mkCaptain" hidden>Make captain</button></div>
+          <div class="team-acts"><p class="note dark" id="mkTeamNote">Your captain: a little tougher in duels (+2 HP).</p><button type="button" class="btn small" id="mkCaptain" hidden>Make captain</button></div>
           <canvas id="mkCv" width="64" height="56" aria-label="Preview of your Blub. Click to make it jump."></canvas>
           <div class="plate" id="mkPlate">Nameless</div>
           <div class="name-row"><label for="mkName">Name</label><input id="mkName" maxlength="14" autocomplete="off" spellcheck="false" placeholder="e.g. Bloop"><button type="button" class="btn small" id="mkRandom">Surprise me</button></div>
@@ -2021,7 +2063,7 @@ body.no-scroll{overflow:hidden}
           <div class="mk-build" id="mkBuild" aria-label="Battle build"></div>
           <div class="wallet" id="wallet"><b id="mkCoins">150</b><span>play-BLUB</span></div>
           <div class="buybar" id="buybar" hidden></div>
-          <button type="button" class="btn gold" id="mkSave">Put in the Meadow</button>
+          <button type="button" class="btn gold" id="mkSave">Save team</button>
           <p class="note dark" id="mkMsg" aria-live="polite"></p>
         </div>
         <div class="maker-opts">
@@ -2963,7 +3005,8 @@ function cleanLook(o){
   return L;
 }
 function cleanOwned(a){ return Array.isArray(a) ? [...new Set(a.filter(x => typeof x === 'string' && PRICE[x] > 0))].slice(0, 60) : []; }
-function wearable(L, owned){ const o = new Set(owned), R = {...L}; CAT.forEach(c => { const key = c.k + ':' + R[c.k]; if (PRICE[key] > 0 && !o.has(key)) R[c.k] = DEF[c.k]; }); return R; }
+// every part is free to wear now (there is no shop)
+function wearable(L){ return {...L}; }
 function spentOf(owned){ return owned.reduce((s, k) => s + (PRICE[k] || 0), 0); }
 /* ---- teams: every wallet has 5 Blubs, its captain (the one in the Meadow) and 4 more.
    Until the owner makes them, the 4 are recruits: free looks, each another personality,
@@ -3161,7 +3204,8 @@ const API = (() => {
     verify: (address, nonce, signature) => call('POST', 'auth/verify', {address, nonce, signature}),
     logout: () => call('POST', 'auth/logout', {}),
     meadow: () => call('GET', 'meadow'),
-    save: (name, look, style, build, squad) => call('PUT', 'blub', {name, look, style, build, squad}),
+    // with strats, the wallet's three strategies are saved along (the same command)
+    save: (name, look, style, build, squad, strats) => call('PUT', 'blub', strats ? {name, look, style, build, squad, strats} : {name, look, style, build, squad}),
     team: () => call('GET', 'team'),
     remove: addr => call('DELETE', 'blub/' + encodeURIComponent(addr)),
     brawl: (target, revenge) => call('POST', 'brawl', {target, revenge}),
@@ -3242,14 +3286,17 @@ function cleanRec(id, o){
 }
 // Your 4 team mates are not in the Meadow list (it is public and cached). This browser keeps
 // them with the time of your last save; only when that time changed is /api/team asked (1 command).
-function keepTeam(squad, updated){
+// The wallet's strategies come with the team (strats: undefined leaves the ones known).
+function keepTeam(squad, updated, strats){
   S.squad = cleanSquad(squad, S.addr, S.style); S.teamAt = typeof updated === 'string' ? updated.slice(0, 32) : '';
-  lsPatch({team: {addr: S.addr, updated: S.teamAt, squad: S.squad}});
+  if (strats !== undefined) S.strats = strats && typeof strats === 'object' && Array.isArray(strats.s) ? strats : null;
+  lsPatch({team: {addr: S.addr, updated: S.teamAt, squad: S.squad, strats: S.strats || null}});
 }
 function teamFromCache(mine){
   const c = (lsGet() || {}).team;
   if (!c || c.addr !== S.addr || !mine || !mine.updated || c.updated !== mine.updated || !Array.isArray(c.squad)) return false;
   S.squad = cleanSquad(c.squad, S.addr, mine.style); S.teamAt = c.updated;
+  S.strats = c.strats && typeof c.strats === 'object' && Array.isArray(c.strats.s) ? c.strats : null;
   return true;
 }
 let teamJob = null;
@@ -3257,7 +3304,7 @@ function loadTeam(){
   if (S.mode !== 'wallet' || !S.addr) return Promise.resolve();
   if (!teamJob) teamJob = API.team().then(r => {
     const t = Array.isArray(r && r.team) ? r.team : [];
-    keepTeam(t.slice(1), r && r.updated); Maker.adopt(); SquadHall.render();
+    keepTeam(t.slice(1), r && r.updated, r ? r.strats || null : undefined); Maker.adopt(); SquadHall.render();
   }).catch(() => {}).finally(() => { teamJob = null; });
   return teamJob;
 }
@@ -3281,9 +3328,9 @@ async function persistMe(first){
     if (S.saved && !S.squad) await loadTeam();
     if (S.saved && !S.squad){ status('Your team is still loading. Try again in a moment.'); return false; }
     try {
-      const r = await API.save(S.name, S.look, cleanStyle(S.style), cleanBuild(S.build, S.style), S.squad);
+      const r = await API.save(S.name, S.look, cleanStyle(S.style), cleanBuild(S.build, S.style), S.squad, S.stratsOut || undefined);
       const rec = cleanRec(S.addr, r && r.blub);
-      if (rec) keepTeam(r.blub.squad, r.blub.updated);
+      if (rec) keepTeam(r.blub.squad, r.blub.updated, r.strats);
       if (rec){ const had = S.docs.has(S.addr); S.docs.set(S.addr, rec); S.saved = true; S.justSaved = Date.now(); S.holder = rec.holder; Wallet.render(); Field.sync(had ? null : new Set([S.addr])); refreshAll(); }
       status('');
       return true;
@@ -4537,7 +4584,7 @@ const Maker = (() => {
       teamBar.append(b);
     });
     capBtn.hidden = sel === 0;
-    setTxt('mkTeamNote', sel === 0 ? 'Your captain: it walks in the Meadow and is a little tougher in duels (+2 HP).' : 'Team mate ' + sel + ' of 4: it fights in duels.');
+    setTxt('mkTeamNote', sel === 0 ? 'Your captain: a little tougher in duels (+2 HP).' : 'Team mate ' + sel + ' of 4.');
   }
   teamBar.addEventListener('keydown', e => {
     const d = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
@@ -4547,7 +4594,7 @@ const Maker = (() => {
   capBtn.onclick = () => {
     stash(); const c = team[0]; team[0] = team[sel]; team[sel] = c;
     dirty = true; if (S.saved) saveBtn.textContent = 'Save changes';
-    msg.textContent = (team[0].name || 'This Blub') + ' is your captain now. Save to put it in the Meadow.';
+    msg.textContent = (team[0].name || 'This Blub') + ' is your captain now. Save the team to keep it.';
     loadMember(0); draft();
   };
   const stylesBox = $('#mkStyles');
@@ -4566,7 +4613,8 @@ const Maker = (() => {
     b.onclick = () => { cat = c.k; tabs.querySelectorAll('button').forEach(z => z.setAttribute('aria-selected', String(z === b))); renderTiles(); };
     tabs.append(b);
   });
-  const owns = key => PRICE[key] === 0 || S.owned.includes(key);
+  // there is no shop any more: every part is free to wear
+  const owns = () => true;
   function renderTiles(){
     tiles.textContent = '';
     CAT.find(c => c.k === cat).items.forEach(([id, n, p]) => {
@@ -4574,7 +4622,7 @@ const Maker = (() => {
       const b = el('button', 'tile' + (on ? ' on' : '') + (own ? '' : ' locked')); b.type = 'button'; b.setAttribute('aria-pressed', String(on));
       b.append(lookCanvas({...look, [cat]: id}, {}));
       b.append(el('span', '', n));
-      b.append(el('span', 'price' + (p === 0 ? ' free' : own ? ' own' : ''), p === 0 ? 'Free' : own ? 'Owned' : n0(p) + ' BLUB'));
+
       if (!own){ const lk = icon('lock'); lk.classList.add('lock'); b.append(lk); }
       b.onclick = () => pick(id);
       tiles.append(b);
@@ -4634,7 +4682,7 @@ const Maker = (() => {
     if (bad >= 0){ if (bad !== sel) loadMember(bad); msg.textContent = 'Give every Blub in your team a name of at least 2 characters.'; nameIn.focus(); return; }
     const bare = team.findIndex(m => CAT.some(c => !owns(c.k + ':' + m.look[c.k])));
     if (bare >= 0){ if (bare !== sel) loadMember(bare); msg.textContent = team[bare].name + ' wears ' + LABEL[unowned()[0]] + '. Buy it first, or pick something else.'; return; }
-    if (S.mode === 'boot'){ msg.textContent = 'The Meadow is still loading.'; return; }
+    if (S.mode === 'boot'){ msg.textContent = 'Your team is still loading.'; return; }
     if (S.mode === 'guest'){ Wallet.prompt('Connect a Solana wallet to save your Blub.'); return; }
     saving = true; saveBtn.disabled = true; lastSave = Date.now();
     const first = !S.saved, cap = team[0];
@@ -4644,7 +4692,7 @@ const Maker = (() => {
     saving = false; saveBtn.disabled = false;
     if (ok){
       dirty = false; saveBtn.textContent = 'Save';
-      msg.textContent = first ? cap.name + ' is in the Meadow with its team!' : 'Saved.';
+      msg.textContent = first ? 'Your team is saved, with ' + cap.name + ' as its captain.' : 'Saved.';
       if (first){ achieve('born', 'Achievement unlocked!', 'First Blub Born', 'heart'); burst(30); }
       SquadHall.render();
       persistWallet();
@@ -4653,7 +4701,7 @@ const Maker = (() => {
   function adopt(force){
     if (dirty && !force) return;
     team = savedTeam(); loadMember(sel);
-    saveBtn.textContent = S.saved ? 'Save' : 'Put in the Meadow';
+    saveBtn.textContent = S.saved ? 'Save' : 'Save team';
   }
   function loadDraft(d){
     if (!d || typeof d !== 'object') return;
@@ -4688,7 +4736,8 @@ const Maker = (() => {
     if (!RM) raf = requestAnimationFrame(frame);
   }
   function kick(){ if (!raf && vis) raf = requestAnimationFrame(frame); }
-  new IntersectionObserver(es => { vis = es[0].isIntersecting && !$('#meadow').hidden; kick(); }).observe(cv);
+  // the panel lives on the team page now: on screen is all that counts
+  new IntersectionObserver(es => { vis = es[0].isIntersecting; kick(); }).observe(cv);
 
   /* ---- battle build: weapon, superpower, training ---- */
   const modeLooks = $('#mkModeLooks'), modeBattle = $('#mkModeBattle'), looksBox = $('#mkLooks'), battleBox = $('#mkBattle');
@@ -5047,7 +5096,7 @@ const Use = (() => {
    The board answer is cached for a minute at the edge. */
 const SquadNet = {
   live: false, signInLabel: 'Connect wallet', demo: DEMO,
-  offline: DEMO ? 'Online duels open at launch. Build your squad, practice against bot squads or watch two bot squads fight now.' : 'Duels need the Meadow server. Reload the page to try again.',
+  offline: DEMO ? 'Online duels open at launch. Build your squad, practice against bot squads or watch two bot squads fight now.' : 'Duels need the server. Reload the page to try again.',
   ready: () => S.api, signedIn: () => S.mode === 'wallet',
   signIn: why => Wallet.prompt(why),
   link: id => location.origin + location.pathname + '#duel=' + id,
@@ -5064,12 +5113,22 @@ const SquadNet = {
   cancel: async id => (await API.duelCancel(id)).duel,
   // the hall renames Blub i of your team: the same save as the Blub Maker (1 command)
   rename: (i, name) => (renameJob = renameJob.then(() => renameOne(i, name), () => renameOne(i, name))),
+  // your three strategies as your wallet keeps them ({a, s, at}), or null
+  strats: () => (S.mode === 'wallet' && S.strats ? {a: S.strats.a, s: S.strats.s, at: S.teamAt} : null),
+  // keep them with your wallet: saved with your team, in the same command
+  async saveStrats(data){
+    if (S.mode !== 'wallet') return {ok: true, local: true};
+    S.stratsOut = data;
+    const ok = await persistMe(false);
+    S.stratsOut = null;
+    return ok ? {ok: true, at: S.teamAt} : {ok: false, error: $('#wStatus').textContent || 'Saving did not work. Try again.'};
+  },
 };
 let renameJob = Promise.resolve(), renameAt = 0;
 async function renameOne(i, name){
   const nm = cleanName(name);
   if (!(Number.isInteger(i) && i >= 0 && i < 5) || [...nm].length < 2) return {ok: false, error: 'A name needs 2 to 14 letters or digits.'};
-  if (S.mode === 'boot') return {ok: false, error: 'The Meadow is still loading. Try again in a moment.'};
+  if (S.mode === 'boot') return {ok: false, error: 'Your team is still loading. Try again in a moment.'};
   // never save over your team mates before they are known
   if (S.mode === 'wallet' && S.saved && !S.squad) await loadTeam();
   if (S.mode === 'wallet' && S.saved && !S.squad) return {ok: false, error: 'Your team is still loading. Try again in a moment.'};
@@ -5192,6 +5251,13 @@ const RULES = lock({
   // A Blub standing in a bush is harder to hit: it dodges arrows this much more, and
   // a swing or a stab from close by a little more. Bubbles still always land.
   bushArrow: 20, bushMelee: 10,
+  // ...and it lies in ambush: nothing farther than bushSight tiles finds it (a
+  // watchtower or a terrace sees down into the leaves), but a shooter in one sees out
+  // bushRange tiles less far
+  bushSight: 2, bushRange: 1,
+  // The Liquidity Pool (the rainbow water): wading in costs 2 steps; a Blub that starts
+  // a turn in it collects poolYield HP, and has poolDodge% less dodge while it stands there
+  poolYield: 1, poolDodge: 15,
   // the trench kit (OBJECTS): two per squad, dug in on its own three rows
   sandCover: 25, // a Blub right behind sandbags dodges arrows this much more
   sandSoak: 2, // Blubs of its squad next to the sandbags take this much less from every hit
@@ -5200,7 +5266,7 @@ const RULES = lock({
   wireDmg: 3,
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
-  mineDmg: 8, mineSplash: 3,
+  mineDmg: 6, mineSplash: 3, // mines always lie on clear ground now (the ground makes way), so they hit a little softer
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // ---- the chest (EVENTS, BUFFS, NERFS): one spin a round, before anything moves.
   // How many events fall: whole percents, together 100.
@@ -5337,6 +5403,21 @@ const OBJECT_STATS = lock({
 const OBJECTS_MAX = 2;
 // the rows an object may lie in: its own three, and no man's land for wire and mines
 const OBJECT_ROWS = [9, 10, 11, 12, 13, 14];
+
+// ---- the ground. Every arena is plain floor on both squads' own three rows; the
+// rows between them hold rock, the rainbow pools, bushes and terraces, the same on
+// both sides turned around. Blubs walk a tile at a time in any of eight directions
+// (never squeezing diagonally between two solid things) and never jump: what flies,
+// flies because something threw it. The ground makes way for the trench kit: no
+// feature lies on a tile either squad has dug something into, so what a player
+// places is always there just as placed.
+// [id, name, description] for the codex; the numbers live in RULES.
+const TERRAIN = lock([
+  ['rock', 'Rock', 'Nobody walks through it or over it, and nothing shoots through it.'],
+  ['pool', 'Liquidity Pool', `Rainbow water. Wading in costs 2 steps. A Blub that starts its turn in it collects ${RULES.poolYield} HP of yield, but has ${RULES.poolDodge}% less dodge while it stands there.`],
+  ['bush', 'Bush', `Cover: arrows miss ${RULES.bushArrow}% more, close swings ${RULES.bushMelee}% more. An ambush: nothing farther than ${RULES.bushSight} tiles finds a Blub in it, unless from a watchtower or a terrace. A shooter in one reaches ${RULES.bushRange} tile less far.`],
+  ['terrace', 'Cloud Terrace', 'High ground: a bow reaches 1 tile farther from up here, and sees down into bushes.'],
+]);
 
 // ---- the chest. Before a round starts, stream 4 draws everything it will throw on
 // the arena, so the fight stays a pure function of the two squads and the seed.
@@ -5745,6 +5826,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       OB.push({ id: OB.length, team, k: o.k, at: team ? mirror(o.x, o.y) : [o.x, o.y], cells: cells.map(([x, y]) => idx(x, y)), stock: RULES.crateStock, next: RULES.mortarTurn, shell: null, crew: null, off: false });
     }),
   );
+  // the ground makes way for the trench kit: no rock, pool, bush or terrace on a tile
+  // either squad dug something into
+  for (const o of OB) for (const c of o.cells) tiles[c] = GRASS;
   for (const o of OB) if (OBJECT_STATS[o.k].solid) for (const c of o.cells) tiles[c] = SAND;
   // very rare: a solid object would cut a way through the arena off (on a narrow
   // arena); then it could not be dug in this round
@@ -5795,6 +5879,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       push({ t: 'perk', team: t, kind, id: m[kind], at });
     }
 
+  // the Liquidity Pool pays out at the start of a turn, to everyone standing in it
+  // ('yield' first, then a heal for each)
+  function poolTurn() {
+    const wet = U.filter((u) => u.alive && tiles[idx(u.x, u.y)] === WATER && u.hp < u.max);
+    if (!wet.length) return;
+    push({ t: 'yield', u: wet.map((u) => u.id) });
+    for (const u of wet) heal(u, RULES.poolYield, 'pool');
+  }
   const living = [U.filter((u) => u.team === 0), U.filter((u) => u.team === 1)];
   const alive = (team) => living[team];
   // Blubs the Rug Pull has taken out of the fight for a while: { u, back }. They are
@@ -5824,11 +5916,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     return v === 1;
   };
-  const rangeOf = (u, x, y) => W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && towerT[idx(x, y)] ? RULES.towerRange : 0);
+  // a shooter in a bush sees out less far
+  const rangeOf = (u, x, y) => W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && towerT[idx(x, y)] ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0);
+  // a Blub in a bush lies in ambush: only what is close, or up high, finds it
+  const hidden = (x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !towerT[idx(x, y)] && tiles[idx(x, y)] !== HIGH;
   // can u, standing on (x, y), hit v?
   const canHit = (u, x, y, v) => {
     const d = cheb(x, y, v.x, v.y);
-    if (d < 1 || d > rangeOf(u, x, y)) return false;
+    if (d < 1 || d > rangeOf(u, x, y) || hidden(x, y, v)) return false;
     // a shooter up on a watchtower sees over walls and bushes
     return !W(u).los || towerT[idx(x, y)] === 1 || los(x, y, v.x, v.y);
   };
@@ -6012,7 +6107,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         }
       }
       // the Laser Eyes Totem's Blub dodges only so well, staring like that
-      if (r() * 100 < Math.floor((Math.min(45, d.dodge + extra) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
+      // the Liquidity Pool's impermanent loss: whoever stands in it dodges less
+      const pool = tiles[c] === WATER ? RULES.poolDodge : 0;
+      if (r() * 100 < Math.floor((Math.max(0, Math.min(45, d.dodge + extra) - pool) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
     }
     // the FUD cloud: a swing taken from inside it goes wide far more often. A Bubble
     // Wand still never misses, because that is the whole of what it is for.
@@ -6333,17 +6430,21 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     return by(() => 0);
   }
-  // the best tile to hit v from, among the cheapest: archers keep their distance, fighters close in
+  // The best tile to hit v from, among the cheapest: archers keep their distance,
+  // fighters close in; and between tiles just as good, the ground decides: a bush
+  // for its cover, a terrace for a bow, and never the pool while there is a dry one.
   function attackGoal(u, P, v) {
     const ranged = W(u).range >= 3;
     let best = -1;
-    let bd = 0;
+    let bs = 0;
     for (const c of P.found) {
       const x = c % SIZE;
       const dist = cheb(x, (c - x) / SIZE, v.x, v.y);
-      if (best < 0 || (ranged ? dist > bd : dist < bd)) {
+      const t = tiles[c];
+      const s = (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
+      if (best < 0 || s > bs) {
         best = c;
-        bd = dist;
+        bs = s;
       }
     }
     return best;
@@ -6493,7 +6594,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.used) return;
     if (u.pow === 'freeze') {
       if (turn < RULES.freezeTurn + gas(u)) return;
-      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y));
+      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y) && !hidden(u.x, u.y, v));
       if (!list.length) return;
       const v = list.sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || cheb(u.x, u.y, a.x, a.y) - cheb(u.x, u.y, b.x, b.y) || a.id - b.id)[0];
       u.used = true;
@@ -7290,6 +7391,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     claimTurn(turn);
     rugTurn(turn);
     craterTurn(turn);
+    if (over < 0) poolTurn();
     if (over < 0) for (const e of live) if (e.id === 'nuke') nukeTurn(e, turn);
     if (over < 0) for (const e of live) if (e.id === 'fud') fudTurn(e, turn);
     if (over < 0) for (const e of live) if (e.id === 'whale') whaleTurn(e, turn);
@@ -7531,7 +7633,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, GEAR, POWERS, TACTICS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, unitStats, makeMap, lineOfSight, simulateRound, matchRounds, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, GEAR, POWERS, TACTICS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, unitStats, makeMap, lineOfSight, simulateRound, matchRounds, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -16959,7 +17061,8 @@ const SquadHall = (() => {
   // re-render without losing the keyboard focus: elements carry a data-k key
   function keepFocus(fn){
     const a = document.activeElement;
-    const scope = R.modal && !R.modal.hidden && R.modal.contains(a) ? R.modal : R.root;
+    // the hall spans two views (the team page and the arena): the page is its scope
+    const scope = R.modal && !R.modal.hidden && R.modal.contains(a) ? R.modal : document.body;
     const k = a && scope && scope.contains(a) ? a.getAttribute('data-k') : null;
     fn();
     if (k){ const b = scope.querySelector('[data-k="' + k.replace(/"/g, '') + '"]'); if (b && b !== document.activeElement) try { b.focus({preventScroll: true}); } catch {} }
@@ -17222,21 +17325,101 @@ const SquadHall = (() => {
   const lookOf = i => team()[i].look;
   const teamOf = (d, label) => ({label, names: team().map(m => m.name), looks: team().map(m => m.look), squad: E.cleanSquad(squadOf(d))});
 
+  // ---- Strategies: three saved squads (battle builds, formation and trench kit); the
+  // looks belong to the Blubs and are the same in all three. The one being edited is the
+  // active one: every change is kept in its slot as it is made, and a duel takes it. The
+  // slots are named from SLOT_NAMES (an index, so there is no free text to store).
   let saveT = 0;
-  function saveDraft(){ clearTimeout(saveT); saveT = setTimeout(() => lsPatch({sqDraft: st.draft}), 250); }
+  function saveDraft(){ clearTimeout(saveT); saveT = setTimeout(() => { lsPatch({sqDraft: st.draft}); keepActive(); }, 250); }
   function presets(){ const p = (lsGet() || {}).sqPresets; return [0, 1, 2].map(i => { const s = Array.isArray(p) ? p[i] : null, d = s && cleanDraft(s.d); return d ? {n: Number.isInteger(s.n) && s.n >= 0 && s.n < SLOT_NAMES.length ? s.n : i, d} : null; }); }
   const slotNames = () => { const raw = (lsGet() || {}).sqSlotNames; return Array.isArray(raw) ? raw.slice(0, 3) : []; };
   function slotName(i){ const p = presets()[i], n = p ? p.n : slotNames()[i]; return SLOT_NAMES[Number.isInteger(n) && n >= 0 && n < SLOT_NAMES.length ? n : i]; }
-  function savePreset(i){
-    const list = presets(), names = slotNames(), n = list[i] ? list[i].n : Number.isInteger(names[i]) && names[i] >= 0 && names[i] < SLOT_NAMES.length ? names[i] : i;
-    list[i] = {n, d: copyDraft(st.draft)};
-    lsPatch({sqPresets: list}); Sfx.play('click');
-    say(R.barMsg, 'Saved as ' + SLOT_NAMES[n] + '.', true); keepFocus(renderTray);
+  const slotN = i => SLOT_NAMES.indexOf(slotName(i));
+  function activeIdx(){ const a = (lsGet() || {}).sqActive; return Number.isInteger(a) && a >= 0 && a < 3 ? a : 0; }
+  // the squad on the bench goes into the active strategy's slot (quiet: not a change of
+  // the player's own, so nothing new to save to the account)
+  function keepActive(quiet){
+    const list = presets(), i = activeIdx();
+    list[i] = {n: slotN(i), d: copyDraft(st.draft)};
+    lsPatch(quiet ? {sqPresets: list} : {sqPresets: list, sqDirty: true});
+    if (!quiet) renderSync();
+  }
+  // The strategies the account keeps (another device saved them): taken over when they
+  // are not the ones this browser already has, unless this browser has changes of its
+  // own not saved yet; those stay, and the button says so.
+  function adoptStrats(){
+    const srv = typeof SquadNet.strats === 'function' ? SquadNet.strats() : null;
+    if (!srv || !Array.isArray(srv.s)) return false;
+    const ls = lsGet() || {};
+    if (ls.sqDirty || (srv.at && ls.sqSyncAt === srv.at)) return false;
+    const list = [0, 1, 2].map(i => { const v = srv.s[i], d = v && cleanDraft(v.q); return d ? {n: Number.isInteger(v.n) && v.n >= 0 && v.n < SLOT_NAMES.length ? v.n : i, d} : null; });
+    if (!list.some(Boolean)) return false;
+    const a = Number.isInteger(srv.a) && list[srv.a] ? srv.a : list.findIndex(Boolean);
+    lsPatch({sqPresets: list, sqActive: a, sqSyncAt: srv.at || '', sqDirty: false});
+    st.draft = fitted(list[a].d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {};
+    lsPatch({sqDraft: st.draft});
+    keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); renderStrats();
+    return true;
+  }
+  // keep all three with the account (with the team, in the same save)
+  async function saveStrats(){
+    if (st.stratSaving) return;
+    clearTimeout(saveT); lsPatch({sqDraft: st.draft}); keepActive(true);
+    const list = presets(), a = activeIdx(), s = list.map(p => (p ? {n: p.n, q: E.cleanSquad(squadOf(p.d))} : null)), half = list.findIndex((p, i) => p && !s[i].q);
+    if (half >= 0) return renderSync('Strategy ' + 'ABC'[half] + ' (' + slotName(half) + ') is not complete yet: finish it first.');
+    st.stratSaving = true; renderSync();
+    let r;
+    try { r = await SquadNet.saveStrats({a, s: s.map(x => (x && x.q ? x : null))}); } catch { r = null; }
+    st.stratSaving = false;
+    if (r && r.ok && !r.local) lsPatch({sqDirty: false, sqSyncAt: r.at || ''});
+    renderSync(r && r.ok ? '' : (r && r.error) || 'Saving did not work. Try again.');
+    if (r && r.ok && !r.local) Sfx.play('click');
+  }
+  // where the strategies are kept, and the button that keeps them with the account
+  function renderSync(err){
+    if (!R.sync) return;
+    const ls = lsGet() || {}, signed = typeof SquadNet.signedIn === 'function' && SquadNet.signedIn();
+    const set = (text, cls, btn) => { R.sync.textContent = text; R.sync.className = 'sq-ssync' + (cls ? ' ' + cls : ''); R.syncBtn.hidden = !btn; if (btn) R.syncBtn.textContent = btn; };
+    if (err) return set(err, 'bad', signed ? 'Try again' : null);
+    if (st.stratSaving) return set('Saving to your account…', '', null);
+    if (!st.online) return set('Kept in this browser.', '', null);
+    if (!signed) return set('Kept in this browser. Sign in to keep them with your team.', '', SquadNet.signInLabel || 'Connect wallet');
+    if (ls.sqDirty) return set('Changed since your last save.', 'warn', 'Save to your account');
+    set('Saved to your account.', 'ok', null);
+  }
+  function switchStrat(i){
+    const was = activeIdx();
+    if (i === was || i < 0 || i > 2) return;
+    // the one left behind is kept just as it is
+    clearTimeout(saveT); lsPatch({sqDraft: st.draft}); keepActive();
+    const list = presets();
+    lsPatch({sqActive: i});
+    if (list[i]) loadDraft(list[i].d, slotName(i) + ' is your strategy now.');
+    else {
+      // an empty slot starts as a copy of the strategy before it
+      keepActive(); Sfx.play('click');
+      say(R.barMsg, slotName(i) + ': a copy of ' + slotName(was) + ' to start from.', true);
+    }
+    renderStrats(); keepFocus(renderSheet);
   }
   function renamePreset(i, n){
     const list = presets(), names = slotNames();
     names[i] = n; if (list[i]) list[i].n = n;
-    lsPatch({sqPresets: list, sqSlotNames: names}); keepFocus(renderTray);
+    lsPatch({sqPresets: list, sqSlotNames: names}); renderStrats(); keepFocus(renderSheet);
+  }
+  // the three strategies over the five, and the name of the active one
+  function renderStrats(){
+    if (!R.strat) return;
+    const a = activeIdx(), list = presets();
+    R.strat.textContent = '';
+    [0, 1, 2].forEach(i => radio(R.strat, i === a, [h('b', null, 'ABC'[i]), h('span', null, list[i] || i === a ? slotName(i) : 'Empty')],
+      () => { if (i !== activeIdx()){ switchStrat(i); const b = R.strat.querySelector('[data-k="strat' + i + '"]'); if (b) b.focus({preventScroll: true}); } },
+      {'data-k': 'strat' + i, class: 'sq-stb' + (list[i] || i === a ? '' : ' empty'), 'aria-label': 'Strategy ' + 'ABC'[i] + ': ' + (list[i] || i === a ? slotName(i) : 'empty')}));
+    R.stratName.textContent = '';
+    SLOT_NAMES.forEach((n, k) => { const o = h('option', {value: String(k)}, n); if (k === slotN(a)) o.selected = true; R.stratName.append(o); });
+    R.stratChip.textContent = '';
+    R.stratChip.append(h('b', null, 'ABC'[a]), h('span', null, slotName(a)));
+    R.stratChip.setAttribute('aria-label', 'Strategy ' + 'ABC'[a] + ': ' + slotName(a) + '. Show the strategies');
   }
   // a saved squad with the roles that follow their Blub's personality brought up to date
   const fitted = d => { const c = copyDraft(d); if (c) followTeam(c); return c; };
@@ -17466,7 +17649,36 @@ const SquadHall = (() => {
     if (st.lift){ st.lift = false; boardSay(''); }
     st.sel = n; Sfx.play('click');
     keepFocus(renderUnit); paintBoard(); keepFocus(renderSheet);
+    syncLooks();
     if (focusCell){ const u = st.draft.units[st.sel]; st.cur = [u.x, u.y]; focusCur(); }
+  }
+  // ---- the team page's three tabs: a Blub's looks (the Blub Maker's panel), its battle
+  // build (the parts), and the team as a whole (formation, trench kit and squad sheet)
+  const TABS = [['looks', 'Looks', 'Looks'], ['build', 'Battle build', 'Build'], ['plan', 'Team overview', 'Overview']];
+  function setTab(t, quiet){
+    st.tab = TABS.some(x => x[0] === t) ? t : 'build';
+    if (!quiet) lsPatch({sqTab: st.tab});
+    if (!R.tabs) return;
+    const looks = st.tab === 'looks', plan = st.tab === 'plan';
+    R.stage.hidden = looks || plan; R.looks.hidden = !looks;
+    R.zStrat.hidden = !plan; R.zField.hidden = !plan; R.zSheet.hidden = !plan;
+    R.tabs.querySelectorAll('[role="tab"]').forEach(b => { const on = b.getAttribute('data-tab') === st.tab; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+    R.tabNote.textContent = looks ? 'How ' + nameOf(st.sel) + ' looks: name, colors, parts and personality.' : plan ? 'The whole team: where everyone starts, the trench kit, and how strong the squad is.' : 'How ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic and training.';
+    if (looks) mountLooks();
+    else if (plan){ paintBoard(); keepFocus(renderSheet); }
+    else keepFocus(renderUnit);
+  }
+  // the Blub Maker's panel lives on the team page: moved in once, then it shows the picked Blub
+  function mountLooks(){
+    const mk = document.querySelector('#make .maker');
+    if (mk) R.looks.append(mk);
+    syncLooks();
+  }
+  function syncLooks(){
+    if (st.tab !== 'looks' || !R.tabNote) return;
+    R.tabNote.textContent = 'How ' + nameOf(st.sel) + ' looks: name, colors, parts and personality.';
+    const b = document.querySelectorAll('#mkTeam [role="tab"]')[st.sel];
+    if (b && b.getAttribute('aria-selected') !== 'true') b.click();
   }
   // the parts of the builder that show the picked Blub
   function renderUnit(){ renderFive(); renderStage(); renderChoices(); renderStats(); renderStrip(); }
@@ -17474,6 +17686,7 @@ const SquadHall = (() => {
   // the sheet's Edit buttons and the strip's Edit: that Blub's parts, in sight
   function editBlub(i){
     if (i !== st.sel) select(i);
+    if (st.tab !== 'build') setTab('build');
     if (R.zBlub) R.zBlub.scrollIntoView({block: 'start', behavior: calm() ? 'auto' : 'smooth'});
     const t = R.figRow && R.figRow.querySelector('[data-k="part:' + st.part + '"]');
     if (t) try { t.focus({preventScroll: true}); } catch {}
@@ -17846,10 +18059,11 @@ const SquadHall = (() => {
     if (r.local) nameSay(who + (r.note || 'Only on this device until you connect a wallet'), 'local');
     else { nameSay(who + 'Saved', 'ok'); Sfx.play('click'); setTimeout(() => { if (job === nameJob) nameSay(''); }, 2600); }
   }
-  // names are saved for the team; looks are edited in the Blub Maker (its team bar)
+  // names are saved for the team; looks are edited on the team page's Looks tab
   function editInMaker(i){
-    go('make');
-    setTimeout(() => { const b = document.querySelectorAll('#mkTeam [role="tab"]')[i]; if (b && b.getAttribute('aria-selected') !== 'true') b.click(); }, 0);
+    if (i !== st.sel) select(i);
+    setTab('looks');
+    reveal(R.zBlub);
   }
   function makerLink(i){
     return h('a', {href: '#make', class: 'sq-mlink', 'data-k': 'maker' + (i == null ? '' : i), onclick: e => { e.preventDefault(); e.stopPropagation(); editInMaker(i || 0); }}, canRename() ? 'Change its look in the Blub Maker' : 'Edit names and looks in the Blub Maker');
@@ -18426,6 +18640,7 @@ const SquadHall = (() => {
   const LOADOUT = u => [vIcon('wpn', u.wpn, 14), vIcon('gear', u.gear, 14), vIcon('pow', u.pow, 14), h('span', {class: 'sr'}, WPN[u.wpn][1] + ', ' + GEAR[u.gear][1] + ', ' + POW[u.pow][1])];
   function renderSheet(){
     const box = R.sheet, d = st.draft; if (!box) return;
+    renderPlan();
     box.textContent = '';
     const t = h('table', {class: 'sq-sheet'});
     const cols = [['Role'], ['HP'], ['Mv', 'Move'], ['Rng', 'Range'], ['Dmg', 'Damage'], ['Dodge', '', 'sq-hide-m'], ['Crit', '', 'sq-hide-m'], ['Block', '', 'sq-hide-m'], ['Guard', '', 'sq-hide-m'], ['Loadout'], ['Tactic'], ['Start', 'Start tile', 'sq-hide-s']];
@@ -18472,22 +18687,22 @@ const SquadHall = (() => {
   }
 
   // ---- presets and random squads
-  function renderTray(){
-    const box = R.tray; box.textContent = '';
-    if (!st.tray){ box.hidden = true; R.trayBtn.setAttribute('aria-expanded', 'false'); return; }
-    box.hidden = false; R.trayBtn.setAttribute('aria-expanded', 'true');
-    const list = presets();
-    list.forEach((p, i) => {
-      const card = h('div', {class: 'sq-pcard' + (p ? '' : ' empty')});
-      const sel = h('select', {'aria-label': 'Name of preset ' + (i + 1), 'data-k': 'pname' + i});
-      const cur = SLOT_NAMES.indexOf(slotName(i));
-      SLOT_NAMES.forEach((n, k) => { const o = h('option', {value: String(k)}, n); if (k === cur) o.selected = true; sel.append(o); });
-      sel.addEventListener('change', () => renamePreset(i, +sel.value));
-      card.append(sel, p ? minis(p.d) : h('span', {class: 'sq-minis'}, h('span', {class: 'sq-desc'}, 'Empty slot')), h('div', {class: 'sq-pacts'},
-        button('Load', '', () => { if (p) loadDraft(p.d, SLOT_NAMES[p.n] + ' loaded.'); }, {'aria-disabled': p ? null : 'true', 'data-k': 'pload' + i}),
-        button('Save here', 'gold', () => savePreset(i), {'data-k': 'psave' + i})));
-      box.append(card);
+  // ---- the overview's plan: the active strategy in words, row by row, the way a coach
+  // would sum it up (front, middle and back row, the tactics, what is dug in)
+  const ROW_WORD = {12: 'Front row', 13: 'Middle row', 14: 'Back row'};
+  function renderPlan(){
+    const box = R.plan, d = st.draft; if (!box) return;
+    box.textContent = '';
+    box.append(h('span', {class: 'sq-lbl'}, 'The plan · ' + slotName(activeIdx())));
+    [12, 13, 14].forEach(y => {
+      const here = d.units.map((u, i) => ({u, i})).filter(x => x.u.y === y).sort((a, b) => a.u.x - b.u.x);
+      if (!here.length) return;
+      box.append(h('p', {class: 'sq-sline'}, h('span', null, ROW_WORD[y]), ' ', h('b', null, here.map(({u, i}) => nameOf(i) + ' (' + CLS[u.cls][1] + ', ' + WPN[u.wpn][1] + ')').join(' · '))));
     });
+    const tc = {};
+    d.units.forEach(u => { tc[u.tac] = (tc[u.tac] || 0) + 1; });
+    box.append(h('p', {class: 'sq-sline'}, h('span', null, 'Tactics'), ' ', h('b', null, Object.entries(tc).sort((a, b) => b[1] - a[1]).map(([k, n]) => TAC[k][1] + (n > 1 ? ' ×' + n : '')).join(' · '))));
+    box.append(h('p', {class: 'sq-sline'}, h('span', null, 'Dug in'), ' ', h('b', null, d.objs.length ? d.objs.map(o => OBJ[o.k][1] + ' (' + spotName(o) + ')').join(' · ') : 'nothing')));
   }
 
   // ---- the sticky bar: ready, strength (a button with the details), presets and the challenge
@@ -18936,12 +19151,12 @@ const SquadHall = (() => {
     if (R.modal.hidden) return;
     R.modal.hidden = true; st.modal = null; document.body.classList.remove('no-scroll'); clearInterval(R.mTick);
     if (/^#(duel|squad)=/.test(location.hash)){
-      try { history.replaceState(null, '', '#duels'); } catch {}
+      try { history.replaceState(null, '', '#arena'); } catch {}
       const sec = section(); if (sec && (sec.getBoundingClientRect().bottom < 0 || sec.getBoundingClientRect().top > innerHeight)) sec.scrollIntoView();
     }
     // the list the modal was opened from may have been redrawn: find the same button again
     let f = lastFocus;
-    if (f && !f.isConnected && f.getAttribute && f.getAttribute('data-k') && R.root) f = R.root.querySelector('[data-k="' + f.getAttribute('data-k').replace(/"/g, '') + '"]');
+    if (f && !f.isConnected && f.getAttribute && f.getAttribute('data-k')) f = document.querySelector('[data-k="' + f.getAttribute('data-k').replace(/"/g, '') + '"]');
     if (f && f.isConnected) try { f.focus({preventScroll: true}); } catch {}
   }
   function buildModal(){
@@ -19301,11 +19516,21 @@ const SquadHall = (() => {
   function panel(cls, id, title, ...kids){ return h('article', {class: 'sq-panel ' + cls, 'aria-labelledby': id}, h('h3', {id}, ...[].concat(title)), ...kids); }
   function build(){
     const root = document.getElementById('arenaRoot'); if (!root) return false;
-    R.root = root; root.textContent = '';
+    // the team page has a root of its own for the builder; without one it all goes here
+    const troot = document.getElementById('teamRoot') || root;
+    R.root = root; R.troot = troot; root.textContent = ''; troot.textContent = '';
     const snd = h('button', {type: 'button', class: 'btn small snd'}, 'Sound on'); Sfx.bind(snd);
     root.append(h('div', {class: 'sec-head sq-head'},
       h('div', null, h('span', {class: 'eyebrow'}, 'Duel Hall · 5v5'), h('h2', {id: 'arenaTitle'}, 'Squad Arena')),
-      h('p', null, 'Your team of five fights as one squad. Give every Blub a role and a start tile, keep it secret, and duel wallet against wallet on a 15x15 arena. A new arena and a random power-up every round.'), snd));
+      h('p', null, 'Practice against bot squads, watch two of them fight, or duel other wallets. A new 15x15 arena and a random power-up every round.'),
+      h('div', {class: 'sq-heada'}, h('a', {class: 'btn small', href: '#team', 'data-k': 'toteam'}, 'Edit your team'), snd)));
+    if (troot !== root){
+      const snd2 = h('button', {type: 'button', class: 'btn small snd'}, 'Sound on'); Sfx.bind(snd2);
+      troot.append(h('div', {class: 'sec-head sq-head'},
+        h('div', null, h('span', {class: 'eyebrow'}, 'Your team · 5v5'), h('h2', {id: 'teamTitle'}, 'Team')),
+        h('p', null, 'Pick a Blub, then its looks or its battle build. The overview shows the whole team and its plan.'),
+        h('div', {class: 'sq-heada'}, h('a', {class: 'btn small gold', href: '#arena', 'data-k': 'toarena'}, 'To the arena'), snd2)));
+    }
 
     // 1. the builder, in three zones (see 'the builder' above) and the sticky bar
     R.stEye = h('span', {class: 'sq-eyebrow', id: 'sqEdEye'});
@@ -19339,16 +19564,40 @@ const SquadHall = (() => {
     R.stage = h('div', {class: 'sq-stage', role: 'region', 'aria-labelledby': 'sqEdEye'},
       h('div', {class: 'sq-sthead'}, R.stEye, h('label', {class: 'sq-namebox'}, R.nameIn, canRename() ? pen : null), R.nameMsg, R.chips), R.figGrid, R.tray2, R.who);
     R.five = h('div', {class: 'sq-five', role: 'radiogroup', 'aria-label': 'Your team of five: pick one'}); radioKeys(R.five);
-    R.zBlub = h('div', {class: 'sq-zone sq-bzone'}, R.five, R.stage);
+    // the three tabs under the five
+    R.tabs = h('div', {class: 'sq-tabs', role: 'tablist', 'aria-label': 'Show'});
+    TABS.forEach(([k, long, short]) => R.tabs.append(h('button', {type: 'button', role: 'tab', 'data-tab': k, 'data-k': 'tab:' + k, 'aria-selected': 'false', onclick: () => { setTab(k); Sfx.play('click'); }},
+      h('span', {class: 'sq-long'}, long), h('span', {class: 'sq-short'}, short))));
+    R.tabs.addEventListener('keydown', e => {
+      const d = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (!d) return;
+      e.preventDefault();
+      const i = (TABS.findIndex(x => x[0] === st.tab) + d + TABS.length) % TABS.length;
+      setTab(TABS[i][0]); const b = R.tabs.querySelector('[data-tab="' + TABS[i][0] + '"]'); if (b) b.focus();
+    });
+    R.tabNote = h('p', {class: 'sq-tabnote', 'aria-live': 'polite'});
+    R.looks = h('div', {class: 'sq-looks', role: 'region', 'aria-label': 'Looks', hidden: true});
+    R.zBlub = h('div', {class: 'sq-zone sq-bzone'}, R.five, R.tabs, R.tabNote, R.stage, R.looks);
     R.zField = buildBoard();
     // 3. the squad sheet
     buildRate();
     R.sheetTeam = h('div', {class: 'sq-scard sq-steam'}); R.sheetKit = h('div', {class: 'sq-scard sq-skitc'});
     R.sheet = h('div', {class: 'sq-sheetbox'});
-    R.zSheet = h('div', {class: 'sq-zone sq-szone'}, h('span', {class: 'sq-lbl', id: 'sqSheetT'}, 'Squad sheet'),
+    R.plan = h('div', {class: 'sq-scard sq-plan'});
+    R.zSheet = h('div', {class: 'sq-zone sq-szone'}, h('span', {class: 'sq-lbl', id: 'sqSheetT'}, 'Squad sheet'), R.plan,
       h('div', {class: 'sq-scards'}, R.rateBox, R.sheetTeam, R.sheetKit), R.rateHow, R.sheet);
-    R.tray = h('div', {class: 'sq-tray', hidden: true});
-    R.trayBtn = button('Presets', '', () => { st.tray = !st.tray; renderTray(); }, {'aria-expanded': 'false', 'data-k': 'tray'});
+    // the three strategies (on the overview tab), the active one's name, and a chip over
+    // the five that says which strategy is being edited
+    R.strat = h('div', {class: 'sq-strat', role: 'radiogroup', 'aria-labelledby': 'sqStratT'}); radioKeys(R.strat);
+    R.stratName = h('select', {'data-k': 'sname', 'aria-label': 'Name of this strategy'});
+    R.stratName.addEventListener('change', () => renamePreset(activeIdx(), +R.stratName.value));
+    R.sync = h('p', {class: 'sq-ssync', 'aria-live': 'polite'});
+    R.syncBtn = button('Save to your account', 'gold', () => { if (typeof SquadNet.signedIn === 'function' && SquadNet.signedIn()) saveStrats(); else SquadNet.signIn('Sign in to keep your strategies with your team.'); }, {'data-k': 'ssave', hidden: true});
+    R.zStrat = h('div', {class: 'sq-zone sq-stzone', hidden: true},
+      h('div', {class: 'sq-sthd'}, h('span', {class: 'sq-lbl', id: 'sqStratT'}, 'Strategy'), h('div', {class: 'sq-btools'}, R.stratName, button('Random squad', '', () => loadDraft(randomDraft(), 'A random squad. Tweak it or roll again.'), {'data-k': 'random'}))),
+      R.strat,
+      h('div', {class: 'sq-syncrow'}, R.sync, R.syncBtn),
+      h('p', {class: 'sq-desc'}, 'Three strategies, each a squad of its own: battle builds, formation and trench kit. The looks are the same in all three. Your duels take the one picked here, and it stays secret until a fight.'));
+    R.stratChip = h('button', {type: 'button', class: 'sq-schip', 'data-k': 'schip', onclick: () => { setTab('plan'); Sfx.play('click'); }});
     R.barReady = h('b', {class: 'sq-ready'}); R.barMeter = h('span', {class: 'sq-barm'}); R.barMsg = h('span', {class: 'sq-barmsg', 'aria-live': 'polite'});
     R.rateRange = h('span', {class: 'sq-rrange'});
     R.rateBtn = h('button', {type: 'button', class: 'sq-rbtn', 'data-k': 'rateinfo', 'aria-expanded': 'false', 'aria-controls': 'sqRatePop', onclick: () => toggleRatePop(!st.popOpen)},
@@ -19356,18 +19605,17 @@ const SquadHall = (() => {
     R.ratePop = h('div', {class: 'sq-rpop', id: 'sqRatePop', hidden: true});
     R.barGo = button('Challenge', 'gold', () => {
       if (st.back){ const id = st.back; st.back = null; barLabel(); return openInvite(id); }
-      if (!st.online){ scrollTo(R.pracP); setTimeout(() => { const g = R.bots.querySelector('.btn.gold'); if (g) g.focus({preventScroll: true}); }, calm() ? 0 : 450); return; }
-      scrollTo(R.chal); setTimeout(() => R.cGo.focus({preventScroll: true}), calm() ? 0 : 450);
+      // the arena is a view of its own: go there, then to the form
+      if (!st.online) return reveal(R.pracP, () => { const g = R.bots.querySelector('.btn.gold'); if (g) g.focus({preventScroll: true}); });
+      reveal(R.chal, () => R.cGo.focus({preventScroll: true}));
     }, {'data-k': 'bargo'});
     const bar = R.bar = h('div', {class: 'sq-bar'},
       h('div', {class: 'sq-bar-l'}, R.barReady, R.rateBtn, R.ratePop),
       R.barMsg,
-      h('div', {class: 'sq-bar-r'}, button([h('span', {class: 'sq-long'}, 'Save preset'), h('span', {class: 'sq-short'}, 'Save')], '', () => { st.tray = true; renderTray(); R.tray.scrollIntoView({behavior: calm() ? 'auto' : 'smooth', block: 'nearest'}); const s = R.tray.querySelector('.btn.gold'); if (s) s.focus({preventScroll: true}); }, {'data-k': 'barsave'}),
-        R.barGo));
+      h('div', {class: 'sq-bar-r'}, R.barGo));
     R.builder = h('article', {class: 'sq-panel sq-builder', 'aria-labelledby': 'sqBTitle', id: 'sqBuilder'},
-      h('div', {class: 'sq-bhead'}, h('h3', {id: 'sqBTitle'}, 'Squad builder'), h('div', {class: 'sq-btools'}, R.trayBtn, button('Random squad', '', () => loadDraft(randomDraft(), 'A random squad. Tweak it or roll again.'), {'data-k': 'random'}))),
-      h('p', {class: 'sq-desc'}, 'Five Blubs, one squad. Build each one, set the formation and dig in up to ' + KMAX + ' objects. Saved in this browser, secret until a fight.'), R.tray,
-      R.zBlub, R.zField, R.zSheet, bar);
+      h('div', {class: 'sq-bhead'}, h('h3', {id: 'sqBTitle'}, 'Your five'), R.stratChip),
+      R.zBlub, R.zStrat, R.zField, R.zSheet, bar);
 
     // 2. the challenge
     R.cVs = h('div', {class: 'sq-vsbox'});
@@ -19422,17 +19670,20 @@ const SquadHall = (() => {
     // without SquadNet (the demo, no server): what works now and what opens later
     R.offMsg = h('p', {class: 'sq-msg', 'aria-live': 'polite'});
     R.offP = panel('sq-offp', 'sqfTitle', 'Online duels', h('p', {class: 'sq-desc'}, SquadNet.offline),
-      h('ul', {class: 'sq-offl'}, h('li', null, 'Build your squad above: it stays in this browser.'), h('li', null, 'Practice against a bot squad, as often as you like.'), h('li', null, 'Watch two bot squads fight.')),
+      h('ul', {class: 'sq-offl'}, h('li', null, 'Build your squad on the team page: it stays in this browser.'), h('li', null, 'Practice against a bot squad, as often as you like.'), h('li', null, 'Watch two bot squads fight.')),
       R.offMsg);
     R.offP.hidden = true;
 
-    root.append(R.builder, h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, R.openP, R.topP, R.mineP)));
+    troot.append(R.builder);
+    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, R.openP, R.topP, R.mineP)));
     buildModal();
     return true;
   }
 
   // the sticky roster sits under the page's sticky menu
-  function measureNav(){ const n = document.querySelector('.nav'); if (R.root) R.root.style.setProperty('--sq-navh', (n ? n.offsetHeight : 0) + 'px'); }
+  function measureNav(){ const n = document.querySelector('.nav'), v = (n ? n.offsetHeight : 0) + 'px'; [R.root, R.troot].forEach(r => { if (r) r.style.setProperty('--sq-navh', v); }); }
+  // is either of the hall's views on screen?
+  const onScreen = () => [R.root, R.troot].some(r => r && r.getClientRects().length > 0);
   // the Duel Hall section the hall lives in
   const section = () => document.getElementById('duels') || R.root;
 
@@ -19446,7 +19697,7 @@ const SquadHall = (() => {
     [R.chal, R.openP, R.topP, R.mineP].forEach(n => { n.hidden = !on; });
     R.offP.hidden = on;
     R.root.classList.toggle('sq-offline', !on);
-    barLabel();
+    barLabel(); renderSync();
     return true;
   }
   // the bar's main button: back to a duel being accepted, else the challenge (or practice)
@@ -19462,7 +19713,7 @@ const SquadHall = (() => {
     const first = st.me === undefined;
     st.me = me;
     if (first) return false;
-    st.made = null; if (R.cLink) R.cLink.hidden = true; st.looked.clear(); st.seen.clear(); st.back = null; barLabel();
+    st.made = null; if (R.cLink) R.cLink.hidden = true; st.looked.clear(); st.seen.clear(); st.back = null; barLabel(); renderSync();
     renderMine(); renderOpen(); renderChallenge();
     return true;
   }
@@ -19473,7 +19724,7 @@ const SquadHall = (() => {
     if (followTeam(st.draft)) saveDraft();
     unitCache.clear(); st.rand = null;
     keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); paintBar(); strengthSoon(); renderChalSquad();
-    if (st.tray) keepFocus(renderTray);
+
     return true;
   }
 
@@ -19482,8 +19733,12 @@ const SquadHall = (() => {
     st.team = readTeam();
     st.draft = cleanDraft((lsGet() || {}).sqDraft) || defaultDraft();
     if (followTeam(st.draft)) saveDraft();
+    // what is on the bench is the active strategy
+    keepActive(true);
     if (!build()) return;
     st.ready = true;
+    renderStrats(); adoptStrats();
+    setTab(st.tab || (lsGet() || {}).sqTab || 'build', true);
     ensureBots();
     applyMode();
     measureNav(); addEventListener('resize', measureNav);
@@ -19515,23 +19770,26 @@ const SquadHall = (() => {
       toggleRatePop(false);
       if (inBar) try { R.rateBtn.focus({preventScroll: true}); } catch {}
     });
-    const sec = section();
-    if (sec) new IntersectionObserver(es => {
-      st.inView = es.some(e => e.isIntersecting);
-      if (!st.inView) return;
-      seen();
-      teamChanged();
-      if (!st.online) return;
-      renderChallenge(); if (Date.now() - st.boardAt > 60000) refreshBoard(); else checkMine();
-    }).observe(sec);
+    // the team page and the arena: on screen when either is
+    const sec = section(), secs = [sec, R.troot.closest('section')].filter((n, i, a) => n && a.indexOf(n) === i), vis = new Map();
+    if (secs.length){
+      const io = new IntersectionObserver(es => {
+        es.forEach(e => vis.set(e.target, e.isIntersecting));
+        st.inView = [...vis.values()].some(Boolean);
+        if (!st.inView) return;
+        seen();
+        teamChanged();
+        if (!st.online) return;
+        renderChallenge(); if (Date.now() - st.boardAt > 60000) refreshBoard(); else checkMine();
+      });
+      secs.forEach(n => io.observe(n));
+    }
     if (st.online){
       if (SquadNet.live) SquadNet.watch(() => refreshBoard());
       refreshBoard();
     }
     setInterval(() => {
-      if (!st.ready || document.hidden) return;
-      const meadow = document.getElementById('meadow');
-      if (meadow && meadow.hidden) return;
+      if (!st.ready || document.hidden || !onScreen()) return;
       if (st.inView) teamChanged();
       whoChanged();
       if (!st.online) return;
@@ -19559,19 +19817,29 @@ const SquadHall = (() => {
     const was = st.online;
     applyMode();
     whoChanged();
+    // the team came in (signed in, or saved elsewhere): its strategies with it
+    adoptStrats(); renderSync();
     if (!teamChanged()){ keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); }
     renderChallenge(); renderTop();
     if (st.online && !was) refreshBoard();
   }
 
   // ---- what the rest of the page calls
-  // show the hall: from the home page this opens the Meadow view first
+  // show a part of the hall: first the view it is in (the team page or the arena)
   function reveal(node, then){
     leaveFull(); seen();
-    const meadow = document.getElementById('meadow');
+    const view = node && node.closest ? node.closest('main') : null;
     const go2 = () => { if (node) scrollTo(node); if (then) setTimeout(then, calm() ? 0 : 450); };
-    if (meadow && meadow.hidden){ go('duels'); requestAnimationFrame(() => requestAnimationFrame(go2)); }
+    if (view && view.hidden && view.id){ go(view.id); requestAnimationFrame(() => requestAnimationFrame(go2)); }
     else go2();
+  }
+  // the page opened one of the hall's views: the team page (on its Looks tab for an old
+  // #make link) or the arena
+  function show(view, hash){
+    if (view === 'team' && hash === 'make') st.tab = 'looks';
+    if (!st.ready) return;
+    if (view === 'team') setTab(st.tab);
+    seen();
   }
   function focus(){
     if (!st.ready) return reveal(section());
@@ -19600,28 +19868,33 @@ const SquadHall = (() => {
     const x = topList().find(r => r.id === id) || ladder.get(id);
     return x && x.w + x.l > 0 ? {r: x.r, w: x.w, l: x.l} : null;
   }
-  return {ready, render, openInvite, botShow, prefill, focus, record};
+  return {ready, render, show, openInvite, botShow, prefill, focus, record};
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
-   ROUTING: #meadow, #make and #play open the Meadow view
+   ROUTING: three views. #team is the team page (looks, battle builds and
+   the plan), #arena the game (duels, practice, the season), anything else
+   the home page. Old links still land: #make on the team page's looks,
+   #meadow, #play and #duels in the arena.
    ===================================================================== */
-const homeEl = $('#home'), wlEl = $('#meadow');
-const WROUTES = new Set(['meadow', 'make', 'play', 'duels', 'arena']);
+const homeEl = $('#home');
+const VIEWS = {team: $('#team'), arena: $('#arena')};
+const ALIAS = {make: 'team', meadow: 'arena', play: 'arena', duels: 'arena'};
+const viewOf = h => VIEWS[h] ? h : ALIAS[h] || '';
 function go(id){ if (window.blubFsLeave) window.blubFsLeave(); try { history.pushState(null, '', '#' + id); } catch {} route(id); }
 function route(hh){
-  let h = typeof hh === 'string' ? hh : location.hash.slice(1);
-  if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('duels'); if (code) SquadHall.openInvite(code); return; }
-  if (h === 'arena') h = 'duels';
-  const inW = WROUTES.has(h);
-  const was = !wlEl.hidden;
-  homeEl.hidden = inW; wlEl.hidden = !inW;
-  document.querySelectorAll('[data-nav="meadow"]').forEach(a => a.setAttribute('aria-current', inW ? 'page' : 'false'));
-  if (inW){
-    Field.show(); Maker.kick(); Oven.kick(); Game.kick();
-    requestAnimationFrame(() => { if (h === 'meadow') window.scrollTo(0, 0); else document.getElementById(h).scrollIntoView(); });
+  const h = typeof hh === 'string' ? hh : location.hash.slice(1);
+  if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('arena'); if (code) SquadHall.openInvite(code); return; }
+  const v = viewOf(h);
+  const was = Object.values(VIEWS).some(n => !n.hidden);
+  homeEl.hidden = !!v;
+  for (const [k, n] of Object.entries(VIEWS)) n.hidden = k !== v;
+  document.querySelectorAll('[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav === v ? 'page' : 'false'));
+  if (v){
+    // the hall opens the team page on the right tab (#make: the looks)
+    SquadHall.show(v, h);
+    requestAnimationFrame(() => window.scrollTo(0, 0));
   } else {
-    Field.hide();
     if (was) dispatchEvent(new Event('resize'));
     if (h){ const tEl = document.getElementById(h); if (tEl) requestAnimationFrame(() => tEl.scrollIntoView()); }
     else if (was) window.scrollTo(0, 0);
@@ -19632,7 +19905,7 @@ addEventListener('popstate', () => route());
 document.addEventListener('click', e => {
   const a = e.target.closest && e.target.closest('a[href^="#"]'); if (!a) return;
   const id = a.getAttribute('href').slice(1); if (!id) return;
-  if (WROUTES.has(id) || (!wlEl.hidden && document.getElementById(id))){ e.preventDefault(); go(id); }
+  if (viewOf(id)){ e.preventDefault(); go(id); }
 });
 // the Meadow's "Watch a bot fight" buttons open a bot show in the Squad Arena
 document.querySelectorAll('[data-botshow]').forEach(b => { b.onclick = () => SquadHall.botShow(); });
@@ -19724,7 +19997,7 @@ function applyMe(me){
     const mine = S.docs.get(S.addr); S.holder = mine ? mine.holder : null;
     setMode('wallet');
   } else {
-    S.addr = null; S.admin = false; S.holder = null; S.saved = false; S.squad = null; S.teamAt = '';
+    S.addr = null; S.admin = false; S.holder = null; S.saved = false; S.squad = null; S.teamAt = ''; S.strats = null;
     setMode('guest');
   }
   Wallet.render(); refreshCoins(); Maker.renderTiles(); Maker.renderBuy(); Field.sync();
@@ -19772,7 +20045,7 @@ async function boot(){
   await pullMeadow(true);
   SquadHall.ready();
   // the list is cached at the edge, so this costs (almost) no database commands
-  setInterval(() => { if (!$('#meadow').hidden && !document.hidden) pullMeadow(false); }, 120000);
+  setInterval(() => { if ((!$('#team').hidden || !$('#arena').hidden) && !document.hidden) pullMeadow(false); }, 120000);
 }
 refreshCoins(); refreshAll(); route(); boot();
 })();
