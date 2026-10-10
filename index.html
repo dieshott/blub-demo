@@ -692,7 +692,7 @@ body.no-scroll{overflow:hidden}
 .sqv{--you:#3E86C9;--you-l:#BDE7FF;--you-d:#1B3F73;--riv:#FF7A3D;--riv-l:#FFD447;--riv-d:#8E2A12;--panel:#1b1129;--edge:#5E3A8A;
   position:fixed;inset:0;z-index:95;height:100vh;height:100dvh;overflow:hidden;color:#F6EEFF;
   background:#120a1c;background-image:linear-gradient(rgba(255,255,255,.035) 2px,transparent 2px),linear-gradient(90deg,rgba(255,255,255,.035) 2px,transparent 2px);background-size:32px 32px;
-  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:40px minmax(0,1fr) 46px auto 46px minmax(0,1fr) auto;
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:40px minmax(0,1fr) auto auto auto minmax(0,1fr) auto;
   grid-template-areas:"bar" "." "them" "stage" "you" "." "ctl";outline:none;font-family:var(--f-body);
   padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
 .sqv[hidden]{display:none!important}
@@ -720,7 +720,12 @@ body.no-scroll{overflow:hidden}
 .sqv-ros{min-width:0;display:flex;flex-direction:column}
 .sqv-them{grid-area:them}
 .sqv-you{grid-area:you}
-.sqv-rh{display:none}
+/* phones: a slim line over each squad's row with its name and how many are left */
+.sqv-rh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:2px 8px;background:#1b1129;border:2px solid #000;border-bottom:0;box-shadow:inset 3px 0 0 var(--sc)}
+.sqv-you .sqv-rh{--sc:var(--you)}.sqv-them .sqv-rh{--sc:var(--riv)}
+.sqv-rh b{font-family:var(--f-display);font-weight:400;font-size:8px;line-height:1.6;color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sqv-rh span{font-family:var(--f-data);font-size:15px;line-height:1;color:var(--gold)}
+.sqv-ros > .sqv-rl{height:46px}
 .sqv-rk{display:none}
 /* the round's buff and nerf: a chip each, green and red, that pops when it goes off */
 .sqv-rm{display:none}
@@ -749,7 +754,7 @@ body.no-scroll{overflow:hidden}
 .sqv-r.low .sqv-hb i{background:#FF5C77}
 .sqv-st{position:absolute;left:1px;bottom:1px;display:flex;gap:1px;max-width:30px;overflow:hidden}
 .sqv-hp .short{display:none}
-@media (max-width:899px){.sqv-hp .long{display:none}.sqv-hp .short{display:inline;color:#FF9DB0}.sqv-hp .short.num{color:inherit}}
+@media (max-width:899px), (orientation:portrait){.sqv-hp .long{display:none}.sqv-hp .short{display:inline;color:#FF9DB0}.sqv-hp .short.num{color:inherit}}
 .sqv-st canvas{width:9px;height:9px}
 .sqv-st .sq-ico{width:12px!important;height:12px!important}
 .sqv-r.ko .sqv-rp,.sqv-r.ko .sqv-rt{filter:grayscale(1);opacity:.45}
@@ -759,7 +764,7 @@ body.no-scroll{overflow:hidden}
   background:linear-gradient(45deg,transparent 42%,#FF5C77 42%,#FF5C77 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#FF5C77 42%,#FF5C77 58%,transparent 58%)}
 .sqv-crown{position:absolute;left:1px;top:1px;width:10px;height:6px;z-index:1;background:var(--gold);clip-path:polygon(0 0,25% 50%,50% 0,75% 50%,100% 0,100% 100%,0 100%);filter:drop-shadow(1px 1px 0 #000)}
 @media (max-height:640px){
-  .sqv{grid-template-rows:40px minmax(0,1fr) 34px auto 34px minmax(0,1fr) auto}
+  .sqv-ros > .sqv-rl{height:34px}
   .sqv-r{min-height:30px}
   .sqv-hp{display:none}
   .sqv-rp,.sqv-rp canvas{width:22px!important;height:22px!important}
@@ -791,6 +796,11 @@ body.no-scroll{overflow:hidden}
 .sqv-pk{font-family:var(--f-display);font-size:7px;line-height:1.6;color:var(--ink-soft,#B9A9D6);text-transform:uppercase;letter-spacing:.08em}
 .sqv-pu strong{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.5;color:#fff}
 .sqv-pd{font-family:var(--f-data);font-size:17px;line-height:1.05;color:#D9CDEA}
+/* the perks as the round starts: in the middle, clear of both crates, green and red */
+.sqv-ban.perks{top:50%}
+.sqv-pu.perk.good{box-shadow:inset 4px 0 0 #4FB36B}
+.sqv-pu.perk.bad{box-shadow:inset 4px 0 0 #E2566E}
+.sqv-pu.perk.good .sqv-pk{color:#9FE3A8}.sqv-pu.perk.bad .sqv-pk{color:#FF9AA8}
 .sqv-bp{display:flex;gap:14px;font-family:var(--f-data);font-size:19px;line-height:1}
 .sqv-bp .you{color:var(--you-l)}.sqv-bp .rival{color:#FFB08A}
 .sqv-pop{position:absolute;left:50%;top:9%;transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:calc(100% - 16px);padding:6px 10px;
@@ -859,7 +869,7 @@ body.no-scroll{overflow:hidden}
 .sqv-log{display:none}
 
 /* desktop: rosters in columns either side, a log under the controls */
-@media (min-width:900px){
+@media (min-width:900px) and (orientation:landscape){
   .sqv{grid-template-columns:minmax(0,1fr) 210px auto 210px minmax(0,1fr);grid-template-rows:48px auto auto minmax(0,1fr);column-gap:16px;
     grid-template-areas:"bar bar bar bar bar" ". left stage right ." ". left ctl right ." ". left log right ."}
   .sqv-col{display:flex;flex-direction:column;gap:12px;padding-top:14px;min-width:0;min-height:0;overflow:auto}
@@ -882,6 +892,7 @@ body.no-scroll{overflow:hidden}
   .sqv-rm{display:flex;gap:6px}
   .sqv-rm[hidden]{display:none}
   .sqv-rl{grid-template-columns:minmax(0,1fr);padding:0;gap:6px;height:auto}
+  .sqv-ros > .sqv-rl{height:auto}
   .sqv-r{min-height:64px;height:auto;padding:6px 8px 8px 6px;gap:8px;border-width:3px;box-shadow:inset 0 -4px 0 var(--sc,#3E2C58)}
   .sqv-r:hover{background:#241736}
   .sqv-rp,.sqv-rp canvas{width:48px!important;height:48px!important}
@@ -1011,7 +1022,7 @@ body.no-scroll{overflow:hidden}
 .sqv-over.still .sqc-glow.on{animation:none}
 .sqv-over.still .sqc-reel.done .sqc-strip{animation:none}
 .sqv-over.still .sqi-c,.sqv-over.still .sqi-vs,.sqv-over.still .sqi-q,.sqv-over.still .sqi-kitr{transition:none}
-@media (min-width:900px){
+@media (min-width:900px) and (orientation:landscape){
   .sqi-box{width:min(620px,100%);gap:10px}
   .sqi-pic,.sqi-pic canvas{width:64px;height:80px}
   .sqi-c b{font-size:19px}
@@ -5369,8 +5380,9 @@ const EVENT_STATS = lock({
   ape: { turn: 0, contested: 1, spots: 'line' },
   exit: { turn: 0, contested: 1, spots: 'line' },
 });
-// Both squads get one buff and one nerf, each just as likely (1 in 6) and drawn on
-// their own: the two squads may well end up with the same one.
+// Each squad gets one perk a round, drawn on its own: green (a buff) or red (a nerf),
+// each as likely, and then any of the six, each as likely. Both squads may well
+// end up with the same one.
 const BUFFS = lock([
   ['airdrop', 'Airdrop', `Somewhere between turn ${RULES.airdropFrom} and ${RULES.airdropTo} the weakest Blub gets ${RULES.airdropHp} HP and its power back.`],
   ['sniper', 'Sniper Bot', `One shot of ${RULES.sniperDmg} damage on the first enemy that uses a power.`],
@@ -5770,6 +5782,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   let over = -1;
   let now = 0; // the turn being played, for the memepowers that only last a while
   push({ t: 'round', n: round + 1, theme, powerup, chest: spin });
+  // Each squad's perk for the round comes down in a crate (green a buff, red a nerf)
+  // on a free tile of the rows it deployed on: where, the chest's stream decides.
+  if (spin)
+    for (const t of [0, 1]) {
+      const m = meme[t];
+      const kind = m.buff ? 'buff' : 'nerf';
+      const rows = t === 0 ? [SIZE - 1, SIZE - 2, SIZE - 3] : [0, 1, 2];
+      const free = [];
+      for (const y of rows) for (let x = 0; x < SIZE; x++) if (occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)])) free.push([x, y]);
+      const at = free.length ? free[Math.floor(cr() * free.length)] : null;
+      push({ t: 'perk', team: t, kind, id: m[kind], at });
+    }
 
   const living = [U.filter((u) => u.team === 0), U.filter((u) => u.team === 1)];
   const alive = (team) => living[team];
@@ -7445,8 +7469,9 @@ function chestSpin(seed, round = 0) {
 
   // one buff and one nerf per squad, drawn on their own: both may get the same
   const teams = [0, 1].map(() => {
-    const buff = one(BUFFS);
-    const nerf = one(NERFS);
+    const green = r() < 0.5;
+    const buff = green ? one(BUFFS) : null;
+    const nerf = green ? null : one(NERFS);
     const t = { buff, nerf, turn: 0 };
     if (buff === 'airdrop') t.turn = RULES.airdropFrom + Math.floor(r() * (RULES.airdropTo - RULES.airdropFrom + 1));
     return t;
@@ -7464,8 +7489,6 @@ function chestSpin(seed, round = 0) {
   const reels = {
     count: strip(howMany, count),
     events: events.map((ev) => strip(() => one(EVENTS), ev.id)),
-    buffs: teams.map((t) => strip(() => one(BUFFS), t.buff)),
-    nerfs: teams.map((t) => strip(() => one(NERFS), t.nerf)),
   };
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
@@ -8664,10 +8687,14 @@ const SquadView = (() => {
       for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) g[y][x] = { w: 'N', Y: 'N', y: 'n', o: 'n', A: 'k' }[g[y][x]] || g[y][x];
       return FG.outline(g);
     }],
-    // The Airdrop: a supply crate with a green cross on it, under a striped canopy on
-    // four lines. 0 coming down; 1 the crate alone, landed, lid sprung.
-    airdrop: [2, 32, (i) => {
+    // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
+    // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
+    // and the Airdrop buff itself), 2-3 the same in red (a nerf).
+    airdrop: [4, 32, (j) => {
       let g = FG.grid(32);
+      const red = j >= 2;
+      const i = j % 2;
+      const [c1, c2] = red ? ['r', 'F'] : ['g', 'G'];
       const cy = i === 0 ? 20 : 22; // the crate's top
       // the crate, its planks and the cross
       for (let y = cy; y < cy + 9; y++) for (let x = 11; x <= 20; x++) FG.put(g, x, y, '1');
@@ -8677,14 +8704,14 @@ const SquadView = (() => {
         FG.put(g, x, cy + 3, 'x');
         FG.put(g, x, cy + 6, 'x');
       }
-      for (let y = cy + 1; y < cy + 8; y++) for (const x of [15, 16]) FG.put(g, x, y, y === cy + 4 || y === cy + 5 ? 'G' : 'g');
-      for (const x of [13, 14, 17, 18]) for (const y of [cy + 4, cy + 5]) FG.put(g, x, y, 'g');
+      for (let y = cy + 1; y < cy + 8; y++) for (const x of [15, 16]) FG.put(g, x, y, y === cy + 4 || y === cy + 5 ? c2 : c1);
+      for (const x of [13, 14, 17, 18]) for (const y of [cy + 4, cy + 5]) FG.put(g, x, y, c1);
       if (i === 0) {
         // the canopy, striped, and its four lines down to the crate
         for (let x = 3; x <= 28; x++) {
           const dx = (x - 15.5) / 12.5;
           const top = Math.round(4 + dx * dx * 5);
-          for (let y = top; y <= top + 3 - (Math.abs(dx) > 0.85 ? 1 : 0); y++) FG.put(g, x, y, Math.floor((x - 3) / 4) % 2 ? 'W' : 'F');
+          for (let y = top; y <= top + 3 - (Math.abs(dx) > 0.85 ? 1 : 0); y++) FG.put(g, x, y, Math.floor((x - 3) / 4) % 2 ? 'W' : red ? 'F' : 'G');
         }
         g = FG.outline(g);
         for (const [x0, x1] of [[4, 11], [11, 13], [20, 18], [27, 20]]) FG.line(g, x0, 10, x1, cy, 0.8, 'S');
@@ -10095,6 +10122,8 @@ const SquadView = (() => {
     // the memepowers in the fight
     // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
     pick: 1500, pickHit: 1150,
+    // each squad's perk coming down in its crate as the round starts, and time to read it
+    perks: 5400, perksHit: 1500,
     claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
@@ -10106,10 +10135,9 @@ const SquadView = (() => {
   // spin itself was settled long before this: everything here is only the telling.
   const CM = {
     at: MS.mIntro, // the chest takes over from the squad intro
-    drop: 0, open: 600, count: 1000, race: 1600,
-    stop: 3200, step: 900, // the first event band stops, each next one `step` later
-    read: 2600, // after a spin's last band stops: time to read what it does
-    spin: 2400, // a buff or nerf spin, from the start of its race to its last stop
+    drop: 0, open: 600, count: 1000, race: 3000, // the counter rattles, slowing, for 2 s
+    stop: 4600, step: 900, // the first event band stops, each next one `step` later
+    read: 4500, // after the last band stops: time to read what the events do
     still: 5200, // reduced motion: no racing, just everything that fell, to read
   };
   const CARD = 72; // a card on a band, in CSS pixels: a 32x32 icon at 2x, framed
@@ -10175,6 +10203,11 @@ const SquadView = (() => {
       const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
       ev.forEach((e, i) => {
         const t = e.t;
+        if (t === 'perk') {
+          if (parent && parent.kind === 'perks') attachTo(parent, i);
+          else parent = add({ kind: 'perks', dur: MS.perks, contact: MS.perksHit, list: [{ ei: i, off: MS.perksHit }], e });
+          return;
+        }
         if (t === 'round' || t === 'bait' || t === 'catapults' || t === 'props') {
           intro.list.push({ ei: i, off: 0 });
           return;
@@ -10432,7 +10465,9 @@ const SquadView = (() => {
     Q.forEach((q, i) => (q.i = i));
     Q.sort((a, b) => a.at - b.at || a.i - b.i);
     const endBeat = beats[beats.length - 1];
-    return { beats, Q, turns, total: t, fightEnd: endBeat.t, introLen: intro.dur, f };
+    // the fight starts once the perks are down and read
+    const pk = beats.find((b) => b.kind === 'perks');
+    return { beats, Q, turns, total: t, fightEnd: endBeat.t, introLen: intro.dur, fightAt: pk ? pk.t + pk.dur : intro.dur, f };
   }
 
   // ---- the state of a round, built by folding the events over the start
@@ -10450,7 +10485,7 @@ const SquadView = (() => {
       })),
       item: null, mist: 0, winner: -1, turn: 0, actors: [], ended: false, blown: {}, aims: {},
       // the chest: the pill on its way up the curve, the hole it leaves, the weather
-      curve: null, crater: null, fud: null, bait: null, cats: [], props: [], spent: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0,
+      curve: null, crater: null, fud: null, bait: null, cats: [], props: [], spent: {}, perkSeen: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0,
     };
   }
   function fold(S, e) {
@@ -10546,6 +10581,10 @@ const SquadView = (() => {
         break;
       case 'honey':
         S.bait = null;
+        break;
+      // a squad's perk for the round, out of its crate
+      case 'perk':
+        S.perkSeen[e.team] = true;
         break;
       // a one-shot memepower spent, for its chip in the roster
       case 'airdrop':
@@ -12278,6 +12317,48 @@ const SquadView = (() => {
     return best ? tileC(best[0], best[1]) : null;
   }
 
+  // Each squad's perk comes down on its own side as the round starts: a crate on a
+  // parachute, green for a buff and red for a nerf, swaying down onto the tile of
+  // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
+  function perkFall(b, T, k) {
+    if (P.calm) return;
+    const HIT = MS.perksHit * k;
+    for (const it of b.list) {
+      const e = P.rd.R.ev[it.ei];
+      if (!e || e.t !== 'perk' || !e.at) continue;
+      const [cx, cy] = tileC(e.at[0], e.at[1]);
+      const fr = e.kind === 'buff' ? 0 : 2;
+      addFx(T, HIT, (x, kk) => blob(x, cx, cy + 6, Math.round(3 + kk * 6), 1, '#1B1229', 0.12 + kk * 0.25), true);
+      addFx(T, HIT, (x, kk, el) => {
+        const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
+        x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
+      });
+    }
+    sfx('read');
+  }
+  // The round card turns into the perks: each squad's, its colour, what it does.
+  function showPerkBanner() {
+    const ch = P.rd.R.chest;
+    if (!ch) return;
+    const b2 = D.ban;
+    b2.textContent = '';
+    b2.append(el('b', 'sqv-bh', 'AIRDROP · ROUND ' + (P.ri + 1)));
+    for (const side of ['rival', 'you']) {
+      const t = side === 'you' ? P.me : 1 - P.me;
+      const m = ch.teams[t];
+      const kind = m.buff ? 'buff' : 'nerf';
+      const row = el('div', 'sqv-pu perk ' + (kind === 'buff' ? 'good' : 'bad'));
+      row.append(icon(kind, m[kind], 32));
+      const tx = el('div', '');
+      tx.append(el('span', 'sqv-pk', P.sideLabels[side] + (kind === 'buff' ? ' · buff' : ' · nerf')), el('strong', '', nameOf(kind, m[kind])), el('span', 'sqv-pd', shortOf(kind, m[kind])));
+      row.append(tx);
+      b2.append(row);
+    }
+    b2.className = 'sqv-ban on perks';
+    const mine = ch.teams[P.me];
+    const mk = mine.buff ? 'buff' : 'nerf';
+    say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
+  }
   // a beat starts: poses, reticles, telegraphs and beams that lead up to the event
   function beginBeat(b, T) {
     const S = P.S;
@@ -12297,6 +12378,10 @@ const SquadView = (() => {
     }
     if (b.kind === 'cturn') {
       calmTurn(b);
+      return;
+    }
+    if (b.kind === 'perks') {
+      perkFall(b, T, k);
       return;
     }
     if (P.calm) return;
@@ -12641,9 +12726,7 @@ const SquadView = (() => {
   function fx(e, T, b, k) {
     const S = P.S;
     const U = S.u;
-    // the memepowers' chips in the rosters: pop as they go off
-    if (e.t === 'turn' && e.n === 1 && P.rd.R.chest)
-      P.rd.R.chest.teams.forEach((m, t) => ['buff', 'nerf'].forEach((kind) => !MEME_SHOT[m[kind]] && memePop(t, m[kind], false)));
+    // the memepowers' chips in the rosters: pop as they go off (and as their crate opens)
     if (e.t === 'airdrop' || e.t === 'snipe' || e.t === 'devwallet') memePop(e.team, { airdrop: 'airdrop', snipe: 'sniper', devwallet: 'devwallet' }[e.t], true);
     if (e.t === 'paper') memePop(Math.floor(e.u / SE.TEAM), 'paper', true);
     switch (e.t) {
@@ -13103,6 +13186,36 @@ const SquadView = (() => {
         const u = U[e.u];
         const [cx, cy] = centreOf(u);
         label(T + 200 * k, 'PLAYED', '#D9A05B', cx, cy - 22, true);
+        return;
+      }
+      // A squad's perk lands: the crate thumps down, the lid springs, and the perk's
+      // card rises out of it and hangs there over the crate until the fight starts.
+      case 'perk': {
+        if (P.perkBan !== T) {
+          P.perkBan = T;
+          showPerkBanner();
+        }
+        memePop(e.team, e.id, false);
+        if (!e.at) return;
+        const [cx, cy] = tileC(e.at[0], e.at[1]);
+        const red = e.kind === 'nerf';
+        const until = Math.max(0, (P.rd.fightAt || T) - T);
+        const ic = iconSrc(e.kind, e.id);
+        addFx(T, until, (x, kk, el) => {
+          x.drawImage(fxFrame('airdrop', red ? 3 : 1), cx - 16, cy - 24);
+          const up = Math.min(1, el / (380 * k));
+          const bob = P.calm ? 0 : Math.round(Math.sin(el / (260 * k)) * 1.5);
+          const iy = Math.round(cy - 22 - up * 20 + bob);
+          x.fillStyle = INK;
+          x.fillRect(cx - 18, iy - 2, 36, 36);
+          x.fillStyle = red ? '#E2566E' : '#4FB36B';
+          x.fillRect(cx - 17, iy - 1, 34, 34);
+          x.drawImage(ic, cx - 16, iy);
+        });
+        for (const s of [-1, 1])
+          addFx(T, 480 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), cy - 8));
+        addParts(12, cx, cy - 12, red ? ['#E2566E', '#FF9AA8', '#FFFFFF'] : ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.07, 0.0002, 600 * k, T, true);
+        sfx(red ? 'miss' : 'power');
         return;
       }
       // AIRDROP. A crate on a striped parachute drifts down out of the sky onto the
@@ -14336,9 +14449,9 @@ const SquadView = (() => {
     const spd = el('div', 'sqv-spd');
     spd.setAttribute('role', 'group');
     spd.setAttribute('aria-label', 'Speed');
-    // half speed, for watching a big moment play out
+    // the clock's own speeds, shown as 1x to 8x: what was half speed is the new 1x
     const speeds = [0.5, 1, 2, 4].map((s) => {
-      const b = btn('sqv-s', 'Speed ' + s + 'x', [], (s === 0.5 ? '.5' : s) + 'x');
+      const b = btn('sqv-s', 'Speed ' + s * 2 + 'x', [], s * 2 + 'x');
       b.dataset.s = String(s);
       spd.append(b);
       return b;
@@ -14478,8 +14591,7 @@ const SquadView = (() => {
       ev.preventDefault();
       if (P.phase === 'intro') skipIntro();
       else togglePause();
-    } else if (k === '1' || k === '2' || k === '4') setSpeed(+k, true);
-    else if (k === '5' || k === '.') setSpeed(0.5, true);
+    } else if (k === '1' || k === '2' || k === '4' || k === '8') setSpeed(+k / 2, true);
     else if (k === 's' || k === 'S') skipRound();
     else if ((k === 'ArrowLeft' || k === 'ArrowRight') && ev.target !== D.prog) stepTurn(k === 'ArrowLeft' ? -1 : 1);
   }
@@ -14496,10 +14608,10 @@ const SquadView = (() => {
   function savePrefs() {
     if (!P) return;
     const p = prefs();
-    const sp = Object.assign({}, p.spd || {});
+    const sp = Object.assign({}, p.spd2 || {});
     sp[P.viewer < 0 ? 'show' : 'own'] = P.speed;
     try {
-      lsPatch({ sqview: { spd: sp, calm: !!P.userCalm, shake: !!P.shakeOn, chest: !!P.chestSkip, tempo: !!P.autoTempo } });
+      lsPatch({ sqview: { spd2: sp, calm: !!P.userCalm, shake: !!P.shakeOn, chest: !!P.chestSkip, tempo: !!P.autoTempo } });
     } catch (err) {
       /* storage is optional */
     }
@@ -14529,13 +14641,16 @@ const SquadView = (() => {
   }
 
   function layout() {
-    const wide = innerWidth >= 900;
+    // side columns only on a wide screen lying down; a phone held upright (even one
+    // that reports a desktop width) gets the arena across its full width, the rival
+    // above it and the own squad under it
+    const wide = innerWidth >= 900 && innerWidth > innerHeight;
     D.root.classList.toggle('wide', wide);
     const r = D.wrap.getBoundingClientRect();
     let s;
     if (wide) s = Math.min(3, (innerHeight - 220) / CH, (innerWidth - 2 * 216 - 32) / CW);
     else {
-      const ros = innerHeight <= 640 ? 34 : 46;
+      const ros = (innerHeight <= 640 ? 34 : 46) + 20;
       const free = innerHeight - 40 - 2 * ros - 20 - D.ctl.offsetHeight - 6;
       s = Math.min(r.width / CW, Math.max(80, free) / CH);
     }
@@ -14623,6 +14738,7 @@ const SquadView = (() => {
       const m = ch && ch.teams && ch.teams[team];
       R.meme.hidden = !m;
       if (!m) return;
+      R.meme.hidden = false;
       for (const kind of ['buff', 'nerf']) {
         const id = m[kind];
         if (!id) continue;
@@ -14685,7 +14801,11 @@ const SquadView = (() => {
     const S = P.S;
     if (!S) return;
     [[P.me, D.you], [1 - P.me, D.them]].forEach(([t, R]) => {
-      for (const id in R.memeChips || {}) R.memeChips[id].classList.toggle('used', !!S.spent[t + ':' + id]);
+      for (const id in R.memeChips || {}) {
+        R.memeChips[id].classList.toggle('used', !!S.spent[t + ':' + id]);
+        // only once its crate is open
+        R.memeChips[id].hidden = !S.perkSeen[t];
+      }
     });
     let alive = { you: 0, rival: 0 };
     [D.you, D.them].forEach((R) =>
@@ -14897,8 +15017,9 @@ const SquadView = (() => {
     const sideOf = (team) => (team === me ? 'you' : 'rival');
     const mq = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
     const pf = prefs();
-    const spdPref = pf.spd && pf.spd[viewer < 0 ? 'show' : 'own'];
-    const speed = [0.5, 1, 2, 4].includes(spdPref) ? spdPref : viewer < 0 ? 2 : 1;
+    // (spd2: what an older page saved as 1x is the new 2x, so it starts over)
+    const spdPref = pf.spd2 && pf.spd2[viewer < 0 ? 'show' : 'own'];
+    const speed = [0.5, 1, 2, 4].includes(spdPref) ? spdPref : viewer < 0 ? 1 : 0.5;
     P = {
       match, kind, teams, viewer, me, flip: viewer === 1, bo, seed, sideOf, resolve,
       squads: teams.map((t) => t.squad),
@@ -15087,7 +15208,8 @@ const SquadView = (() => {
   }
   function roundTimers() {
     const L = P.rd.introLen;
-    if (!P.fightShown && P.clock >= L - (P.calm ? 0 : L / 4)) {
+    const F = P.rd.fightAt || L;
+    if (!P.fightShown && P.clock >= (F > L ? F - 200 : L - (P.calm ? 0 : L / 4))) {
       P.fightShown = true;
       D.ban.className = 'sqv-ban';
       if (!P.calm) {
@@ -15146,7 +15268,7 @@ const SquadView = (() => {
     }
     P.seeking = false;
     P.clock = T;
-    P.fightShown = T >= P.rd.introLen;
+    P.fightShown = T >= (P.rd.fightAt || P.rd.introLen);
     P.mistTo = undefined;
     P.S.u.forEach((u) => {
       u.mv = null;
@@ -15444,9 +15566,9 @@ const SquadView = (() => {
     slot.append(b.root, b.label, b.desc);
     return slot;
   }
-  // The chest reveal in three spins, one after the other, each with time to read:
-  // how many events and which, then each squad's buff, then each squad's nerf. A
-  // strip along the top keeps what has already fallen in view.
+  // The chest reveal: how many events (the counter slows down onto it) and then which,
+  // one band under the other, each stopping on its own with what it does under it.
+  // Each squad's perk is not spun here: it comes down by airdrop as the round starts.
   function buildChest() {
     const spin = P.rounds[P.ri] && P.rounds[P.ri].R.chest;
     if (!spin || P.chestSkip) return null;
@@ -15467,9 +15589,7 @@ const SquadView = (() => {
     // the timings: every event band stops on its own, then each spin gets its read
     const n = spin.events.length;
     const T = { evStop: (i) => CM.stop + i * CM.step };
-    T.buff = T.evStop(n - 1) + CM.read;
-    T.nerf = T.buff + CM.spin + CM.read;
-    T.fly = T.nerf + CM.spin + CM.read;
+    T.fly = T.evStop(n - 1) + CM.read;
     T.done = T.fly + 600;
 
     // 1: the events
@@ -15483,32 +15603,12 @@ const SquadView = (() => {
       return b;
     });
 
-    // 2 and 3: a band for each squad, the rival's stopping first
-    const panel = (kind, at) => {
-      const p = el('div', 'sqc-p sqc-teams ' + kind);
-      const list = [];
-      for (const [k, side] of [['rival', 'rival'], ['you', 'you']].entries()) {
-        const t = side[1] === 'you' ? P.me : 1 - P.me;
-        const col = el('div', 'sqc-team ' + side[1]);
-        col.append(el('p', 'sqc-who', P.sideLabels[side[1]]));
-        const cards = kind === 'buff' ? spin.reels.buffs[t] : spin.reels.nerfs[t];
-        const b = chestReel(kind, cards, at + 400, at + CM.spin - 500 + k * 500, false, kind === 'buff' ? 'good' : 'bad');
-        b.id = spin.teams[t][kind];
-        col.append(chestSlot(b));
-        p.append(col);
-        list.push(b);
-      }
-      return { p, list };
-    };
-    const buffs = panel('buff', T.buff);
-    const nerfs = panel('nerf', T.nerf);
-    root.append(box, stage, sum, count, reels, buffs.p, nerfs.p);
-    P.chestEls = { root, box, lid, glow, stage, sum, count, countNum, reels, bands, buffs, nerfs, spin, T, rung: {}, summed: {} };
+    root.append(box, stage, count, reels);
+    P.chestEls = { root, box, lid, glow, stage, count, countNum, reels, bands, spin, T, rung: {} };
     // the whole thing in words, for anyone who is not watching it
     const say1 = 'The chest drops ' + spin.count + (spin.count === 1 ? ' event' : ' events') + ': ';
     const names = spin.events.map((e) => (e.hidden ? 'a hidden one' : nameOf('ev', e.id)));
-    const mine = spin.teams[P.me];
-    say(say1 + names.join(', ') + '. ' + P.sideLabels.you + ' draws ' + nameOf('buff', mine.buff) + ' and ' + nameOf('nerf', mine.nerf) + '.', true);
+    say(say1 + names.join(', ') + '.', true);
     return root;
   }
   // one band, at this moment
@@ -15548,16 +15648,6 @@ const SquadView = (() => {
     b.desc.textContent = done ? line : '';
     b.desc.classList.toggle('in', t >= b.stop + 250);
   }
-  // what has fallen so far, kept along the top as the next spin takes the stage
-  function sumChip(C, key, kind, id, hidden) {
-    if (C.summed[key]) return;
-    C.summed[key] = 1;
-    const c = el('span', 'sqc-chip ' + kind);
-    if (hidden) c.append(el('b', 'sqc-q', '?'));
-    else c.append(icon(kind, id, 32));
-    c.title = hidden ? 'Hidden' : nameOf(kind, id);
-    C.sum.append(c);
-  }
   function updateChest(t) {
     const C = P.chestEls;
     if (!C) return;
@@ -15582,34 +15672,29 @@ const SquadView = (() => {
     ring('land', t >= CM.open - 300, 'sift');
     ring('open', t >= CM.open, 'bell');
 
-    // which of the three spins has the stage
-    const phase = still ? 0 : t < T.buff ? 1 : t < T.nerf ? 2 : 3;
-    C.stage.textContent = still ? 'The chest' : phase === 1 ? '1/3  Events' : phase === 2 ? '2/3  Buffs' : '3/3  Nerfs';
-    C.stage.className = 'sqc-stage' + (phase === 2 ? ' good' : phase === 3 ? ' bad' : '') + (still || t >= CM.count ? ' in' : '');
-    if (!still && phase > 1) ring('p' + phase, true, 'bell');
+    C.stage.textContent = 'The chest';
+    C.stage.className = 'sqc-stage' + (still || t >= CM.count ? ' in' : '');
 
-    // the counter rattles between 1, 2 and 3 and then clicks onto what fell
+    // The counter rattles between 1, 2 and 3, slowing down like a wheel running
+    // out, a click on every number, and then lands on what fell.
     if (still || t >= CM.race) C.countNum.textContent = '×' + C.spin.count + (C.spin.count === 1 ? ' event' : ' events');
-    else if (t >= CM.count) C.countNum.textContent = '×' + (1 + (Math.floor(t / 70) % 3));
-    else C.countNum.textContent = '';
-    C.count.classList.toggle('in', still || (t >= CM.count && phase === 1));
+    else if (t >= CM.count) {
+      const p = (t - CM.count) / (CM.race - CM.count);
+      const k = Math.floor(26 * (1 - (1 - p) * (1 - p)));
+      // it ends on the count: count back from there
+      const v = ((((C.spin.count - 1 - (26 - k)) % 3) + 3) % 3) + 1;
+      C.countNum.textContent = '×' + v;
+      if (k !== C.tick) {
+        C.tick = k;
+        sfx('click');
+      }
+    } else C.countNum.textContent = '';
+    C.count.classList.toggle('in', still || t >= CM.count);
     C.count.classList.toggle('set', still || t >= CM.race);
     ring('count', t >= CM.race, 'power');
 
     for (const b of C.bands) runReel(b, t, still);
-    for (const b of C.buffs.list) runReel(b, t, still);
-    for (const b of C.nerfs.list) runReel(b, t, still);
-
-    C.reels.classList.toggle('in', still || (phase === 1 && t >= CM.race - 200));
-    C.buffs.p.classList.toggle('in', still || phase === 2);
-    C.nerfs.p.classList.toggle('in', still || phase === 3);
-    // the strip along the top: each spin's results join it once the next one starts
-    if (!still) {
-      if (phase >= 2) C.spin.events.forEach((e, i) => sumChip(C, 'e' + i, 'ev', e.id, e.hidden));
-      if (phase >= 3) C.buffs.list.forEach((b, i) => sumChip(C, 'b' + i, 'buff', b.id));
-      if (t >= T.fly) C.nerfs.list.forEach((b, i) => sumChip(C, 'n' + i, 'nerf', b.id));
-    }
-    C.sum.classList.toggle('in', !still && phase >= 2);
+    C.reels.classList.toggle('in', still || t >= CM.race - 200);
     C.root.classList.toggle('still', still);
     C.root.classList.toggle('away', !still && t >= T.fly + 200);
   }
