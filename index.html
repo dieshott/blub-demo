@@ -769,6 +769,31 @@ body.no-scroll{overflow:hidden}
   .sqv-hp{display:none}
   .sqv-rp,.sqv-rp canvas{width:22px!important;height:22px!important}
 }
+/* upright with height to spare (layout() sets .tall and --ros-h): big cards, the rival
+   above the arena and the own squad under it; the round's perks ride in the head line */
+.sqv.tall .sqv-ros{position:relative}
+.sqv.tall .sqv-rh{padding:4px 8px 3px}
+.sqv.tall .sqv-rh b{font-size:9px}
+.sqv.tall .sqv-rh span{font-size:19px}
+.sqv.tall .sqv-rm{display:flex;position:absolute;right:46px;top:2px;gap:4px}
+.sqv.tall .sqv-rm[hidden]{display:none}
+.sqv.tall .sqv-mc{padding:1px;border-width:2px;box-shadow:inset 0 -2px 0 var(--mc,#4BE08F)}
+.sqv.tall .sqv-mc canvas{width:16px!important;height:16px!important}
+.sqv.tall .sqv-ros > .sqv-rl{height:var(--ros-h,96px);gap:4px;padding:4px 4px 0}
+.sqv.tall .sqv-r{flex-direction:column;justify-content:center;align-items:stretch;gap:2px;min-height:0;padding:6px 4px 7px;text-align:center;box-shadow:inset 0 3px 0 var(--sc,#3E2C58);background:linear-gradient(#241736,#1b1129 60%)}
+.sqv.tall .sqv-r.act{background:#3A2A12;box-shadow:inset 0 3px 0 var(--gold)}
+.sqv.tall .sqv-rp{align-self:center;width:48px;height:48px;background:#2B1D3F;border:2px solid #000;box-sizing:content-box}
+.sqv.tall .sqv-rp canvas{width:48px!important;height:48px!important}
+.sqv.tall .sqv-rt{flex:none;gap:3px}
+.sqv.tall .sqv-rt b{font-size:15px;text-align:center}
+.sqv.tall .sqv-hp{display:none;font-size:14px;text-align:center}
+.sqv.tall.roomy .sqv-hp{display:block}
+.sqv.tall .sqv-hb{height:7px;border-width:2px}
+.sqv.tall .sqv-st{left:auto;right:3px;top:3px;bottom:auto;flex-direction:column;max-width:none;gap:2px}
+.sqv.tall .sqv-st canvas{width:10px;height:10px}
+.sqv.tall .sqv-r.ko::after{left:50%;top:7px;margin:0 0 0 -24px;width:48px;height:48px}
+.sqv.tall .sqv-crown{left:3px;top:3px;width:14px;height:8px}
+.sqv.tall .sqv-r.act .sqv-rp{border-color:var(--gold);box-shadow:0 0 0 2px #000}
 
 /* the arena */
 .sqv-wrap{grid-area:stage;display:grid;place-items:center;min-height:0;min-width:0;overflow:hidden}
@@ -1771,7 +1796,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 5640b99 · 10 Oct 20:12 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 2cbe924 · 11 Oct 08:35 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2843,10 +2868,10 @@ const TINTS = {
 };
 const CAT = [
   {k:'tint',n:'Color',items:[['blauw','Blue',0],['roze','Pink',0],['mint','Mint',0],['lavendel','Lavender',40],['nacht','Night',100],['goud','Gold',500],['diamant','Diamond',800]]},
-  {k:'eyes',n:'Eyes',items:[['rond','Round',0],['blij','Happy',0],['slaperig','Sleepy',0],['boos','Tough',50],['sterren','Stars',150],['hart','Hearts',200]]},
+  {k:'eyes',n:'Eyes',items:[['rond','Round',0],['blij','Happy',0],['slaperig','Sleepy',0],['boos','Tough',50],['sterren','Stars',150],['hart','Hearts',200],['rood','Red Glow',150]]},
   {k:'ears',n:'Ears',items:[['kort','Short',0],['lang','Long',0],['puntig','Pointy',60],['antenne','Antenna',120]]},
   {k:'pattern',n:'Pattern',items:[['geen','Plain',0],['vlekjes','Spots',0],['strepen','Stripes',60],['sterretjes','Sparkles',180]]},
-  {k:'hat',n:'Hat',items:[['geen','None',0],['pet','Cap',0],['bloem','Flower',80],['muts','Santa Hat',120],['kroon','Crown',300],['helm','Diamond Helmet',400]]},
+  {k:'hat',n:'Hat',items:[['geen','None',0],['pet','Cap',0],['bloem','Flower',80],['muts','Santa Hat',120],['kroon','Crown',300],['helm','Diamond Helmet',400],['loopgraaf','Trench Helmet',250]]},
   {k:'acc',n:'Extras',items:[['geen','None',0],['snor','Mustache',40],['sjaal','Scarf',60],['bril','Shades',80],['koptelefoon','Headphones',200]]}
 ];
 const PRICE = Object.create(null), LABEL = Object.create(null);
@@ -3073,6 +3098,7 @@ function drawLook(ctx, ox, oy, L, st = {}){
     case 'boos': F(3 + g, 8, 2, 2, ink); F(11 + g, 8, 2, 2, ink); F(3, 6, 1, 1, ink); F(4, 7, 1, 1, ink); F(12, 6, 1, 1, ink); F(11, 7, 1, 1, ink); break;
     case 'sterren': [4, 11].forEach(x0 => { const x = x0 + g; F(x, 7, 1, 3, '#FFD447'); F(x - 1, 8, 3, 1, '#FFD447'); F(x, 8, 1, 1, '#FFFFFF'); }); break;
     case 'hart': [3, 10].forEach(x0 => { const x = x0 + g; F(x, 7, 1, 1, '#FF5C77'); F(x + 2, 7, 1, 1, '#FF5C77'); F(x, 8, 3, 1, '#FF5C77'); F(x + 1, 9, 1, 1, '#FF5C77'); }); break;
+    case 'rood': [3, 11].forEach(x0 => { const x = x0 + g; F(x - 1, 8, 4, 2, '#7A1020'); F(x, 7, 2, 4, '#7A1020'); F(x, 8, 2, 2, '#FF2E4C'); F(x, 8, 1, 1, '#FFC2CB'); }); break;
     default: F(3 + g, 8, 2, 2, ink); F(11 + g, 8, 2, 2, ink);
   }
   if (!closed && !st.sleep && L.acc !== 'bril'){
@@ -3101,6 +3127,8 @@ function drawLook(ctx, ox, oy, L, st = {}){
     case 'muts': F(10,-2,4,1,'#D8283E'); F(8,-1,6,1,'#D8283E'); F(6,0,7,1,'#D8283E'); F(4,1,9,1,'#D8283E'); F(3,2,10,1,'#D8283E'); F(12,-3,1,1,'#D8283E'); F(13,-4,2,2,'#FFFFFF'); F(2,3,12,2,'#FFFFFF'); break;
     case 'kroon': F(6,0,1,1,'#FFF3B0'); F(9,0,1,1,'#FFF3B0'); F(6,1,4,2,'#FFD447'); F(6,3,4,1,'#C98A12'); F(7,2,2,1,'#E2566E'); break;
     case 'helm': F(2,3,12,1,'#5FF0E0'); F(1,4,14,2,'#5FF0E0'); F(2,4,5,1,'#D8FFFA'); F(0,4,1,4,'#1AA3A3'); F(15,4,1,4,'#1AA3A3'); F(1,6,2,2,'#1AA3A3'); F(13,6,2,2,'#1AA3A3'); break;
+    // the trench helmet: an olive steel dish with a wide flat brim, a dent of shade on the right and a strap
+    case 'loopgraaf': F(5,-1,6,1,'#7E9447'); F(3,0,10,1,'#6B7F3A'); F(2,1,12,2,'#6B7F3A'); F(4,0,3,1,'#A3B866'); F(3,1,2,1,'#A3B866'); F(11,1,2,2,'#56682E'); F(7,1,1,1,'#3E4A1E'); F(0,3,16,1,'#55662B'); F(1,3,5,1,'#8FA552'); F(1,4,14,1,'#2F3A16'); F(2,5,1,3,'#6B4A2A'); F(13,5,1,3,'#6B4A2A'); break;
   }
 }
 function lookCanvas(L, st){ const c = document.createElement('canvas'); c.width = 16; c.height = 20; drawLook(c.getContext('2d'), 0, 0, L, st || {}); c.className = 'spr'; return c; }
@@ -4269,7 +4297,7 @@ const Court = (() => {
       cc.clearRect(0, 0, 16, 20);
       drawLook(cc, 0, 0, L, {style: sty, blink: t % 150 < 7, wink: sty === 'cheeky' && t % 210 < 12, mouth: t % 300 < 30 ? 'smile' : ''});
       x.drawImage(cell, 12, 13);
-      const top = 18 - (L.ears === 'lang' ? 3 : L.ears === 'antenne' ? 2 : 0) - (L.hat === 'muts' ? 4 : L.hat === 'pet' || L.hat === 'helm' ? 1 : 0);
+      const top = 18 - (L.ears === 'lang' ? 3 : L.ears === 'antenne' ? 2 : 0) - (L.hat === 'muts' ? 4 : L.hat === 'loopgraaf' ? 2 : L.hat === 'pet' || L.hat === 'helm' ? 1 : 0);
       paint(x, CROWN, 17, top - 6 + bob, 1);
     } else paint(x, CROWN, 17, 21 + bob, 1);
     if (t % 60 < 8){ x.fillStyle = '#FFFFFF'; x.fillRect(24, 13 + bob, 1, 1); }
@@ -4421,7 +4449,7 @@ cmd('say', 'Make your Blub say something', a => {
   Field.play(b, 'zeg', a); sendEmote({k:'zeg', v:a}); log('You: ' + SAY.get(a), 'me');
 }, '/say hi');
 const TINT_EN = {blue:'blauw', pink:'roze', mint:'mint', lavender:'lavendel', night:'nacht', gold:'goud', diamond:'diamant'};
-const HAT_EN = {none:'geen', cap:'pet', flower:'bloem', santa:'muts', crown:'kroon', helmet:'helm'};
+const HAT_EN = {none:'geen', cap:'pet', flower:'bloem', santa:'muts', crown:'kroon', helmet:'helm', trench:'loopgraaf'};
 function wearCmd(k, a){
   const map = k === 'tint' ? TINT_EN : HAT_EN, label = k === 'tint' ? 'color' : 'hat';
   const id = Object.prototype.hasOwnProperty.call(map, a) ? map[a] : null;
@@ -5264,9 +5292,10 @@ const RULES = lock({
   towerRange: 2, towerDmg: 3, towerDodge: 30,
   towerHold: 2, // a shooter on a watchtower holds it while enemies are this many tiles beyond its reach
   wireDmg: 3,
+  wireAvoid: 6, // wire lies out in the open: the other side plans its way as if crossing it took this many steps more
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
-  mineDmg: 6, mineSplash: 3, // mines always lie on clear ground now (the ground makes way), so they hit a little softer
+  mineDmg: 5, mineSplash: 3, // mines always lie on clear ground (the ground makes way), and Blubs walk out to the chest's events: they hit a little softer
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // ---- the chest (EVENTS, BUFFS, NERFS): one spin a round, before anything moves.
   // How many events fall: whole percents, together 100.
@@ -5303,6 +5332,24 @@ const RULES = lock({
   ngmiMiss: 2, // NGMI: the squad's first attacks that always miss
   bagMove: 1,
   rektHp: 5,
+  // ---- the trench arsenal
+  // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
+  // keeps only scopeDodge% of its dodge
+  scopeDmg: 13, scopeDodge: 50,
+  // Boom Pack: boomDmg on every enemy beside it and boomRing one tile farther; its
+  // Blub carries boomHp less HP and boomMove less move
+  boomDmg: 24, boomRing: 8, boomHp: 8, boomMove: 1,
+  // Builder: up to buildMax barricades a round (one a turn for the whole squad), for
+  // a shooter or medic whose nearest enemy is within buildNear tiles; building leaves
+  // it buildTake% easier to hurt till its next turn
+  buildMax: 3, buildNear: 6, buildTake: 25,
+  // Builders and Miners are made of tougher stuff: this much more HP
+  workHp: 6,
+  // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
+  // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
+  // a Mine Shaft); a gem is gemHeal HP and +gemDmg damage for whoever it is carried
+  // to; hurt to tunnelAt% HP or less, it tunnels up to tunnelReach tiles away
+  digGem: 45, digStone: 15, digSafe: 2, gemHeal: 10, gemDmg: 2, tunnelAt: 50, tunnelReach: 5,
 });
 
 // ---- catalog: [id, name, description]; numbers below.
@@ -5327,6 +5374,9 @@ const WEAPONS = lock([
   ['hammer', 'Sift Hammer', 'Melee. Huge hits that splash the enemies around the target and knock it back, but it misses more.'],
   ['bow', 'Pixel Bow', `Range 5, needs a clear line of sight. Half damage on an enemy right next to you. A Skirmisher takes aim: +${RULES.bowAim} damage when it shoots without moving.`],
   ['wand', 'Bubble Wand', 'Range 3 over walls. Bubbles always hit, pass Shell Shields and sometimes trap the target for a turn.'],
+  ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
+  ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
+  ['boom', 'Boom Pack', `No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
 ]);
 // range, damage, hands; crit/dodge/whiff/trap in percent
 const WEAPON_STATS = lock({
@@ -5336,6 +5386,11 @@ const WEAPON_STATS = lock({
   hammer: { range: 1, dmg: 8, hands: 2, whiff: 25, splash: 2, knock: 1 },
   bow: { range: 5, dmg: 5, hands: 2, los: 1, close: 1 },
   wand: { range: 3, dmg: 4, hands: 1, sure: 1, trap: 20 },
+  // gun: its shots are bullets (cover from bushes and sandbags as from arrows);
+  // cycle: the Scope Rifle's reload, aim, fire; boom: the Boom Pack
+  rifle: { range: 4, dmg: 2, hands: 2, hits: 3, los: 1, gun: 1 },
+  scope: { range: 7, dmg: RULES.scopeDmg, hands: 2, los: 1, gun: 1, cycle: 1, close: 1 },
+  boom: { range: 1, dmg: 0, hands: 2, boom: 1 },
 });
 const GEAR = lock([
   ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
@@ -5350,6 +5405,8 @@ const POWERS = lock([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. With no enemy in reach it builds instead of fighting: a sandbag barricade next to it, in front of a shooter or medic in the open (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on a Mine Shaft.`],
 ]);
 const TACTICS = lock([
   ['nearest', 'Nearest', 'Attacks whoever is closest.'],
@@ -5384,12 +5441,13 @@ const POWERUP_TURN = 3;
 // when a Blub may start on it, `out` when it may lie in no man's land.
 const OBJECTS = lock([
   ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit, and one right behind it dodges arrows ${RULES.sandCover}% more.`],
-  ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more.`],
-  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. An enemy that steps in gets stuck for the rest of its move and loses ${RULES.wireDmg} HP.`],
+  ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
+  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that has to cross gets stuck for the rest of its move and loses ${RULES.wireDmg} HP.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
   ['mines', 'Pop Mines', `Three hidden mines with a tile between them, also out in no man's land. The first enemy to step on one loses ${RULES.mineDmg} HP (its neighbours ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
+  ['shaft', 'Mine Shaft', 'An ore vein to start a Miner on: it digs up twice as much there, and tunnels back to it when hit.'],
 ]);
 const OBJECT_STATS = lock({
   sandbags: { cells: [-1, 0, 1], solid: 1, out: 1 },
@@ -5399,6 +5457,7 @@ const OBJECT_STATS = lock({
   trench: { cells: [-1, 0, 1], stand: 1 },
   mines: { cells: [-2, 0, 2], out: 1 },
   crate: { cells: [0], solid: 1 },
+  shaft: { cells: [0], stand: 1 },
 });
 const OBJECTS_MAX = 2;
 // the rows an object may lie in: its own three, and no man's land for wire and mines
@@ -5475,9 +5534,9 @@ const BUFFS = lock([
 const NERFS = lock([
   ['paper', 'Paper Hands', `The first own Blub under ${RULES.paperAt}% HP runs back for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
   ['gas', 'Gas Fees', `Every power costs gas: ${RULES.gasHp} HP from the Blub that uses it, and they charge ${RULES.gasTurns} turn${RULES.gasTurns === 1 ? '' : 's'} slower.`],
-  ['bagholder', 'Bagholder', `The slowest Blub loses ${RULES.bagMove} move.`],
+  ['bagholder', 'Bagholder', `The Blub that opens the crate loses ${RULES.bagMove} move.`],
   ['jeet', 'Jeet', `The captain loses its +${RULES.captainHp} HP.`],
-  ['rekt', 'Rekt', `One random Blub starts ${RULES.rektHp} HP down.`],
+  ['rekt', 'Rekt', `The Blub that opens the crate starts ${RULES.rektHp} HP down.`],
   ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss} attacks always miss.`],
 ]);
 const CHEST_SALT = 4; // the chest's random stream
@@ -5499,7 +5558,7 @@ const PAIR_ROWS = [8, 9, 10, 11];
 const THEMES = lock([
   ['open', 'Open Meadow'],
   ['maze', 'Coral Maze'],
-  ['pools', 'Pink Pools'],
+  ['pools', 'Rainbow Pools'],
   ['terraces', 'Cloud Terraces'],
   ['grove', 'Mushroom Grove'],
 ]);
@@ -5621,11 +5680,13 @@ function unitStats(u, captain) {
   const S = STYLE_STATS[u.cls];
   const W = WEAPON_STATS[u.wpn];
   const t = u.trn;
+  // the Boom Pack weighs on whoever carries it
+  const heavy = W.boom ? 1 : 0;
   return {
-    max: S.hp + (captain ? CAPTAIN_HP : 0),
-    move: S.move + (u.gear === 'boots' ? 1 : 0) + (t.spd >= 3 ? 1 : 0),
+    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp + (u.pow === 'builder' || u.pow === 'miner' ? RULES.workHp : 0),
+    move: Math.max(2, S.move + (u.gear === 'boots' ? 1 : 0) + (t.spd >= 3 ? 1 : 0) - heavy * RULES.boomMove),
     range: W.range,
-    dmg: W.dmg,
+    dmg: W.boom ? RULES.boomDmg : W.dmg,
     hits: W.hits || 1,
     dodge: S.dodge + (W.dodge || 0) + (u.gear === 'boots' ? 5 : 0) + t.spd * 4,
     crit: 8 + (W.crit || 0) + t.lck * 6,
@@ -5777,6 +5838,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         hp: st.max, max: st.max, move: st.move, dodge: st.dodge, crit: st.crit, block: st.block, guard: st.guard, power: st.power, init: st.init,
         alive: true, skip: 0, used: false, rage: false, blade: 0, totem: false, bubble: s.pow === 'bubble', ambush: s.cls === 'cheeky',
         potion: s.gear === 'potion', pillowAt: 1, attacked: false, hurt: false, dealt: 0, startedTurn: 0, immune: false, lastHealed: -1, pending: 0, amb: 0, moved: false,
+        // the Scope Rifle's cycle (0 empty, 1 loaded, 2 aimed at `sight`), barricades put
+        // up, what a Miner carries ('gem', 'stone' or ''), and a Miner that was hit
+        load: 0, sight: -1, built: 0, pack: '', tunnel: 0,
       };
       U.push(u);
       occ[idx(x, y)] = u.id;
@@ -5805,18 +5869,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         cap.max = Math.max(1, cap.max - RULES.captainHp);
         cap.hp = Math.min(cap.hp, cap.max);
       }
-      // Rekt: one of them turns up already hurt
-      if (meme[t].nerf === 'rekt') {
-        const u = squad[Math.floor(cr() * squad.length)];
-        u.hp = Math.max(1, u.hp - RULES.rektHp);
-      }
-      // Bagholder: the slowest of them loses a step
-      if (meme[t].nerf === 'bagholder') {
-        const slow = squad.reduce((a, b) => (b.move < a.move || (b.move === a.move && b.id < a.id) ? b : a));
-        slow.move = Math.max(1, slow.move - RULES.bagMove);
-      }
     }
-  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
   // the trench kit: both squads' objects, team B's turned around like its Blubs
   const OB = [];
   [sqA, sqB].forEach((sq, team) =>
@@ -5840,16 +5893,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const objs = OB.filter((o) => !o.off);
   const wireT = new Int8Array(N).fill(-1); // the team whose wire it is
   const mineT = new Int16Array(N).fill(-1); // the object a live mine belongs to
-  const towerT = new Uint8Array(N);
+  const towerT = new Uint8Array(N); // the team whose watchtower it is, plus 1
   const trenchT = new Uint8Array(N);
-  const sandT = new Uint8Array(N);
+  const sandT = new Uint8Array(N); // sandbags and barricades: the team plus 1
+  const shaftT = new Uint8Array(N); // the team whose Mine Shaft it is, plus 1
   for (const o of objs)
     for (const c of o.cells) {
       if (o.k === 'wire') wireT[c] = o.team;
       else if (o.k === 'mines') mineT[c] = o.id;
-      else if (o.k === 'tower') towerT[c] = 1;
+      else if (o.k === 'tower') towerT[c] = o.team + 1;
       else if (o.k === 'trench') trenchT[c] = 1;
       else if (o.k === 'sandbags') sandT[c] = o.team + 1;
+      else if (o.k === 'shaft') shaftT[c] = o.team + 1;
     }
   // the foxhole and the ammo crate work on the Blubs that start in or next to them
   for (const u of U) {
@@ -5865,18 +5920,35 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   let item = null; // {item, x, y}
   let over = -1;
   let now = 0; // the turn being played, for the memepowers that only last a while
-  push({ t: 'round', n: round + 1, theme, powerup, chest: spin });
   // Each squad's perk for the round comes down in a crate (green a buff, red a nerf)
-  // on a free tile of the rows it deployed on: where, the chest's stream decides.
+  // on a free tile of the rows it deployed on, never on an object: where, the chest's
+  // stream decides. The squad's Blub nearest to it (a tie: the lower unit) goes to
+  // open it before the fight, and a perk that lands on one Blub lands on that one:
+  // Rekt turns it up hurt, Bagholder takes a step off it.
+  const crates = [null, null];
+  if (spin)
+    for (const t of [0, 1]) {
+      const rows = t === 0 ? [SIZE - 1, SIZE - 2, SIZE - 3] : [0, 1, 2];
+      const free = [];
+      for (const y of rows)
+        for (let x = 0; x < SIZE; x++) {
+          const c = idx(x, y);
+          if (occ[c] < 0 && !solidTile(tiles[c]) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c]) free.push([x, y]);
+        }
+      const at = free.length ? free[Math.floor(cr() * free.length)] : null;
+      const squad = U.filter((u) => u.team === t);
+      const by = at ? squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a)) : null;
+      crates[t] = { at, by };
+      if (by && meme[t].nerf === 'rekt') by.hp = Math.max(1, by.hp - RULES.rektHp);
+      if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
+    }
+  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
+  push({ t: 'round', n: round + 1, theme, powerup, chest: spin });
   if (spin)
     for (const t of [0, 1]) {
       const m = meme[t];
       const kind = m.buff ? 'buff' : 'nerf';
-      const rows = t === 0 ? [SIZE - 1, SIZE - 2, SIZE - 3] : [0, 1, 2];
-      const free = [];
-      for (const y of rows) for (let x = 0; x < SIZE; x++) if (occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)])) free.push([x, y]);
-      const at = free.length ? free[Math.floor(cr() * free.length)] : null;
-      push({ t: 'perk', team: t, kind, id: m[kind], at });
+      push({ t: 'perk', team: t, kind, id: m[kind], at: crates[t].at, u: crates[t].by ? crates[t].by.id : -1 });
     }
 
   // the Liquidity Pool pays out at the start of a turn, to everyone standing in it
@@ -5897,6 +5969,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const foes = (u) => living[1 - u.team];
   const friends = (u) => living[u.team].filter((v) => v !== u);
   const W = (u) => WEAPON_STATS[u.wpn];
+  // arrows and bullets are 'ranged' (cover stops them alike), bubbles 'magic'
+  const kindOf = (u) => (u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || W(u).gun ? 'ranged' : 'melee');
+  // a Brawler's bonus is for what it swings or stabs with
+  const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && !WEAPON_STATS[v.wpn].boom;
+  const onShaft = (u) => shaftT[idx(u.x, u.y)] === u.team + 1;
   // What stops a shot is not always what stops a step: a Blub can stand in the
   // nuke's crater, but nothing shoots through it. Walking reads `tiles`, sight reads
   // this copy, and the memo below is dropped on the two turns the crater changes it.
@@ -5916,16 +5993,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     return v === 1;
   };
+  // a watchtower serves the squad that built it; to the other side it is a few planks
+  const onTower = (u, x, y) => towerT[idx(x, y)] === u.team + 1;
   // a shooter in a bush sees out less far
-  const rangeOf = (u, x, y) => W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && towerT[idx(x, y)] ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0);
+  const rangeOf = (u, x, y) => W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0);
   // a Blub in a bush lies in ambush: only what is close, or up high, finds it
-  const hidden = (x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !towerT[idx(x, y)] && tiles[idx(x, y)] !== HIGH;
+  const hidden = (u, x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !onTower(u, x, y) && tiles[idx(x, y)] !== HIGH;
   // can u, standing on (x, y), hit v?
   const canHit = (u, x, y, v) => {
     const d = cheb(x, y, v.x, v.y);
-    if (d < 1 || d > rangeOf(u, x, y) || hidden(x, y, v)) return false;
-    // a shooter up on a watchtower sees over walls and bushes
-    return !W(u).los || towerT[idx(x, y)] === 1 || los(x, y, v.x, v.y);
+    if (d < 1 || d > rangeOf(u, x, y) || hidden(u, x, y, v)) return false;
+    // a shooter up on its own watchtower sees over walls and bushes
+    return !W(u).los || onTower(u, x, y) || los(x, y, v.x, v.y);
   };
   // the most hurt first (by share of HP), then by unit
   const byHurt = (a, b) => a.hp * b.max - b.hp * a.max || a.id - b.id;
@@ -5957,6 +6036,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     occ[idx(d.x, d.y)] = -1;
     if (by) stats[by.id].kills++;
     push({ t: 'ko', u: d.id, by: by ? by.id : -1 });
+    lastBoom(d);
   }
   // right after a hit that leaves a unit standing: one emergency heal, then rage
   function afterHit(d) {
@@ -5978,6 +6058,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       powerUsed(d);
     }
     // Paper Hands: the first of the squad to fall under paperAt% loses its nerve
+    // a Miner hurt to tunnelAt% or less tunnels away on its next turn
+    if (d.alive && d.pow === 'miner' && !d.tunneled && d.hp * 100 <= d.max * RULES.tunnelAt) d.tunnel = 1;
     if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && d.hp * 100 < d.max * RULES.paperAt) {
       meme[d.team].paper = 1;
       d.paper = now + RULES.paperTurns;
@@ -6082,7 +6164,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // one swing, stab, arrow or bubble; gd: the ally a Guardian took this arrow for (or -1)
   function strike(u, d, n, gd) {
     const w = W(u);
-    const kind = u.wpn === 'bow' ? 'ranged' : u.wpn === 'wand' ? 'magic' : 'melee';
+    const kind = kindOf(u);
     u.attacked = true;
     let res = 'hit';
     let cover = 0;
@@ -6101,7 +6183,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           extra = RULES.sandCover;
           cover = 2;
         }
-        if (towerT[c]) {
+        if (towerT[c] === d.team + 1) {
           extra += RULES.towerDodge;
           cover = 4;
         }
@@ -6109,7 +6191,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       // the Laser Eyes Totem's Blub dodges only so well, staring like that
       // the Liquidity Pool's impermanent loss: whoever stands in it dodges less
       const pool = tiles[c] === WATER ? RULES.poolDodge : 0;
-      if (r() * 100 < Math.floor((Math.max(0, Math.min(45, d.dodge + extra) - pool) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
+      // the Scope Rifle's shot was aimed at this one for a whole turn
+      const dodge = w.cycle ? Math.floor((d.dodge * RULES.scopeDodge) / 100) : d.dodge;
+      if (r() * 100 < Math.floor((Math.max(0, Math.min(45, dodge + extra) - pool) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
     }
     // the FUD cloud: a swing taken from inside it goes wide far more often. A Bubble
     // Wand still never misses, because that is the whole of what it is for.
@@ -6161,9 +6245,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (guardedBy(d)) dmg = Math.max(1, dmg - RULES.guardianSoak);
     if (RULES.sandSoak && bySand(d)) dmg = Math.max(1, dmg - RULES.sandSoak);
     if (copiumOn(d)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
-    // just landed off the catapult, wide open
+    // just landed off the catapult, or building: wide open
     const exp = d.exposed === now ? 1 : 0;
-    if (exp) dmg += Math.ceil((dmg * RULES.sendTake) / 100);
+    if (exp) dmg += Math.ceil((dmg * (d.exposedPct || RULES.sendTake)) / 100);
     dmg = Math.min(d.hp, dmg);
     d.hp -= dmg;
     d.hurt = true;
@@ -6198,14 +6282,22 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
       return;
     }
+    // the Boom Pack does not swing: next to an enemy, it goes off
+    if (W(u).boom) return blowUp(u);
+    // the Scope Rifle: a turn to reload, a turn to aim, and then the shot
+    if (W(u).cycle) {
+      const v = scopeTurn(u, d);
+      if (!v) return;
+      d = v;
+    }
     const meant = d;
     d = shieldedBy(u, d);
     const gd = d === meant ? -1 : meant.id;
     const w = W(u);
     const hits = w.hits || 1;
     // bonuses count once per attack, also for the two dagger stabs
-    let bonus = u.blade + (u.rage ? RULES.rageDmg : 0) + (u.cls === 'fierce' && u.wpn !== 'bow' && u.wpn !== 'wand' ? RULES.brawlerMelee : 0) + (bannerNear(u) ? 1 : 0);
-    if (w.range >= 3 && towerT[idx(u.x, u.y)]) bonus += RULES.towerDmg;
+    let bonus = u.blade + (u.rage ? RULES.rageDmg : 0) + (brawly(u) ? RULES.brawlerMelee : 0) + (bannerNear(u) ? 1 : 0);
+    if (w.range >= 3 && onTower(u, u.x, u.y)) bonus += RULES.towerDmg;
     bonus += u.ammo;
     if (u.power && r() * 100 < u.power) bonus += 2;
     // the Trickster's opener is a close-up trick; a bow that did not move takes aim
@@ -6274,11 +6366,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // so it rarely needs the whole arena. Team B expands its neighbours in the
   // turned-around order and ranks tiles from the other end, like the arena
   // itself. The arrays are shared: use a result before the next search.
-  // water costs 2 to enter
-  // Alpha Leak: a squad that knows where the other side's traps (and the chest's
-  // hidden ones) are only walks over one when there is no other way
-  const known = (u, c) => (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (wireT[c] >= 0 && wireT[c] !== u.team) || c === rug || c === honey;
-  const stepCost = (u, c) => (tiles[c] === WATER ? 2 : 1) + (meme[u.team].buff === 'alpha' && known(u, c) ? 6 : 0);
+  // Water costs 2 steps to enter. The other side's barbed wire lies out in the open,
+  // so every Blub plans its way round it (wireAvoid steps more in the plan; walking
+  // over it still costs what the ground costs). Alpha Leak: a squad that knows where
+  // the other side's hidden traps (and the chest's) are plans round those as well,
+  // and only walks over one when there is no other way.
+  const known = (u, c) => (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || c === rug || c === honey;
+  const stepCost = (c) => (tiles[c] === WATER ? 2 : 1);
+  const planCost = (u, c) => stepCost(c) + (wireT[c] >= 0 && wireT[c] !== u.team ? RULES.wireAvoid : 0) + (meme[u.team].buff === 'alpha' && known(u, c) ? RULES.wireAvoid : 0);
   const sCost = new Int16Array(N).fill(-1);
   const sPrev = new Int16Array(N).fill(-1);
   let touched = [];
@@ -6293,34 +6388,31 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     sCost[start] = 0;
     touched.push(start);
     const found = [];
-    let frontier = [start];
-    let next = [];
-    let later = [];
-    for (let c = 0; frontier.length || next.length || later.length; ) {
-      if (!frontier.length) {
-        if (found.length) break;
-        frontier = next;
-        next = later;
-        later = [];
-        c++;
-        continue;
+    // the tiles still to look at, by what the way to them costs
+    const level = [[start]];
+    let top = 0;
+    for (let c = 0; c <= top; c++) {
+      const frontier = level[c];
+      while (frontier && frontier.length) {
+        const cur = frontier.pop();
+        if (sCost[cur] !== c) continue;
+        if (goal && cur !== start && occ[cur] < 0 && goal(cur % SIZE, (cur - (cur % SIZE)) / SIZE)) found.push(cur);
+        const list = adj[cur];
+        const L = list.length;
+        for (let k = 0; k < L; k++) {
+          const n = list[flip ? L - 1 - k : k];
+          const o = occ[n];
+          if (o >= 0 && U[o].team !== u.team) continue;
+          const nc = c + planCost(u, n);
+          if (nc > maxCost || (sCost[n] >= 0 && sCost[n] <= nc)) continue;
+          if (sCost[n] < 0) touched.push(n);
+          sCost[n] = nc;
+          sPrev[n] = cur;
+          (level[nc] || (level[nc] = [])).push(n);
+          if (nc > top) top = nc;
+        }
       }
-      const cur = frontier.pop();
-      if (sCost[cur] !== c) continue;
-      if (goal && cur !== start && occ[cur] < 0 && goal(cur % SIZE, (cur - (cur % SIZE)) / SIZE)) found.push(cur);
-      const list = adj[cur];
-      const L = list.length;
-      for (let k = 0; k < L; k++) {
-        const n = list[flip ? L - 1 - k : k];
-        const o = occ[n];
-        if (o >= 0 && U[o].team !== u.team) continue;
-        const nc = c + stepCost(u, n);
-        if (nc > maxCost || (sCost[n] >= 0 && sCost[n] <= nc)) continue;
-        if (sCost[n] < 0) touched.push(n);
-        sCost[n] = nc;
-        sPrev[n] = cur;
-        (nc === c + 1 ? next : later).push(n);
-      }
+      if (found.length) break;
     }
     work += touched.length;
     found.sort(flip ? (a, b) => b - a : (a, b) => a - b);
@@ -6334,14 +6426,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     return out.reverse();
   };
   // walk along a path as far as the move points go, ending on a free tile;
-  // returns true if it moved
+  // returns true if it moved. `note`: an event that says why, told just before the move
   // the other side's wire or live mine on a free tile stops a walk there
   const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team) || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || c === rug || cats.includes(c));
-  function walk(u, path) {
+  function walk(u, path, note) {
     let spent = 0;
     let n = 0;
     for (; n < path.length; n++) {
-      const sc = stepCost(u, path[n]);
+      const sc = stepCost(path[n]);
       if (spent + sc > u.move) break;
       spent += sc;
     }
@@ -6358,6 +6450,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.y = (end - u.x) / SIZE;
     occ[end] = u.id;
     u.moved = true;
+    if (note) push(note);
     if (loud) push({ t: 'move', u: u.id, path: path.slice(0, n).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
     arrive(u);
     return true;
@@ -6413,7 +6506,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
   }
   // how hard a unit hits: weapon damage per attack plus the Brawler's bonus
-  const punch = (v) => WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (v.cls === 'fierce' && v.wpn !== 'bow' && v.wpn !== 'wand' ? RULES.brawlerMelee : 0);
+  const punch = (v) => (WEAPON_STATS[v.wpn].boom ? RULES.boomDmg : WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (brawly(v) ? RULES.brawlerMelee : 0));
   // the enemy this unit wants, by its tactic; ties go to the closest, then the lowest unit
   function chooseTarget(u, list) {
     const d = (v) => cheb(u.x, u.y, v.x, v.y);
@@ -6439,9 +6532,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     let bs = 0;
     for (const c of P.found) {
       const x = c % SIZE;
-      const dist = cheb(x, (c - x) / SIZE, v.x, v.y);
+      const y = (c - x) / SIZE;
+      const dist = cheb(x, y, v.x, v.y);
       const t = tiles[c];
-      const s = (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
+      // a Boom Pack wants as many of them beside it as it can get
+      const s = W(u).boom
+        ? foes(u).filter((e) => cheb(x, y, e.x, e.y) <= 1).length * 20 - dist
+        : (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
       if (best < 0 || s > bs) {
         best = c;
         bs = s;
@@ -6476,9 +6573,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function fight(u) {
     const list = foes(u);
     if (!list.length) return;
+    // an empty Scope Rifle is reloaded first, wherever the enemy is
+    if (W(u).cycle && !u.load) {
+      scopeTurn(u, null);
+      return;
+    }
     const target = chooseTarget(u, list);
-    // a shooter on a watchtower holds it while enemies are coming (not with one next to it)
-    if (towerT[idx(u.x, u.y)] && W(u).range >= 3 && !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) {
+    // a shooter on its watchtower holds it while enemies are coming (not with one next to it)
+    if (onTower(u, u.x, u.y) && W(u).range >= 3 && !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) {
       if (canHit(u, u.x, u.y, target)) return attack(u, target);
       const near = inReach(u);
       if (near.length) return attack(u, chooseTarget(u, near));
@@ -6594,7 +6696,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.used) return;
     if (u.pow === 'freeze') {
       if (turn < RULES.freezeTurn + gas(u)) return;
-      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y) && !hidden(u.x, u.y, v));
+      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y) && !hidden(u, u.x, u.y, v));
       if (!list.length) return;
       const v = list.sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || cheb(u.x, u.y, a.x, a.y) - cheb(u.x, u.y, b.x, b.y) || a.id - b.id)[0];
       u.used = true;
@@ -6663,6 +6765,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     startOfTurn(u, turn);
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
+    // a Miner that was hit tunnels away to safety: its whole turn
+    if (u.pow === 'miner' && u.tunnel && burrow(u)) return;
     // Paper Hands: it runs for its own back rows, as far from the enemy as it can
     // get, and does nothing else until it has its nerve back (held by a Guardian,
     // it just stands there shaking)
@@ -6701,10 +6805,278 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
+    if (objective(u, turn)) return;
+    if (u.pow === 'miner' && mineTurn(u)) return;
+    if (u.pow === 'builder' && buildTurn(u)) return;
     // a Blub left standing at the other side's candle with nobody in reach chops at it
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
-    if (cp && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
+    // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
+    if (cp && !W(u).boom && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
     fight(u);
+  }
+  // What the chest throws in draws the Blubs that can use it. With nobody in reach,
+  // the squad's Blub nearest to an unclaimed prop or to the parked Lambo goes to stand
+  // beside it; a fighter (reach 2 or less) goes for a catapult, or for the rocket pad
+  // the turn before it lifts off. Never from farther than two moves away, and never
+  // two of a squad for the same thing.
+  function goals(u, turn) {
+    const out = []; // [x, y, on, what]: on, step onto the tile itself (else stand beside it)
+    if (turn < RULES.propAt) for (const p of props) if (p.team < 0 && !p.down) out.push([p.x, p.y, 0, p.id]);
+    if (lambo && turn < RULES.lamboAt) out.push([lambo.at % SIZE, (lambo.at - (lambo.at % SIZE)) / SIZE, 0, 'lambo']);
+    if (W(u).range <= 2) {
+      if (turn < RULES.sendAt) for (const c of cats) out.push([c % SIZE, (c - (c % SIZE)) / SIZE, 1, 'sendit']);
+      if (turn === RULES.rocketTurn - 1) for (const e of live) if (e.id === 'rocket') out.push([e.cells[0][0], e.cells[0][1], 0, 'rocket']);
+    }
+    return out;
+  }
+  function objective(u, turn) {
+    if (inReach(u).length) return false;
+    const list = goals(u, turn);
+    if (!list.length) return false;
+    // the runner: the nearest of the squad with nobody in reach (a tie: the lower unit)
+    const free = living[u.team].filter((v) => v !== u && !inReach(v).length);
+    let best = null;
+    let bd = 99;
+    for (const g of list) {
+      const d = cheb(u.x, u.y, g[0], g[1]);
+      if (d > 2 * u.move + 1 || d >= bd) continue;
+      if (free.some((v) => cheb(v.x, v.y, g[0], g[1]) < d || (cheb(v.x, v.y, g[0], g[1]) === d && v.id < u.id))) continue;
+      best = g;
+      bd = d;
+    }
+    if (!best) return false;
+    const [gx, gy, on, what] = best;
+    // there already: it waits beside it, hitting what comes close
+    if (!on && cheb(u.x, u.y, gx, gy) <= 1) {
+      hitAround(u);
+      return true;
+    }
+    const P = search(u, 2 * u.move, on ? (x, y) => x === gx && y === gy : (x, y) => cheb(x, y, gx, gy) <= 1);
+    if (!P.found.length) return false;
+    // 'goal': what it is heading for, so the page can show it
+    if (!walk(u, route(P, P.found[0]), { t: 'goal', u: u.id, id: what, at: [gx, gy] })) return false;
+    if (over < 0 && u.alive) hitAround(u);
+    return true;
+  }
+  // ---- the trench arsenal
+  // The Scope Rifle's cycle, one step an attack: empty, it reloads; loaded, it takes
+  // aim at the enemy (its sight); aimed, it fires at that enemy when it can still hit
+  // it, and otherwise takes aim at this one instead. Returns whom to shoot now.
+  function scopeTurn(u, d) {
+    if (!u.load) {
+      u.load = 1;
+      push({ t: 'reload', u: u.id });
+      return null;
+    }
+    if (u.load === 2) {
+      const s = U[u.sight];
+      if (s && s.alive && canHit(u, u.x, u.y, s)) {
+        u.load = 0;
+        u.sight = -1;
+        return s;
+      }
+    }
+    if (!d) return null;
+    u.load = 2;
+    u.sight = d.id;
+    push({ t: 'scope', u: u.id, d: d.id });
+    return null;
+  }
+  // The Boom Pack goes off: boomDmg on every enemy beside its Blub and boomRing one
+  // tile farther (a bubble still pops instead), and the Blub that carried it is out
+  // of the round (no totem brings it back). What it took out counts first.
+  function blowUp(u) {
+    u.boomed = true;
+    u.attacked = true;
+    push({ t: 'blowup', u: u.id, at: [u.x, u.y] });
+    for (const v of foes(u).slice()) {
+      if (!v.alive) continue;
+      const d = cheb(u.x, u.y, v.x, v.y);
+      if (d <= 2) pure(u, v, d <= 1 ? RULES.boomDmg : RULES.boomRing, 'blasted');
+    }
+    checkOver();
+    u.totem = false;
+    u.hp = 0;
+    if (u.alive) knockOut(u, null);
+    checkOver();
+  }
+  // a Boom Pack knocked out right beside an enemy goes off as it falls
+  function lastBoom(d) {
+    if (W(d).boom && !d.boomed && over < 0 && foes(d).some((v) => cheb(v.x, v.y, d.x, d.y) <= 1)) blowUp(d);
+  }
+  // a barricade may go on plain ground or a bush: nothing on it, nobody on it, and
+  // never where it would cut the arena in two
+  function buildable(c) {
+    if (occ[c] >= 0 || (tiles[c] !== GRASS && tiles[c] !== BUSH)) return false;
+    if (wireT[c] >= 0 || mineT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
+    if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c)) return false;
+    if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
+    if (crater && crater.cells.indexOf(c) >= 0) return false;
+    const was = tiles[c];
+    tiles[c] = SAND;
+    const ok = connected(tiles);
+    tiles[c] = was;
+    work += 30;
+    return ok;
+  }
+  // Where a barricade covers best, from where u stands: on a tile next to it, in
+  // front of itself or an ally within 2 tiles that shoots or heals (those hold their
+  // ground; the rest walk on and leave it behind), on the side that one's nearest
+  // enemy comes from (not yet next to it, but within buildNear). Shooters and medics
+  // first, then the most hurt. Null when nothing fits.
+  function coverSpot(u) {
+    let best = null;
+    let bs = -1;
+    for (const a of living[u.team]) {
+      if (cheb(u.x, u.y, a.x, a.y) > 2 || bySand(a) || !(WEAPON_STATS[a.wpn].range >= 3 || a.cls === 'sweet')) continue;
+      let e = null;
+      let ed = 99;
+      for (const v of foes(u)) {
+        const d = cheb(a.x, a.y, v.x, v.y);
+        if (d < ed || (d === ed && v.id < e.id)) {
+          e = v;
+          ed = d;
+        }
+      }
+      if (!e || ed < 2 || ed > RULES.buildNear) continue;
+      const x = a.x + Math.sign(e.x - a.x);
+      const y = a.y + Math.sign(e.y - a.y);
+      if (!inside(x, y) || cheb(u.x, u.y, x, y) > 1 || !buildable(idx(x, y))) continue;
+      const s = (WEAPON_STATS[a.wpn].range >= 3 || a.cls === 'sweet' ? 200 : 0) + 100 - Math.floor((a.hp * 100) / a.max) + RULES.buildNear - ed;
+      if (s > bs) {
+        bs = s;
+        best = [x, y];
+      }
+    }
+    return best;
+  }
+  // up it goes: sandbags of the builder's squad (cover and soak like the wall's), and
+  // the builder stands wide open till its next turn
+  function putBarricade(u, c) {
+    tiles[c] = SAND;
+    shot[c] = SAND;
+    sandT[c] = u.team + 1;
+    restep(c);
+    u.exposed = now;
+    u.exposedPct = RULES.buildTake;
+    u.attacked = true;
+    push({ t: 'build', u: u.id, at: [c % SIZE, (c - (c % SIZE)) / SIZE] });
+  }
+  // Builder: with nobody in its reach and barricades left to put up, it builds one
+  // where it covers best (its whole turn); one goes up a turn for the whole squad
+  const builtAt = [0, 0];
+  function buildTurn(u) {
+    if (u.built >= RULES.buildMax || inReach(u).length || builtAt[u.team] === now) return false;
+    const at = coverSpot(u);
+    if (!at) return false;
+    putBarricade(u, idx(at[0], at[1]));
+    u.built++;
+    builtAt[u.team] = now;
+    return true;
+  }
+  // Miner: a stone it dug up goes into a barricade where it covers best; a gem it
+  // carries to the most hurt ally; and with no enemy within digSafe tiles it digs
+  // (a Mine Shaft of its own under it doubles the luck). Each of these is its turn.
+  function mineTurn(u) {
+    if (u.pack === 'stone') {
+      const at = coverSpot(u);
+      if (!at) return false;
+      putBarricade(u, idx(at[0], at[1]));
+      u.pack = '';
+      return true;
+    }
+    // a gem waits while there is somebody to fight
+    if (u.pack === 'gem') return !inReach(u).length && deliver(u);
+    if (foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= Math.max(RULES.digSafe, u.move + W(u).range))) return false;
+    const luck = onShaft(u) ? 2 : 1;
+    const roll = r() * 100;
+    const found = roll < RULES.digGem * luck ? 'gem' : roll < (RULES.digGem + RULES.digStone) * luck ? 'stone' : '';
+    u.pack = found;
+    u.attacked = true;
+    push({ t: 'dig', u: u.id, found });
+    return true;
+  }
+  // The gem goes to the most hurt ally, carried there by hand: it walks over when it
+  // gets there this turn, and otherwise tunnels up beside it (within tunnelReach) or
+  // walks as far as it can; it hands it over as soon as it stands next to it.
+  function deliver(u) {
+    const list = friends(u);
+    const v = list.length ? list.slice().sort(byHurt)[0] : u;
+    if (v !== u && cheb(u.x, u.y, v.x, v.y) > 1) {
+      const P = search(u, u.move, (x, y) => cheb(x, y, v.x, v.y) <= 1);
+      if (P.found.length) walk(u, route(P, P.found[0]));
+      else if (!tunnelTo(u, v)) {
+        const Q = search(u, 999, (x, y) => cheb(x, y, v.x, v.y) <= 1);
+        if (!Q.found.length) return false;
+        walk(u, route(Q, Q.found[0]));
+      }
+      if (!u.alive || over >= 0 || !v.alive || cheb(u.x, u.y, v.x, v.y) > 1) return true;
+    }
+    u.pack = '';
+    push({ t: 'deliver', u: u.id, d: v.id, what: 'gem' });
+    heal(v, RULES.gemHeal, 'gem', u);
+    v.blade += RULES.gemDmg;
+    push({ t: 'status', u: v.id, s: 'blade', on: true });
+    return true;
+  }
+  // the tiles a Miner may come up on: free, dry, no trap, nothing lying there
+  const tunnelOk = (u, c) => occ[c] < 0 && !solidTile(tiles[c]) && tiles[c] !== WATER && !trap(u, c) && mineT[c] < 0 && c !== honey && !(item && idx(item.x, item.y) === c) && !(crater && crater.cells.indexOf(c) >= 0);
+  // the Miner comes up somewhere else: its whole turn ('gem' carrying one over,
+  // 'away' getting out of trouble)
+  function popUp(u, c, why) {
+    const from = [u.x, u.y];
+    occ[idx(u.x, u.y)] = -1;
+    u.x = c % SIZE;
+    u.y = (c - u.x) / SIZE;
+    occ[c] = u.id;
+    u.moved = true;
+    push({ t: 'burrow', u: u.id, from, to: [u.x, u.y], why });
+  }
+  // tunnelling a gem over: up beside the ally, on the side farthest from the enemy
+  function tunnelTo(u, v) {
+    let best = -1;
+    let bs = -1e9;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = v.x + (u.team ? -dx : dx);
+        const y = v.y + (u.team ? -dy : dy);
+        if ((!dx && !dy) || !inside(x, y) || cheb(u.x, u.y, x, y) > RULES.tunnelReach || !tunnelOk(u, idx(x, y))) continue;
+        const s = foes(u).reduce((m, e) => Math.min(m, cheb(x, y, e.x, e.y)), 99) * 10 - cheb(u.x, u.y, x, y);
+        if (s > bs) {
+          bs = s;
+          best = idx(x, y);
+        }
+      }
+    if (best < 0) return false;
+    popUp(u, best, 'gem');
+    return true;
+  }
+  // Miner, hurt (once a round): it tunnels away in one turn and comes up on the free tile within
+  // tunnelReach farthest from the enemy (its own Mine Shaft when that is as safe),
+  // never onto a trap, the water or anything lying about; not when nowhere is safer
+  function burrow(u) {
+    u.tunnel = 0;
+    u.tunneled = 1;
+    const gap = (x, y) => foes(u).reduce((m, v) => Math.min(m, cheb(x, y, v.x, v.y)), 99);
+    const here = gap(u.x, u.y);
+    let best = -1;
+    let bs = -1;
+    for (let k = 0; k < N; k++) {
+      const c = u.team ? N - 1 - k : k;
+      const x = c % SIZE;
+      const y = (c - x) / SIZE;
+      if (cheb(u.x, u.y, x, y) > RULES.tunnelReach || !tunnelOk(u, c)) continue;
+      const s = gap(x, y) * 10 + (shaftT[c] === u.team + 1 ? 15 : 0) + (u.team === 0 ? y : SIZE - 1 - y);
+      if (s > bs) {
+        bs = s;
+        best = c;
+      }
+    }
+    if (best < 0) return false;
+    const bx = best % SIZE;
+    if (gap(bx, (best - bx) / SIZE) <= here) return false;
+    popUp(u, best, 'away');
+    return true;
   }
   function runBack(u) {
     const P = search(u, u.move);
@@ -6781,11 +7153,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     return u;
   }
   let crater = null; // the nuke's leftovers: { cells, until }
-  // Where the pill's shadow wanders before it settles. It decides nothing, so it
-  // comes from the chest's own stream and the fight's rolls stay where they were.
-  const nukePath = [];
-  if (live.some((e) => e.id === 'nuke'))
-    for (let i = 1; i < RULES.nukeTurn - 1; i++) nukePath.push([1 + Math.floor(cr() * (SIZE - 2)), 1 + Math.floor(cr() * (SIZE - 2))]);
 
   function openCrater(cells, turn) {
     crater = { cells, until: turn + RULES.nukeCraterTurns };
@@ -6808,10 +7175,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const u of inside) hurt(u, RULES.nukeCrater, 'fume', null);
     if (inside.length) checkOver();
   }
-  // The pill climbs its bonding curve and, the turn before it graduates, locks onto
-  // the tile where it would do the most: the core and ring damage it would deal, to
-  // both squads alike, added up. When it comes down it homes in on the best tile
-  // within 2 of that, because the crowd will have moved. Ties: the chest's stream.
+  // The pill climbs its bonding curve. Every turn its shadow hangs over the tile where
+  // it would do the most (the core and ring damage it would deal, to both squads
+  // alike, added up), so it follows the crowd; the turn before it graduates it locks
+  // on. When it comes down it homes in on the best tile within 2 of that, because the
+  // crowd will have moved. Ties: the chest's stream.
   let nukeOn = null; // { at }
   function nukeSpot(near) {
     let best = -1;
@@ -6835,11 +7203,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function nukeTurn(e, turn) {
     if (turn < RULES.nukeTurn) {
       const lock = turn >= RULES.nukeTurn - 1;
-      let at = nukePath[turn - 1] || e.cells[0];
-      if (lock) {
-        nukeOn = { at: nukeSpot(null) };
-        at = nukeOn.at;
-      }
+      const at = nukeSpot(null);
+      if (lock) nukeOn = { at };
       push({ t: 'curve', n: turn, pct: Math.round((turn * 100) / RULES.nukeTurn), at, lock: lock ? 1 : 0 });
       return;
     }
@@ -7178,6 +7543,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.y = to[1];
     occ[idx(u.x, u.y)] = u.id;
     u.exposed = now;
+    u.exposedPct = RULES.sendTake;
     for (const v of U) if (v !== u && v.alive && over < 0 && cheb(v.x, v.y, u.x, u.y) <= 1) hurt(v, RULES.sendSplash, 'thud', null);
     checkOver();
   }
@@ -7520,7 +7886,8 @@ function randomSquad(r) {
   // (a watchtower only for a squad with a shooter to put on it)
   const objs = [];
   const shooter = units.some((u) => WEAPON_STATS[u.wpn].range >= 3);
-  const kinds = OBJECTS.map((o) => o[0]).filter((k) => k !== 'tower' || shooter);
+  const miner = units.some((u) => u.pow === 'miner');
+  const kinds = OBJECTS.map((o) => o[0]).filter((k) => (k !== 'tower' || shooter) && (k !== 'shaft' || miner));
   for (let k = 0; k < OBJECTS_MAX; k++) {
     const kind = kinds.splice(Math.floor(r() * kinds.length), 1)[0];
     for (const at of objectSpots(kind, units, r)) {
@@ -7555,6 +7922,7 @@ function objectSpots(kind, units, r) {
   const back = units.filter((u) => ranged(u) || u.cls === 'sweet');
   let spots = [];
   if (kind === 'tower') spots = [...at(units.filter(ranged)), ...at(units)];
+  else if (kind === 'shaft') spots = [...at(units.filter((u) => u.pow === 'miner')), ...at(units)];
   else if (kind === 'trench') spots = [...at(back), ...at(units)];
   else if (kind === 'mortar' || kind === 'crate') spots = [...around(back), ...around(units)];
   else if (kind === 'sandbags') spots = [...lane(10), ...lane(11), ...row(12)];
@@ -7703,6 +8071,28 @@ const SquadView = (() => {
   if (!ARMS_SPR.daggers)
     ARMS_SPR.daggers = { g: [1, 5], swing: true, pal: { w: '#FFFFFF', P: '#FFC2CF', p: '#E2566E', y: '#FFD447', o: '#C98A12', k: '#6B3E1F' }, rows: [
       '.w.', 'wPp', 'wPp', 'yoy', '.k.', '.k.'] };
+  // the trench arsenal: a rifle with its curved magazine, a long rifle with a scope,
+  // and a bomb with its fuse lit (all held barrel up, like a sword)
+  if (!ARMS_SPR.rifle)
+    ARMS_SPR.rifle = { g: [1, 9], pal: { k: '#2B2B36', K: '#5E5E70', n: '#8C5A2B', N: '#D9A05B', m: '#3A3A4A' }, rows: [
+      '.k..', '.k..', '.k..', 'kKk.', '.n..', 'nNn.', 'nNn.', 'kKkk', 'kkkm', '.nm.', '.nm.', 'nN..', 'nN..'] };
+  if (!ARMS_SPR.scope)
+    ARMS_SPR.scope = { g: [1, 10], pal: { k: '#2B2B36', K: '#5E5E70', n: '#8C5A2B', N: '#D9A05B', s: '#1F1F2A', S: '#86CBF3' }, rows: [
+      '.k...', '.k...', '.k...', '.k...', '.k...', 'kKk..', 'nNnss', 'nNnSs', 'kKkss', 'kkk..', '.n...', '.n...', 'nNn..', 'nN...'] };
+  if (!ARMS_SPR.boom)
+    ARMS_SPR.boom = { g: [2, 7], pal: { k: '#2B2B36', K: '#7A7A90', n: '#8C5A2B', y: '#FFD447', Y: '#FF8A3D' }, rows: [
+      '..y..', '.yYy.', '..n..', '.kkk.', 'kKkkk', 'kKkkk', 'kkkkk', '.kkk.'] };
+  // tools, not weapons: the Miner's pickaxe and the Builder's mallet
+  if (!ARMS_SPR.pick)
+    ARMS_SPR.pick = { g: [2, 9], swing: true, pal: { s: '#6E6E80', S: '#C9C9D6', n: '#8C5A2B', N: '#D9A05B' }, rows: [
+      '.sss.', 'sSSSs', 's.n.s', '..n..', '..n..', '..N..', '..n..', '..N..', '..n..', '..n..'] };
+  if (!ARMS_SPR.mallet)
+    ARMS_SPR.mallet = { g: [1, 7], swing: true, pal: { n: '#8C5A2B', N: '#D9A05B', w: '#E8B574' }, rows: [
+      'nNn', 'nwn', 'nNn', '.n.', '.N.', '.n.', '.N.', '.n.'] };
+  // a gem and a stone, as a Miner digs them up and carries them
+  const GEM_ROWS = ['..w..', '.lbb.', 'lbbBb', '.bBB.', '..B..'];
+  const STONE_ROWS = ['.sss.', 'sSSss', 'ssxss', '.sxs.'];
+  const GUNS = new Set(['rifle', 'scope']);
 
   // ---- canvases
   function canvas(w, h, cls) {
@@ -7813,6 +8203,15 @@ const SquadView = (() => {
         'kkkWkkkkkNyk', 'kSSWSSSSSNyk', 'kkkWkkkkkNyk', '..kW...kNk..', '..kW..kNnk..', '..kWkkNnk...', '..kkkkkk....'],
       wand: ['.......kkkk.', '......kbwwbk', '......kbwbbk', '......kbbbbk', '.......kbbk.',
         '......kPk...', '.....kPk....', '....krk.....', '...krk......', '..kRk.......', '.kRk........', '.kk.........'],
+      // Trench Rifle: wood and steel, the magazine curving down
+      rifle: ['..........kk', '.........kSk', '........kSk.', '.......kNk..', '......kNnk..',
+        '.....kNnk...', '....kxxk....', '...kxxxkk...', '..kNnkkxk...', '.kNnk..kxk..', 'kNnk....kk..', 'kkk.........'],
+      // Scope Rifle: the crosshairs it sees the world through
+      scope: ['....kkkk....', '..kkrrrrkk..', '.krr.kk.rrk.', '.kr..kk..rk.', 'kr...kk...rk',
+        'krkkkFFkkkrk', 'krkkkFFkkkrk', 'kr...kk...rk', '.kr..kk..rk.', '.krr.kk.rrk.', '..kkrrrrkk..', '....kkkk....'],
+      // Boom Pack: a round bomb, its fuse fizzing
+      boom: ['.......y.y..', '........Y...', '.......yky..', '........kn..', '....kkkkkn..',
+        '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..kxxxxxxxk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
     },
     gear: {
       shield: ['....kkkk....', '..kkrPrPkk..', '.krPrPrPrPk.', '.kPrPrPrPrk.', 'krPrPrPrPrPk',
@@ -7837,6 +8236,12 @@ const SquadView = (() => {
         'kYYk...kkkk.', 'kYYk........', 'kYYk......k.', '.kYYk....kk.', '.kYYYkkkkYk.', '..kYYYYYYk..', '...kkkkkk...'],
       bubble: ['...kkkkkk...', '..kbbbbbbk..', '.kbwwlllllk.', 'kbwwllllllbk', 'kbwlllllllbk',
         'kblllllllllk', 'kbllllllllbk', 'kblllllllbbk', 'kbllllllbbbk', '.kbbllbbbbk.', '..kbbbbbbk..', '...kkkkkk...'],
+      // Builder: a hard hat
+      builder: ['............', '....kkkk....', '...kYyyyk...', '..kYyykyyk..', '.kYyyykyyyk.',
+        '.kyyyykyyyk.', '.kyyyykyyok.', 'kkkkkkkkkkkk', 'kYyyyyyyyyok', 'kkkkkkkkkkkk', '............', '............'],
+      // Miner: a pickaxe
+      miner: ['..kkkkkkkk..', '.kSSSSSSSSk.', 'kSSkkkkkkSSk', 'kSk..kk..kSk', 'kk...kNk..kk',
+        '.....kNk....', '.....kNk....', '.....kNk....', '.....kNk....', '.....knk....', '.....knk....', '.....kkk....'],
     },
     tac: {
       // Nearest: a target with the dot close by
@@ -7904,6 +8309,9 @@ const SquadView = (() => {
       // Ammo Crate: an open crate full of shells, stencilled
       crate: ['.kkkkkkkkk..', '.kNNNNNNNk..', '.knnnnnnnk..', 'kkykykykykk.', 'kkokokokokk.',
         'kkkkkkkkkkk.', 'kNNNNNNNNNk.', 'kNNNffNNNNk.', 'knnnffnnnnk.', 'kNNffffNNNk.', 'knnnnnnnnnk.', 'kkkkkkkkkkk.'],
+      // Mine Shaft: a timbered way down, ore glinting in the dark
+      shaft: ['............', 'kkkkkkkkkkkk', 'kNNNNNNNNNNk', 'kknkkkkkknkk', '.knkKKKKknk.',
+        '.knkKKKKknk.', '.knkKKyKknk.', '.knkKKKKknk.', '.knkKKKKknk.', 'kkkkkkkkkkkk', 'kSxSxSxSxSxk', 'kkkkkkkkkkkk'],
     },
     // The chest's events, buffs and nerfs (SquadEngine.EVENTS/BUFFS/NERFS), on a
     // 32x32 grid rather than the 12x12 the rest of the icons use: they carry the
@@ -8843,10 +9251,11 @@ const SquadView = (() => {
     // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
     // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
     // and the Airdrop buff itself), 2-3 the same in red (a nerf).
-    airdrop: [4, 32, (j) => {
+    airdrop: [6, 32, (j) => {
       let g = FG.grid(32);
-      const red = j >= 2;
-      const i = j % 2;
+      // 0-1 green, 2-3 red: falling, then landed with the lid sprung; 4-5 landed shut
+      const red = j === 2 || j === 3 || j === 5;
+      const i = j >= 4 ? 2 : j % 2;
       const [c1, c2] = red ? ['r', 'F'] : ['g', 'G'];
       const cy = i === 0 ? 20 : 22; // the crate's top
       // the crate, its planks and the cross
@@ -8870,8 +9279,8 @@ const SquadView = (() => {
         for (const [x0, x1] of [[4, 11], [11, 13], [20, 18], [27, 20]]) FG.line(g, x0, 10, x1, cy, 0.8, 'S');
         return g;
       }
-      // landed: the lid sprung open on one side
-      FG.line(g, 11, cy - 1, 18, cy - 5, 1.6, 'N');
+      // landed: shut, or the lid sprung open on one side
+      if (i === 1) FG.line(g, 11, cy - 1, 18, cy - 5, 1.6, 'N');
       g = FG.outline(g);
       return g;
     }],
@@ -9366,6 +9775,62 @@ const SquadView = (() => {
         }
       return FG.outline(g);
     }],
+    // The Boom Pack going off: a fireball (white, gold, then orange coming apart),
+    // a shock ring running out over the two tiles round it, spikes of light, grit
+    // thrown clear and smoke rolling up after. Its middle is (40, 40).
+    kaboom: [10, 80, (i) => {
+      const t = i / 9;
+      const C = 40;
+      let g = FG.grid(80);
+      if (i >= 3) {
+        // smoke, dark and rolling, behind the fire
+        const u = (i - 3) / 6;
+        for (let k = 0; k < 11; k++) {
+          const a = (k / 11) * Math.PI * 2 + k * 0.9;
+          const d = 6 + u * 18 + (k % 3) * 2;
+          FG.billow(g, C + Math.cos(a) * d, C + Math.sin(a) * d * 0.8 - u * 12, 10 - u * 3, ['x', 'x', 's', 's', 'S']);
+        }
+      }
+      const rr = 8 + t * 30;
+      if (i > 0 && i < 7) {
+        FG.ring(g, C, C, rr + 1, 2, 'J');
+        FG.ring(g, C, C, rr, i < 3 ? 4 : 3, i < 3 ? 'Y' : 'f');
+      }
+      if (i < 5) {
+        const len = 12 + t * 36;
+        for (let k = 0; k < 8; k++) {
+          const a = (k / 8) * Math.PI * 2 + 0.3;
+          FG.line(g, C + Math.cos(a) * 5, C + Math.sin(a) * 5, C + Math.cos(a) * len, C + Math.sin(a) * len, i < 2 ? 5 : 3, i < 2 ? 'w' : 'Y');
+        }
+      }
+      if (i < 7) {
+        const r = i < 2 ? 9 + i * 8 : 24 - (i - 2) * 4;
+        FG.disc(g, C, C, r, i < 1 ? 'w' : 'f');
+        if (i >= 1) {
+          FG.disc(g, C, C, r * 0.7, 'y');
+          FG.disc(g, C, C, r * 0.4, i < 4 ? 'w' : 'Y');
+        }
+        if (i >= 3)
+          for (let k = 0; k < 6; k++) {
+            const a = (k / 6) * Math.PI * 2 + i;
+            FG.disc(g, C + Math.cos(a) * (r + 2), C + Math.sin(a) * (r + 2), 3.5, 'J');
+          }
+      }
+      if (i >= 2 && i < 9)
+        for (let k = 0; k < 14; k++) {
+          const a = (k / 14) * Math.PI * 2 + 0.2;
+          const d = 14 + t * 34;
+          FG.disc(g, C + Math.cos(a) * d, C + Math.sin(a) * d + t * 8, 1.5, k % 3 ? 'x' : 'a');
+        }
+      g = FG.outline(g);
+      // the last frames come apart from the middle out
+      if (i >= 8) {
+        const p = i === 8 ? 0.35 : 0.7;
+        for (let y = 0; y < 80; y++)
+          for (let x = 0; x < 80; x++) if (g[y][x] !== '.' && (FG.BAYER[(y & 3) * 4 + (x & 3)] + 0.5) / 16 < p) g[y][x] = '.';
+      }
+      return g;
+    }],
     // a band of water, repeated along the arena as the wave crosses it
     wave: [6, 48, (i) => {
       let g = FG.grid(48);
@@ -9519,6 +9984,8 @@ const SquadView = (() => {
     sniped: 'The Sniper Bot takes out ',
     crashed: 'The Lambo crash finishes off ',
     gas: 'Gas fees finish off ',
+    blasted: 'The Boom Pack knocks out ',
+    blowup: 'Its own Boom Pack takes out ',
   };
   // objs (optional): the round's objects, to say whose mortar takes aim
   function describe(e, names, labels, objs) {
@@ -9583,6 +10050,27 @@ const SquadView = (() => {
         return e.hit >= 0 ? u + ' floors the Lambo straight into ' + nm(e.hit) + '!' : u + ' floors the Lambo and wraps it round ' + (e.wreck ? 'a wall' : 'nothing at all') + '.';
       case 'claim':
         return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
+      case 'goal':
+        return u + ' runs for the ' + (e.id === 'sendit' ? 'catapult' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
+      // the trench arsenal
+      case 'reload':
+        return u + ' reloads the Scope Rifle.';
+      case 'scope':
+        return u + ' takes aim at ' + d + '...';
+      case 'blowup':
+        return 'BOOM! ' + u + "'s Boom Pack goes off.";
+      case 'blasted':
+        return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
+      case 'build':
+        return u + ' puts up a barricade.';
+      case 'dig':
+        return e.found === 'gem' ? u + ' digs up a gem!' : e.found === 'stone' ? u + ' digs up a stone.' : u + ' digs and finds nothing.';
+      case 'deliver':
+        return u + ' hands ' + d + ' a gem.';
+      case 'burrow':
+        return e.why === 'away' ? u + ' tunnels away!' : u + ' tunnels over with the gem.';
+      case 'perk':
+        return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
       case 'pick':
         return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
       case 'gas':
@@ -9656,7 +10144,14 @@ const SquadView = (() => {
         if (src === 'feather') return d + ' feels lighter: +' + e.amt + '.';
         if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + ' and its power back.';
         if (src === 'devwallet') return 'The dev wallet pays ' + d + ' back: +' + e.amt + '.';
+        if (src === 'gem') return 'The gem heals ' + d + ': +' + e.amt + '.';
+        // the pool's yield is told once for everybody ('yield')
+        if (src === 'pool') return '';
         return d + ' heals ' + e.amt + '.';
+      }
+      case 'yield': {
+        const who = Array.isArray(e.u) ? e.u.map(nm) : [];
+        return who.length ? 'The Liquidity Pool pays out: ' + who.join(', ') + ' +' + SE.RULES.poolYield + ' HP.' : '';
       }
       case 'power':
         if (e.p === 'freeze') return u + ' fires a Freeze Ray at ' + d + '.';
@@ -9706,6 +10201,40 @@ const SquadView = (() => {
     '.accccccaccccca.', 'abcccacccccccccb', 'acccccccccacccbb', 'accacccccccccabb', 'abcccccacccccbbb',
     'abbcccccccccbbba', '.abbccbbbcccbba.', '.aabbbbbbbbbbaa.', '..aaaaaaaaaaaa..', '................', '................'];
   const MUSHROOM = ['.rrrr.', 'rrwrrr', 'rwrrwr', '..ss..', '..ss..'];
+  // The Liquidity Pool is rainbow water: pastel bands running diagonally across it,
+  // three pixels each, that drift along while the round plays. One strip holds the
+  // pattern; a tile copies the 16x16 piece that lines up with where it lies (the
+  // band of a pixel is (x + y + drift) / 3, six bands round).
+  const POOL_COLS = ['#FF8FB1', '#FFB27A', '#FFE07A', '#8EE6A6', '#86C8FF', '#B79CFF'];
+  const POOL_P = 18;
+  let poolStrip = null;
+  function poolArt() {
+    if (poolStrip) return poolStrip;
+    poolStrip = canvas(POOL_P + 16, 16);
+    const g = poolStrip.getContext('2d');
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < POOL_P + 16; x++) {
+        const v = (x + y) % POOL_P;
+        g.fillStyle = POOL_COLS[Math.floor(v / 3)];
+        g.fillRect(x, y, 1, 1);
+        // a glint where one band meets the next
+        if (v % 3 === 0 && (x * 7 + y * 3) % 5 === 0) {
+          g.fillStyle = 'rgba(255,255,255,.55)';
+          g.fillRect(x, y, 1, 1);
+        }
+      }
+    return poolStrip;
+  }
+  // which column of the strip a pixel at (X, Y) starts on, with the drift
+  const poolCol = (X, Y, drift) => (((X + Y + drift) % POOL_P) + POOL_P) % POOL_P;
+  // the rainbow inside the pools, drifting (the rims stay as the ground drew them)
+  function drawPools(x, now) {
+    const list = P.map.pools;
+    if (!list || !list.length) return;
+    const art = poolArt();
+    const drift = P.calm ? 0 : Math.floor(now / 150) % POOL_P;
+    for (const p of list) x.drawImage(art, poolCol(p.x0, p.y0, drift), 0, p.w, p.h, p.x0, p.y0, p.w, p.h);
+  }
 
   function prepMap(R, flip, theme) {
     const tint = Object.assign({}, A, THEME_TINT[theme] || {});
@@ -9717,6 +10246,7 @@ const SquadView = (() => {
     };
     const ground = canvas(CW, CH);
     const g = ground.getContext('2d');
+    const pools = []; // the rainbow part of each pool tile, for the drift
     const F = (c, x, y, w, h) => {
       g.fillStyle = c;
       g.fillRect(x, y, w, h);
@@ -9740,11 +10270,21 @@ const SquadView = (() => {
         const px = sx * TILE;
         const py = TOP + sy * TILE;
         if (t === SE.WATER) {
+          // rainbow water inside a rim: darker under the edge it is sunk below
+          const top = at(sx, sy - 1) !== SE.WATER;
+          const lft = at(sx - 1, sy) !== SE.WATER;
+          const rgt = at(sx + 1, sy) !== SE.WATER;
+          const bot = at(sx, sy + 1) !== SE.WATER;
+          const x0 = px + (lft ? 1 : 0);
+          const y0 = py + (top ? 2 : 0);
+          const p = { x0, y0, w: px + 16 - (rgt ? 1 : 0) - x0, h: py + 16 - (bot ? 1 : 0) - y0 };
+          pools.push(p);
           F(tint.water, px, py, TILE, TILE);
-          if (at(sx, sy - 1) !== SE.WATER) F('#E7819F', px, py, TILE, 2);
-          if (at(sx - 1, sy) !== SE.WATER) F('#F08BA8', px, py, 1, TILE);
-          if (at(sx + 1, sy) !== SE.WATER) F('#F08BA8', px + 15, py, 1, TILE);
-          if (at(sx, sy + 1) !== SE.WATER) F('#FFC4D2', px, py + 15, TILE, 1);
+          g.drawImage(poolArt(), poolCol(p.x0, p.y0, 0), 0, p.w, p.h, p.x0, p.y0, p.w, p.h);
+          if (top) F('#B4557A', px, py, TILE, 2);
+          if (lft) F('#D46F92', px, py, 1, TILE);
+          if (rgt) F('#D46F92', px + 15, py, 1, TILE);
+          if (bot) F('#FFD7E2', px, py + 15, TILE, 1);
           continue;
         }
         F((sx + sy) & 1 ? tint.grassB : tint.grassA, px, py, TILE, TILE);
@@ -9915,7 +10455,7 @@ const SquadView = (() => {
             if (theme === 'grove' && hash(sx, sy, 30) < 0.4) paintRows(b, MUSHROOM, { r: '#E2566E', w: '#FFFFFF', s: '#FFF3B0' }, px + 3 + Math.floor(hash(sx, sy, 31) * 6), py + (f ? 0 : 1), 1);
           }
         }
-    return { ground, blocks, water, bush, at, high: (sx, sy) => at(sx, sy) === SE.HIGH };
+    return { ground, blocks, water, bush, pools, at, high: (sx, sy) => at(sx, sy) === SE.HIGH };
   }
 
   // ---- the trench kit: object art. Each kind is painted once per side and layer
@@ -9930,7 +10470,7 @@ const SquadView = (() => {
     brass: '#D9A05B', brassD: '#A86E1E', hole: '#120A1C', shade: '#7A3550',
   });
   // how far the art reaches above its tile and below it (px)
-  const OBJ_GEO = { sandbags: [2, 3], tower: [16, 3], wire: [2, 2], mortar: [2, 2], trench: [1, 2], mines: [0, 0], crate: [1, 3] };
+  const OBJ_GEO = { sandbags: [2, 3], tower: [16, 3], wire: [2, 2], mortar: [2, 2], trench: [1, 2], mines: [0, 0], crate: [1, 3], shaft: [14, 2] };
   // a Blub up on a watchtower stands this much higher
   const TOWER_LIFT = 13;
   const objSpan = (k) => {
@@ -10117,6 +10657,43 @@ const SquadView = (() => {
         shade(2, 15, w, 2);
         for (let i = 0, x = -1; x < w - 2; x += 8, i++) sack(F, Math.min(Math.max(0, x + 4), w - 9), 10, 9, 5, i % 2 ? T : null);
       }
+    } else if (k === 'shaft') {
+      if (!back) return;
+      shade(1, 15, 16, 2);
+      // the way down: a dark pit with a timber rim, ore glinting at the bottom
+      F(OC.wdO, 1, 7, 14, 8);
+      F(OC.wd, 2, 7, 12, 1);
+      F(OC.wdL, 2, 7, 12, 1);
+      F(OC.hole, 3, 8, 10, 5);
+      F(OC.pitD, 3, 8, 10, 1);
+      F(OC.wd, 2, 8, 1, 6);
+      F(OC.wd, 13, 8, 1, 6);
+      F(OC.wd, 2, 13, 12, 1);
+      F(OC.wdD, 2, 14, 12, 1);
+      F(OC.wdD, 5, 9, 1, 1);
+      F(OC.wdD, 5, 11, 1, 1);
+      F(colors.gold, 10, 11, 1, 1);
+      F('#FFF3B0', 10, 10, 1, 1);
+      F(colors.gold, 7, 12, 1, 1);
+      // the headframe: two legs leaning in over it, a beam with the squad's mark,
+      // the wheel on top and its rope down into the dark
+      for (let k = 0; k < 16; k++) {
+        const y = 7 - k;
+        const dx = Math.floor(k / 4);
+        F(OC.wdO, 1 + dx, y, 3, 1);
+        F(OC.wd, 2 + dx, y, 1, 1);
+        F(OC.wdO, 12 - dx, y, 3, 1);
+        F(OC.wd, 13 - dx, y, 1, 1);
+      }
+      F(OC.wdO, 3, -9, 10, 3);
+      F(OC.wd, 4, -8, 8, 1);
+      F(OC.wdL, 4, -9, 8, 1);
+      F(T.fill, 5, -8, 2, 1);
+      F(T.light, 5, -8, 1, 1);
+      F(OC.wrO, 6, -13, 4, 4);
+      F(OC.wr, 7, -12, 2, 2);
+      F(OC.wrW, 7, -12, 1, 1);
+      F(OC.wrD, 8, -9, 1, 18);
     } else if (k === 'crate') {
       if (!back) return;
       shade(2, 15, 15, 2);
@@ -10239,7 +10816,7 @@ const SquadView = (() => {
     }
     const T = side === 'rival' ? colors.rival : colors.you;
     const [lo, hi] = objSpan(k);
-    const up = k === 'tower' ? 1 : 0;
+    const up = k === 'tower' || k === 'shaft' ? 1 : 0;
     const tiles = hi - lo + 1;
     const c = canvas(tiles * TILE, (1 + up) * TILE, 'sq-obj spr');
     const x = c.getContext('2d');
@@ -10370,9 +10947,17 @@ const SquadView = (() => {
     ko: 650, koSlow: 400, revive: 800, reviveHit: 350, spawn: 1100, spawnHit: 850, pickup: 550, pickupHit: 120, mist: 600, mistHit: 300,
     gap: 150, end: 1600, rIntro: 1800, rIntroFast: 1200, mIntro: 3000, calmTurn: 2000, still: 1200,
     aim: 650, aimHit: 230, blast: 820, blastHit: 60, shellHit: 110, boom: 820, boomHit: 150, snag: 560, snagHit: 70,
+    // the Liquidity Pool paying out: the water lights up, and the yield lands at yieldHit
+    yield: 720, yieldHit: 380,
+    // the trench arsenal: a reload, an aim, the gap between a burst's shots, the Scope
+    // Rifle's shot, the Boom Pack, a barricade going up, a dig, a gem handed over, a tunnel
+    reload: 560, reloadHit: 300, scope: 820, scopeHit: 420, scopeShot: 1000, scopeWind: 460, burstGap: 110,
+    blowup: 1500, blowupHit: 600, build: 1000, buildHit: 680, dig: 800, digHit: 480,
+    deliver: 820, deliverHit: 500, burrow: 1150, burrowDown: 320, burrowUp: 880,
     // the chest's pill: a reading each turn, a longer one once it locks on, and the
     // graduation itself, which is the biggest single thing that happens in a round
-    // nukeHit is the drop: a slow swinging descent, long enough to dread it coming;
+    // nukeHit is the drop: a twitch, up off the chart, a beat of empty sky while the
+    // shadow pulls in, and the plunge, long enough to dread it coming;
     // nuke is the drop plus the blast and the mushroom cloud climbing after it
     // the beat ends as the cloud starts to come apart: Blubs move again as it thins
     curve: 460, curveLock: 760, nuke: 3700, nukeHit: 1700, pit: 460, fume: 420, fumeHit: 140,
@@ -10431,7 +11016,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim']);
+  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -10512,6 +11097,11 @@ const SquadView = (() => {
           }
           // the memepowers: an airdrop's HP lands with the crate, the sniper's shot
           // with the shot, and the dev wallet pays its Blubs one after another
+          // the pool's yield lands on everybody standing in it at once
+          if (t === 'heal' && p.kind === 'yield' && e.src === 'pool') {
+            attachTo(p, i);
+            return;
+          }
           if ((t === 'heal' && p.kind === 'airdrop' && e.src === 'airdrop') || (t === 'sniped' && p.kind === 'snipe')) {
             attachTo(p, i);
             return;
@@ -10551,6 +11141,18 @@ const SquadView = (() => {
             pos[e.u] = null;
             return;
           }
+          // a rifle's burst: the next shots ride on the first, a beat apart
+          if (t === 'attack' && p.kind === 'attack' && p.e.u === e.u && e.w === 'rifle' && e.n >= 1) {
+            const off = p.contact + e.n * MS.burstGap;
+            p.list.push({ ei: i, off });
+            p.dur = Math.max(p.dur, off + 240);
+            return;
+          }
+          // the Boom Pack's blast lands on everybody round it at once; a gem heals as it is handed over
+          if ((t === 'blasted' && p.kind === 'blowup') || (t === 'heal' && p.kind === 'deliver' && e.src === 'gem')) {
+            attachTo(p, i);
+            return;
+          }
           if (t === 'attack' && p.kind === 'attack' && p.e.u === e.u && e.n === 1 && !p.contact2) {
             p.dur = MS.dagger;
             p.contact2 = MS.stab2;
@@ -10560,7 +11162,8 @@ const SquadView = (() => {
           }
         }
         flush();
-        if (t === 'act') {
+        // what a Blub heads for rides on its walk, like its turn starting
+        if (t === 'act' || t === 'goal') {
           parent = null;
           pre.push(i);
           return;
@@ -10590,8 +11193,11 @@ const SquadView = (() => {
         if (t === 'attack') {
           const ranged = e.kind !== 'melee';
           const dist = pos[e.u] && pos[e.d] ? cheb(pos[e.u], pos[e.d]) : 3;
-          const contact = ranged ? MS.rWind + MS.perTile * dist : MS.mHit;
-          parent = add({ kind: 'attack', dur: ranged ? Math.max(MS.ranged, contact + 160) : MS.melee, contact, c1: contact, rel: MS.rWind, list: [{ ei: i, off: contact }], e });
+          // a bullet is there almost as it leaves; the Scope Rifle takes a breath first
+          const gun = GUNS.has(e.w);
+          const wind = e.w === 'scope' ? MS.scopeWind : MS.rWind;
+          const contact = gun ? wind + 50 : ranged ? MS.rWind + MS.perTile * dist : MS.mHit;
+          parent = add({ kind: 'attack', dur: e.w === 'scope' ? MS.scopeShot : ranged ? Math.max(MS.ranged, contact + 160) : MS.melee, contact, c1: contact, rel: wind, list: [{ ei: i, off: contact }], e });
           return;
         }
         if (t === 'power') {
@@ -10622,6 +11228,20 @@ const SquadView = (() => {
         }
         if (t === 'heal') {
           add({ kind: 'heal', dur: MS.heal, contact: MS.healHit, list: [{ ei: i, off: MS.healHit }], e });
+          return;
+        }
+        if (t === 'yield') {
+          parent = add({ kind: 'yield', dur: MS.yield, contact: MS.yieldHit, list: [{ ei: i, off: 0 }], e });
+          return;
+        }
+        // the trench arsenal: each a scene of its own, the event at its high point
+        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup') {
+          parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
+          return;
+        }
+        if (t === 'burrow') {
+          parent = add({ kind: 'burrow', dur: MS.burrow, contact: 0, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          pos[e.u] = e.to.slice();
           return;
         }
         // the trench kit: a mortar takes aim, its shell lands later in the turn;
@@ -10778,6 +11398,9 @@ const SquadView = (() => {
       item: null, mist: 0, winner: -1, turn: 0, actors: [], ended: false, blown: {}, aims: {},
       // the chest: the pill on its way up the curve, the hole it leaves, the weather
       curve: null, crater: null, fud: null, bait: null, cats: [], props: [], spent: {}, perkSeen: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0, sink: null,
+      // the trench arsenal: barricades put up, Scope Rifles taking aim (unit -> target),
+      // what each Miner carries
+      walls: [], sights: {}, packs: {},
     };
   }
   function fold(S, e) {
@@ -10835,6 +11458,8 @@ const SquadView = (() => {
       case 'attack':
         // the first blow that lands (or pops a bubble) digs a Blub out of its foxhole
         if (e.res !== 'miss' && e.res !== 'whiff') U[e.d].dug = false;
+        // the Scope Rifle has fired: its aim is spent
+        if (e.w === 'scope') delete S.sights[e.u];
       // falls through
       case 'splash':
       case 'zap':
@@ -10849,14 +11474,35 @@ const SquadView = (() => {
       case 'sniped':
       case 'crashed':
       case 'gas':
+      case 'blasted':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
+        break;
+      // the trench arsenal
+      case 'scope':
+        S.sights[e.u] = e.d;
+        break;
+      case 'build':
+        S.walls.push({ x: e.at[0], y: e.at[1], team: Math.floor(e.u / SE.TEAM) });
+        if (S.packs[e.u] === 'stone') S.packs[e.u] = '';
+        break;
+      case 'dig':
+        S.packs[e.u] = e.found || '';
+        break;
+      case 'deliver':
+        S.packs[e.u] = '';
+        break;
+      case 'burrow':
+        U[e.u].x = e.to[0];
+        U[e.u].y = e.to[1];
+        U[e.u].dug = false;
         break;
       // the chest's pill: it hangs over the board until it graduates
       // a rug takes the pill away for good: it must not hang there for the rest of
       // the round
+      // (from: where its last reading put it, so the page can glide it across)
       case 'curve':
-        S.curve = e.rug ? null : { n: e.n, pct: e.pct, at: e.at, lock: !!e.lock };
+        S.curve = e.rug ? null : { n: e.n, pct: e.pct, at: e.at, lock: !!e.lock, from: S.curve ? S.curve.at : null };
         break;
       case 'nuke':
         S.curve = null;
@@ -10974,6 +11620,10 @@ const SquadView = (() => {
         U[e.u].alive = false;
         U[e.u].hp = 0;
         U[e.u].st = {};
+        // nobody aims at it any more, and it aims at nobody; what it carried is lost
+        delete S.sights[e.u];
+        for (const id in S.sights) if (S.sights[id] === e.u) delete S.sights[id];
+        S.packs[e.u] = '';
         U[e.u].dug = false;
         break;
       // Exit Liquidity: the hole, there for good, and each Blub that went down it
@@ -11195,7 +11845,8 @@ const SquadView = (() => {
         const b = m.pts[k + 1];
         sx = lerp(a[0], b[0], f);
         sy = lerp(a[1], b[1], f);
-        hop = m.slide ? 0 : Math.sin(Math.PI * f) * (m.high || 4);
+        // a walk can stop on a tile a while (the same point twice): no hop there
+        hop = m.slide || (a[0] === b[0] && a[1] === b[1]) ? 0 : Math.sin(Math.PI * f) * (m.high || 4);
         moving = true;
         // climbing onto a watchtower (or down from it) along the step
         lift = Math.round(lerp(liftAt(a[0], a[1]), liftAt(b[0], b[1]), f));
@@ -11320,6 +11971,13 @@ const SquadView = (() => {
       drawArmsDir(x, w, hx + f1x, hy + f1y, d);
       const ohx = face > 0 ? ox + 2 : ox + 13;
       drawArmsDir(x, w, ohx + f2x, hy + 1 + f2y, d);
+    } else if (GUNS.has(w)) {
+      // aimed straight at it, kicking back with every shot
+      const gap = a.gap || MS.burstGap;
+      const kick = (c) => (e > c && e < c + 70 ? (w === 'scope' ? -3 : -2) : 0);
+      const back = w === 'rifle' ? kick(a.c1) + kick(a.c1 + gap) + kick(a.c1 + 2 * gap) : kick(a.c1);
+      const [kx, ky] = fwd(back);
+      drawArmsDir(x, w, hx + kx, hy - 2 + ky, d);
     } else if (w === 'bow') {
       drawArmsDir(x, w, hx, hy - 2, d);
       if (e < a.rel) {
@@ -11560,10 +12218,11 @@ const SquadView = (() => {
         const py = TOP + p.ry * TILE;
         x.drawImage(fr, p.rx * TILE, py + 9, TILE, 5, p.rx * TILE, py + 9, TILE, 5);
       } else if (tl === SE.WATER) {
+        // wading: the rainbow comes up over its feet
         const py = TOP + p.ry * TILE;
-        x.globalAlpha = 0.9;
-        x.fillStyle = A.water;
-        x.fillRect(p.rx * TILE + 1, py + 12, 14, 3);
+        const X = p.rx * TILE + 1;
+        x.globalAlpha = 0.92;
+        x.drawImage(poolArt(), poolCol(X, py + 12, P.calm ? 0 : Math.floor(now / 150) % POOL_P), 0, 14, 3, X, py + 12, 14, 3);
         x.globalAlpha = 1;
         x.fillStyle = '#FFFFFF';
         const k = P.calm ? 0 : Math.floor(now / 250) & 1;
@@ -11945,13 +12604,25 @@ const SquadView = (() => {
       x.fillRect(ux + 6, uy - 13 + dy, 1, 1);
     }
   }
-  // The pill climbing its bonding curve: it hangs over the arena, its shadow on the
-  // tile below it, and a bar that fills as the curve runs up. Once it locks on, the
-  // shadow stops wandering and blinks.
+  // Where the pill hangs right now: over the tile of its reading, gliding there from
+  // the last one (eased, so it drifts with the crowd instead of jumping).
+  function curvePos(c, t) {
+    const [tx, ty] = tileC(c.at[0], c.at[1]);
+    if (!c.from || !(P.curveT > -1e8)) return [tx, ty];
+    const [fx, fy] = tileC(c.from[0], c.from[1]);
+    const p = clamp((t - P.curveT) / (P.curveDur || 1), 0, 1);
+    const q = p * p * (3 - 2 * p);
+    return [Math.round(fx + (tx - fx) * q), Math.round(fy + (ty - fy) * q)];
+  }
+  // How dark and wide its shadow is: nothing on the first reading, then a turn at a
+  // time bigger and blacker, until it covers the core it is going to hit.
+  const shadeOf = (pct) => clamp((pct - 20) / 60, 0, 1);
+  // The pill climbing its bonding curve: it hangs over the thickest crowd, its shadow
+  // on the floor under it, and a bar that fills as the curve runs up.
   function drawCurve(x, t, now) {
     const c = P.S && P.S.curve;
     if (!c) return;
-    const [cx, cy] = tileC(c.at[0], c.at[1]);
+    const [cx, cy] = curvePos(c, t);
     const bob = P.calm ? 0 : Math.round(Math.sin(now / 420) * 2);
     const py = pillY(cy) + bob; // the middle of the pill
     // the pill at its own size: shrinking a sprite by a fraction is what blurs it
@@ -11970,6 +12641,197 @@ const SquadView = (() => {
     const lx = Math.round(cx - lbl.width / 2);
     x.drawImage(pxText(c.pct + '%', '#1B1229', 1), lx + 1, by - 7);
     x.drawImage(lbl, lx, by - 8);
+  }
+  // ---- the trench arsenal on the board
+  // a label over a Blub in the top row stays on the board
+  const above = (y) => Math.max(TOP + 8, y);
+  // A shot from a gun: a muzzle flash, a tracer streaking to the target (past it on a
+  // miss: mx, my), the Scope Rifle's long and bright.
+  function gunShot(T0, u, d, mx, my, k, big) {
+    addFx(T0, (big ? 260 : 150) * k, (x, kk) => {
+      const ub = u._b;
+      const db = d._b;
+      if (!ub || !db) return;
+      const s = db.ox >= ub.ox ? 1 : -1;
+      const x0 = ub.ox + 8 + s * 7;
+      const y0 = ub.oy + 11;
+      const x1 = db.ox + 8 + mx;
+      const y1 = db.oy + 12 + my;
+      if (kk < 0.4) {
+        const r = big ? 3 : 2;
+        x.fillStyle = kk < 0.2 ? '#FFFFFF' : '#FFD447';
+        x.fillRect(x0 - r, y0, r * 2 + 1, 1);
+        x.fillRect(x0, y0 - r, 1, r * 2 + 1);
+        x.fillStyle = '#FF8A3D';
+        x.fillRect(x0 - 1, y0 - 1, 3, 3);
+      }
+      const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+      const head = Math.min(1, kk * 2.2);
+      const tail = Math.max(0, head - (big ? 0.6 : 0.35));
+      const n = Math.ceil(len * (head - tail));
+      for (let i = 0; i <= n; i++) {
+        const f = tail + (head - tail) * (i / Math.max(1, n));
+        x.fillStyle = i > n - 3 ? '#FFFFFF' : big ? '#FFF3B0' : '#FFD447';
+        x.fillRect(Math.round(lerp(x0, x1, f)), Math.round(lerp(y0, y1, f)), 1, big ? 2 : 1);
+      }
+    });
+  }
+  // A Scope Rifle that has taken aim: a red laser from its scope to the target, a dot
+  // on it and sights blinking round it, until the shot
+  function drawSights(x, now) {
+    const S = P.S;
+    for (const id in S.sights) {
+      const u = S.u[id];
+      const d = S.u[S.sights[id]];
+      if (!u || !d || !u.alive || !d.alive || !u._b || !d._b) continue;
+      const x0 = u._b.ox + 8 + (u.face > 0 ? 6 : -6);
+      const y0 = u._b.oy + 10;
+      const x1 = d._b.ox + 8;
+      const y1 = d._b.oy + 11;
+      const n = Math.max(2, Math.round(Math.hypot(x1 - x0, y1 - y0) / 2));
+      const run = P.calm ? 0 : Math.floor(now / 70);
+      x.fillStyle = '#FF2E4C';
+      x.globalAlpha = 0.7;
+      for (let i = 1; i < n; i++) if ((i + run) % 3) x.fillRect(Math.round(lerp(x0, x1, i / n)), Math.round(lerp(y0, y1, i / n)), 1, 1);
+      x.globalAlpha = 1;
+      x.fillRect(x1 - 1, y1 - 1, 3, 3);
+      x.fillStyle = '#FFFFFF';
+      x.fillRect(x1, y1, 1, 1);
+      if (P.calm || Math.floor(now / 200) % 2 === 0) corners(x, x1 - 6, y1 - 6, 13, 13, '#FF2E4C', 2);
+    }
+  }
+  // what a Miner carries, bobbing over its head
+  function drawPacks(x, now) {
+    const S = P.S;
+    for (const id in S.packs) {
+      const what = S.packs[id];
+      const u = S.u[id];
+      if (!what || !u || !u.alive || !u._b) continue;
+      const bob = P.calm ? 0 : Math.floor(now / 300 + u.id) % 2;
+      paintRows(x, what === 'gem' ? GEM_ROWS : STONE_ROWS, IP, u._b.ox + 6, u._b.oy - 7 - bob, 1);
+    }
+  }
+  // a barricade a Builder (or a Miner's stone) put up: a pile of the squad's sandbags
+  const WALL_ART = {};
+  function wallArt(side) {
+    if (WALL_ART[side]) return WALL_ART[side];
+    const c = canvas(22, 24);
+    const g = c.getContext('2d');
+    g.translate(3, 5);
+    paintObj(g, 'sandbags', side, 'back', 16);
+    WALL_ART[side] = c;
+    return c;
+  }
+  function drawWall(x, w) {
+    const [sx, sy] = scr(w.x, w.y);
+    x.drawImage(wallArt(P.sideOf(w.team)), sx * TILE - 3, TOP + sy * TILE - 5);
+  }
+  // one sack, falling into place
+  const SACK_ART = {};
+  function sackArt(side) {
+    if (SACK_ART[side]) return SACK_ART[side];
+    const c = canvas(10, 6);
+    const g = c.getContext('2d');
+    sack((col, X, Y, W, H) => {
+      g.fillStyle = col;
+      g.fillRect(X, Y, W || 1, H || 1);
+    }, 0, 0, 10, 6, side === 'rival' ? colors.rival : colors.you);
+    SACK_ART[side] = c;
+    return c;
+  }
+  // The scenes of the trench arsenal that start before their event: the Boom Pack's
+  // fuse burning down, a barricade going up sack by sack, the pickaxe swinging, a gem
+  // tossed over. True when the beat was one of these.
+  function arsenalBeat(b, T, k) {
+    const S = P.S;
+    const e = b.e;
+    if (b.kind === 'blowup') {
+      const u = S.u[e.u];
+      addFx(T, b.contact, (x, kk, el) => {
+        const ub = u._b;
+        if (!ub) return;
+        const fx0 = ub.ox + 8 + (u.face > 0 ? 7 : -7);
+        const fy0 = ub.oy + 6;
+        const tick = Math.floor(el / (40 * k));
+        for (let i = 0; i < 3; i++) {
+          const a = hash(tick, i, 7) * Math.PI * 2;
+          const r = 1 + hash(i, tick, 3) * 3;
+          x.fillStyle = i ? '#FFD447' : '#FFFFFF';
+          x.fillRect(Math.round(fx0 + Math.cos(a) * r), Math.round(fy0 + Math.sin(a) * r), 1, 1);
+        }
+        // the bomb flashes, quicker and quicker
+        const rate = lerp(220, 50, kk) * k;
+        if (Math.floor(el / rate) % 2) {
+          x.globalAlpha = 0.55;
+          x.drawImage(P.spr[u.id].line.gold, ub.ox - 1, ub.oy - 1);
+          x.globalAlpha = 1;
+        }
+      });
+      const [ux, uy] = centreOf(u);
+      label(T, '!', '#FF8A3D', ux, above(uy - 20), true, 2);
+      sfx('read');
+      return true;
+    }
+    if (b.kind === 'build') {
+      const u = S.u[e.u];
+      const [bx, by] = tileC(e.at[0], e.at[1]);
+      faceTo(u, bx);
+      const side = u.side;
+      const art = sackArt(side);
+      const lands = [0.3, 0.62, 1].map((f) => T + b.contact * f);
+      const rest = [[bx - 6, by + 4], [bx - 3, by - 1], [bx - 5, by - 6]];
+      lands.forEach((h, i) => {
+        const [rx, ry] = rest[i];
+        const fall = 150 * k;
+        addFx(h - fall, fall + (i < 2 ? b.contact - (h - T) : 0), (x, kk, el) => {
+          const p = Math.min(1, el / fall);
+          x.drawImage(art, rx, Math.round(ry - (1 - p * p) * 18));
+        });
+        addParts(3, rx + 5, ry + 6, [OC.skL, OC.sk], 0.04, 0.0003, 280 * k, h, true, [Math.PI, Math.PI * 2]);
+        if (i < 2) atClock(h, () => sfx('block'));
+      });
+      // the mallet knocking each sack into place
+      addFx(T, b.contact, (x, kk, el) => {
+        const ph = (el / (b.contact / 3)) % 1;
+        const s = u.face > 0 ? 1 : -1;
+        drawArmsDir(x, 'mallet', bx - 6 * s, by - 6, ph < 0.6 ? (s > 0 ? 7 : 5) : s > 0 ? 1 : 3);
+      });
+      return true;
+    }
+    if (b.kind === 'dig') {
+      const u = S.u[e.u];
+      const s = u.face > 0 ? 1 : -1;
+      const swing = b.contact / 2;
+      addFx(T, b.contact + 80 * k, (x, kk, el) => {
+        const ub = u._b;
+        if (!ub) return;
+        const ph = (el % swing) / swing;
+        drawArmsDir(x, 'pick', ub.ox + 8 + s * 6, ub.oy + 13, ph < 0.62 ? (s > 0 ? 7 : 5) : s > 0 ? 1 : 3);
+      });
+      const [ux, uy] = centreOf(u);
+      addParts(4, ux + 7 * s, uy + 5, [OC.dt, OC.dtD, OC.dtL], 0.04, 0.0004, 280 * k, T + swing, true, [Math.PI * 1.1, Math.PI * 1.9]);
+      atClock(T + swing, () => sfx('block'));
+      return true;
+    }
+    if (b.kind === 'deliver') {
+      const u = S.u[e.u];
+      const d = S.u[e.d];
+      faceTo(u, centreOf(d)[0]);
+      addFx(T + 60 * k, b.contact - 60 * k, (x, kk) => {
+        const [ux, uy] = centreOf(u);
+        const [dx, dy] = centreOf(d);
+        const X = lerp(ux, dx, kk);
+        const Y = lerp(uy - 12, dy - 10, kk) - Math.sin(kk * Math.PI) * 10;
+        paintRows(x, GEM_ROWS, IP, Math.round(X) - 2, Math.round(Y) - 2, 1);
+      });
+      return true;
+    }
+    if (b.kind === 'scope') {
+      const u = S.u[e.u];
+      faceTo(u, centreOf(S.u[e.d])[0]);
+      return false;
+    }
+    return false;
   }
   // the round's moon rocket, if the chest dropped one: where it stands on screen
   function rocketSpot() {
@@ -12153,17 +13015,26 @@ const SquadView = (() => {
       x.fillRect(ex, sy < 0 ? ey : ey - L + 1, 1, L);
     }
   }
-  // Where the pill means to come down: a shadow on the tile that deepens as the
-  // curve climbs, and once it has locked on, red sights blinking round it. On the
+  // Where the pill means to come down: from its second reading on, a shadow over the
+  // crowd that grows and darkens every turn, soft at the edge and black in the
+  // middle, and once it has locked on, red sights blinking round its tile. On the
   // floor, under whoever is standing there.
   function drawCurveShadow(x, t, now) {
     const c = P.S && P.S.curve;
     if (!c) return;
-    const [cx, cy] = tileC(c.at[0], c.at[1]);
-    const p = clamp(c.pct, 0, 100) / 100;
-    const breath = P.calm ? 0 : Math.sin(now / 300) * 0.06;
-    blob(x, cx, cy + 3, 3 + p * 5, 1 + Math.round(p * 2), '#1B1229', 0.22 + p * 0.28 + breath);
+    const s = shadeOf(c.pct);
+    if (s <= 0) return;
+    const [cx, cy] = curvePos(c, t);
+    pillShade(x, cx, cy, s, P.calm ? 0 : Math.sin(now / 320));
     if (c.lock && (P.calm || Math.floor(now / 170) % 2 === 0)) reticle(x, cx, cy, P.calm ? 2 : 1 + (Math.floor(now / 340) % 2), '#FF5C77');
+  }
+  // the shadow itself: three rings of floor dark, the widest about the 3x3 core at
+  // full strength; `breath` (-1..1) lets it swell a pixel and back
+  function pillShade(x, cx, cy, s, breath) {
+    const R = 8 + s * 17 + breath * s;
+    blob(x, cx, cy + 3, R, Math.round(R * 0.62), '#1B1229', 0.1 + s * 0.16);
+    blob(x, cx, cy + 3, R * 0.68, Math.round(R * 0.42), '#1B1229', 0.12 + s * 0.2);
+    blob(x, cx, cy + 3, R * 0.36, Math.round(R * 0.22), '#1B1229', 0.14 + s * 0.3);
   }
   function drawItem(x, t, now) {
     drawItemOn(x, P.S.item, t, now, true);
@@ -12473,6 +13344,7 @@ const SquadView = (() => {
     } else {
       x.drawImage(P.map.ground, 0, 0);
       const fr = P.calm ? 0 : Math.floor(now / 250) & 1;
+      drawPools(x, now);
       if (P.map.water) x.drawImage(P.map.water[fr], 0, 0);
       if (P.map.bush) x.drawImage(P.map.bush[P.calm ? 0 : Math.floor(now / 333) & 1], 0, 0);
     }
@@ -12536,6 +13408,7 @@ const SquadView = (() => {
       if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
+      for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
       const ol = P.objRows[r];
       if (ol) for (const o of ol) drawObj(x, o, 'back', t, now, intro);
       const list = rows[r];
@@ -12560,6 +13433,8 @@ const SquadView = (() => {
     // the overlay pass: nothing hides these
     drawFud(x, t, now);
     drawCurve(x, t, now);
+    drawSights(x, now);
+    drawPacks(x, now);
     for (const f of P.fx) if (!f.under && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
     drawShells(x, t, now, false);
     P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
@@ -12757,6 +13632,62 @@ const SquadView = (() => {
     return best ? tileC(best[0], best[1]) : null;
   }
 
+  // The Blub that opens its squad's crate (the engine's pick: the nearest) walks over
+  // the start board (round rock, solid objects and the others), stands beside it a
+  // moment to pry the lid, and walks back to its spot before the fight starts. Sets
+  // its walk; returns { open: ms after the landing the lid springs, at: where it
+  // stands then (screen pixels) }, or null when there is nobody to send.
+  function crateTrip(e, T, until, k) {
+    const u = e.u >= 0 ? P.S.u[e.u] : null;
+    if (!u || !u.alive || P.calm) return null;
+    const R = P.rd.R;
+    const [ax, ay] = e.at;
+    const key = (x, y) => y * N + x;
+    const block = new Set();
+    for (const o of R.objs || []) if (SE.OBJECT_STATS[o.k] && SE.OBJECT_STATS[o.k].solid) for (const c of o.cells) block.add(key(c[0], c[1]));
+    for (const s of R.start) if (s.u !== u.id) block.add(key(s.x, s.y));
+    block.add(key(ax, ay));
+    const free = (x, y) => x >= 0 && y >= 0 && x < N && y < N && R.tiles[key(x, y)] !== SE.BLOCK && R.tiles[key(x, y)] !== SE.SAND && !block.has(key(x, y));
+    // breadth first from where it stands to the nearest free tile beside the crate
+    const prev = new Map([[key(u.x, u.y), -1]]);
+    const q = [[u.x, u.y]];
+    let goal = null;
+    for (let h = 0; h < q.length && !goal; h++) {
+      const [x, y] = q[h];
+      if (Math.max(Math.abs(x - ax), Math.abs(y - ay)) === 1) {
+        goal = [x, y];
+        break;
+      }
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if ((dx || dy) && free(nx, ny) && !prev.has(key(nx, ny))) {
+            prev.set(key(nx, ny), key(x, y));
+            q.push([nx, ny]);
+          }
+        }
+    }
+    if (!goal) return null;
+    const path = [];
+    for (let c = key(goal[0], goal[1]); c >= 0; c = prev.get(c)) path.unshift([c % N, Math.floor(c / N)]);
+    const out = path.map(([x, y]) => scr(x, y));
+    const back = out.slice(0, -1).reverse();
+    const n = out.length - 1;
+    // the walk, a beat at the crate, and the walk back, all before the fight starts
+    let step = MS.tile * k;
+    const rest = Math.max(2, Math.round((520 * k) / step));
+    const room = until - 260 * k;
+    if ((2 * n + rest) * step > room) step = Math.max(40, room / (2 * n + rest));
+    const pts = out.concat(Array(rest).fill(out[out.length - 1]), back);
+    u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
+    const face = u.face;
+    const [sx] = scr(ax, ay);
+    if (sx !== out[out.length - 1][0]) u.face = sx > out[out.length - 1][0] ? 1 : -1;
+    atClock(T + step * (pts.length - 1), () => (u.face = face));
+    const [ex, ey] = out[out.length - 1];
+    return { open: n * step + 140 * k, at: [ex * TILE + 8, TOP + ey * TILE + 8] };
+  }
   // Each squad's perk comes down on its own side as the round starts: a crate on a
   // parachute, green for a buff and red for a nerf, swaying down onto the tile of
   // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
@@ -12825,6 +13756,7 @@ const SquadView = (() => {
       return;
     }
     if (P.calm) return;
+    if (arsenalBeat(b, T, k)) return;
     // a swing at one of the contested props looks like any other swing
     if (b.kind === 'prophit') {
       const e = b.e;
@@ -12836,7 +13768,7 @@ const SquadView = (() => {
       const [dx, dy] = tileC(p.x, p.y);
       faceTo(u, dx);
       const len = Math.hypot(dx - ux, dy - uy) || 1;
-      const kind = u.wpn === 'bow' ? 'ranged' : u.wpn === 'wand' ? 'magic' : 'melee';
+      const kind = u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || GUNS.has(u.wpn) ? 'ranged' : 'melee';
       u.atk = { t0: T, dur: b.dur, contact: b.contact, kind, w: u.wpn, nx: (dx - ux) / len, ny: (dy - uy) / len, dir: dir8(dx - ux, dy - uy) };
       return;
     }
@@ -12849,7 +13781,7 @@ const SquadView = (() => {
       const [dx, dy] = centreOf(d);
       faceTo(u, dx);
       const len = Math.hypot(dx - ux, dy - uy) || 1;
-      u.atk = { t0: T, dur: b.dur, contact: b.contact, c1: b.c1, contact2: b.contact2, rel: b.rel, kind: e.kind, w: e.w, nx: (dx - ux) / len, ny: (dy - uy) / len, dir: dir8(dx - ux, dy - uy) };
+      u.atk = { t0: T, dur: b.dur, contact: b.contact, c1: b.c1, contact2: b.contact2, rel: b.rel, gap: Math.round(MS.burstGap * k), kind: e.kind, w: e.w, nx: (dx - ux) / len, ny: (dy - uy) / len, dir: dir8(dx - ux, dy - uy) };
       // the red reticle on the target just before contact, and a dotted line from shooters
       addFx(T + b.c1 - 120 * k, 120 * k + 60, (x) => {
         const db = d._b;
@@ -12896,7 +13828,8 @@ const SquadView = (() => {
           oy = b.end[1] - dy;
         }
         const travel = b.contact - b.rel;
-        if (e.kind === 'ranged') {
+        if (GUNS.has(e.w)) gunShot(T + b.contact - 50 * k, u, d, ox, oy, k, e.w === 'scope');
+        else if (e.kind === 'ranged') {
           // shots from up on a watchtower start higher and lob down
           const arc = 4 + len / 8 + (u._b && u._b.lift >= TOWER_LIFT ? 7 : 0);
           const at = (kk) => [lerp(ux, dx + ox, kk), lerp(uy - 3, dy + oy, kk) - Math.sin(kk * Math.PI) * arc];
@@ -13136,9 +14069,28 @@ const SquadView = (() => {
       const u = U[e.u];
       u.mv = { pts: [scr(u.x, u.y), scr(e.to[0], e.to[1])], t0: T, step: 260 * k, dur: 260 * k, slide: true };
     }
+    // the pill follows the crowd: each reading it glides over from the last one, and
+    // when it graduates it comes down from where it was hanging
+    if (e.t === 'curve') {
+      P.curveT = P.seeking || P.calm ? -1e9 : T;
+      P.curveDur = 1100 * k;
+    }
+    if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas', 'blasted'].includes(e.t)) P.cause[e.d] = e.t;
+    if (e.t === 'blowup') P.cause[e.u] = 'blowup';
+    // a Miner tunnelling: it stays where it was while it digs down, is gone under the
+    // floor, and comes up at the other end with a hop
+    if (e.t === 'burrow' && live) {
+      const u = U[e.u];
+      const from = scr(e.from[0], e.from[1]);
+      u.mv = { pts: [from, from], t0: T, step: MS.burrowDown * k, dur: MS.burrowDown * k, slide: true };
+      u.air = [T + MS.burrowDown * k, T + MS.burrowUp * k];
+      u.hop = { kind: 'toss', t0: T + MS.burrowUp * k, dur: 280 * k, h: 7 };
+    }
+    // the Boom Pack's Blub is gone in its own blast
+    if (e.t === 'blowup' && live) U[e.u].air = [T, 1e12];
     fold(S, e);
     if (e.t === 'ko') {
       const u = U[e.u];
@@ -13152,7 +14104,7 @@ const SquadView = (() => {
       P.sinkAt = P.calm ? T : T + MS.sinkHit * kk;
       P.signAt = P.calm ? T : T + (MS.sinkSign + SIGN_DROP) * kk;
     }
-    if (e.t === 'blast' || e.t === 'boom') {
+    if (e.t === 'blast' || e.t === 'boom' || e.t === 'blowup') {
       const [sx, sy] = scr(e.at[0], e.at[1]);
       P.craters.push({ x: sx * TILE, y: TOP + sy * TILE, turn: S.turn, kind: e.t === 'blast' ? 'shell' : 'mine' });
     }
@@ -13239,6 +14191,16 @@ const SquadView = (() => {
             sfx('block');
           }
         }
+        // a bullet: the burst's later shots streak in on their own, and every one that
+        // lands throws sparks (the Scope Rifle's a shower of them)
+        if (GUNS.has(e.w)) {
+          if (e.n >= 1) gunShot(T - 50 * k, u, d, e.res === 'miss' ? (hash(T, e.u, e.n) < 0.5 ? -6 : 6) : 0, e.res === 'miss' ? 4 : 0, k, false);
+          if (e.res !== 'miss' && e.res !== 'whiff') addParts(e.w === 'scope' ? 14 : 4, dx, dy, ['#FFF3B0', '#FFD447', '#FFFFFF'], e.w === 'scope' ? 0.1 : 0.06, 0.0003, (e.w === 'scope' ? 420 : 220) * k, T, true);
+          if (e.w === 'scope' && e.res !== 'miss') {
+            ringFx(T, dx, dy, 300 * k, '#FFF3B0', 3, 13, false, 0.8);
+            shake(T);
+          }
+        }
         // the swing itself
         if (e.w === 'sword' && e.res !== 'absorb') {
           const s = u.face;
@@ -13279,6 +14241,7 @@ const SquadView = (() => {
       }
       case 'splash':
       case 'zap':
+      case 'blasted':
       case 'bump': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
@@ -13357,34 +14320,67 @@ const SquadView = (() => {
         return;
       }
       // The pill graduates. The biggest single thing that happens in a round, so it
-      // gets the works, in two parts: first the drop, where it shudders, tips nose
-      // down and comes in faster and faster while the sights close round its tile;
+      // gets the works, in two parts: first the drop, where it shudders, shoots up off
+      // the top of the chart, and with the sky empty and its shadow pulling in black
+      // round its tile, comes back down nose first, streaking, faster and faster;
       // then the landing, where the arena stops dead, the screen goes white, the
       // blast plays out and everybody in the core is thrown off the floor.
       case 'nuke': {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         const F = MS.nukeHit * k; // the moment it lands
         const SH = Math.min(F * 0.1, 160 * k); // the twitch as it lets go
-        const top = pillY(cy) + 14; // where its nose hangs before the drop
+        // it comes down from where it hung, homing in on the tile it picked
+        const [fx0, fy0] = P.pillFrom ? tileC(P.pillFrom[0], P.pillFrom[1]) : [cx, cy];
         const land = cy + 2;
         const fall = (el) => (el < SH ? 0 : (el - SH) / (F - SH));
-        // on the floor: the shadow pulls in tight and black, the sights close in
+        const home = (p) => {
+          const q = clamp(p * 1.6, 0, 1);
+          const e2 = q * q * (3 - 2 * q);
+          return [fx0 + (cx - fx0) * e2, fy0 + (cy - fy0) * e2];
+        };
+        // the drop in its parts, as shares of F: the twitch, up and away, the empty sky, the plunge
+        const UP = 0.36;
+        const DOWN = 0.5;
+        const sky = TOP - 64;
+        // on the floor: the shadow pulls in from the crowd, tight and black, and the
+        // sights close in
         addFx(T, F, (x, kk, el) => {
           const p = fall(el);
-          blob(x, cx, cy + 3, 8 - p * 3, 3, '#1B1229', 0.4 + p * 0.55);
+          const [hx, hy] = home(p);
+          const R = 25 - p * 17;
+          blob(x, hx, hy + 3, R, Math.round(R * 0.62), '#1B1229', 0.26 + p * 0.2);
+          blob(x, hx, hy + 3, R * 0.6, Math.round(R * 0.38), '#1B1229', 0.34 + p * 0.5);
           reticle(x, cx, cy, Math.round((1 - p) * 4), p > 0.8 ? '#FFFFFF' : '#FF5C77');
         }, true);
-        // In the air: it comes down slowly, swinging side to side and leaning into
-        // each swing like something with all the time in the world, the swing dying
-        // away so it lands dead straight, and only right at the end does it hurry.
+        // In the air: a twitch where it hangs, then up it goes, faster and faster, out
+        // of sight; a beat of empty sky; then it plunges nose first from far above,
+        // streaking, with a last wobble that dies away so it lands dead straight.
         addFx(T, F, (x, kk, el) => {
-          const p = fall(el);
-          const swing = P.calm ? 0 : Math.sin(p * Math.PI * 4);
-          const ox = el < SH && !P.calm ? (Math.floor(el / 30) % 2 ? 1 : -1) : Math.round(swing * 7 * (1 - p * p * p));
-          const fr = clamp(Math.round(swing * (1 - p * p) * 2) + 2, 0, 4);
-          const y = top + (land - top) * Math.pow(p, 1.7);
-          x.drawImage(fxFrame('pillTilt', fr), Math.round(cx - 24 + ox), Math.round(y - 40));
+          const [hx, hy] = home(fall(el));
+          const hang = pillY(fy0); // where it was hanging
+          let y;
+          let fr = 3;
+          let ox = 0;
+          if (el < SH) {
+            ox = P.calm ? 0 : Math.floor(el / 30) % 2 ? 1 : -1;
+            y = hang;
+          } else if (kk < UP) {
+            const q = (kk - SH / F) / (UP - SH / F);
+            y = hang - (hang - sky) * q * q;
+          } else if (kk < DOWN) return;
+          else {
+            const q = (kk - DOWN) / (1 - DOWN);
+            y = sky + (land - 12 - sky) * q * q;
+            fr = P.calm ? 0 : Math.floor(el / 60) % 3;
+            ox = P.calm ? 0 : Math.round(Math.sin(q * Math.PI * 3) * 3 * (1 - q));
+          }
+          x.drawImage(fxFrame('pill', fr), Math.round(hx - 24 + ox), Math.round(y - 26));
         });
+        // a whoosh of air as it goes up, and a ring in the sky as it comes back
+        if (!P.calm) {
+          addParts(8, fx0, pillY(fy0) + 10, ['#FFF6F8', '#E9DDF2'], 0.04, 0.00008, 520 * k, T + SH, false, [Math.PI * 0.2, Math.PI * 0.8]);
+          ringFx(T + F * DOWN, cx, TOP + 4, 420 * k, '#D6F5DD', 4, 18, false, 0.4);
+        }
         sfx('power');
 
         // the landing
@@ -13469,9 +14465,11 @@ const SquadView = (() => {
           sfx('miss');
           return;
         }
-        // a little dust where the shadow settles
-        addParts(6, cx, cy + 4, ['#3A3A4A', '#6E6E80'], 0.03, 0.0001, 380 * k, T, true);
-        sfx(e.lock ? 'power' : 'click');
+        // locked on: once the shadow has drifted over, a red ring snaps in round its tile
+        if (e.lock) {
+          ringFx(T + 900 * k, cx, cy + 4, 520 * k, '#FF5C77', 30, 10, true, 0.62);
+          atClock(T + 900 * k, () => sfx('power'));
+        } else sfx('click');
         return;
       }
       // the hole it leaves, opening and later filling back in
@@ -13754,8 +14752,9 @@ const SquadView = (() => {
         return;
       }
 
-      // A squad's perk lands: the crate thumps down, the lid springs, and the perk's
-      // card rises out of it and hangs there over the crate until the fight starts.
+      // A squad's perk lands: the crate thumps down shut, the squad's nearest Blub
+      // walks over and pries the lid, the perk's card rises out of it and hangs there
+      // over the crate until the fight starts, and the Blub walks back to its spot.
       case 'perk': {
         if (P.perkBan !== T) {
           P.perkBan = T;
@@ -13767,10 +14766,19 @@ const SquadView = (() => {
         const red = e.kind === 'nerf';
         const until = Math.max(0, (P.rd.fightAt || T) - T);
         const ic = iconSrc(e.kind, e.id);
+        const trip = crateTrip(e, T, until, k);
+        const open = trip ? trip.open : 0;
         addFx(T, until, (x, kk, el) => {
+          if (el < open) {
+            // shut, with a wobble once the Blub gets its paws on the lid
+            const pry = el > open - 160 * k && !P.calm ? (Math.floor(el / (40 * k)) % 2 ? 1 : -1) : 0;
+            x.drawImage(fxFrame('airdrop', red ? 5 : 4), cx - 16 + pry, cy - 24);
+            return;
+          }
           x.drawImage(fxFrame('airdrop', red ? 3 : 1), cx - 16, cy - 24);
-          const up = Math.min(1, el / (380 * k));
-          const bob = P.calm ? 0 : Math.round(Math.sin(el / (260 * k)) * 1.5);
+          const e2 = el - open;
+          const up = Math.min(1, e2 / (380 * k));
+          const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
           const iy = Math.round(cy - 22 - up * 20 + bob);
           x.fillStyle = INK;
           x.fillRect(cx - 18, iy - 2, 36, 36);
@@ -13780,8 +14788,169 @@ const SquadView = (() => {
         });
         for (const s of [-1, 1])
           addFx(T, 480 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), cy - 8));
-        addParts(12, cx, cy - 12, red ? ['#E2566E', '#FF9AA8', '#FFFFFF'] : ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.07, 0.0002, 600 * k, T, true);
-        sfx(red ? 'miss' : 'power');
+        sfx('block');
+        addParts(12, cx, cy - 12, red ? ['#E2566E', '#FF9AA8', '#FFFFFF'] : ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.07, 0.0002, 600 * k, T + open, true);
+        atClock(T + open, () => sfx(red ? 'miss' : 'power'));
+        // and on the Blub that opened it, what it got
+        if (trip) {
+          const word = nameOf(e.kind, e.id).toUpperCase();
+          label(T + open + 80 * k, word, red ? '#FF9AA8' : '#4BE08F', trip.at[0], trip.at[1] - 26, true);
+          addParts(10, trip.at[0], trip.at[1] - 8, red ? ['#E2566E', '#FF9AA8'] : ['#4BE08F', '#9FE3A8', '#FFD447'], 0.05, -0.00008, 700 * k, T + open + 60 * k, false, [-Math.PI, 0]);
+        }
+        return;
+      }
+      // ---- the trench arsenal
+      // the bolt racks back: a spent case flips out, the rifle clicks
+      case 'reload': {
+        const u = U[e.u];
+        const [ux, uy] = centreOf(u);
+        const s = u.face > 0 ? 1 : -1;
+        addParts(1, ux + 6 * s, uy - 1, ['#D9A05B'], 0.07, 0.0006, 460 * k, T, false, s > 0 ? [-Math.PI * 0.45, -Math.PI * 0.3] : [-Math.PI * 0.7, -Math.PI * 0.55]);
+        addFx(T, 160 * k, (x) => {
+          x.fillStyle = '#FFF3B0';
+          x.fillRect(ux + 5 * s, uy - 2, 1, 1);
+        });
+        label(T, 'RELOAD', colors.gold, ux, above(uy - 22));
+        sfx('click');
+        return;
+      }
+      // it takes aim: a glint off the scope as it settles (the laser stays till the shot)
+      case 'scope': {
+        const u = U[e.u];
+        const [ux, uy] = centreOf(u);
+        const s = u.face > 0 ? 1 : -1;
+        addFx(T, 380 * k, (x, kk) => {
+          const r = Math.round(1 + Math.sin(kk * Math.PI) * 3);
+          const gx = ux + 5 * s;
+          const gy = uy - 3;
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(gx - r, gy, r * 2 + 1, 1);
+          x.fillRect(gx, gy - r, 1, r * 2 + 1);
+        });
+        label(T, 'AIM', '#FF5C77', centreOf(U[e.d])[0], above(centreOf(U[e.d])[1] - 22));
+        sfx('read');
+        return;
+      }
+      // BOOM: the fireball, the shock ring, the grit, and a scorch where it stood
+      case 'blowup': {
+        const [cx, cy] = tileC(e.at[0], e.at[1]);
+        playFx(T, 'kaboom', cx, cy, 1100 * k);
+        flash(T);
+        shake(T);
+        atClock(T, () => hold(110));
+        closeUp(T - 120 * k, 900 * k, cx, cy - 6, { slow: [T - 40 * k, T + 70 * k], f: 0.5 });
+        addParts(16, cx, cy, ['#FFD447', '#FF8A3D', '#FFFFFF', '#3A3A4A'], 0.12, 0.0004, 700 * k, T, false);
+        label(T + 60 * k, 'BOOM!', '#FF8A3D', cx, above(cy - 30), true, 2);
+        sfx('crit');
+        sfx('ko');
+        return;
+      }
+      // the last sack thumps home: a puff of sand off the new barricade
+      case 'build': {
+        const [bx, by] = tileC(e.at[0], e.at[1]);
+        addParts(8, bx, by + 4, [OC.skL, OC.sk, OC.skD], 0.05, 0.0003, 380 * k, T, true, [Math.PI * 1.05, Math.PI * 1.95]);
+        ringFx(T, bx, by + 6, 260 * k, OC.skL, 2, 9, true, 0.5);
+        label(T, 'COVER', OC.skL, bx, above(by - 20));
+        sfx('block');
+        return;
+      }
+      // the second swing gives: a gem, a stone, or only dirt
+      case 'dig': {
+        const u = U[e.u];
+        const [ux, uy] = centreOf(u);
+        const s = u.face > 0 ? 1 : -1;
+        const gx = ux + 7 * s;
+        const gy = uy + 5;
+        addParts(6, gx, gy, [OC.dt, OC.dtD, OC.dtL], 0.05, 0.0004, 320 * k, T, true, [Math.PI * 1.1, Math.PI * 1.9]);
+        if (e.found) {
+          const rows = e.found === 'gem' ? GEM_ROWS : STONE_ROWS;
+          addFx(T, 520 * k, (x, kk) => {
+            const y = Math.round(gy - 4 - Math.sin(Math.min(1, kk * 1.4) * Math.PI * 0.5) * 16);
+            paintRows(x, rows, IP, Math.round(lerp(gx, ux, kk)) - 2, y, 1);
+          });
+          if (e.found === 'gem') addParts(8, gx, gy - 10, ['#FFFFFF', '#86CBF3', '#5FE6D6'], 0.05, -0.00005, 520 * k, T + 120 * k, false);
+          label(T + 80 * k, e.found === 'gem' ? 'GEM!' : 'STONE', e.found === 'gem' ? '#86CBF3' : '#C9C9D6', ux, above(uy - 22), e.found === 'gem');
+          sfx(e.found === 'gem' ? 'power' : 'block');
+        } else sfx('click');
+        return;
+      }
+      // the gem lands in its paws: a sparkle, and it shines
+      case 'deliver': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        ringFx(T, dx, dy, 320 * k, '#86CBF3', 3, 12, false, 0.8);
+        addParts(10, dx, dy - 4, ['#FFFFFF', '#86CBF3', '#5FE6D6'], 0.06, -0.00004, 520 * k, T, false);
+        label(T, '+GEM', '#86CBF3', dx, above(dy - 24), true);
+        sfx('power');
+        return;
+      }
+      // Down it goes in a spray of dirt, a mound runs along under the floor, and it
+      // comes up at the other end
+      case 'burrow': {
+        const [fx0, fy0] = tileC(e.from[0], e.from[1]);
+        const [tx0, ty0] = tileC(e.to[0], e.to[1]);
+        const D = MS.burrowDown * k;
+        const UP = MS.burrowUp * k;
+        const dirt = [OC.dt, OC.dtD, OC.dtL, OC.pit];
+        addParts(10, fx0, fy0 + 5, dirt, 0.06, 0.0004, 420 * k, T + D * 0.3, true, [Math.PI * 1.05, Math.PI * 1.95]);
+        addFx(T, D, (x, kk) => blob(x, fx0, fy0 + 6, 3 + kk * 4, 2, OC.dtD, 0.9), true);
+        addFx(T + D, UP - D, (x, kk) => {
+          const X = lerp(fx0, tx0, kk);
+          const Y = lerp(fy0, ty0, kk) + 6;
+          // the churned earth it leaves behind, and the mound on top of it
+          for (let i = 1; i <= 4; i++) {
+            const f = Math.max(0, kk - i * 0.08);
+            x.globalAlpha = 0.5 - i * 0.1;
+            x.fillStyle = OC.dtD;
+            x.fillRect(Math.round(lerp(fx0, tx0, f)) - 1, Math.round(lerp(fy0, ty0, f) + 6), 3, 1);
+          }
+          x.globalAlpha = 1;
+          // the mound, heaving as it goes, clods hopping off its top
+          const heave = Math.round(Math.abs(Math.sin(kk * Math.PI * 6)));
+          blob(x, X, Y + 1, 7, 3, OC.pitD, 0.9);
+          blob(x, X, Y - heave, 6, 3, OC.dtD, 1);
+          blob(x, X, Y - 1 - heave, 4, 2, OC.dt, 1);
+          x.fillStyle = OC.dtL;
+          x.fillRect(Math.round(X) - 3, Math.round(Y) - 3 - heave, 4, 1);
+          for (let i = 0; i < 3; i++) {
+            const ph = (kk * 5 + i / 3) % 1;
+            x.fillStyle = i % 2 ? OC.dtD : OC.dt;
+            x.fillRect(Math.round(X + (i - 1) * 4), Math.round(Y - 4 - heave - Math.sin(ph * Math.PI) * 5), 2, 2);
+          }
+        }, true);
+        addParts(12, tx0, ty0 + 5, dirt, 0.07, 0.0004, 460 * k, T + UP, true, [Math.PI * 1.05, Math.PI * 1.95]);
+        ringFx(T + UP, tx0, ty0 + 6, 300 * k, OC.dtL, 3, 10, true, 0.5);
+        if (e.why === 'away') label(T + UP, 'DUG OUT', OC.skL, tx0, above(ty0 - 22));
+        atClock(T + D * 0.3, () => sfx('block'));
+        atClock(T + UP, () => sfx('click'));
+        return;
+      }
+      // The Liquidity Pool pays out: rings of rainbow round each Blub standing in it,
+      // and bits of the water floating up off it
+      case 'yield': {
+        const ids = Array.isArray(e.u) ? e.u : [];
+        ids.forEach((id, j) => {
+          const u = U[id];
+          if (!u) return;
+          const [ux, uy] = centreOf(u);
+          const t0 = T + j * 60 * k;
+          ringFx(t0, ux, uy + 6, 520 * k, POOL_COLS[j % POOL_COLS.length], 3, 11, true, 0.5);
+          ringFx(t0 + 120 * k, ux, uy + 6, 480 * k, POOL_COLS[(j + 3) % POOL_COLS.length], 2, 8, true, 0.5);
+          addParts(7, ux, uy + 4, POOL_COLS, 0.035, -0.00006, 820 * k, t0 + 80 * k, false, [-Math.PI * 0.85, -Math.PI * 0.15]);
+        });
+        if (ids.length) sfx('heal');
+        return;
+      }
+      // a Blub heads for something the chest threw in: a '!' over it, and the spot it
+      // is going for lights up in its squad's colour
+      case 'goal': {
+        const u = U[e.u];
+        if (!u) return;
+        const c = colors[u.side];
+        const [ux, uy] = centreOf(u);
+        label(T, '!', c.light, ux, uy - 20, false, 2);
+        const [gx, gy] = tileC(e.at[0], e.at[1]);
+        ringFx(T, gx, gy + 4, 640 * k, c.light, 14, 6, true, 0.6);
         return;
       }
       // AIRDROP. A crate on a striped parachute drifts down out of the sky onto the
@@ -14674,6 +15843,11 @@ const SquadView = (() => {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
         const top = (d._b ? d._b.oy : dy - 13) - 2;
+        // the pool's yield: the number, in the water's blue (the pool lit up already)
+        if (e.src === 'pool') {
+          label(T, '+' + e.amt, '#9FD8FF', dx, top);
+          return;
+        }
         label(T, '+' + e.amt, '#4BE08F', dx, top);
         for (let i = 0; i < 3; i++) {
           const hx = dx - 5 + i * 5;
@@ -14771,6 +15945,11 @@ const SquadView = (() => {
       case 'ko': {
         const u = U[e.u];
         const [ux, uy] = centreOf(u);
+        // a Boom Pack's Blub went with its blast: nothing left to fall over
+        if (P.cause[e.u] === 'blowup') {
+          say(describe(koEv(e), P.names));
+          return;
+        }
         const slow = b && b.slow ? 1.6 : 1;
         if (b && b.slow) closeUp(T - 160 * k, 1150 * k, ux, uy - 6, { slow: [T - 100 * k, T + 260 * k] });
         addParts(14, ux, uy, ['#FFFFFF', '#E9DDF2', '#B9A9D6'], 0.05 / slow, -0.00002, 520 * k * slow, T, true);
@@ -15232,6 +16411,16 @@ const SquadView = (() => {
     D.stage.style.height = h + 'px';
     D.root.style.setProperty('--arena-w', w + 'px');
     D.root.style.setProperty('--ctl-h', D.ctl.offsetHeight + 'px');
+    // upright: what the arena leaves of the height goes to the two rosters, so with
+    // room to spare both squads get big cards (portrait, name, HP) instead of a strip
+    // with empty space around it
+    if (!wide) {
+      const left = innerHeight - 40 - h - 20 - D.ctl.offsetHeight - 6 - 2 * 24;
+      const rh = Math.min(122, Math.floor(left / 2) - 6);
+      D.root.classList.toggle('tall', rh >= 92);
+      D.root.classList.toggle('roomy', rh >= 108);
+      if (rh >= 92) D.root.style.setProperty('--ros-h', rh + 'px');
+    } else D.root.classList.remove('tall', 'roomy');
     // the 5-line log goes under the arena when it fits, else under the rival's roster
     if (wide) {
       const free = innerHeight - 48 - 14 - h - 8 - D.ctl.offsetHeight - 10;
@@ -15247,10 +16436,16 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
+    // a Blub on its way somewhere says so once, not every turn it walks on
+    if (e.t === 'goal') {
+      const key = e.u + ':' + e.id;
+      if (P.goalSaid.has(key)) return;
+      P.goalSaid.add(key);
+    }
     const line = describe(koEv(e), P.names, P.teamLabels, P.rd.R.objs);
     if (!line) return;
     P.ticker = line;
@@ -15732,6 +16927,7 @@ const SquadView = (() => {
     P.pipKey = '';
     P.ticker = '';
     P.logLines = [];
+    P.goalSaid = new Set();
     P.textDirty = true;
     P.dirty = true;
     D.ban.className = 'sqv-ban';
@@ -15835,6 +17031,7 @@ const SquadView = (() => {
     }
     // the log is told again from the start of the round up to the new spot
     P.logLines = [];
+    P.goalSaid = new Set();
     P.ticker = '';
     P.fx = [];
     P.parts = [];
