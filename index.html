@@ -1828,7 +1828,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 8: smoke pot, decoy, field hospital, moon rocket, chest</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 9: Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5274,7 +5274,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 8;
+const SQUAD_ENGINE = 9;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5417,6 +5417,14 @@ const RULES = lock({
   // medics, and anyone in a fight); building leaves it buildTake% easier to hurt till
   // its next turn
   buildMax: 3, buildNear: 8, buildTake: 25,
+  // ...and the squad's cannon first (engine 9): its first Builder builds it round where
+  // it started, a 2x2 block of floor (laid out only in its first cannonStart turns), one
+  // stage a turn for cannonBuild turns, then a wall of two sandbags in front of it, a turn
+  // each. The cannon fires by itself from the turn after it is done: every cannonReload
+  // turns at the nearest enemy it can see within cannonRange, cannonDmg. That Builder
+  // fights with its Build Hammer (toolDmg), whatever weapon it was given; another
+  // Builder of the squad keeps its weapon and puts up barricades.
+  cannonBuild: 3, cannonStart: 2, cannonReload: 2, cannonRange: 7, cannonDmg: 9, toolDmg: 2,
   // Builders and Miners are made of tougher stuff: this much more HP
   workHp: 6,
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
@@ -5469,7 +5477,11 @@ const WEAPON_STATS = lock({
   scope: { range: 7, dmg: RULES.scopeDmg, hands: 2, los: 1, gun: 1, cycle: 1, close: 1 },
   boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
   last: { range: 1, dmg: 4, hands: 2, boom: 1, fuse: 1, one: 1 },
+  // tool: not a pick: what a Builder fights with, whatever weapon it was given
+  tool: { range: 1, dmg: RULES.toolDmg, hands: 1, tool: 1 },
 });
+// the Builder's Build Hammer, named like a weapon (it is no pick of its own)
+const TOOL = lock(['tool', 'Build Hammer', `A Builder's own: it fights with this whatever weapon it was given. Melee, ${RULES.toolDmg} damage.`]);
 const GEAR = lock([
   ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
   ['boots', 'Cloud Boots', '+1 move and a little extra dodge.'],
@@ -5483,7 +5495,7 @@ const POWERS = lock([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
-  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. With no enemy in reach it builds instead of fighting: a sandbag barricade next to it, beside the allies who need it most (a shooter or medic in the open, or anyone in a fight), so they take ${RULES.sandSoak} less from every hit. One a turn for the squad, up to ${RULES.buildMax} a round each. Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, a 2x2 cannon round where it started (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]);
 const TACTICS = lock([
@@ -5771,10 +5783,14 @@ function zoneOpen(objs) {
   return seen.size === cells.length;
 }
 
+// The unit of a squad that builds its cannon (engine 9): its first Builder. It fights
+// with its Build Hammer, whatever weapon it was given.
+const engineerOf = (units, i) => units[i].pow === 'builder' && units.findIndex((v) => v.pow === 'builder') === i;
 // What a unit brings to a fight, worked out from its picks (also shown in the builder).
-function unitStats(u, captain) {
+// `engineer`: it is its squad's first Builder (by default any Builder counts as one)
+function unitStats(u, captain, engineer) {
   const S = STYLE_STATS[u.cls];
-  const W = WEAPON_STATS[u.wpn];
+  const W = WEAPON_STATS[(engineer === undefined ? u.pow === 'builder' : engineer) ? 'tool' : u.wpn];
   const t = u.trn;
   // the Boom Pack weighs on whoever carries it, the Last Stand Pack a little
   const heavy = W.boom && !W.fuse ? 1 : 0;
@@ -5928,9 +5944,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   [sqA, sqB].forEach((sq, team) =>
     sq.units.forEach((s, i) => {
       const [x, y] = team ? mirror(s.x, s.y) : [s.x, s.y];
-      const st = unitStats(s, i === 0);
+      const eng = engineerOf(sq.units, i);
+      const st = unitStats(s, i === 0, eng);
       const u = {
-        id: team * TEAM + i, team, cls: s.cls, wpn: s.wpn, gear: s.gear, pow: s.pow, tac: s.tac, x, y,
+        id: team * TEAM + i, team, cls: s.cls, wpn: eng ? 'tool' : s.wpn, gear: s.gear, pow: s.pow, tac: s.tac, x, y, engineer: eng,
         hp: st.max, max: st.max, move: st.move, dodge: st.dodge, crit: st.crit, block: st.block, guard: st.guard, power: st.power, init: st.init,
         alive: true, skip: 0, used: false, rage: false, blade: 0, totem: false, bubble: s.pow === 'bubble', ambush: s.cls === 'cheeky',
         potion: s.gear === 'potion', pillowAt: 1, attacked: false, hurt: false, dealt: 0, startedTurn: 0, immune: false, lastHealed: -1, pending: 0, amb: 0, moved: false,
@@ -7045,6 +7062,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         return;
       }
     }
+    // a Builder's works come first while nobody is in its reach (its squad's cannon,
+    // and the wall in front of it)
+    if (u.engineer && engineer(u)) return;
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
     if (W(u).boom && boomTurn(u)) return;
@@ -7253,19 +7273,27 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   // a barricade may go on plain ground or a bush: nothing on it, nobody on it, and
   // never where it would cut the arena in two
-  function buildable(c) {
-    if (occ[c] >= 0 || (tiles[c] !== GRASS && tiles[c] !== BUSH)) return false;
+  // plain floor nothing else lies on: no trap, object, event or power-up
+  function freeFloor(c) {
+    if (tiles[c] !== GRASS && tiles[c] !== BUSH) return false;
     if (wireT[c] >= 0 || mineT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
     if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c)) return false;
     if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
     if (crater && crater.cells.indexOf(c) >= 0) return false;
-    const was = tiles[c];
-    tiles[c] = SAND;
+    return !objs.some((o) => o.k === 'smoke' && o.cells[0] === c);
+  }
+  // tiles a Builder may put something solid on: free floor with nobody on it, and the
+  // arena still one piece with all of them built on
+  function canBuild(cells) {
+    if (!cells.every((c) => occ[c] < 0 && freeFloor(c))) return false;
+    const was = cells.map((c) => tiles[c]);
+    for (const c of cells) tiles[c] = SAND;
     const ok = connected(tiles);
-    tiles[c] = was;
+    cells.forEach((c, i) => (tiles[c] = was[i]));
     work += 30;
     return ok;
   }
+  const buildable = (c) => canBuild([c]);
   // Where a barricade helps most, from where u stands: a free tile next to it, beside
   // allies (itself too) who hold their ground with an enemy within buildNear tiles: a
   // shooter or a medic, or anyone with a fight on its hands (an enemy at most 2 tiles
@@ -7325,6 +7353,102 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.exposedPct = RULES.buildTake;
     u.attacked = true;
     push({ t: 'build', u: u.id, at: [c % SIZE, (c - (c % SIZE)) / SIZE], ...(d ? { d: d.id } : {}) });
+  }
+  // ---- The Builders' works (engine 9): one cannon a squad. On its first turn with
+  // nobody in its reach (within cannonStart turns) the squad's first Builder lays it out:
+  // a 2x2 block of floor beside it, behind it or level with it before in front, best
+  // with room for a wall in front of it; the block is solid from then on. Every turn a
+  // Builder of the squad works on it, it goes a stage further (cannonBuild stages; two
+  // Builders build it twice as fast), and then the wall in front of it, a sandbag at a
+  // time (sandbags like a barricade). Each is a Builder's whole turn and leaves it wide
+  // open; an enemy in its reach comes first (it fights with its Build Hammer) and the
+  // works wait. Team B lays its block out on the board turned round, as everywhere.
+  const works = []; // { id, team, u (who laid it out), cells, muzzle: [2 cells], front: [2 cells], stage, wall, next }
+  const xyOf = (c) => [c % SIZE, (c - (c % SIZE)) / SIZE];
+  function cannonSpot(u) {
+    const s = u.team ? -1 : 1;
+    let best = null;
+    let bs = -1e9;
+    for (let k = 0; k < N; k++) {
+      const a = u.team ? N - 1 - k : k;
+      const [ax, ay] = xyOf(a);
+      if (!inside(ax + s, ay + s)) continue;
+      const cells = [idx(ax, ay), idx(ax + s, ay), idx(ax, ay + s), idx(ax + s, ay + s)];
+      if (!cells.some((c) => cheb(u.x, u.y, ...xyOf(c)) <= 1)) continue;
+      // the front row faces the other side; the wall goes a row further out
+      const front = inside(ax, ay - s) ? [idx(ax, ay - s), idx(ax + s, ay - s)] : [];
+      const back = s * (ay - u.y);
+      const score = (front.length && front.every(freeFloor) ? 100 : 0) + Math.max(-1, Math.min(1, back)) * 10;
+      if (score <= bs || !canBuild(cells)) continue;
+      best = { cells, muzzle: [cells[0], cells[1]], front };
+      bs = score;
+    }
+    return best;
+  }
+  function craftStep(u, what, w, stage, of, cells) {
+    u.exposed = now;
+    u.exposedPct = RULES.buildTake;
+    u.attacked = true;
+    push({ t: 'craft', u: u.id, what, w: w.id, stage, of, cells: cells.map(xyOf), face: u.team ? 1 : -1 });
+  }
+  function engineer(u) {
+    let w = works.find((v) => v.team === u.team);
+    if (w && w.stage >= RULES.cannonBuild && w.wall >= w.front.length) return false;
+    if (inReach(u).length) return false;
+    if (!w) {
+      if (now > RULES.cannonStart) return false;
+      const spot = cannonSpot(u);
+      if (!spot) return false;
+      w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0 };
+      works.push(w);
+      for (const c of w.cells) {
+        tiles[c] = SAND;
+        shot[c] = SAND;
+      }
+      for (const c of w.cells) restep(c);
+    }
+    if (w.stage < RULES.cannonBuild) {
+      w.stage++;
+      if (w.stage === RULES.cannonBuild) w.next = now + 1;
+      craftStep(u, 'cannon', w, w.stage, RULES.cannonBuild, w.cells);
+      return true;
+    }
+    // the wall: a sandbag a turn where there is still room for it
+    while (w.wall < w.front.length && !canBuild([w.front[w.wall]])) w.wall++;
+    if (w.wall >= w.front.length) return false;
+    const c = w.front[w.wall++];
+    tiles[c] = SAND;
+    shot[c] = SAND;
+    sandT[c] = u.team + 1;
+    restep(c);
+    craftStep(u, 'wall', w, w.wall, w.front.length, [c]);
+    return true;
+  }
+  // a finished cannon fires by itself: at the nearest enemy (then the most hurt) it can
+  // see from its front within cannonRange, every cannonReload turns
+  function fireCannon(w, turn) {
+    if (w.stage < RULES.cannonBuild || turn < w.next) return;
+    let best = null;
+    let bd = 99;
+    for (const v of living[1 - w.team]) {
+      let d = 99;
+      for (const m of w.muzzle) {
+        const [mx, my] = xyOf(m);
+        const dm = cheb(mx, my, v.x, v.y);
+        if (dm <= RULES.cannonRange && dm < d && los(mx, my, v.x, v.y)) d = dm;
+      }
+      if (d > RULES.cannonRange) continue;
+      if (d < bd || (d === bd && byHurt(v, best) < 0)) {
+        best = v;
+        bd = d;
+      }
+    }
+    if (!best) return;
+    w.next = turn + RULES.cannonReload;
+    const m = w.muzzle.slice().sort((p, q) => cheb(...xyOf(p), best.x, best.y) - cheb(...xyOf(q), best.x, best.y) || (w.team ? q - p : p - q))[0];
+    push({ t: 'cannon', u: w.u.id, w: w.id, from: xyOf(m), d: best.id, at: [best.x, best.y] });
+    pure(w.u, best, RULES.cannonDmg, 'cannonball');
+    checkOver();
   }
   // Builder: with nobody in its reach and barricades left to put up, it builds one
   // where it covers best (its whole turn); one goes up a turn for the whole squad
@@ -8029,7 +8153,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const padAt = live.filter((e) => e.id === 'rocket').map((e) => idx(e.cells[0][0], e.cells[0][1]));
   let exitAt = exitEv ? RULES.exitFrom + Math.floor(cr() * (RULES.exitTo - RULES.exitFrom + 1)) : 0;
   // the BFS in connected() starts on these two, so they never sink
-  const holeOk = (c) => tiles[c] === GRASS && c !== CENTRE && c !== idx(7, 0) && c !== idx(7, SIZE - 1) && c !== rug && c !== honey && !cats.includes(c) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c] && !padAt.includes(c) && !(crater && crater.cells.indexOf(c) >= 0) && !(item && idx(item.x, item.y) === c);
+  const holeOk = (c) => tiles[c] === GRASS && c !== CENTRE && c !== idx(7, 0) && c !== idx(7, SIZE - 1) && c !== rug && c !== honey && !cats.includes(c) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c] && !padAt.includes(c) && !(crater && crater.cells.indexOf(c) >= 0) && !(item && idx(item.x, item.y) === c) && !objs.some((o) => o.cells.indexOf(c) >= 0);
   // every hole that would fit round u, each as a list of cells
   function holesAround(u) {
     const S = RULES.exitSize;
@@ -8162,6 +8286,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const m of objs) if (m.k === 'mortar' && over < 0) fireMortar(m, turn);
     // mortar shells aimed last turn land now: a turn to get out of the way
     for (const m of objs) if (m.shell && over < 0) land(m);
+    // and the Builders' cannons that are loaded fire
+    for (const w of works) if (over < 0) fireCannon(w, turn);
     if (over >= 0) break;
     // initiative: speed plus a little luck; ties alternate between the teams
     const order = U.filter((u) => u.alive).map((u) => ({ u, k: u.init * 100 + Math.floor(r() * 400) }));
@@ -8420,7 +8546,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -8476,7 +8602,7 @@ const SquadView = (() => {
 
   // catalog names always come from the engine
   const CATS = {
-    cls: SE.PLAYSTYLES, wpn: SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
+    cls: SE.PLAYSTYLES, wpn: SE.TOOL ? SE.WEAPONS.concat([SE.TOOL]) : SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
     obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], cmd: SE.COMMANDS || [],
   };
   const entry = (kind, id) => (CATS[kind] || []).find((x) => x[0] === id) || null;
@@ -8512,6 +8638,8 @@ const SquadView = (() => {
   if (!ARMS_SPR.mallet)
     ARMS_SPR.mallet = { g: [1, 7], swing: true, pal: { n: '#8C5A2B', N: '#D9A05B', w: '#E8B574' }, rows: [
       'nNn', 'nwn', 'nNn', '.n.', '.N.', '.n.', '.N.', '.n.'] };
+  // what a Builder fights with (engine 9): its mallet, the Build Hammer
+  if (!ARMS_SPR.tool) ARMS_SPR.tool = ARMS_SPR.mallet;
   // a gem and a stone, as a Miner digs them up and carries them
   const GEM_ROWS = ['..w..', '.lbb.', 'lbbBb', '.bBB.', '..B..'];
   const STONE_ROWS = ['.sss.', 'sSSss', 'ssxss', '.sxs.'];
@@ -8614,6 +8742,9 @@ const SquadView = (() => {
         'kvkkVvvVkkvk', 'kvkwkVVkwkvk', 'kvVkkvvkkVvk', '.kvVVkkVVvk.', '..kkk..kkk..', '............', '............'],
     },
     wpn: {
+      // Build Hammer: a Builder's wooden mallet
+      tool: ['............', '..kkkkkk....', '.kNNNNNNk...', '.kNiiiiNk...', '.kNNNNNNk...', '..kkkkkk....',
+        '....knk.....', '....knk.....', '....kNk.....', '....knk.....', '....kNk.....', '....kkk.....'],
       sword: ['..........kk', '.........kwk', '........kwPk', '.......kwPk.', '......kwPk..',
         '..kk.kwPk...', '..kyykPk....', '...kyyk.....', '...knkyk....', '..knk.kk....', '.knk........', '.kk.........'],
       daggers: ['kk........kk', 'kwk......kwk', '.kwk....kwk.', '..kPk..kPk..', '...kykkyk...',
@@ -9116,6 +9247,8 @@ const SquadView = (() => {
       white: ['s', 'S', 'e', 'W', 'w'],
       red: ['C', 'R', 'r', 'F', 'D'],
       gold: ['A', 'o', 'y', 'Y', 'w'],
+      wood: ['a', 'n', 'N', 'i', 'w'],
+      iron: ['K', 'x', 's', 'S', 'z'],
     },
     // Material is laid down in a digit, which no ramp ever writes, and lit after:
     // lighting a letter that an earlier lighting pass already wrote would light it
@@ -10311,6 +10444,49 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
+    // A Builder's cannon, two tiles square, in its three stages: the carriage's planks
+    // (gaps between them, more planks waiting), the carriage on its spoked wheels with
+    // the barrel's cradle, and the whole gun. Frames 0-2 point away, up the screen;
+    // 3-5 point towards you, the muzzle a dark mouth at the bottom.
+    cannon: [6, 32, (i) => {
+      let g = FG.grid(32);
+      const st = i % 3;
+      const down = i >= 3;
+      for (let y = 12; y <= 27; y++) {
+        if (st === 0 && y % 4 === 3) continue;
+        const f = (y - 12) / 15;
+        for (let x = Math.round(8 - f * 2); x <= Math.round(23 + f * 2); x++) FG.put(g, x, y, '1');
+      }
+      g = FG.volume(g, '1', 'wood');
+      if (st === 0) {
+        for (let x = 1; x <= 7; x++) FG.put(g, x, 29, 'n');
+        for (let x = 24; x <= 30; x++) FG.put(g, x, 30, 'N');
+        return FG.outline(g);
+      }
+      for (const cx of [6, 25]) FG.disc(g, cx, 22, 6, '2');
+      g = FG.volume(g, '2', 'wood');
+      for (const cx of [6, 25]) {
+        FG.ring(g, cx, 22, 6, 1.4, 'a');
+        FG.line(g, cx - 4, 22, cx + 4, 22, 1, 'a');
+        FG.line(g, cx, 18, cx, 26, 1, 'a');
+        FG.disc(g, cx, 22, 1.6, 's');
+      }
+      const top = st === 1 ? (down ? 18 : 13) : down ? 10 : 3;
+      const bot = st === 1 ? (down ? 24 : 20) : down ? 28 : 20;
+      for (let y = top; y <= bot; y++) for (let x = 12; x <= 19; x++) FG.put(g, x, y, '3');
+      if (st === 2) {
+        const my = down ? 26 : 2;
+        for (let y = my; y <= my + 3; y++) for (let x = 11; x <= 20; x++) FG.put(g, x, y, '3');
+      }
+      g = FG.volume(g, '3', 'iron');
+      if (st === 2) {
+        if (down) {
+          FG.disc(g, 16, 27.5, 2.8, 'K');
+          FG.disc(g, 16, 27.5, 1.4, 'k');
+        } else for (let x = 13; x <= 18; x++) FG.put(g, x, 2, 'K');
+      }
+      return FG.outline(g);
+    }],
     cloud: [4, 48, (i) => {
       let g = FG.grid(48);
       const w = Math.sin(i * 1.6) * 1.5;
@@ -10524,6 +10700,14 @@ const SquadView = (() => {
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
       case 'build':
         return e.d >= 0 && e.d !== e.u ? u + ' puts up sandbags beside ' + d + '.' : u + ' puts up a barricade.';
+      // a Builder's works (engine 9)
+      case 'craft':
+        if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
+        return e.stage === 1 ? u + ' starts building a cannon.' : e.stage >= e.of ? u + ' finishes the cannon: it is ready to fire!' : u + ' works on the cannon.';
+      case 'cannon':
+        return 'BOOM! ' + u + "'s cannon fires at " + d + '.';
+      case 'cannonball':
+        return e.res === 'absorb' ? 'The cannonball pops ' + d + "'s bubble." : 'The cannonball hits ' + d + ': -' + e.dmg + '.';
       case 'dig': {
         const at = e.shaft ? ' at the Mine Shaft' : '';
         return e.found === 'gem' ? u + ' digs up a gem' + at + '!' : e.found === 'stone' ? u + ' digs up a stone' + at + '.' : u + ' digs' + at + ' and finds nothing.';
@@ -11560,6 +11744,9 @@ const SquadView = (() => {
     deliver: 820, deliverHit: 500, burrow: 1150, burrowDown: 320, burrowUp: 880,
     // the captain calling its command
     order: 900, orderHit: 150,
+    // a Builder's works (engine 9): a stage of the cannon or a sandbag of its wall, done
+    // at craftHit; its cannon firing: the ball takes cannonWind plus cannonTile a tile
+    craft: 1000, craftHit: 640, cannon: 700, cannonWind: 170, cannonTile: 45,
     // the engine 7 trench kit: a Smoke Pot popping (after the shot it swallows) and
     // its cloud clearing, a Decoy Blub falling apart, the stretcher on its way to the
     // tent (in at stretcherHit), and the way back out of it
@@ -11764,7 +11951,7 @@ const SquadView = (() => {
             return;
           }
           // the Boom Pack's blast lands on everybody round it at once; a gem heals as it is handed over
-          if ((t === 'blasted' && p.kind === 'blowup') || (t === 'heal' && p.kind === 'deliver' && e.src === 'gem')) {
+          if ((t === 'blasted' && p.kind === 'blowup') || (t === 'heal' && p.kind === 'deliver' && e.src === 'gem') || (t === 'cannonball' && p.kind === 'cannon')) {
             attachTo(p, i);
             return;
           }
@@ -11850,8 +12037,14 @@ const SquadView = (() => {
           return;
         }
         // the trench arsenal: each a scene of its own, the event at its high point
-        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm') {
+        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm' || t === 'craft') {
           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
+          return;
+        }
+        // a Builder's cannon fires by itself: the ball flies, and its hit rides on it
+        if (t === 'cannon') {
+          const fly = MS.cannonWind + MS.cannonTile * cheb(e.from, e.at);
+          parent = add({ kind: 'cannon', dur: fly + MS.cannon, contact: fly, list: [{ ei: i, off: 0 }], e });
           return;
         }
         if (t === 'burrow') {
@@ -12054,6 +12247,8 @@ const SquadView = (() => {
       // the engine 7 trench kit: Smoke Pot clouds hanging ({o, cells}) and pots spent,
       // what each Decoy Blub has left, and who lies in each Field Hospital (-1: nobody)
       smoke: [], smokeUsed: {}, decoys: {}, tents: {},
+      // the Builders' cannons (engine 9), by id: { team, cells, stage, of, face }
+      works: {},
     };
   }
   function fold(S, e) {
@@ -12128,8 +12323,14 @@ const SquadView = (() => {
       case 'crashed':
       case 'gas':
       case 'blasted':
+      case 'cannonball':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
+        break;
+      // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
+      case 'craft':
+        if (e.what === 'cannon') S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face };
+        else for (const [x0, y0] of e.cells) S.walls.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM) });
         break;
       // the trench arsenal
       case 'scope':
@@ -13625,6 +13826,117 @@ const SquadView = (() => {
     });
     atClock(M0 + MD * HIT, () => sfx('bell'));
   }
+  // ---- a Builder's cannon on the board (engine 9): in its row (the lower of its two),
+  // pointing at the other side, a stage at a time; the squad's band round its barrel,
+  // and a kick back when it fires
+  function cannonBox(wk) {
+    const sc = wk.cells.map(([x0, y0]) => scr(x0, y0));
+    const sx = Math.min(...sc.map((p) => p[0]));
+    const sy = Math.min(...sc.map((p) => p[1]));
+    // on screen it points up when its squad's way forward is up the screen
+    const up = wk.face * (P.flip ? -1 : 1) < 0;
+    return { px: sx * TILE, py: TOP + sy * TILE, up, row: sy + 1 };
+  }
+  const cannonRow = (wk) => cannonBox(wk).row;
+  function drawCannon(x, wk, t) {
+    const { px, py, up } = cannonBox(wk);
+    const stage = clamp(wk.stage, 1, 3);
+    const ov = P.ov['cannon' + wk.id];
+    const fe = ov && ov.fireT != null && !P.calm ? t - ov.fireT : -1;
+    const kick = fe >= 0 && fe < 160 ? (fe < 60 ? 2 : 1) * (up ? 1 : -1) : 0;
+    blob(x, px + 16, py + 29, 15, 3, '#1B1229', 0.3);
+    x.drawImage(fxFrame('cannon', (up ? 0 : 3) + stage - 1), px, py + kick);
+    if (stage >= 3) {
+      const T = colors[P.sideOf(wk.team)];
+      const by = py + kick + (up ? 9 : 19);
+      x.fillStyle = T.line;
+      x.fillRect(px + 12, by, 8, 2);
+      x.fillStyle = T.fill;
+      x.fillRect(px + 12, by, 8, 1);
+      x.fillStyle = T.light;
+      x.fillRect(px + 12, by, 2, 1);
+    }
+  }
+  // a Builder at work: the mallet knocking away, chips and sparks off each blow, and
+  // for the cannon its stages as pips over it; it fires: a flash and smoke at the
+  // muzzle, and the ball on its way
+  function worksBeat(b, T, k) {
+    const S = P.S;
+    const e = b.e;
+    if (b.kind === 'craft') {
+      const u = S.u[e.u];
+      let cx = 0;
+      let cy = 0;
+      for (const [x0, y0] of e.cells) {
+        const [px, py] = tileC(x0, y0);
+        cx += px / e.cells.length;
+        cy += py / e.cells.length;
+      }
+      faceTo(u, cx);
+      const blows = 3;
+      addFx(T, b.contact, (x, kk, el) => {
+        const ub = u._b;
+        if (!ub) return;
+        const ph = (el / (b.contact / blows)) % 1;
+        const s = u.face > 0 ? 1 : -1;
+        drawArmsDir(x, 'mallet', ub.ox + 8 + s * 6, ub.oy + 13, ph < 0.6 ? (s > 0 ? 7 : 5) : s > 0 ? 1 : 3);
+      });
+      for (let j = 0; j < blows; j++) {
+        const h = T + (b.contact / blows) * (j + 0.6);
+        addParts(4, cx, cy, e.what === 'wall' ? [OC.skL, OC.sk] : [OC.wdL, OC.wd, '#FFD447'], 0.05, 0.0003, 300 * k, h, true, [Math.PI, Math.PI * 2]);
+        atClock(h, () => sfx('thud'));
+      }
+      if (e.what === 'cannon')
+        addFx(T, b.dur, (x, kk, el) => {
+          const done = el >= b.contact ? e.stage : e.stage - 1;
+          const w = e.of * 5 - 1;
+          const x0 = Math.round(cx - w / 2);
+          const y0 = Math.max(TOP + 2, Math.round(cy - 24));
+          x.fillStyle = INK;
+          x.fillRect(x0 - 1, y0 - 1, w + 2, 5);
+          for (let s = 0; s < e.of; s++) {
+            x.fillStyle = s < done ? '#FFD447' : '#3E2C58';
+            x.fillRect(x0 + s * 5, y0, 4, 3);
+          }
+        });
+      return true;
+    }
+    if (b.kind === 'cannon') {
+      const wk = S.works[e.w];
+      // the muzzle: the end of the barrel, in the middle of the gun's front
+      const box = wk ? cannonBox(wk) : null;
+      const up = box ? box.up : true;
+      const [fx0, fy0] = tileC(e.from[0], e.from[1]);
+      const mx = box ? box.px + 16 : fx0;
+      const my = box ? box.py + (up ? 2 : 28) : fy0;
+      const d = S.u[e.d];
+      const [tx, ty] = centreOf(d);
+      ovOf('cannon' + e.w).fireT = T;
+      sfx('boom');
+      addFx(T, 150 * k, (x, kk) => {
+        x.fillStyle = kk < 0.4 ? '#FFFFFF' : '#FFD447';
+        x.fillRect(mx - 3, my - 3, 7, 7);
+        x.fillStyle = '#FF8A3D';
+        x.fillRect(mx - 1, my - 5, 3, 11);
+        x.fillRect(mx - 5, my - 1, 11, 3);
+      });
+      for (const s of [-1, 1]) addFx(T + 40 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8 + s * (3 + (el * 0.02) / k)), Math.round(my - 8 + (up ? -1 : 1) * ((el * 0.01) / k))));
+      const len = Math.hypot(tx - mx, ty - my);
+      addFx(T, b.contact, (x, kk) => {
+        const X = Math.round(lerp(mx, tx, kk));
+        const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (5 + len / 9));
+        x.fillStyle = INK;
+        x.fillRect(X - 2, Y - 1, 5, 3);
+        x.fillRect(X - 1, Y - 2, 3, 5);
+        x.fillStyle = '#3A3A4A';
+        x.fillRect(X - 1, Y - 1, 3, 3);
+        x.fillStyle = '#C9C9D6';
+        x.fillRect(X - 1, Y - 1, 1, 1);
+      });
+      return true;
+    }
+    return false;
+  }
   // ---- the engine 7 trench kit on the board
   // A shot at something that is not where the beat's target Blub stands (a Decoy
   // Blub), or at a Blub the smoke swallows it on the way to: the shooter draws, then an
@@ -14492,6 +14804,7 @@ const SquadView = (() => {
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
       for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
+      for (const id in S.works) if (cannonRow(S.works[id]) === r) drawCannon(x, S.works[id], t);
       const ol = P.objRows[r];
       if (ol) for (const o of ol) drawObj(x, o, 'back', t, now, intro);
       const list = rows[r];
@@ -14867,6 +15180,7 @@ const SquadView = (() => {
     if (b.kind === 'rocket') return rocketScene(b, T, k);
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
+    if (worksBeat(b, T, k)) return;
     // a swing at one of the contested props looks like any other swing
     if (b.kind === 'prophit') {
       const e = b.e;
@@ -15353,10 +15667,17 @@ const SquadView = (() => {
       case 'splash':
       case 'zap':
       case 'blasted':
+      case 'cannonball':
       case 'bump': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
         const top = (d._b ? d._b.oy : dy - 13) - 2;
+        if (e.t === 'cannonball') {
+          // the ball lands: a puff and splinters, and the board jumps
+          addFx(T, 420 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(dx - 8), Math.round(dy - 8)));
+          addParts(8, dx, dy, ['#3A3A4A', '#6E6E80', '#FFF3B0'], 0.07, 0.0004, 420 * k, T, true);
+          shake(T);
+        }
         if (e.t === 'zap') {
           const fromJar = b && b.kind === 'pickup';
           const t0 = T + (fromJar ? 0 : Math.round(hash(e.d, T, 9) * 60));
@@ -17158,7 +17479,7 @@ const SquadView = (() => {
     const kos = [];
     const lines = [];
     const spots = []; // [x, y, 'blast' | 'boom' | 'aim'] in arena terms
-    const HURT = new Set(['attack', 'splash', 'zap', 'bump', 'fog', 'shell', 'snag', 'mine']);
+    const HURT = new Set(['attack', 'splash', 'zap', 'bump', 'fog', 'shell', 'snag', 'mine', 'cannonball']);
     end.forEach((i) => {
       const e = R.ev[i];
       if (HURT.has(e.t) && e.dmg > 0) taken[e.d] = (taken[e.d] || 0) + e.dmg;
@@ -17589,7 +17910,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -17769,7 +18090,7 @@ const SquadView = (() => {
     P.pick = { id, t: performance.now() };
     const team = id < 5 ? 0 : 1;
     const s = P.squads[team].units[id % 5];
-    const st = SE.unitStats(s, id % 5 === 0);
+    const st = SE.unitStats(s, id % 5 === 0, s.wpn === 'tool');
     const c = D.card;
     c.textContent = '';
     const head = el('div', 'sqv-ch');
@@ -20020,6 +20341,15 @@ const SquadHall = (() => {
   const trnUsed = t => E.TRAINING.reduce((s, [k]) => s + (t[k] || 0), 0);
   const isBack = u => E.WEAPON_STATS[u.wpn].range >= 3 || u.cls === 'sweet';
   const shooter = u => u.wpn === 'bow' || u.wpn === 'wand';
+  // what a Blub fights with: its squad's first Builder its Build Hammer (engine 9),
+  // whatever weapon it was given; `units`: its squad (the one being built by default)
+  const armsOf = (u, units) => {
+    const list = units || (st.draft && st.draft.units) || [u];
+    const i = list.indexOf(u);
+    return E.TOOL && u.pow === 'builder' && (i < 0 || E.engineerOf(list, i)) ? 'tool' : u.wpn;
+  };
+  const wpnName = (u, units) => (armsOf(u, units) === 'tool' ? E.TOOL[1] : WPN[u.wpn][1]);
+  const statsOf = (u, i) => E.unitStats(u, !i, E.engineerOf(st.draft.units, i));
   // what keeps a unit from fighting; `units` its squad (the squad being built when left out)
   function problem(u, units){
     if (u.gear === 'shield' && twoHanded(u.wpn)) return GEAR.shield[1] + ' needs a one-handed weapon: pick other gear or another weapon.';
@@ -20596,9 +20926,9 @@ const SquadHall = (() => {
       const bad = problem(u), on = i === st.sel;
       // phones and tablets: the name under the sprite; desktop: a roster card with the role too
       const txt = h('span', {class: 'sq-fv-t', 'aria-hidden': 'true'}, h('span', {class: 'sq-fv-n'}, nameOf(i)), h('span', {class: 'sq-fv-r'}, vIcon('cls', u.cls, 16), h('span', null, CLS[u.cls][1])));
-      const b = radio(box, on, [unitImg(lookOf(i), u.wpn, u.cls, wide.matches ? 3 : 2), txt], () => { if (i !== st.sel) select(i); },
+      const b = radio(box, on, [unitImg(lookOf(i), armsOf(u), u.cls, wide.matches ? 3 : 2), txt], () => { if (i !== st.sel) select(i); },
         {class: 'sq-fv' + (on ? ' on' : '') + (bad ? ' bad' : ''), 'data-k': 'slot' + i,
-          'aria-label': (i + 1) + ': ' + nameOf(i) + (i ? '' : ' (captain)') + ', ' + CLS[u.cls][1] + ' with ' + WPN[u.wpn][1] + (bad ? '. Not ready: ' + bad : '')});
+          'aria-label': (i + 1) + ': ' + nameOf(i) + (i ? '' : ' (captain)') + ', ' + CLS[u.cls][1] + ' with ' + wpnName(u) + (bad ? '. Not ready: ' + bad : '')});
       if (!i){ const c = crownIcon(); c.classList.add('sq-crown'); c.setAttribute('aria-hidden', 'true'); b.append(sizeTo(c, 2)); }
       if (bad) b.append(h('i', {class: 'sq-dot', 'aria-hidden': 'true'}));
     });
@@ -20637,7 +20967,7 @@ const SquadHall = (() => {
     P('#000', pl + 1, FIG_FOOT - 1, 18, 8); P('#000', pl, FIG_FOOT, 20, 6);
     P('#BDE7FF', pl + 2, FIG_FOOT, 16, 1); P('#3E86C9', pl + 1, FIG_FOOT + 1, 18, 2); P('#2C5C9A', pl + 1, FIG_FOOT + 3, 18, 1); P('#1B3F73', pl + 1, FIG_FOOT + 4, 18, 2);
     P('#2C5C9A', pl + 4, FIG_FOOT + 1, 12, 1);
-    const spr = unitSprite(lookOf(i), u.wpn, u.cls);
+    const spr = unitSprite(lookOf(i), armsOf(u), u.cls);
     if (lift) P('#2C5C9A', pl + 5, FIG_FOOT, 10, 1);
     x.drawImage(spr, Math.round((FIG_W - spr.width) / 2), FIG_FOOT - feetOf(lookOf(i), u.cls) - (lift || 0));
     if (!i) x.drawImage(crownIcon(), 2, 2);
@@ -20658,7 +20988,7 @@ const SquadHall = (() => {
   // the six parts as tabs around the figure; the tray under the stage is their panel
   function partValue(p, u, i){
     if (p === 'role') return [vIcon('cls', u.cls, 24), CLS[u.cls][1]];
-    if (p === 'wpn') return [vIcon('wpn', u.wpn, 24), WPN[u.wpn][1]];
+    if (p === 'wpn') return [vIcon('wpn', armsOf(u), 24), wpnName(u)];
     if (p === 'gear') return [vIcon('gear', u.gear, 24), GEAR[u.gear][1]];
     if (p === 'pow') return [vIcon('pow', u.pow, 24), POW[u.pow][1]];
     if (p === 'tac') return [vIcon('tac', u.tac, 24), TAC[u.tac][1]];
@@ -20670,7 +21000,7 @@ const SquadHall = (() => {
   const ROLE_SUB = {fierce: 'Charges in · +' + E.RULES.brawlerMelee + ' melee damage', sleepy: 'Big and sturdy · guards allies', playful: 'Quick and slippery', sweet: 'Heals allies for ' + E.RULES.medicHeal, cheeky: 'Hunts the back line'};
   function partSub(p, u){
     if (p === 'role') return [ROLE_SUB[u.cls] || firstBit(CLS[u.cls][2], /[:.]/), false];
-    if (p === 'wpn') return [weaponLine(u.wpn), false];
+    if (p === 'wpn') return armsOf(u) === 'tool' ? ['Builder: ' + weaponLine('tool'), true] : [weaponLine(u.wpn), false];
     if (p === 'trn'){
       const left = E.TRAIN_POINTS - trnUsed(u.trn);
       if (left > 0) return [left + ' point' + (left === 1 ? '' : 's') + ' left', true];
@@ -20689,7 +21019,7 @@ const SquadHall = (() => {
     return c;
   }
   function renderStage(){
-    const i = st.sel, u = st.draft.units[i], m = team()[i], S = E.unitStats(u, !i);
+    const i = st.sel, u = st.draft.units[i], m = team()[i], S = statsOf(u, i);
     R.stEye.textContent = i ? 'Team mate ' + i + ' of 4' : 'Captain';
     // never overwrite what the player is typing
     if (document.activeElement !== R.nameIn || R.nameIn.dataset.i !== String(i)){ R.nameIn.value = m.name; R.nameIn.dataset.i = String(i); }
@@ -20698,7 +21028,7 @@ const SquadHall = (() => {
     R.chips.textContent = '';
     R.chips.append(h('span', {class: 'sq-chip'}, vIcon('cls', u.cls, 16), CLS[u.cls][1], u.cls === m.style ? h('i', {class: 'sq-fitc', title: 'Suits ' + m.name + '’s personality', 'aria-label': ', suits its personality'}, '♥') : null),
       h('span', {class: 'sq-hpmv'}, 'HP ', h('b', null, String(S.max)), ' · Move ', h('b', null, String(S.move))));
-    R.figCv.setAttribute('aria-label', m.name + ', ' + CLS[u.cls][1] + ' with ' + WPN[u.wpn][1] + ', ' + GEAR[u.gear][1] + ' and ' + POW[u.pow][1]);
+    R.figCv.setAttribute('aria-label', m.name + ', ' + CLS[u.cls][1] + ' with ' + wpnName(u) + ', ' + GEAR[u.gear][1] + ' and ' + POW[u.pow][1]);
     drawFigure();
     [R.partsL, R.partsR].forEach(b => { b.textContent = ''; });
     PARTS.forEach(([p, label], n) => {
@@ -20737,7 +21067,7 @@ const SquadHall = (() => {
   }
   // what a pick changes, worked out with the engine's own numbers
   function changes(u, i, patch){
-    const a = E.unitStats(u, !i), b = E.unitStats({...u, ...patch}, !i), out = [];
+    const a = statsOf(u, i), b = E.unitStats({...u, ...patch}, !i, E.engineerOf(st.draft.units.map((v, j) => (j === i ? {...u, ...patch} : v)), i)), out = [];
     const add = (n, p, q) => { if (p !== q) out.push(n + ' ' + p + ' → ' + q); };
     const dm = S => S.dmg + (S.hits > 1 ? '×' + S.hits : '');
     add('HP', a.max, b.max); add('Move', a.move, b.move); add('Range', a.range, b.range); add('Damage', dm(a), dm(b));
@@ -20836,7 +21166,9 @@ const SquadHall = (() => {
         hover(b, id);
       });
       fixTabStop(g); radioKeys(g);
-      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote'}, p === 'tac' ? 'who it goes for' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
+      // a Builder fights with its Build Hammer: the weapon picked here waits till it has another power
+      const tool = p === 'wpn' && armsOf(u) === 'tool';
+      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote' + (tool ? ' warn' : '')}, tool ? 'a Builder fights with its ' + E.TOOL[1] + '; this waits for another power' : p === 'tac' ? 'who it goes for' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
     }
     if (st.dmax) desc.style.minHeight = st.dmax + 'px';
     detail(desc, p, st.peek);
@@ -20890,7 +21222,7 @@ const SquadHall = (() => {
     return c;
   }
   function renderStats(){
-    const i = st.sel, u = st.draft.units[i], S = E.unitStats(u, i === 0), W = E.WEAPON_STATS[u.wpn], g = R.stats;
+    const i = st.sel, u = st.draft.units[i], S = statsOf(u, i), W = E.WEAPON_STATS[armsOf(u)], g = R.stats;
     const was = st.prev && st.prev.i === i ? st.prev.S : null;
     const fl = k => (was && was[k] !== S[k] ? (S[k] > was[k] ? 'up' : 'down') : '');
     g.textContent = '';
@@ -21270,7 +21602,7 @@ const SquadHall = (() => {
       box.append(objIcon(st.place, 24), h('span', null, h('b', null, 'Moving the ' + OBJ[st.place][1]), ' · ' + t + ' a tile'), button('Done', '', () => { stopPlacing(); focusCur(); }, {'data-k': 'stopmove'}));
       return;
     }
-    const u = st.draft.units[st.sel], n = nameOf(st.sel), spr = unitImg(lookOf(st.sel), u.wpn, u.cls, 1);
+    const u = st.draft.units[st.sel], n = nameOf(st.sel), spr = unitImg(lookOf(st.sel), armsOf(u), u.cls, 1);
     if (st.lift) box.append(spr, h('span', null, h('b', null, n), ' lifted · ' + t + ' a Blub to swap, or a tile to move'), button('Put down', '', () => { setLift(false); focusCur(); }, {'data-k': 'liftoff'}));
     else box.append(spr, h('span', null, h('b', null, n), ' · ' + t + ' a tile to move it · ' + t + ' ' + n + ' again to swap'), button('Edit', '', () => editBlub(st.sel), {'data-k': 'stedit', 'aria-label': 'Edit ' + n + ': go to its parts'}));
   }
@@ -21395,7 +21727,7 @@ const SquadHall = (() => {
       x.fillStyle = ART.ringLo; x.beginPath(); x.ellipse(mid, ringY, rw + px, rh + px, 0, 0, Math.PI * 2); x.fill();
       x.fillStyle = on ? ART.gold : ART.ring; x.beginPath(); x.ellipse(mid, ringY, rw, rh, 0, 0, Math.PI * 2); x.fill();
       x.fillStyle = 'rgba(43,29,63,.35)'; x.beginPath(); x.ellipse(mid, ringY, rw - 2 * px, Math.max(px, rh - 2 * px), 0, 0, Math.PI * 2); x.fill();
-      const spr = unitSprite(lookOf(i), u.wpn, u.cls), lift = hopLift(i, null, s) + rise;
+      const spr = unitSprite(lookOf(i), armsOf(u), u.cls), lift = hopLift(i, null, s) + rise;
       const sx = Math.round(mid - spr.width * s / 2), sy = Math.round(foot + px * 2 - spr.height * s) - lift;
       x.drawImage(spr, sx, sy, spr.width * s, spr.height * s);
       if (!i){ const cr = crownIcon(); x.drawImage(cr, Math.round(mid - 3.5 * s), sy - 3 * s, 7 * s, 5 * s); }
@@ -21537,7 +21869,7 @@ const SquadHall = (() => {
   }
 
   // ---- zone 3, the squad sheet: strength, the team, the kit, and one row per Blub
-  const LOADOUT = u => [vIcon('wpn', u.wpn, 14), vIcon('gear', u.gear, 14), vIcon('pow', u.pow, 14), h('span', {class: 'sr'}, WPN[u.wpn][1] + ', ' + GEAR[u.gear][1] + ', ' + POW[u.pow][1])];
+  const LOADOUT = u => [vIcon('wpn', armsOf(u), 14), vIcon('gear', u.gear, 14), vIcon('pow', u.pow, 14), h('span', {class: 'sr'}, wpnName(u) + ', ' + GEAR[u.gear][1] + ', ' + POW[u.pow][1])];
   // the captain's command: one of four, with what it does under it
   function renderCmd(){
     if (!R.cmd) return;
@@ -21557,7 +21889,7 @@ const SquadHall = (() => {
     const body = h('tbody');
     let hp = 0, ranged = 0, melee = 0, heal = 0;
     d.units.forEach((u, i) => {
-      const S = E.unitStats(u, !i), bad = problem(u), on = i === st.sel;
+      const S = statsOf(u, i), bad = problem(u), on = i === st.sel;
       hp += S.max; if (S.range >= 3) ranged++; else melee++; if (u.cls === 'sweet' || u.gear === 'pillow') heal++;
       const tr = h('tr', {class: on ? 'on' : '', onclick: e => { if (!e.target.closest('.sq-sbtn') && i !== st.sel) select(i); }});
       const pen = pixMap(PENCIL); pen.setAttribute('class', 'sq-spen spr'); pen.setAttribute('aria-hidden', 'true');
@@ -21605,7 +21937,7 @@ const SquadHall = (() => {
     [12, 13, 14].forEach(y => {
       const here = d.units.map((u, i) => ({u, i})).filter(x => x.u.y === y).sort((a, b) => a.u.x - b.u.x);
       if (!here.length) return;
-      box.append(h('p', {class: 'sq-sline'}, h('span', null, ROW_WORD[y]), ' ', h('b', null, here.map(({u, i}) => nameOf(i) + ' (' + CLS[u.cls][1] + ', ' + WPN[u.wpn][1] + ')').join(' · '))));
+      box.append(h('p', {class: 'sq-sline'}, h('span', null, ROW_WORD[y]), ' ', h('b', null, here.map(({u, i}) => nameOf(i) + ' (' + CLS[u.cls][1] + ', ' + wpnName(u) + ')').join(' · '))));
     });
     const tc = {};
     d.units.forEach(u => { tc[u.tac] = (tc[u.tac] || 0) + 1; });
@@ -21981,7 +22313,7 @@ const SquadHall = (() => {
     if (!R.cVs) return;
     const d = st.draft, box = R.cVs; box.textContent = '';
     const left = h('div', {class: 'sq-vside a'}), right = h('div', {class: 'sq-vside b'});
-    d.units.forEach((u, i) => left.append(h('span', {class: 'sq-vu' + (i ? '' : ' cap')}, unitImg(lookOf(i), u.wpn, u.cls, 2))));
+    d.units.forEach((u, i) => left.append(h('span', {class: 'sq-vu' + (i ? '' : ' cap')}, unitImg(lookOf(i), armsOf(u, d.units), u.cls, 2))));
     const tb = st.who === 'blub' && st.target ? SquadNet.who(st.target) : null;
     for (let i = 0; i < 5; i++){
       if (!i && tb) right.append(h('span', {class: 'sq-vu cap'}, face(cleanLook(tb.look), STYLE[tb.style] ? tb.style : 'playful', 2)));
@@ -22171,7 +22503,7 @@ const SquadHall = (() => {
       const url = SquadNet.link(d.id);
       modalHead('Your challenge', d.t ? 'Waiting for ' + (d.tn || 'your rival') : 'Waiting for a rival');
       R.mBody.append(capCard(d.cr, 'You', 'a'), taunt, R.mMeta, h('p', {class: 'sq-desc'}, 'They see your captain only. Your squad stays secret until someone accepts.'));
-      if (d.cs){ const t = teamA(d), row = h('div', {class: 'sq-secret mine'}); t.squad.units.forEach((u, i) => row.append(h('span', {class: 'sq-vu' + (i ? '' : ' cap')}, unitImg(t.looks[i], u.wpn, u.cls, 2)))); R.mBody.append(h('span', {class: 'sq-lbl'}, 'Your secret squad'), row); }
+      if (d.cs){ const t = teamA(d), row = h('div', {class: 'sq-secret mine'}); t.squad.units.forEach((u, i) => row.append(h('span', {class: 'sq-vu' + (i ? '' : ' cap')}, unitImg(t.looks[i], armsOf(u, t.squad.units), u.cls, 2)))); R.mBody.append(h('span', {class: 'sq-lbl'}, 'Your secret squad'), row); }
       // the link (or invite text) to select by hand when copying is not allowed
       const mUrl = h('input', {readonly: true, class: 'sq-murl', 'aria-label': url ? 'Challenge link' : 'Invite text', value: url || shareText(d)});
       R.mBody.append(h('div', {class: 'sq-url'}, mUrl));
