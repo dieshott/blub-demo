@@ -2,7 +2,7 @@
 <html lang="en" data-mode="demo">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="$BLUB: a pixel game and Solana memecoin. Build a team of five Blubs, take the crown in the Meadow and play Blub Jump.">
 <meta name="theme-color" content="#5ED6CB">
@@ -714,6 +714,25 @@ body.no-scroll{overflow:hidden}
 .sqv-turn{flex:none;font-family:var(--f-data);font-size:22px;line-height:1;color:var(--gold);text-shadow:2px 2px 0 #000;font-variant-numeric:tabular-nums}
 .sqv-x{flex:none;width:44px;height:40px;display:grid;place-items:center;background:#E2566E;border:0;border-left:3px solid #000;cursor:pointer;box-shadow:inset 3px 3px 0 #FF8FA3,inset -3px -3px 0 #B8324A}
 .sqv-x:hover{background:#FF5C77}
+/* the clip: a record button, REPLAY on the board while it records, and the clip to share or save */
+.sqv-clip{flex:none;width:44px;height:40px;display:grid;place-items:center;background:#3E2C58;border:0;border-left:3px solid #000;cursor:pointer;box-shadow:inset 3px 3px 0 #5E4A8A,inset -3px -3px 0 #2B1D3F}
+.sqv-clip:hover{background:#4A3768}
+.sqv-clip:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+.sqv-clip[aria-disabled="true"]{cursor:default;background:#2B1D3F}
+.sqv-clip[aria-disabled="true"] .sqv-g{animation:sqvRec 1s steps(2) infinite}
+.sqv-clip[hidden]{display:none}
+.sqv-rec{position:absolute;left:6px;top:6px;z-index:3;display:flex;align-items:center;gap:6px;padding:3px 8px 4px;background:rgba(27,17,41,.85);border:2px solid #000;font-family:var(--f-data);font-size:20px;line-height:1;color:#fff;pointer-events:none}
+.sqv-rec i{width:10px;height:10px;background:#FF2E4C;animation:sqvRec 1s steps(2) infinite}
+.sqv-rec[hidden]{display:none}
+@keyframes sqvRec{50%{opacity:.2}}
+.sqv-clipbox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:30;display:flex;flex-direction:column;align-items:center;gap:8px;width:max-content;max-width:calc(100% - 16px);box-sizing:border-box;padding:10px;background:#1b1129;border:3px solid #000;box-shadow:inset 0 -4px 0 var(--edge),6px 6px 0 rgba(0,0,0,.45);line-height:1.2}
+.sqv-cliph{margin:0;font-family:var(--f-display);font-size:10px;line-height:1.4;color:var(--gold,#FFD447);text-shadow:2px 2px 0 #000}
+.sqv-clipv{display:block;max-width:100%;max-height:min(44vh,320px);border:2px solid #000;background:#000}
+.sqv-cliprow{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.sqv-cb{min-height:44px;min-width:72px;padding:0 12px;font-family:var(--f-display);font-size:9px;color:#fff;background:#3E2C58;border:3px solid #000;cursor:pointer;box-shadow:inset 3px 3px 0 #5E4A8A,inset -3px -3px 0 #2B1D3F}
+.sqv-cb:hover{background:#4A3768}
+.sqv-cb:first-child{background:#E2566E;box-shadow:inset 3px 3px 0 #FF8FA3,inset -3px -3px 0 #B8324A}
+.sqv-cb:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
 .sqv-g{width:18px;height:18px;display:block}
 
 /* rosters */
@@ -812,6 +831,9 @@ body.no-scroll{overflow:hidden}
 @keyframes sqvDrop{0%{transform:translate(-50%,-90%);opacity:0}70%{transform:translate(-50%,-46%)}100%{transform:translate(-50%,-50%);opacity:1}}
 .sqv-bh{font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5;color:var(--gold);text-shadow:2px 2px 0 #000;letter-spacing:.04em}
 .sqv-bh.you{color:var(--you-l)}.sqv-bh.rival{color:#FFB08A}
+/* a best of 3 with plans: who brings in another strategy this round */
+.sqv-swap{font-family:var(--f-data);font-size:18px;line-height:1.1;padding:2px 8px;background:#2B1D3F;border:2px solid #000}
+.sqv-swap.you{color:var(--you-l)}.sqv-swap.rival{color:#FFB08A}
 .sqv-ban.end{top:42%;box-shadow:inset 0 0 0 3px var(--gold),0 0 0 3px #000,6px 6px 0 rgba(0,0,0,.45)}
 .sqv-ban.end.you{box-shadow:inset 0 0 0 3px var(--you),0 0 0 3px #000,6px 6px 0 rgba(0,0,0,.45)}
 .sqv-ban.end.rival{box-shadow:inset 0 0 0 3px var(--riv),0 0 0 3px #000,6px 6px 0 rgba(0,0,0,.45)}
@@ -904,6 +926,7 @@ body.no-scroll{overflow:hidden}
   .sqv-title{font-size:12px}
   .sqv-turn{font-size:26px}
   .sqv-x{height:48px;width:52px}
+  .sqv-clip{height:48px;width:52px}
   .sqv-wrap{padding-top:14px}
   .sqv-stage{margin-bottom:0}
   .sqv-stage{border:4px solid #000;box-shadow:0 0 0 3px var(--edge),10px 10px 0 rgba(0,0,0,.4);box-sizing:content-box}
@@ -1167,6 +1190,7 @@ body.no-scroll{overflow:hidden}
 .sq-desc{font-size:15px;line-height:1.35;color:var(--sq-soft);margin:0}
 .sq-desc b{font-weight:600;color:#fff}
 .sq-desc.warn{color:var(--gold)}
+.sq-bohint{margin-top:6px;font-size:14px}
 .sq-msg{font-size:15px;color:#FFB3C0;min-height:1.2em;margin:0}
 .sq-msg.ok{color:#9FF5C4}
 .sq-msg:empty{min-height:0}
@@ -1796,7 +1820,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 2cbe924 · 11 Oct 08:35 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 62f14e1 · 11 Oct 11:10 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -3240,7 +3264,7 @@ const API = (() => {
     duels: () => call('GET', 'duels'),
     duel: id => call('GET', 'duel/' + id),
     duelCreate: o => call('POST', 'duel', o),
-    duelAccept: (id, squad) => call('POST', 'duel/' + id + '/accept', {squad}),
+    duelAccept: (id, squad, squads) => call('POST', 'duel/' + id + '/accept', squads ? {squad, squads} : {squad}),
     duelCancel: id => call('POST', 'duel/' + id + '/cancel', {}),
   };
 })();
@@ -3253,26 +3277,28 @@ function lsPatch(p){ lsSet(Object.assign(lsGet() || {}, p)); }
 /* ---- sound: tiny chiptune blips made on the fly (no files to download).
    Only fights make sound; the choice is kept in this browser. */
 const Sfx = (() => {
-  let ac = null, on = !(lsGet() || {}).mute, noiseBuf = null;
+  let ac = null, on = !(lsGet() || {}).mute, noiseBuf = null, mix = null, taps = null;
   const btns = [];
   function ctx(){
     if (!ac){ const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { ac = new A(); } catch { return null; } }
     if (ac.state === 'suspended') ac.resume().catch(() => {});
     return ac;
   }
+  // everything goes through one mix, so a clip can record what you hear
+  function out(a){ if (!mix){ mix = a.createGain(); mix.connect(a.destination); } return mix; }
   function tone(f0, f1, dur, type = 'square', vol = .05, delay = 0){
     const a = ctx(); if (!a) return;
     const t0 = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t0); if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
     g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-    o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + dur + .03);
+    o.connect(g); g.connect(out(a)); o.start(t0); o.stop(t0 + dur + .03);
   }
   function noise(dur, vol = .05, delay = 0){
     const a = ctx(); if (!a) return;
     if (!noiseBuf){ noiseBuf = a.createBuffer(1, a.sampleRate * .5, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
     const t0 = a.currentTime + delay, src = a.createBufferSource(), g = a.createGain();
     src.buffer = noiseBuf; g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-    src.connect(g); g.connect(a.destination); src.start(t0); src.stop(t0 + dur + .03);
+    src.connect(g); g.connect(out(a)); src.start(t0); src.stop(t0 + dur + .03);
   }
   const notes = (list, len, type, vol) => list.forEach((f, i) => tone(f, f, len, type, vol, i * len * .8));
   const S = {
@@ -3290,6 +3316,19 @@ const Sfx = (() => {
     fight(){ notes([262, 330, 392], .07, 'square', .045); },
     win(){ notes([523, 659, 784, 1047, 784, 1047], .11, 'square', .045); },
     click(){ tone(880, 880, .03, 'square', .025); },
+    // the trench arsenal: a rifle shot, the Scope Rifle's crack and its echo, the Boom
+    // Pack (its fuse, then the blast), a bolt racked, the scope's beep, a pickaxe on
+    // stone, a sandbag landing, a gem, a tunnel rumbling under the floor
+    shot(){ noise(.05, .08); tone(170, 60, .06, 'square', .05); tone(1800, 900, .02, 'square', .02); },
+    snipe(){ noise(.09, .12); tone(1200, 120, .14, 'sawtooth', .05); tone(90, 45, .3, 'sine', .06, .02); noise(.25, .025, .14); },
+    fuse(){ for (let i = 0; i < 5; i++) noise(.025, .03, i * .06); },
+    boom(){ noise(.6, .14); tone(120, 30, .7, 'sawtooth', .07); tone(60, 25, .9, 'sine', .09, .03); noise(.4, .05, .25); },
+    reload(){ tone(700, 500, .03, 'square', .04); noise(.02, .04); tone(500, 900, .03, 'square', .04, .12); noise(.02, .04, .12); },
+    aim(){ tone(1568, 1568, .06, 'square', .03); tone(2093, 2093, .08, 'square', .03, .09); },
+    dig(){ tone(2400, 1800, .05, 'triangle', .04); noise(.06, .05); tone(300, 150, .06, 'square', .03); },
+    thud(){ tone(110, 60, .12, 'sine', .08); noise(.05, .04); },
+    gem(){ notes([1319, 1568, 2093, 2637], .05, 'triangle', .04); },
+    rumble(){ tone(70, 40, .5, 'sawtooth', .05); noise(.45, .04); },
   };
   const FIGHT = {hit:'hit', prank:'hit', crit:'crit', miss:'miss', block:'block', pop:'block', heal:'heal', nap:'heal', leech:'heal', apple:'heal', rain:'heal', charm:'heal', ko:'ko', power:'power', zap:'zap', stun:'zap', read:'read', sift:'sift'};
   function paint(){ btns.forEach(b => { b.textContent = on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(on)); }); }
@@ -3297,6 +3336,8 @@ const Sfx = (() => {
     play(k){ if (on && !document.hidden && S[k]) try { S[k](); } catch {} },
     fight(e){ const k = FIGHT[e.t]; if (k) this.play(k); },
     bind(b){ btns.push(b); b.onclick = () => { on = !on; lsPatch({mute: !on}); paint(); if (on) S.click(); }; paint(); },
+    // the sound as a stream, for a clip to record (null without Web Audio)
+    tap(){ const a = ctx(); if (!a || !a.createMediaStreamDestination) return null; if (!taps){ taps = a.createMediaStreamDestination(); out(a).connect(taps); } return taps.stream; },
   };
 })();
 document.querySelectorAll('[data-snd]').forEach(b => Sfx.bind(b));
@@ -5136,8 +5177,9 @@ const SquadNet = {
   async board(){ const d = await API.duels(); return {open: d.open || [], targeted: d.targeted || [], recent: d.recent || [], top: d.top || [], count: d.count || 0, season: d.season, ends: d.ends}; },
   watch(){},
   get: async id => (await API.duel(id)).duel,
-  create: async o => (await API.duelCreate({target: o.target || '', bo: o.bo, taunt: o.taunt, squad: o.squad})).duel,
-  accept: async (id, o) => (await API.duelAccept(id, o && o.squad)).duel,
+  // a best of 3 may bring a plan (squads: your strategies in the order you play them)
+  create: async o => (await API.duelCreate({target: o.target || '', bo: o.bo, taunt: o.taunt, squad: o.squad, ...(Array.isArray(o.squads) ? {squads: o.squads} : {})})).duel,
+  accept: async (id, o) => (await API.duelAccept(id, o && o.squad, o && Array.isArray(o.squads) ? o.squads : null)).duel,
   cancel: async id => (await API.duelCancel(id)).duel,
   // the hall renames Blub i of your team: the same save as the Blub Maker (1 command)
   rename: (i, name) => (renameJob = renameJob.then(() => renameOne(i, name), () => renameOne(i, name))),
@@ -5222,7 +5264,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 4;
+const SQUAD_ENGINE = 5;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5283,9 +5325,12 @@ const RULES = lock({
   // watchtower or a terrace sees down into the leaves), but a shooter in one sees out
   // bushRange tiles less far
   bushSight: 2, bushRange: 1,
-  // The Liquidity Pool (the rainbow water): wading in costs 2 steps; a Blub that starts
-  // a turn in it collects poolYield HP, and has poolDodge% less dodge while it stands there
-  poolYield: 1, poolDodge: 15,
+  // The Liquidity Pool (the rainbow water): wading in costs 2 steps. A Blub that starts a
+  // turn in it, having rested there, collects yield: poolYield HP, one more for every
+  // turn it has stayed (at most poolMax), and it dodges poolDodge% less while it stands
+  // there. Hurt to poolAt% HP or less with nobody in its reach and no enemy close, a
+  // Blub wades in to stake.
+  poolYield: 2, poolMax: 4, poolDodge: 15, poolAt: 60,
   // the trench kit (OBJECTS): two per squad, dug in on its own three rows
   sandCover: 25, // a Blub right behind sandbags dodges arrows this much more
   sandSoak: 2, // Blubs of its squad next to the sandbags take this much less from every hit
@@ -5295,7 +5340,7 @@ const RULES = lock({
   wireAvoid: 6, // wire lies out in the open: the other side plans its way as if crossing it took this many steps more
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
-  mineDmg: 5, mineSplash: 3, // mines always lie on clear ground (the ground makes way), and Blubs walk out to the chest's events: they hit a little softer
+  mineDmg: 4, mineSplash: 3, // mines always lie on clear ground (the ground makes way), and Blubs walk out to the chest's events: they hit a little softer
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // ---- the chest (EVENTS, BUFFS, NERFS): one spin a round, before anything moves.
   // How many events fall: whole percents, together 100.
@@ -5337,17 +5382,21 @@ const RULES = lock({
   // keeps only scopeDodge% of its dodge
   scopeDmg: 13, scopeDodge: 50,
   // Boom Pack: boomDmg on every enemy beside it and boomRing one tile farther; its
-  // Blub carries boomHp less HP and boomMove less move
-  boomDmg: 24, boomRing: 8, boomHp: 8, boomMove: 1,
-  // Builder: up to buildMax barricades a round (one a turn for the whole squad), for
-  // a shooter or medic whose nearest enemy is within buildNear tiles; building leaves
-  // it buildTake% easier to hurt till its next turn
-  buildMax: 3, buildNear: 6, buildTake: 25,
+  // Blub carries boomHp less HP and boomMove less move. It only goes off when that is
+  // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
+  // knock-out), or just boomLast once its Blub is down to half or the mist is in
+  boomDmg: 22, boomRing: 8, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
+  // Builder: up to buildMax barricades a round (one a turn for the whole squad), beside
+  // allies that hold their ground with an enemy within buildNear tiles (shooters and
+  // medics, and anyone in a fight); building leaves it buildTake% easier to hurt till
+  // its next turn
+  buildMax: 3, buildNear: 8, buildTake: 25,
   // Builders and Miners are made of tougher stuff: this much more HP
   workHp: 6,
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
   // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
-  // a Mine Shaft); a gem is gemHeal HP and +gemDmg damage for whoever it is carried
+  // its Mine Shaft, where it digs whenever nobody is in its reach and which it keeps
+  // going back to); a gem is gemHeal HP and +gemDmg damage for whoever it is carried
   // to; hurt to tunnelAt% HP or less, it tunnels up to tunnelReach tiles away
   digGem: 45, digStone: 15, digSafe: 2, gemHeal: 10, gemDmg: 2, tunnelAt: 50, tunnelReach: 5,
 });
@@ -5376,7 +5425,7 @@ const WEAPONS = lock([
   ['wand', 'Bubble Wand', 'Range 3 over walls. Bubbles always hit, pass Shell Shields and sometimes trap the target for a turn.'],
   ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
   ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
-  ['boom', 'Boom Pack', `No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
+  ['boom', 'Boom Pack', `One a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
 ]);
 // range, damage, hands; crit/dodge/whiff/trap in percent
 const WEAPON_STATS = lock({
@@ -5387,10 +5436,10 @@ const WEAPON_STATS = lock({
   bow: { range: 5, dmg: 5, hands: 2, los: 1, close: 1 },
   wand: { range: 3, dmg: 4, hands: 1, sure: 1, trap: 20 },
   // gun: its shots are bullets (cover from bushes and sandbags as from arrows);
-  // cycle: the Scope Rifle's reload, aim, fire; boom: the Boom Pack
+  // cycle: the Scope Rifle's reload, aim, fire; boom: the Boom Pack; one: one a squad
   rifle: { range: 4, dmg: 2, hands: 2, hits: 3, los: 1, gun: 1 },
   scope: { range: 7, dmg: RULES.scopeDmg, hands: 2, los: 1, gun: 1, cycle: 1, close: 1 },
-  boom: { range: 1, dmg: 0, hands: 2, boom: 1 },
+  boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
 });
 const GEAR = lock([
   ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
@@ -5405,8 +5454,8 @@ const POWERS = lock([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
-  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. With no enemy in reach it builds instead of fighting: a sandbag barricade next to it, in front of a shooter or medic in the open (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
-  ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on a Mine Shaft.`],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. With no enemy in reach it builds instead of fighting: a sandbag barricade next to it, beside the allies who need it most (a shooter or medic in the open, or anyone in a fight), so they take ${RULES.sandSoak} less from every hit. One a turn for the squad, up to ${RULES.buildMax} a round each. Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]);
 const TACTICS = lock([
   ['nearest', 'Nearest', 'Attacks whoever is closest.'],
@@ -5447,7 +5496,7 @@ const OBJECTS = lock([
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
   ['mines', 'Pop Mines', `Three hidden mines with a tile between them, also out in no man's land. The first enemy to step on one loses ${RULES.mineDmg} HP (its neighbours ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
-  ['shaft', 'Mine Shaft', 'An ore vein to start a Miner on: it digs up twice as much there, and tunnels back to it when hit.'],
+  ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
 ]);
 const OBJECT_STATS = lock({
   sandbags: { cells: [-1, 0, 1], solid: 1, out: 1 },
@@ -5473,7 +5522,7 @@ const OBJECT_ROWS = [9, 10, 11, 12, 13, 14];
 // [id, name, description] for the codex; the numbers live in RULES.
 const TERRAIN = lock([
   ['rock', 'Rock', 'Nobody walks through it or over it, and nothing shoots through it.'],
-  ['pool', 'Liquidity Pool', `Rainbow water. Wading in costs 2 steps. A Blub that starts its turn in it collects ${RULES.poolYield} HP of yield, but has ${RULES.poolDodge}% less dodge while it stands there.`],
+  ['pool', 'Liquidity Pool', `Rainbow water. Wading in costs 2 steps. A Blub hurt to ${RULES.poolAt}% HP with no enemy close wades in to stake: every turn it rests in it, it collects yield, ${RULES.poolYield} HP and 1 more for each turn it stays (at most ${RULES.poolMax}), but it dodges ${RULES.poolDodge}% less while it stands there.`],
   ['bush', 'Bush', `Cover: arrows miss ${RULES.bushArrow}% more, close swings ${RULES.bushMelee}% more. An ambush: nothing farther than ${RULES.bushSight} tiles finds a Blub in it, unless from a watchtower or a terrace. A shooter in one reaches ${RULES.bushRange} tile less far.`],
   ['terrace', 'Cloud Terrace', 'High ground: a bow reaches 1 tile farther from up here, and sees down into bushes.'],
 ]);
@@ -5604,6 +5653,8 @@ function cleanSquad(raw) {
     const { cls, wpn, gear, pow, tac } = u;
     if (!has(PLAYSTYLES, cls) || !has(WEAPONS, wpn) || !has(GEAR, gear) || !has(POWERS, pow) || !has(TACTICS, tac)) return null;
     if (gear === 'shield' && WEAPON_STATS[wpn].hands !== 1) return null;
+    // a squad carries one Boom Pack at most
+    if (WEAPON_STATS[wpn].one && units.some((v) => v.wpn === wpn)) return null;
     const x = u.x;
     const y = u.y;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= SIZE || !DEPLOY_ROWS.includes(y)) return null;
@@ -5840,7 +5891,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         potion: s.gear === 'potion', pillowAt: 1, attacked: false, hurt: false, dealt: 0, startedTurn: 0, immune: false, lastHealed: -1, pending: 0, amb: 0, moved: false,
         // the Scope Rifle's cycle (0 empty, 1 loaded, 2 aimed at `sight`), barricades put
         // up, what a Miner carries ('gem', 'stone' or ''), and a Miner that was hit
-        load: 0, sight: -1, built: 0, pack: '', tunnel: 0,
+        load: 0, sight: -1, built: 0, pack: '', tunnel: 0, stake: 0,
       };
       U.push(u);
       occ[idx(x, y)] = u.id;
@@ -5952,12 +6003,16 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
 
   // the Liquidity Pool pays out at the start of a turn, to everyone standing in it
-  // ('yield' first, then a heal for each)
+  // who rested there (fighting or working the turn before breaks the streak):
+  // poolYield HP, one more for every turn it has stayed (at most poolMax). 'yield'
+  // first, with what each one gets, then a heal for each.
   function poolTurn() {
-    const wet = U.filter((u) => u.alive && tiles[idx(u.x, u.y)] === WATER && u.hp < u.max);
+    for (const u of U) u.stake = u.alive && tiles[idx(u.x, u.y)] === WATER && !u.attacked ? u.stake + 1 : 0;
+    const wet = U.filter((u) => u.stake && u.hp < u.max);
     if (!wet.length) return;
-    push({ t: 'yield', u: wet.map((u) => u.id) });
-    for (const u of wet) heal(u, RULES.poolYield, 'pool');
+    const pay = wet.map((u) => Math.min(RULES.poolMax, RULES.poolYield + u.stake - 1));
+    push({ t: 'yield', u: wet.map((u) => u.id), amt: wet.map((u, i) => Math.min(u.max - u.hp, misty ? pay[i] - (pay[i] >> 1) : pay[i])) });
+    wet.forEach((u, i) => heal(u, pay[i], 'pool'));
   }
   const living = [U.filter((u) => u.team === 0), U.filter((u) => u.team === 1)];
   const alive = (team) => living[team];
@@ -6282,8 +6337,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
       return;
     }
-    // the Boom Pack does not swing: next to an enemy, it goes off
-    if (W(u).boom) return blowUp(u);
+    // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it
+    if (W(u).boom) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
     // the Scope Rifle: a turn to reload, a turn to aim, and then the shot
     if (W(u).cycle) {
       const v = scopeTurn(u, d);
@@ -6805,9 +6860,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
+    if (W(u).boom && boomTurn(u)) return;
     if (objective(u, turn)) return;
     if (u.pow === 'miner' && mineTurn(u)) return;
     if (u.pow === 'builder' && buildTurn(u)) return;
+    if (stake(u)) return;
     // a Blub left standing at the other side's candle with nobody in reach chops at it
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
     // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
@@ -6904,6 +6961,52 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function lastBoom(d) {
     if (W(d).boom && !d.boomed && over < 0 && foes(d).some((v) => cheb(v.x, v.y, d.x, d.y) <= 1)) blowUp(d);
   }
+  // What the Boom Pack going off at (x, y) would be worth: the HP it takes off the other
+  // side (a bubble only pops) and boomKo more for every Blub it knocks out for good
+  function blastWorth(u, x, y) {
+    let s = 0;
+    for (const v of foes(u)) {
+      const d = cheb(x, y, v.x, v.y);
+      if (d > 2 || v.bubble) continue;
+      let dmg = d <= 1 ? RULES.boomDmg : RULES.boomRing;
+      if (copiumOn(v)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
+      s += Math.min(dmg, v.hp) + (dmg >= v.hp && !v.totem ? RULES.boomKo : 0);
+    }
+    return s;
+  }
+  // what a blast has to be worth: boomWorth, or just boomLast once its Blub is down to
+  // half or the mist is in
+  const boomNeed = (u) => (u.hp * 2 <= u.max || misty ? RULES.boomLast : RULES.boomWorth);
+  // The Boom Pack's turn: it goes off where a blast is worth the most, here or anywhere
+  // it gets to this turn, when that is worth it. Not worth it yet but beside an enemy,
+  // it edges to the best spot it gets to and waits there (knocked out beside them it
+  // goes off anyway); otherwise it closes in like everybody else.
+  function boomTurn(u) {
+    const list = foes(u);
+    if (!list.some((v) => cheb(u.x, u.y, v.x, v.y) <= u.move + 2)) return false;
+    const here = idx(u.x, u.y);
+    const P = search(u, u.move);
+    let best = here;
+    let bs = blastWorth(u, u.x, u.y);
+    for (const c of seen(P)) {
+      if (trap(u, c)) continue;
+      const x = c % SIZE;
+      const s = blastWorth(u, x, (c - x) / SIZE);
+      if (s > bs) {
+        bs = s;
+        best = c;
+      }
+    }
+    if (bs < boomNeed(u) && !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) return false;
+    if (best !== here) walk(u, route(P, best));
+    if (u.alive && over < 0 && blastWorth(u, u.x, u.y) >= boomNeed(u)) blowUp(u);
+    else if (u.alive && over < 0 && !u.armed && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) {
+      // beside the enemy, waiting for a better blast (said once a round)
+      u.armed = 1;
+      push({ t: 'arm', u: u.id });
+    }
+    return true;
+  }
   // a barricade may go on plain ground or a bush: nothing on it, nobody on it, and
   // never where it would cut the arena in two
   function buildable(c) {
@@ -6919,40 +7022,57 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     work += 30;
     return ok;
   }
-  // Where a barricade covers best, from where u stands: on a tile next to it, in
-  // front of itself or an ally within 2 tiles that shoots or heals (those hold their
-  // ground; the rest walk on and leave it behind), on the side that one's nearest
-  // enemy comes from (not yet next to it, but within buildNear). Shooters and medics
-  // first, then the most hurt. Null when nothing fits.
+  // Where a barricade helps most, from where u stands: a free tile next to it, beside
+  // allies (itself too) who hold their ground with an enemy within buildNear tiles: a
+  // shooter or a medic, or anyone with a fight on its hands (an enemy at most 2 tiles
+  // away; the rest walk on and leave it behind). Each one takes sandSoak less from every hit beside it;
+  // in front of a shooter or medic, on the side its nearest enemy comes from, it is
+  // cover from arrows too. Shooters and medics count most, then the most hurt.
+  // [x, y, the ally it helps most], or null when nothing fits.
   function coverSpot(u) {
-    let best = null;
-    let bs = -1;
-    for (const a of living[u.team]) {
-      if (cheb(u.x, u.y, a.x, a.y) > 2 || bySand(a) || !(WEAPON_STATS[a.wpn].range >= 3 || a.cls === 'sweet')) continue;
-      let e = null;
-      let ed = 99;
-      for (const v of foes(u)) {
-        const d = cheb(a.x, a.y, v.x, v.y);
-        if (d < ed || (d === ed && v.id < e.id)) {
-          e = v;
-          ed = d;
+    const list = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = u.x + dx;
+        const y = u.y + dy;
+        if ((!dx && !dy) || !inside(x, y)) continue;
+        const c = idx(x, y);
+        if (occ[c] >= 0 || (tiles[c] !== GRASS && tiles[c] !== BUSH)) continue;
+        let s = 0;
+        let top = null;
+        let ts = -1;
+        for (const a of living[u.team]) {
+          if (cheb(a.x, a.y, x, y) > 1 || bySand(a)) continue;
+          let e = null;
+          let ed = 99;
+          for (const v of foes(u)) {
+            const d = cheb(a.x, a.y, v.x, v.y);
+            if (d < ed || (d === ed && v.id < e.id)) {
+              e = v;
+              ed = d;
+            }
+          }
+          if (!e || ed > RULES.buildNear) continue;
+          const back = WEAPON_STATS[a.wpn].range >= 3 || a.cls === 'sweet';
+          if (!back && ed > 2) continue;
+          const front = back && ed >= 2 && x === a.x + Math.sign(e.x - a.x) && y === a.y + Math.sign(e.y - a.y);
+          const as = (back ? 200 : 100) + (front ? 100 : 0) + 100 - Math.floor((a.hp * 100) / a.max);
+          s += as;
+          if (as > ts) {
+            ts = as;
+            top = a;
+          }
         }
+        if (s) list.push([s, c, top]);
       }
-      if (!e || ed < 2 || ed > RULES.buildNear) continue;
-      const x = a.x + Math.sign(e.x - a.x);
-      const y = a.y + Math.sign(e.y - a.y);
-      if (!inside(x, y) || cheb(u.x, u.y, x, y) > 1 || !buildable(idx(x, y))) continue;
-      const s = (WEAPON_STATS[a.wpn].range >= 3 || a.cls === 'sweet' ? 200 : 0) + 100 - Math.floor((a.hp * 100) / a.max) + RULES.buildNear - ed;
-      if (s > bs) {
-        bs = s;
-        best = [x, y];
-      }
-    }
-    return best;
+    // the best first; a tie goes to the tile first in the builder's own order
+    list.sort((p, q) => q[0] - p[0] || (u.team ? q[1] - p[1] : p[1] - q[1]));
+    for (const [, c, a] of list) if (buildable(c)) return [c % SIZE, (c - (c % SIZE)) / SIZE, a];
+    return null;
   }
   // up it goes: sandbags of the builder's squad (cover and soak like the wall's), and
-  // the builder stands wide open till its next turn
-  function putBarricade(u, c) {
+  // the builder stands wide open till its next turn; `d` the ally it helps most
+  function putBarricade(u, c, d) {
     tiles[c] = SAND;
     shot[c] = SAND;
     sandT[c] = u.team + 1;
@@ -6960,7 +7080,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.exposed = now;
     u.exposedPct = RULES.buildTake;
     u.attacked = true;
-    push({ t: 'build', u: u.id, at: [c % SIZE, (c - (c % SIZE)) / SIZE] });
+    push({ t: 'build', u: u.id, at: [c % SIZE, (c - (c % SIZE)) / SIZE], ...(d ? { d: d.id } : {}) });
   }
   // Builder: with nobody in its reach and barricades left to put up, it builds one
   // where it covers best (its whole turn); one goes up a turn for the whole squad
@@ -6969,32 +7089,62 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.built >= RULES.buildMax || inReach(u).length || builtAt[u.team] === now) return false;
     const at = coverSpot(u);
     if (!at) return false;
-    putBarricade(u, idx(at[0], at[1]));
+    putBarricade(u, idx(at[0], at[1]), at[2]);
     u.built++;
     builtAt[u.team] = now;
     return true;
   }
   // Miner: a stone it dug up goes into a barricade where it covers best; a gem it
-  // carries to the most hurt ally; and with no enemy within digSafe tiles it digs
-  // (a Mine Shaft of its own under it doubles the luck). Each of these is its turn.
+  // carries to the most hurt ally; and with nobody in its reach it digs. Its own Mine
+  // Shaft is where it digs best (twice the luck, and there it keeps at it while
+  // nobody is in reach); it goes back to it whenever it gets there this turn, walking
+  // or tunnelling down from within tunnelReach, and digs on arrival. Away from a
+  // shaft it only digs with no enemy close enough to fight. Each of these is its turn.
   function mineTurn(u) {
     if (u.pack === 'stone') {
       const at = coverSpot(u);
       if (!at) return false;
-      putBarricade(u, idx(at[0], at[1]));
+      putBarricade(u, idx(at[0], at[1]), at[2]);
       u.pack = '';
       return true;
     }
     // a gem waits while there is somebody to fight
     if (u.pack === 'gem') return !inReach(u).length && deliver(u);
-    if (foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= Math.max(RULES.digSafe, u.move + W(u).range))) return false;
+    if (inReach(u).length) return false;
+    const home = onShaft(u) ? -1 : homeShaft(u);
+    if (home >= 0) {
+      const P = search(u, u.move);
+      if (P.cost[home] > 0) walk(u, route(P, home));
+      else if (cheb(u.x, u.y, home % SIZE, (home - (home % SIZE)) / SIZE) <= RULES.tunnelReach && tunnelOk(u, home)) popUp(u, home, 'home');
+      if (!u.alive || over >= 0) return true;
+      // on the way (a trap stopped it short), or somebody is in reach now: no digging
+      if (u.moved && (!onShaft(u) || inReach(u).length)) {
+        hitAround(u);
+        return true;
+      }
+    }
+    if (!onShaft(u) && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= Math.max(RULES.digSafe, u.move + W(u).range))) return false;
     const luck = onShaft(u) ? 2 : 1;
     const roll = r() * 100;
     const found = roll < RULES.digGem * luck ? 'gem' : roll < (RULES.digGem + RULES.digStone) * luck ? 'stone' : '';
     u.pack = found;
     u.attacked = true;
-    push({ t: 'dig', u: u.id, found });
+    push({ t: 'dig', u: u.id, found, ...(luck > 1 ? { shaft: 1 } : {}) });
     return true;
+  }
+  // a Miner's own Mine Shaft to go back to: the nearest one nobody stands on, or -1
+  function homeShaft(u) {
+    let best = -1;
+    let bd = 99;
+    for (const o of objs) {
+      if (o.k !== 'shaft' || o.team !== u.team || occ[o.cells[0]] >= 0) continue;
+      const d = cheb(u.x, u.y, o.at[0], o.at[1]);
+      if (d < bd) {
+        bd = d;
+        best = o.cells[0];
+      }
+    }
+    return best;
   }
   // The gem goes to the most hurt ally, carried there by hand: it walks over when it
   // gets there this turn, and otherwise tunnels up beside it (within tunnelReach) or
@@ -7049,6 +7199,26 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
     if (best < 0) return false;
     popUp(u, best, 'gem');
+    return true;
+  }
+  // The Liquidity Pool: a Blub hurt to poolAt% HP or less with nobody in its reach
+  // wades into the nearest rainbow water it gets to this turn to stake there, out of
+  // harm's way only (no shooter is within a tile of reaching the spot, no fighter
+  // gets to it next turn), and stays put in it while it is that hurt and that safe
+  function stake(u) {
+    if (u.hp * 100 > u.max * RULES.poolAt || inReach(u).length) return false;
+    const calm = (c) => {
+      const x = c % SIZE;
+      const y = (c - x) / SIZE;
+      return !foes(u).some((v) => cheb(x, y, v.x, v.y) <= (W(v).range >= 3 ? rangeOf(v, v.x, v.y) + 1 : v.move + W(v).range));
+    };
+    if (tiles[idx(u.x, u.y)] === WATER) return calm(idx(u.x, u.y));
+    const P = search(u, u.move);
+    let best = -1;
+    for (const c of seen(P)) if (tiles[c] === WATER && !trap(u, c) && calm(c) && (best < 0 || P.cost[c] < P.cost[best])) best = c;
+    if (best < 0) return false;
+    walk(u, route(P, best), { t: 'stake', u: u.id, at: [best % SIZE, (best - (best % SIZE)) / SIZE] });
+    if (over < 0 && u.alive) hitAround(u);
     return true;
   }
   // Miner, hurt (once a round): it tunnels away in one turn and comes up on the free tile within
@@ -7818,14 +7988,25 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
 
 // ---- a match: best of 1 or best of 3; round i is simulateRound(sqA, sqB, seed, i).
 // Only the outcome: the pages replay each round with simulateRound for the events.
+// Either side may bring a plan instead of one squad: its strategies in the order it
+// plays them (up to PLAN_MAX). Round 1 is each side's first; the side that loses a
+// round brings its next strategy to the next round, when it has one (the winner
+// keeps its own). `used`: per round, which strategy each side played.
+const PLAN_MAX = 3;
 function matchRounds(sqA, sqB, seed, bo) {
+  const plans = [sqA, sqB].map((s) => (Array.isArray(s) ? s : [s]));
+  const at = [0, 0];
+  const used = [];
   const need = bo === 3 ? 2 : 1;
   const wins = [0, 0];
   const rounds = [];
   const sum = [];
   let work = 0;
   for (let i = 0; i < 3 && wins[0] < need && wins[1] < need; i++) {
-    const res = simulateRound(sqA, sqB, seed, i, true);
+    const res = simulateRound(plans[0][at[0]], plans[1][at[1]], seed, i, true);
+    used.push(at.slice());
+    const lost = 1 - res.winner;
+    if (at[lost] + 1 < plans[lost].length) at[lost]++;
     wins[res.winner]++;
     rounds.push(res.winner);
     work += res.work;
@@ -7841,7 +8022,23 @@ function matchRounds(sqA, sqB, seed, bo) {
     };
     sum.push({ w: res.winner, why: res.reason, hp: res.hp, mvp: best(res.winner) });
   }
-  return { rounds, score: wins, winner: wins[0] > wins[1] ? 0 : 1, sum, work };
+  return { rounds, score: wins, winner: wins[0] > wins[1] ? 0 : 1, sum, work, used };
+}
+// The squads one side brings to a match: `squads` (its plan, 1 to PLAN_MAX squads in
+// the order it plays them) or else its one `squad`. Null when any of them is not a
+// ready squad, or there are too many.
+function cleanPlan(body) {
+  const raw = body && Array.isArray(body.squads) && body.squads.length ? body.squads : [body && body.squad];
+  if (raw.length > PLAN_MAX) return null;
+  const out = raw.map((s) => cleanSquad(s));
+  return out.every(Boolean) ? out : null;
+}
+// what of a plan a match showed: its strategies up to the last one played (the rest
+// stay secret); null when it only ever played its first
+function playedOf(plan, used, side) {
+  if (!Array.isArray(plan) || plan.length < 2 || !Array.isArray(used) || !used.length) return null;
+  const n = Math.max(...used.map((u) => u[side])) + 1;
+  return n > 1 ? plan.slice(0, n) : null;
 }
 
 // ---- bots: a sensible random squad (front line in front, shooters behind)
@@ -7852,6 +8049,8 @@ function randomSquad(r) {
   for (let i = 0; i < TEAM; i++) {
     const cls = pick(PLAYSTYLES);
     let wpn = pick(WEAPONS);
+    // one Boom Pack a squad: a second one is picked again
+    while (WEAPON_STATS[wpn].one && units.some((v) => v.wpn === wpn)) wpn = pick(WEAPONS);
     let gear = pick(GEAR);
     if (gear === 'shield' && WEAPON_STATS[wpn].hands !== 1) gear = 'boots';
     const trn = { pow: 0, grd: 0, spd: 0, lck: 0 };
@@ -8001,7 +8200,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, GEAR, POWERS, TACTICS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, unitStats, makeMap, lineOfSight, simulateRound, matchRounds, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, GEAR, POWERS, TACTICS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -10057,18 +10256,24 @@ const SquadView = (() => {
         return u + ' reloads the Scope Rifle.';
       case 'scope':
         return u + ' takes aim at ' + d + '...';
+      case 'arm':
+        return u + "'s Boom Pack is armed: it waits beside them for a bigger blast.";
       case 'blowup':
         return 'BOOM! ' + u + "'s Boom Pack goes off.";
       case 'blasted':
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
       case 'build':
-        return u + ' puts up a barricade.';
-      case 'dig':
-        return e.found === 'gem' ? u + ' digs up a gem!' : e.found === 'stone' ? u + ' digs up a stone.' : u + ' digs and finds nothing.';
+        return e.d >= 0 && e.d !== e.u ? u + ' puts up sandbags beside ' + d + '.' : u + ' puts up a barricade.';
+      case 'dig': {
+        const at = e.shaft ? ' at the Mine Shaft' : '';
+        return e.found === 'gem' ? u + ' digs up a gem' + at + '!' : e.found === 'stone' ? u + ' digs up a stone' + at + '.' : u + ' digs' + at + ' and finds nothing.';
+      }
       case 'deliver':
         return u + ' hands ' + d + ' a gem.';
       case 'burrow':
-        return e.why === 'away' ? u + ' tunnels away!' : u + ' tunnels over with the gem.';
+        return e.why === 'away' ? u + ' tunnels away!' : e.why === 'home' ? u + ' tunnels back down to the Mine Shaft.' : u + ' tunnels over with the gem.';
+      case 'stake':
+        return u + ' wades into the Liquidity Pool to stake.';
       case 'perk':
         return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
       case 'pick':
@@ -10150,8 +10355,9 @@ const SquadView = (() => {
         return d + ' heals ' + e.amt + '.';
       }
       case 'yield': {
-        const who = Array.isArray(e.u) ? e.u.map(nm) : [];
-        return who.length ? 'The Liquidity Pool pays out: ' + who.join(', ') + ' +' + SE.RULES.poolYield + ' HP.' : '';
+        // what each one collects: the yield grows the longer it stakes
+        const who = Array.isArray(e.u) ? e.u.map((id, i) => nm(id) + ' +' + (Array.isArray(e.amt) ? e.amt[i] : SE.RULES.poolYield)) : [];
+        return who.length ? 'The Liquidity Pool pays out: ' + who.join(', ') + ' HP.' : '';
       }
       case 'power':
         if (e.p === 'freeze') return u + ' fires a Freeze Ray at ' + d + '.';
@@ -10952,7 +11158,7 @@ const SquadView = (() => {
     // the trench arsenal: a reload, an aim, the gap between a burst's shots, the Scope
     // Rifle's shot, the Boom Pack, a barricade going up, a dig, a gem handed over, a tunnel
     reload: 560, reloadHit: 300, scope: 820, scopeHit: 420, scopeShot: 1000, scopeWind: 460, burstGap: 110,
-    blowup: 1500, blowupHit: 600, build: 1000, buildHit: 680, dig: 800, digHit: 480,
+    blowup: 1500, blowupHit: 600, build: 1000, buildHit: 680, dig: 800, digHit: 480, arm: 700, armHit: 260,
     deliver: 820, deliverHit: 500, burrow: 1150, burrowDown: 320, burrowUp: 880,
     // the chest's pill: a reading each turn, a longer one once it locks on, and the
     // graduation itself, which is the biggest single thing that happens in a round
@@ -11163,7 +11369,7 @@ const SquadView = (() => {
         }
         flush();
         // what a Blub heads for rides on its walk, like its turn starting
-        if (t === 'act' || t === 'goal') {
+        if (t === 'act' || t === 'goal' || t === 'stake') {
           parent = null;
           pre.push(i);
           return;
@@ -11235,7 +11441,7 @@ const SquadView = (() => {
           return;
         }
         // the trench arsenal: each a scene of its own, the event at its high point
-        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup') {
+        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm') {
           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
           return;
         }
@@ -11804,8 +12010,12 @@ const SquadView = (() => {
     if (P.calm || t0 - P.flashT < 1000) return;
     P.flashT = t0;
   }
-  const SFX_PRIO = { ko: 6, power: 5, zap: 5, sift: 5, read: 5, bell: 5, fight: 5, win: 6, crit: 3, hit: 2, block: 2, miss: 2, heal: 2, click: 1 };
-  const SFX_FAST = new Set(['ko', 'power', 'sift', 'read', 'bell', 'fight', 'win']);
+  const SFX_PRIO = {
+    ko: 6, power: 5, zap: 5, sift: 5, read: 5, bell: 5, fight: 5, win: 6, crit: 3, hit: 2, block: 2, miss: 2, heal: 2, click: 1,
+    // the trench arsenal
+    boom: 6, snipe: 4, gem: 4, shot: 3, aim: 3, rumble: 3, dig: 2, thud: 2, reload: 1, fuse: 1,
+  };
+  const SFX_FAST = new Set(['ko', 'power', 'sift', 'read', 'bell', 'fight', 'win', 'boom']);
   function sfx(name) {
     if (P.seeking) return;
     if (P.speed >= 4 && !SFX_FAST.has(name)) return;
@@ -12745,6 +12955,26 @@ const SquadView = (() => {
   function arsenalBeat(b, T, k) {
     const S = P.S;
     const e = b.e;
+    // armed: the fuse fizzes for a moment, and it waits
+    if (b.kind === 'arm') {
+      const u = S.u[e.u];
+      addFx(T, b.dur, (x, kk, el) => {
+        const ub = u._b;
+        if (!ub) return;
+        const fx0 = ub.ox + 8 + (u.face > 0 ? 7 : -7);
+        const fy0 = ub.oy + 6;
+        const tick = Math.floor(el / (50 * k));
+        for (let i = 0; i < 2; i++) {
+          const a = hash(tick, i, 5) * Math.PI * 2;
+          x.fillStyle = i ? '#FFD447' : '#FF5C77';
+          x.fillRect(Math.round(fx0 + Math.cos(a) * 2), Math.round(fy0 + Math.sin(a) * 2), 1, 1);
+        }
+      });
+      const [ux, uy] = centreOf(u);
+      label(T, 'ARMED', '#FF5C77', ux, above(uy - 20));
+      sfx('fuse');
+      return true;
+    }
     if (b.kind === 'blowup') {
       const u = S.u[e.u];
       addFx(T, b.contact, (x, kk, el) => {
@@ -12769,7 +12999,8 @@ const SquadView = (() => {
       });
       const [ux, uy] = centreOf(u);
       label(T, '!', '#FF8A3D', ux, above(uy - 20), true, 2);
-      sfx('read');
+      sfx('fuse');
+      atClock(T + b.contact * 0.5, () => sfx('fuse'));
       return true;
     }
     if (b.kind === 'build') {
@@ -12788,7 +13019,7 @@ const SquadView = (() => {
           x.drawImage(art, rx, Math.round(ry - (1 - p * p) * 18));
         });
         addParts(3, rx + 5, ry + 6, [OC.skL, OC.sk], 0.04, 0.0003, 280 * k, h, true, [Math.PI, Math.PI * 2]);
-        if (i < 2) atClock(h, () => sfx('block'));
+        if (i < 2) atClock(h, () => sfx('thud'));
       });
       // the mallet knocking each sack into place
       addFx(T, b.contact, (x, kk, el) => {
@@ -12810,7 +13041,7 @@ const SquadView = (() => {
       });
       const [ux, uy] = centreOf(u);
       addParts(4, ux + 7 * s, uy + 5, [OC.dt, OC.dtD, OC.dtL], 0.04, 0.0004, 280 * k, T + swing, true, [Math.PI * 1.1, Math.PI * 1.9]);
-      atClock(T + swing, () => sfx('block'));
+      atClock(T + swing, () => sfx('dig'));
       return true;
     }
     if (b.kind === 'deliver') {
@@ -14194,6 +14425,7 @@ const SquadView = (() => {
         // a bullet: the burst's later shots streak in on their own, and every one that
         // lands throws sparks (the Scope Rifle's a shower of them)
         if (GUNS.has(e.w)) {
+          sfx(e.w === 'scope' ? 'snipe' : 'shot');
           if (e.n >= 1) gunShot(T - 50 * k, u, d, e.res === 'miss' ? (hash(T, e.u, e.n) < 0.5 ? -6 : 6) : 0, e.res === 'miss' ? 4 : 0, k, false);
           if (e.res !== 'miss' && e.res !== 'whiff') addParts(e.w === 'scope' ? 14 : 4, dx, dy, ['#FFF3B0', '#FFD447', '#FFFFFF'], e.w === 'scope' ? 0.1 : 0.06, 0.0003, (e.w === 'scope' ? 420 : 220) * k, T, true);
           if (e.w === 'scope' && e.res !== 'miss') {
@@ -14811,7 +15043,7 @@ const SquadView = (() => {
           x.fillRect(ux + 5 * s, uy - 2, 1, 1);
         });
         label(T, 'RELOAD', colors.gold, ux, above(uy - 22));
-        sfx('click');
+        sfx('reload');
         return;
       }
       // it takes aim: a glint off the scope as it settles (the laser stays till the shot)
@@ -14828,7 +15060,7 @@ const SquadView = (() => {
           x.fillRect(gx, gy - r, 1, r * 2 + 1);
         });
         label(T, 'AIM', '#FF5C77', centreOf(U[e.d])[0], above(centreOf(U[e.d])[1] - 22));
-        sfx('read');
+        sfx('aim');
         return;
       }
       // BOOM: the fireball, the shock ring, the grit, and a scorch where it stood
@@ -14841,8 +15073,7 @@ const SquadView = (() => {
         closeUp(T - 120 * k, 900 * k, cx, cy - 6, { slow: [T - 40 * k, T + 70 * k], f: 0.5 });
         addParts(16, cx, cy, ['#FFD447', '#FF8A3D', '#FFFFFF', '#3A3A4A'], 0.12, 0.0004, 700 * k, T, false);
         label(T + 60 * k, 'BOOM!', '#FF8A3D', cx, above(cy - 30), true, 2);
-        sfx('crit');
-        sfx('ko');
+        sfx('boom');
         return;
       }
       // the last sack thumps home: a puff of sand off the new barricade
@@ -14851,7 +15082,13 @@ const SquadView = (() => {
         addParts(8, bx, by + 4, [OC.skL, OC.sk, OC.skD], 0.05, 0.0003, 380 * k, T, true, [Math.PI * 1.05, Math.PI * 1.95]);
         ringFx(T, bx, by + 6, 260 * k, OC.skL, 2, 9, true, 0.5);
         label(T, 'COVER', OC.skL, bx, above(by - 20));
-        sfx('block');
+        // and the ally it is for lights up behind it
+        const a = e.d >= 0 && e.d !== e.u ? U[e.d] : null;
+        if (a) {
+          const [ax, ay] = centreOf(a);
+          ringFx(T + 90 * k, ax, ay + 6, 420 * k, OC.skL, 3, 11, true, 0.6);
+        }
+        sfx('thud');
         return;
       }
       // the second swing gives: a gem, a stone, or only dirt
@@ -14870,8 +15107,13 @@ const SquadView = (() => {
           });
           if (e.found === 'gem') addParts(8, gx, gy - 10, ['#FFFFFF', '#86CBF3', '#5FE6D6'], 0.05, -0.00005, 520 * k, T + 120 * k, false);
           label(T + 80 * k, e.found === 'gem' ? 'GEM!' : 'STONE', e.found === 'gem' ? '#86CBF3' : '#C9C9D6', ux, above(uy - 22), e.found === 'gem');
-          sfx(e.found === 'gem' ? 'power' : 'block');
-        } else sfx('click');
+          sfx(e.found === 'gem' ? 'gem' : 'dig');
+        } else sfx('dig');
+        // on its own Mine Shaft: the vein glitters, twice the luck
+        if (e.shaft) {
+          addParts(6, ux, uy + 8, ['#FFD447', '#FFFFFF', '#FF8A3D'], 0.04, -0.00004, 560 * k, T + 40 * k, false, [-Math.PI * 0.9, -Math.PI * 0.1]);
+          label(T + 160 * k, 'x2', '#FFD447', ux + 24, above(uy - 22));
+        }
         return;
       }
       // the gem lands in its paws: a sparkle, and it shines
@@ -14881,7 +15123,7 @@ const SquadView = (() => {
         ringFx(T, dx, dy, 320 * k, '#86CBF3', 3, 12, false, 0.8);
         addParts(10, dx, dy - 4, ['#FFFFFF', '#86CBF3', '#5FE6D6'], 0.06, -0.00004, 520 * k, T, false);
         label(T, '+GEM', '#86CBF3', dx, above(dy - 24), true);
-        sfx('power');
+        sfx('gem');
         return;
       }
       // Down it goes in a spray of dirt, a mound runs along under the floor, and it
@@ -14921,8 +15163,9 @@ const SquadView = (() => {
         addParts(12, tx0, ty0 + 5, dirt, 0.07, 0.0004, 460 * k, T + UP, true, [Math.PI * 1.05, Math.PI * 1.95]);
         ringFx(T + UP, tx0, ty0 + 6, 300 * k, OC.dtL, 3, 10, true, 0.5);
         if (e.why === 'away') label(T + UP, 'DUG OUT', OC.skL, tx0, above(ty0 - 22));
-        atClock(T + D * 0.3, () => sfx('block'));
-        atClock(T + UP, () => sfx('click'));
+        if (e.why === 'home') label(T + UP, 'BACK TO DIG', '#FFD447', tx0, above(ty0 - 22));
+        atClock(T + D * 0.3, () => sfx('rumble'));
+        atClock(T + UP, () => sfx('dig'));
         return;
       }
       // The Liquidity Pool pays out: rings of rainbow round each Blub standing in it,
@@ -14939,6 +15182,18 @@ const SquadView = (() => {
           addParts(7, ux, uy + 4, POOL_COLS, 0.035, -0.00006, 820 * k, t0 + 80 * k, false, [-Math.PI * 0.85, -Math.PI * 0.15]);
         });
         if (ids.length) sfx('heal');
+        return;
+      }
+      // a hurt Blub heads into the rainbow water to stake: '$' over it, and the water it
+      // is going for ripples in rainbow
+      case 'stake': {
+        const u = U[e.u];
+        if (!u) return;
+        const [ux, uy] = centreOf(u);
+        label(T, 'STAKE', POOL_COLS[2], ux, above(uy - 20));
+        const [gx, gy] = tileC(e.at[0], e.at[1]);
+        ringFx(T, gx, gy + 4, 640 * k, POOL_COLS[0], 14, 6, true, 0.6);
+        ringFx(T + 160 * k, gx, gy + 4, 560 * k, POOL_COLS[3], 10, 5, true, 0.5);
         return;
       }
       // a Blub heads for something the chest threw in: a '!' over it, and the spot it
@@ -16110,10 +16365,11 @@ const SquadView = (() => {
     end: ['x..x...xx', 'xx.xx..xx', 'xxxxxx.xx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxx.xx', 'xx.xx..xx', 'x..x...xx'],
     more: ['.........', '.........', '.........', 'xx.xx.xx.', 'xx.xx.xx.', '.........', '.........', '.........', '.........'],
     x: ['xx.....xx', 'xxx...xxx', '.xxx.xxx.', '..xxxxx..', '...xxx...', '..xxxxx..', '.xxx.xxx.', 'xxx...xxx', 'xx.....xx'],
+    rec: ['..xxxxx..', '.xxxxxxx.', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', '.xxxxxxx.', '..xxxxx..'],
   };
-  function glyph(name) {
+  function glyph(name, col) {
     const c = canvas(9, 9, 'sqv-g spr');
-    paintRows(c.getContext('2d'), GLYPHS[name], { x: '#FFF6F8' }, 0, 0, 1);
+    paintRows(c.getContext('2d'), GLYPHS[name], { x: col || '#FFF6F8' }, 0, 0, 1);
     c.setAttribute('aria-hidden', 'true');
     return c;
   }
@@ -16149,7 +16405,10 @@ const SquadView = (() => {
     const scR = el('b', 'rival', '0');
     score.append(scY, el('i', '', '-'), scR);
     const close = btn('sqv-x', 'Close the arena', [glyph('x')]);
-    bar.append(pips, title, score, turn, close);
+    // the clip: the last seconds again, saved as a video (only where the browser records)
+    const bClip = btn('sqv-clip', 'Clip the last seconds as a video', [glyph('rec', '#FF5C77')]);
+    bClip.hidden = !clipOk();
+    bar.append(pips, title, score, turn, bClip, close);
 
     const mkRoster = (side) => {
       const box = el('section', 'sqv-ros sqv-' + side);
@@ -16179,7 +16438,12 @@ const SquadView = (() => {
     pop.setAttribute('aria-hidden', 'true');
     const card = el('div', 'sqv-card');
     card.hidden = true;
-    stage.append(cv, ticker, ban, pop, card);
+    // on the board while a clip is recorded
+    const recTag = el('div', 'sqv-rec');
+    recTag.hidden = true;
+    recTag.setAttribute('aria-hidden', 'true');
+    recTag.append(el('i', ''), el('b', '', 'REPLAY'));
+    stage.append(cv, ticker, ban, pop, card, recTag);
     wrap.append(stage);
 
     const ctl = el('div', 'sqv-ctl');
@@ -16233,9 +16497,10 @@ const SquadView = (() => {
       /* sound is optional */
     }
 
-    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, them, you, wrap, stage, cv, ticker, ban, pop, card, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
+    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bClip, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
 
     close.onclick = () => finish();
+    bClip.onclick = () => startClip();
     bPlay.onclick = () => togglePause();
     bPrev.onclick = () => stepTurn(-1);
     bNext.onclick = () => stepTurn(1);
@@ -16308,7 +16573,8 @@ const SquadView = (() => {
     const k = ev.key;
     if (k === 'Escape') {
       ev.preventDefault();
-      if (!D.card.hidden) D.card.hidden = true;
+      if (P.clipBox) closeClip(true);
+      else if (!D.card.hidden) D.card.hidden = true;
       else if (D.opts.classList.contains('open')) {
         D.opts.classList.remove('open');
         D.bMore.setAttribute('aria-expanded', 'false');
@@ -16383,6 +16649,14 @@ const SquadView = (() => {
     if (!P || P.phase === 'outro') return;
     P.paused = !P.paused;
     paintPlay();
+    // a clip being recorded holds with the fight
+    const rec = P.clip && P.clip.rec;
+    try {
+      if (rec && P.paused && rec.state === 'recording') rec.pause();
+      else if (rec && !P.paused && rec.state === 'paused') rec.resume();
+    } catch (err) {
+      /* the clip runs on */
+    }
   }
 
   function layout() {
@@ -16436,7 +16710,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -16752,7 +17026,10 @@ const SquadView = (() => {
       const L = Array.isArray(o.looks) ? o.looks[k] : null;
       looks.push(L && typeof L === 'object' ? L : DEF);
     }
-    return { label: typeof o.label === 'string' && o.label.trim() ? o.label.trim().slice(0, 40) : i ? 'Team B' : 'Team A', names, looks, squad: sq };
+    // a best of 3 may bring a plan: its strategies in the order it plays them (the
+    // first is `squad`); the side that loses a round brings its next one
+    const plan = Array.isArray(o.plan) ? o.plan.slice(0, SE.PLAN_MAX || 3).map((s) => SE.cleanSquad(s)) : [];
+    return { label: typeof o.label === 'string' && o.label.trim() ? o.label.trim().slice(0, 40) : i ? 'Team B' : 'Team A', names, looks, squad: sq, plan: sq && plan.length > 1 && plan.every(Boolean) ? [sq, ...plan.slice(1)] : sq ? [sq] : [] };
   }
 
   function play(match) {
@@ -16829,14 +17106,19 @@ const SquadView = (() => {
       oldRules(stored);
       return;
     }
-    // every round of the match, replayed from the seed
+    // every round of the match, replayed from the seed: in a best of 3 with plans the
+    // side that lost a round brings its next strategy (the rule of SE.matchRounds)
     const need = bo === 3 ? 2 : 1;
     const wins = [0, 0];
+    const at = [0, 0];
     P.rounds = [];
     for (let i = 0; i < 3 && wins[0] < need && wins[1] < need; i++) {
-      const R = SE.simulateRound(teams[0].squad, teams[1].squad, seed, i);
+      const sq = [teams[0].plan[at[0]], teams[1].plan[at[1]]];
+      const R = SE.simulateRound(sq[0], sq[1], seed, i);
       wins[R.winner]++;
-      P.rounds.push({ R });
+      P.rounds.push({ R, sq, strat: at.slice() });
+      const lost = 1 - R.winner;
+      if (bo === 3 && at[lost] + 1 < teams[lost].plan.length) at[lost]++;
     }
     P.wins = wins;
     P.winner = wins[0] > wins[1] ? 0 : 1;
@@ -16853,6 +17135,8 @@ const SquadView = (() => {
 
   function finish() {
     if (!P) return;
+    if (P.clip) stopClip(false);
+    closeClip();
     const p = P;
     cancelAnimationFrame(p.raf);
     clearTimeout(p.popTimer);
@@ -16878,6 +17162,14 @@ const SquadView = (() => {
   function loadRound(ri) {
     const r = P.rounds[ri];
     P.ri = ri;
+    // a side that switched strategy plays this round with other builds: new sprites and rosters
+    if (r.sq && (r.sq[0] !== P.squads[0] || r.sq[1] !== P.squads[1])) {
+      P.squads = r.sq.slice();
+      if (P.spr) {
+        P.spr = P.looks.map((L, i) => makeSprites(L, P.squads[i < 5 ? 0 : 1].units[i % 5].cls));
+        buildRosters();
+      }
+    }
     if (!r.map) r.map = prepMap(r.R, P.flip, r.R.theme);
     P.map = r.map;
     setupObjs(r.R);
@@ -16942,6 +17234,7 @@ const SquadView = (() => {
     P.last = now;
     if (!P.paused) advance(dt);
     if (P.phase !== 'intro' || P.chestOnly || P.ic > 2600) render(now);
+    if (P.clip) clipTick();
     flushSfx(now);
     flushSay(now);
     if (P.dirty || P.textDirty || P.phase === 'round') updateUi();
@@ -17016,6 +17309,8 @@ const SquadView = (() => {
 
   // ---- seeking: rebuild the state from the start of the round up to a turn
   function seekTo(ri, T) {
+    // a jump while a clip is recorded drops the clip
+    if (P.clip && !P.clipSeek) stopClip(false);
     if (ri !== P.ri || P.phase !== 'round') {
       loadRound(ri);
       P.phase = 'round';
@@ -17112,6 +17407,259 @@ const SquadView = (() => {
     } else if (n >= L.length) skipRound();
     else seekTo(P.ri, L[n].t);
   }
+  // ---- the clip: the last seconds of the fight played again at 1x and recorded as a
+  // video with its sound (MediaRecorder on the board scaled up, the score over it and
+  // the ticker under it). It never leaves the browser: the player shares or saves it.
+  const CLIP_MS = 4000; // clock time back from where it was asked for: about 8 s at 1x
+  const CLIP_X = 3; // the board's scale in the video
+  const CLIP_HEAD = 60;
+  const CLIP_FOOT = 52;
+  function clipOk() {
+    try {
+      return typeof MediaRecorder === 'function' && typeof MediaStream === 'function' && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+    } catch (err) {
+      return false;
+    }
+  }
+  function clipType() {
+    for (const t of ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']) {
+      try {
+        if (MediaRecorder.isTypeSupported(t)) return t;
+      } catch (err) {
+        /* the next one then */
+      }
+    }
+    return '';
+  }
+  function startClip() {
+    if (!P || !D || P.clip || !clipOk() || (P.phase !== 'round' && P.phase !== 'outro')) return;
+    closeClip();
+    const after = P.phase === 'outro';
+    const was = { speed: P.speed, paused: P.paused };
+    // the end of the match: back into its last round, and to the result after it
+    if (after) {
+      D.over.hidden = true;
+      P.phase = 'round';
+    }
+    if (P.speed !== 0.5) setSpeed(0.5);
+    const end = after ? P.rd.total : P.clock;
+    const from = Math.max(P.rd.fightAt || P.rd.introLen || 0, end - CLIP_MS);
+    if (end - from < 1200) {
+      if (was.speed !== P.speed) setSpeed(was.speed);
+      if (after) {
+        P.phase = 'outro';
+        D.over.hidden = false;
+      }
+      say('Nothing to clip yet: let the fight run a moment first.', true);
+      return;
+    }
+    const cv = document.createElement('canvas');
+    cv.width = CW * CLIP_X;
+    cv.height = CLIP_HEAD + CH * CLIP_X + CLIP_FOOT;
+    const font = getComputedStyle(D.root).getPropertyValue('--f-data').trim() || 'monospace';
+    const C = { ri: P.ri, end, last: 0, after, was, cv, g: cv.getContext('2d'), font, chunks: [], keep: false, rec: null, video: null };
+    P.clipSeek = true;
+    seekTo(P.ri, from);
+    P.clipSeek = false;
+    P.paused = false;
+    paintPlay();
+    clipDraw(C);
+    const type = clipType();
+    try {
+      C.video = cv.captureStream(30);
+      const tracks = C.video.getVideoTracks().slice();
+      try {
+        const snd = typeof Sfx !== 'undefined' && Sfx.tap ? Sfx.tap() : null;
+        if (snd) tracks.push(...snd.getAudioTracks());
+      } catch (err) {
+        /* a silent clip then */
+      }
+      C.rec = new MediaRecorder(new MediaStream(tracks), Object.assign({ videoBitsPerSecond: 5000000 }, type ? { mimeType: type } : {}));
+    } catch (err) {
+      if (was.speed !== P.speed) setSpeed(was.speed);
+      say('This browser cannot record a clip.', true);
+      return;
+    }
+    C.rec.ondataavailable = (e) => {
+      if (e.data && e.data.size) C.chunks.push(e.data);
+    };
+    C.rec.onstop = () => {
+      if (C.keep) clipReady(new Blob(C.chunks, { type: (C.rec.mimeType || type || 'video/webm').split(';')[0] }));
+    };
+    P.clip = C;
+    C.rec.start(500);
+    D.recTag.hidden = false;
+    D.bClip.setAttribute('aria-disabled', 'true');
+    say('Replaying the last seconds and recording them as a clip.', true);
+  }
+  // every frame of a clip: draw it, and stop where it was asked for (a skip or a jump
+  // out of the round drops it; the end of the match keeps it)
+  function clipTick() {
+    const C = P.clip;
+    const same = P.phase === 'round' && P.ri === C.ri;
+    if (same && P.clock < C.end) {
+      C.last = P.clock;
+      clipDraw(C);
+      return;
+    }
+    stopClip((C.after && P.phase === 'outro') || (same && P.clock >= C.end) || (!same && C.last >= C.end - 400));
+  }
+  function clipCut(g, s, w) {
+    let t = String(s || '');
+    if (g.measureText(t).width <= w) return t;
+    while (t.length > 1 && g.measureText(t + '…').width > w) t = t.slice(0, -1);
+    return t + '…';
+  }
+  function clipText(g, s, x, y, col) {
+    g.fillStyle = '#000';
+    g.fillText(s, x + 3, y + 3);
+    g.fillStyle = col;
+    g.fillText(s, x, y);
+  }
+  function clipDraw(C) {
+    const g = C.g;
+    const W = C.cv.width;
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = colors.ink;
+    g.fillRect(0, 0, W, C.cv.height);
+    // both squads and the score over the board
+    const sc = scoreNow();
+    g.textBaseline = 'middle';
+    g.font = '34px ' + C.font;
+    g.textAlign = 'left';
+    clipText(g, clipCut(g, P.sideLabels.you, W / 2 - 80), 16, CLIP_HEAD / 2, colors.you.light);
+    g.textAlign = 'right';
+    clipText(g, clipCut(g, P.sideLabels.rival, W / 2 - 80), W - 16, CLIP_HEAD / 2, colors.rival.light);
+    g.textAlign = 'center';
+    g.font = '42px ' + C.font;
+    clipText(g, sc[0] + ' - ' + sc[1], W / 2, CLIP_HEAD / 2, '#FFFFFF');
+    g.drawImage(D.cv, 0, 0, CW, CH, 0, CLIP_HEAD, CW * CLIP_X, CH * CLIP_X);
+    // REPLAY on the board, its light blinking
+    if (Math.floor(performance.now() / 500) % 2 === 0) {
+      g.fillStyle = '#FF2E4C';
+      g.fillRect(16, CLIP_HEAD + 18, 14, 14);
+    }
+    g.font = '32px ' + C.font;
+    g.textAlign = 'left';
+    clipText(g, 'REPLAY', 38, CLIP_HEAD + 25, '#FFFFFF');
+    // the ticker under it, and the name of the game
+    const fy = CLIP_HEAD + CH * CLIP_X + CLIP_FOOT / 2;
+    g.font = '28px ' + C.font;
+    const name = '$BLUB SQUAD ARENA';
+    const nw = g.measureText(name).width;
+    g.textAlign = 'right';
+    clipText(g, name, W - 14, fy, colors.gold);
+    g.textAlign = 'left';
+    clipText(g, clipCut(g, P.ticker, W - nw - 44), 14, fy, '#D9CDEA');
+  }
+  function stopClip(keep) {
+    const C = P && P.clip;
+    if (!C) return;
+    P.clip = null;
+    C.keep = !!keep;
+    try {
+      if (C.rec && C.rec.state !== 'inactive') C.rec.stop();
+    } catch (err) {
+      /* nothing to save */
+    }
+    try {
+      C.video.getVideoTracks().forEach((t) => t.stop());
+    } catch (err) {
+      /* already stopped */
+    }
+    if (D) {
+      D.recTag.hidden = true;
+      D.bClip.removeAttribute('aria-disabled');
+    }
+    if (C.was.speed !== P.speed) setSpeed(C.was.speed);
+    if (C.was.paused && P.phase === 'round' && !P.paused) {
+      P.paused = true;
+      paintPlay();
+    }
+    if (!keep) say('The clip was dropped.', true);
+  }
+  // the clip is ready: a look at it, and share it (where the device can) or save it
+  function clipReady(blob) {
+    if (!P || !D || !blob.size) return;
+    closeClip();
+    const name = 'squad-arena-clip.' + (/mp4/.test(blob.type) ? 'mp4' : 'webm');
+    const url = URL.createObjectURL(blob);
+    const box = el('div', 'sqv-clipbox');
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Your clip');
+    const vid = document.createElement('video');
+    vid.className = 'sqv-clipv';
+    vid.muted = true;
+    vid.loop = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.setAttribute('aria-label', 'Your clip, playing without sound');
+    vid.src = url;
+    let file = null;
+    try {
+      file = new File([blob], name, { type: blob.type });
+    } catch (err) {
+      file = null;
+    }
+    let share = false;
+    try {
+      share = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+    } catch (err) {
+      share = false;
+    }
+    const row = el('div', 'sqv-cliprow');
+    const mk = (text, fn) => {
+      const b = el('button', 'sqv-cb', text);
+      b.type = 'button';
+      b.onclick = fn;
+      row.append(b);
+      return b;
+    };
+    const bShare = share
+      ? mk('Share', async () => {
+          try {
+            await navigator.share({ files: [file], title: 'Squad Arena clip' });
+          } catch (err) {
+            /* the player changed their mind */
+          }
+        })
+      : null;
+    const bSave = mk('Save', () => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.append(a);
+      a.click();
+      a.remove();
+    });
+    mk('Close', () => closeClip(true));
+    box.append(el('p', 'sqv-cliph', 'Clip ready'), vid, row);
+    // over everything, the result too
+    D.root.append(box);
+    // the fight waits under it, and goes on when the clip is closed
+    const resume = P.phase === 'round' && !P.paused;
+    if (resume) {
+      P.paused = true;
+      paintPlay();
+    }
+    P.clipBox = { box, url, resume };
+    say('Your clip is ready: ' + (share ? 'share it or save it.' : 'save it.'), true);
+    (bShare || bSave).focus();
+  }
+  function closeClip(refocus) {
+    const B = P && P.clipBox;
+    if (!B) return;
+    P.clipBox = null;
+    B.box.remove();
+    URL.revokeObjectURL(B.url);
+    if (!refocus) return;
+    if (B.resume && P.phase === 'round' && P.paused) {
+      P.paused = false;
+      paintPlay();
+    }
+    if (D && !D.bClip.hidden) D.bClip.focus();
+  }
+
   function skipRound() {
     if (!P) return;
     if (P.phase === 'intro') return endIntro();
@@ -17127,6 +17675,7 @@ const SquadView = (() => {
   }
   function setSpeed(s, save) {
     if (!P || ![0.5, 1, 2, 4].includes(s)) return;
+    if (save && P.clip) stopClip(false);
     if (s === P.speed) return;
     P.speed = s;
     if (P.phase === 'round' && P.rd) {
@@ -17547,8 +18096,19 @@ const SquadView = (() => {
     const pips = el('div', 'sqv-bp');
     pips.append(el('span', 'you', P.sideLabels.you + ' ' + sc[0]), el('span', 'rival', sc[1] + ' ' + P.sideLabels.rival));
     b2.append(h, pc, pips);
+    // a best of 3 with plans: who brings in another strategy this round
+    const r = P.rounds[P.ri];
+    const prev = P.ri > 0 ? P.rounds[P.ri - 1] : null;
+    const swaps = [];
+    for (const t of [P.me, 1 - P.me]) {
+      if (!r.strat || !prev || !prev.strat || r.strat[t] === prev.strat[t]) continue;
+      const who = P.viewer >= 0 && t === P.me ? 'You bring' : (P.viewer < 0 ? P.teamLabels[t] : P.sideLabels.rival) + ' brings';
+      const line = who + ' in plan ' + 'ABC'[r.strat[t]];
+      swaps.push(line);
+      b2.append(el('span', 'sqv-swap ' + P.sideOf(t), line));
+    }
     b2.className = 'sqv-ban on';
-    say('Round ' + n + ': ' + nameOf('theme', R.theme) + '. Power-up of the round: ' + nameOf('item', R.powerup) + '.', true);
+    say('Round ' + n + ': ' + nameOf('theme', R.theme) + '. Power-up of the round: ' + nameOf('item', R.powerup) + '.' + swaps.map((l) => ' ' + l + '.').join(''), true);
   }
   function roundEnd(b, T) {
     const S = P.S;
@@ -17726,7 +18286,8 @@ const SquadView = (() => {
     say(title + ' ' + sc[0] + ' to ' + sc[1] + '. MVP: ' + P.names[mvp] + '.', true);
     sfx('win');
     setTimeout(() => {
-      if (P && P.phase === 'outro') (acts.querySelector('button') || D.close).focus();
+      // (a clip that just came in keeps the focus)
+      if (P && P.phase === 'outro' && !P.clipBox) (acts.querySelector('button') || D.close).focus();
     }, 50);
   }
   function oldRules(stored) {
@@ -18337,9 +18898,13 @@ const SquadHall = (() => {
   const trnUsed = t => E.TRAINING.reduce((s, [k]) => s + (t[k] || 0), 0);
   const isBack = u => E.WEAPON_STATS[u.wpn].range >= 3 || u.cls === 'sweet';
   const shooter = u => u.wpn === 'bow' || u.wpn === 'wand';
-  function problem(u){
+  // what keeps a unit from fighting; `units` its squad (the squad being built when left out)
+  function problem(u, units){
     if (u.gear === 'shield' && twoHanded(u.wpn)) return GEAR.shield[1] + ' needs a one-handed weapon: pick other gear or another weapon.';
     if (trnUsed(u.trn) > E.TRAIN_POINTS) return 'Too many training points.';
+    // one Boom Pack a squad: the first Blub that has one keeps it
+    const list = units || (st.draft && st.draft.units.includes(u) ? st.draft.units : null);
+    if (list && E.WEAPON_STATS[u.wpn].one && list.find(v => v.wpn === u.wpn) !== u) return 'One ' + WPN[u.wpn][1] + ' a squad, and another Blub has it: pick another weapon.';
     return '';
   }
   const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, trn: {...P.trn}, x, y}; };
@@ -18515,7 +19080,7 @@ const SquadHall = (() => {
   }
   const copyDraft = d => cleanDraft(JSON.parse(JSON.stringify(d)));
   const squadOf = d => ({units: d.units.map(u => ({cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, trn: {...u.trn}, x: u.x, y: u.y})), objs: (d.objs || []).map(o => ({k: o.k, x: o.x, y: o.y}))});
-  const readyCount = d => d.units.filter(u => !problem(u)).length;
+  const readyCount = d => d.units.filter(u => !problem(u, d.units)).length;
   // the captain: real once your Blub is saved (in the Meadow), else a stand-in
   function captain(){ return {...team()[0], real: !!SquadNet.captain()}; }
   const nameOf = i => team()[i].name;
@@ -19050,7 +19615,12 @@ const SquadHall = (() => {
   // a two-handed weapon takes the shield off (Cloud Boots instead)
   const wpnPatch = (u, id) => (u.gear === 'shield' && twoHanded(id) ? {wpn: id, gear: 'boots'} : {wpn: id});
   const LISTS = {wpn: E.WEAPONS, gear: E.GEAR, pow: E.POWERS, tac: E.TACTICS};
-  function why(p, id, u){ return p === 'gear' && id === 'shield' && twoHanded(u.wpn) ? WPN[u.wpn][1] + ' needs both hands' : ''; }
+  function why(p, id, u){
+    if (p === 'gear' && id === 'shield' && twoHanded(u.wpn)) return WPN[u.wpn][1] + ' needs both hands';
+    // one Boom Pack a squad
+    const i = p === 'wpn' && E.WEAPON_STATS[id].one ? st.draft.units.findIndex(v => v !== u && v.wpn === id) : -1;
+    return i >= 0 ? 'one a squad, and ' + nameOf(i) + ' has it' : '';
+  }
   // the description box: the hovered or focused choice, else the one picked
   function detail(box, p, id){
     const i = st.sel, u = st.draft.units[i], m = team()[i];
@@ -19065,7 +19635,7 @@ const SquadHall = (() => {
     }
     const list = LISTS[p], kind = p, cur = u[p], c = id || cur, C = list.find(x => x[0] === c) || list[0], bad = why(p, C[0], u);
     box.append(h('p', {class: 'sq-chd-t'}, vIcon(kind, C[0], 20), h('b', null, C[1]), p === 'wpn' ? h('span', null, weaponLine(C[0])) : null), h('p', {class: 'sq-desc'}, C[2]));
-    if (bad) box.append(h('p', {class: 'sq-chg bad'}, 'Not with this weapon: ' + bad + '.'));
+    if (bad) box.append(h('p', {class: 'sq-chg bad'}, (p === 'wpn' ? 'Not now: ' : 'Not with this weapon: ') + bad + '.'));
     else if (C[0] === cur) box.append(h('p', {class: 'sq-chg now'}, 'Picked.'));
     else {
       const ch = p === 'wpn' ? changes(u, i, wpnPatch(u, C[0])) : p === 'gear' ? changes(u, i, {gear: C[0]}) : [];
@@ -20007,10 +20577,14 @@ const SquadHall = (() => {
     if (d.state === 'open' && !(Date.parse(d.exp) > Date.now())) d.state = 'expired';
     // an open squad stays secret: only the challenger's own copy keeps it
     if (o.cs && (d.state === 'done' || d.c === me)){ d.cs = E.cleanSquad(o.cs); d.tc = cleanTeam(o.tc, cr); }
+    // a best of 3 may bring plans: the strategies a side played, in order (round 1's is cs / as)
+    const planIn = v => { const p = Array.isArray(v) && v.length > 1 ? v.slice(0, E.PLAN_MAX).map(s => E.cleanSquad(s)) : null; return p && p.every(Boolean) ? p : null; };
+    if (d.cs){ const cp = planIn(o.cp); if (cp) d.cp = cp; }
     if (d.state === 'done'){
       if (typeof o.a !== 'string' || !ID_OK.test(o.a)) return null;
       d.a = o.a; d.ar = cleanFace(o.ar) || {name: 'Blub', look: {...DEF}, style: 'playful'};
       if (o.as){ d.as = E.cleanSquad(o.as); d.ta = cleanTeam(o.ta, d.ar); }
+      if (d.as){ const ap = planIn(o.ap); if (ap) d.ap = ap; }
       const seed = Math.floor(+o.seed);
       d.seed = seed >= 1 && seed < 2147483647 ? seed : 0;
       d.se = Math.floor(+o.se) || 0;
@@ -20028,8 +20602,9 @@ const SquadHall = (() => {
         // with the same rules the fight itself says who won (never a stored winner)
         const key = d.id + ':' + d.seed;
         let m = roundsMemo.get(key);
-        if (!m){ m = E.matchRounds(d.cs, d.as, d.seed, d.bo); roundsMemo.set(key, m); }
+        if (!m){ m = E.matchRounds(d.cp || d.cs, d.ap || d.as, d.seed, d.bo); roundsMemo.set(key, m); }
         d.rounds = m.rounds.slice(); d.score = m.score.slice(); d.winner = m.winner;
+        d.used = m.used.map(u => u.slice());
       } else {
         d.rounds = Array.isArray(o.rounds) ? o.rounds.slice(0, 3).map(x => (x === 1 ? 1 : 0)) : [];
         d.score = Array.isArray(o.score) && o.score.length === 2 ? o.score.map(v => num(v, 0, 3)) : [d.rounds.filter(x => !x).length, d.rounds.filter(x => x).length];
@@ -20039,9 +20614,10 @@ const SquadHall = (() => {
     return d;
   }
   // the two teams as the theater shows them: names and looks from the saved teams (tc / ta)
-  const sideTeam = (cap, faces, squad) => ({label: cap.name, names: faces.map(f => f.name), looks: faces.map(f => f.look), squad});
-  const teamA = d => sideTeam(d.cr, d.tc || cleanTeam(null, d.cr), d.cs);
-  const teamB = d => sideTeam(d.ar, d.ta || cleanTeam(null, d.ar), d.as);
+  // (plan: a best of 3's strategies in the order they were played, when it switched)
+  const sideTeam = (cap, faces, squad, plan) => ({label: cap.name, names: faces.map(f => f.name), looks: faces.map(f => f.look), squad, ...(plan ? {plan} : {})});
+  const teamA = d => sideTeam(d.cr, d.tc || cleanTeam(null, d.cr), d.cs, d.cp);
+  const teamB = d => sideTeam(d.ar, d.ta || cleanTeam(null, d.ar), d.as, d.ap);
   const sideOf = d => { const me = SquadNet.me(); return me && d.c === me ? 0 : me && d.a === me ? 1 : -1; };
   const foeName = (d, side) => (side === 1 ? d.cr.name : d.state === 'done' ? d.ar.name : d.t ? d.tn || 'a Blub' : 'anyone');
 
@@ -20235,6 +20811,7 @@ const SquadHall = (() => {
     keepFocus(() => {
       seg(R.cWho, [['any', 'Anyone'], ['blub', 'A Blub in the Meadow']], () => st.who, v => { st.who = v; });
       seg(R.cBo, [[1, 'Best of 1'], [3, 'Best of 3']], () => st.bo, v => { st.bo = v; });
+      R.cBoHint.textContent = planHint(st.bo); R.cBoHint.hidden = !R.cBoHint.textContent;
       seg(R.cTaunt, TAUNTS.map((t, i) => [i, t]), () => st.taunt, v => { st.taunt = v; });
     });
     const blubs = (SquadNet.blubs() || []).map(b => ({id: b.id, name: cleanName(b.name) || 'Blub'})).filter(b => ID_OK.test(b.id)).sort((a, b) => a.name.localeCompare(b.name));
@@ -20275,6 +20852,26 @@ const SquadHall = (() => {
       h('p', {class: 'sq-vline'}, h('span', null, 'Your squad · Ready ' + n + '/5 · '), kit, meter(n < 5 ? -1 : st.strength, true), ' ', button('Edit', '', () => scrollTo(R.builder))),
       h('p', {class: 'sq-vline r'}, tb ? cleanName(tb.name) + '’s squad: secret until the fight' : 'Their squad: secret until the fight'));
   }
+  // A best of 3 brings your strategies: the one you play first, then your other ready
+  // strategies in their order, each a squad of its own. Lose a round and the next one
+  // takes over (lib/squad.mjs matchRounds).
+  function planOf(firstDraft){
+    const first = firstDraft && readyCount(firstDraft) === 5 ? E.cleanSquad(squadOf(firstDraft)) : null;
+    if (!first) return null;
+    const out = [first], seen = new Set([JSON.stringify(first)]), list = presets(), a = activeIdx();
+    for (let k = 0; k < 3 && out.length < E.PLAN_MAX; k++){
+      const p = list[(a + k) % 3], d = p ? fitted(p.d) : null;
+      const q = d && readyCount(d) === 5 ? E.cleanSquad(squadOf(d)) : null, key = q && JSON.stringify(q);
+      if (q && !seen.has(key)){ seen.add(key); out.push(q); }
+    }
+    return out;
+  }
+  // what the format means for your strategies
+  function planHint(bo){
+    if (bo !== 3) return '';
+    const n = (planOf(st.draft) || []).length;
+    return n > 1 ? 'Best of 3 with your ' + n + ' strategies: lose a round and your next one takes over.' : 'Best of 3: with more strategies ready, losing a round brings in your next one.';
+  }
   async function create(){
     if (R.cGo.getAttribute('aria-disabled') === 'true' || st.creating) return;
     if (!SquadNet.signedIn()) return SquadNet.signIn('Connect your wallet to send a duel challenge.');
@@ -20286,7 +20883,8 @@ const SquadHall = (() => {
     if (openCount() >= DUEL_OPEN_MAX){ say(R.cMsg, 'You have ' + DUEL_OPEN_MAX + ' open challenges. Call one off below to send another.'); scrollTo(R.openP); return; }
     st.creating = true; say(R.cMsg, ''); renderChallenge();
     try {
-      const d = cleanMatch(await SquadNet.create({target: st.who === 'blub' ? st.target : '', bo: st.bo, taunt: st.taunt, squad: sq}));
+      const plan = st.bo === 3 ? planOf(st.draft) : null;
+      const d = cleanMatch(await SquadNet.create({target: st.who === 'blub' ? st.target : '', bo: st.bo, taunt: st.taunt, squad: sq, ...(plan && plan.length > 1 ? {squads: plan} : {})}));
       if (!d) throw new Error('The challenge could not be made. Try again.');
       st.extra.set(d.id, d); st.known.set(d.id, d); remember(d, 'c'); st.made = d;
       showLink(d); renderOpen(); renderMine();
@@ -20473,7 +21071,9 @@ const SquadHall = (() => {
     const box = h('ol', {class: 'sq-rounds'});
     d.rounds.forEach((w, i) => {
       const th = d.seed ? THEME[E.makeMap(d.seed, i).theme] : null;
-      box.append(h('li', null, h('span', null, 'Round ' + (i + 1) + (th ? ' · ' + th[1] : '')), h('b', {class: w ? 'b' : 'a'}, w ? d.ar.name : d.cr.name)));
+      // a best of 3 with plans: which strategy each side brought (A is its first)
+      const u = d.used && d.used[i], plans = u && (u[0] || u[1]) ? ' · plans ' + 'ABC'[u[0]] + '–' + 'ABC'[u[1]] : '';
+      box.append(h('li', null, h('span', null, 'Round ' + (i + 1) + (th ? ' · ' + th[1] : '') + plans), h('b', {class: w ? 'b' : 'a'}, w ? d.ar.name : d.cr.name)));
     });
     return box;
   }
@@ -20525,7 +21125,9 @@ const SquadHall = (() => {
     if (!pick){ say(R.mMsg, 'Pick a squad that is ready.'); return; }
     st.accepting = true; b.textContent = 'Accepting…'; b.setAttribute('aria-disabled', 'true'); say(R.mMsg, '');
     try {
-      const r = cleanMatch(await SquadNet.accept(d.id, {squad: E.cleanSquad(squadOf(pick))}));
+      // a best of 3: the squad you picked first, then your other strategies
+      const plan = d.bo === 3 && c.id !== 'rand' ? planOf(pick) : null;
+      const r = cleanMatch(await SquadNet.accept(d.id, {squad: E.cleanSquad(squadOf(pick)), ...(plan && plan.length > 1 ? {squads: plan} : {})}));
       if (!r || r.state !== 'done') throw new Error('Something went wrong. Try again.');
       st.pending = null; st.back = null; barLabel(); st.gone.add(r.id); if (r.cs && r.as) st.full.set(r.id, r);
       remember(r, 'a'); learn(r); st.rand = null;
@@ -20575,7 +21177,7 @@ const SquadHall = (() => {
     leaveFull();
     if (hasView('play')) return Promise.resolve(SquadView.play(match)).catch(() => {});
     // until view.js is there: the result in the modal
-    const m = E.matchRounds(match.teams[0].squad, match.teams[1].squad, match.seed, match.bo);
+    const m = E.matchRounds(match.teams[0].plan || match.teams[0].squad, match.teams[1].plan || match.teams[1].squad, match.seed, match.bo);
     modalHead(match.kind === 'show' ? 'Bot show' : match.kind === 'practice' ? 'Practice' : 'Duel', match.title);
     R.mBody.append(h('p', {class: 'sq-rwin'}, match.teams[m.winner].label + ' wins ' + m.score[m.winner] + '–' + m.score[1 - m.winner] + '!'), h('p', {class: 'sq-desc'}, 'The arena view is still loading, so here is the result.'));
     (match.actions || []).forEach(a => act(a.label, '', () => { closeModal(); a.fn(); }));
@@ -20611,7 +21213,10 @@ const SquadHall = (() => {
     if (!R.bots) return;
     const pr = practiceRec(); R.botRec.textContent = pr.w + pr.l ? pr.w + 'W ' + pr.l + 'L' : '';
     // only the format radios are drawn again when the format changes
-    const pboSeg = () => seg(R.pBo, [[1, 'Best of 1'], [3, 'Best of 3']], () => st.pbo, v => { st.pbo = v; }, () => keepFocus(pboSeg));
+    const pboSeg = () => {
+      seg(R.pBo, [[1, 'Best of 1'], [3, 'Best of 3']], () => st.pbo, v => { st.pbo = v; }, () => keepFocus(pboSeg));
+      R.pBoHint.textContent = planHint(st.pbo); R.pBoHint.hidden = !R.pBoHint.textContent;
+    };
     keepFocus(pboSeg);
     keepFocus(() => {
       R.bots.textContent = '';
@@ -20627,7 +21232,10 @@ const SquadHall = (() => {
   function practice(b){
     if (readyCount(st.draft) < 5){ say(R.pMsg, 'Your squad is not ready yet: look for the red dots in the builder.'); scrollTo(R.builder); return; }
     const mine0 = teamOf(st.draft, 'Your squad'), seed = newSeed(), bo = st.pbo;
-    const res = E.matchRounds(mine0.squad, b.squad, seed, bo), pr = practiceRec();
+    // a best of 3 brings your strategies, as in a duel
+    const plan = bo === 3 ? planOf(st.draft) : null;
+    if (plan && plan.length > 1) mine0.plan = plan;
+    const res = E.matchRounds(mine0.plan || mine0.squad, b.squad, seed, bo), pr = practiceRec();
     if (res.winner === 0) pr.w++; else pr.l++;
     lsPatch({sqPractice: pr}); renderBots();
     say(R.pMsg, '');
@@ -20830,7 +21438,7 @@ const SquadHall = (() => {
     R.cMsg = h('p', {class: 'sq-msg', 'aria-live': 'polite'});
     R.chal = panel('sq-chal', 'sqcTitle', 'Send a challenge', R.cVs,
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcWhoL'}, 'Opponent'), R.cWho, R.cPick),
-      h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcBoL'}, 'Format'), R.cBo),
+      h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcBoL'}, 'Format'), R.cBo, R.cBoHint = h('p', {class: 'sq-desc sq-bohint', hidden: true})),
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcTauntL'}, 'Trash talk'), R.cTaunt),
       R.cGo, R.cLink, R.cMsg);
 
@@ -20861,7 +21469,7 @@ const SquadHall = (() => {
     R.pBo = h('div', {class: 'sq-seg', id: 'sqpBo', role: 'radiogroup', 'aria-labelledby': 'sqpBoL'}); radioKeys(R.pBo);
     R.pracP = panel('sq-pracp', 'sqpTitle', ['Practice and bot shows ', R.botRec],
       h('p', {class: 'sq-desc'}, 'Five bot squads with random looks. Free: nothing is saved on the server and it does not count for the season.'),
-      h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqpBoL'}, 'Format'), R.pBo), R.bots,
+      h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqpBoL'}, 'Format'), R.pBo, R.pBoHint = h('p', {class: 'sq-desc sq-bohint', hidden: true})), R.bots,
       h('div', {class: 'sq-bacts'}, button('Watch two bot squads', 'gold', botShow, {'data-k': 'show'}), button('New bots', '', () => { st.botSeed = newSeed(); st.bots = makeBots(st.botSeed); renderBots(); }, {'data-k': 'newbots'})), R.pMsg);
 
     // without SquadNet (the demo, no server): what works now and what opens later
