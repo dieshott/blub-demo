@@ -733,6 +733,10 @@ body.no-scroll{overflow:hidden}
 .sqv-cb:hover{background:#4A3768}
 .sqv-cb:first-child{background:#E2566E;box-shadow:inset 3px 3px 0 #FF8FA3,inset -3px -3px 0 #B8324A}
 .sqv-cb:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.sqv-sharen{margin:0;max-width:30em;font-family:var(--f-data);font-size:20px;line-height:1.15;color:#D9CDEA;text-align:center}
+.sqv-sharei{display:block;width:min(30em,calc(100vw - 72px));box-sizing:border-box;padding:6px 8px;font-family:var(--f-data);font-size:18px;line-height:1.2;color:#fff;background:#2B1D3F;border:2px solid #000}
+.sqv-sharei:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.sqv-sharei[hidden]{display:none}
 .sqv-g{width:18px;height:18px;display:block}
 
 /* rosters */
@@ -1820,7 +1824,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 62f14e1 · 11 Oct 11:10 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">build 4d92c46 · 11 Oct 12:45 UTC ·</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5169,6 +5173,8 @@ const SquadNet = {
   ready: () => S.api, signedIn: () => S.mode === 'wallet',
   signIn: why => Wallet.prompt(why),
   link: id => location.origin + location.pathname + '#duel=' + id,
+  // a shared match: the whole match rides in the link (SquadHall.watch opens it)
+  watchLink: code => location.origin + location.pathname + '#watch=' + code,
   me: () => (S.mode === 'wallet' ? S.addr : null),
   who: id => { const b = Field.get(id); return b ? {name: b.rec.name, look: b.rec.look, style: b.rec.style} : null; },
   blubs: () => Field.ids().filter(id => id !== SquadNet.me()).map(id => ({id, ...SquadNet.who(id)})).filter(b => b.name),
@@ -5386,6 +5392,11 @@ const RULES = lock({
   // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
   // knock-out), or just boomLast once its Blub is down to half or the mist is in
   boomDmg: 22, boomRing: 8, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
+  // Last Stand Pack: a smaller charge (lastDmg beside it, lastRing a tile farther) for a
+  // Blub that fights on: it swings its pack, and only once it is hurt to lastAt% HP or
+  // less does it pull the cord (with a blast worth boomLast beside it); it carries
+  // lastHp less HP
+  lastDmg: 16, lastRing: 6, lastAt: 40, lastHp: 6,
   // Builder: up to buildMax barricades a round (one a turn for the whole squad), beside
   // allies that hold their ground with an enemy within buildNear tiles (shooters and
   // medics, and anyone in a fight); building leaves it buildTake% easier to hurt till
@@ -5425,7 +5436,8 @@ const WEAPONS = lock([
   ['wand', 'Bubble Wand', 'Range 3 over walls. Bubbles always hit, pass Shell Shields and sometimes trap the target for a turn.'],
   ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
   ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
-  ['boom', 'Boom Pack', `One a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
+  ['boom', 'Boom Pack', `One explosive a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
+  ['last', 'Last Stand Pack', `One explosive a squad. Melee: it swings its pack like a club. Hurt to ${RULES.lastAt}% HP or less with an enemy beside it, it pulls the cord: ${RULES.lastDmg} damage to every enemy beside it and ${RULES.lastRing} one tile farther, and its Blub is out of the round. Knocked out next to an enemy, it goes off anyway. A little heavy: ${RULES.lastHp} less HP.`],
 ]);
 // range, damage, hands; crit/dodge/whiff/trap in percent
 const WEAPON_STATS = lock({
@@ -5436,10 +5448,12 @@ const WEAPON_STATS = lock({
   bow: { range: 5, dmg: 5, hands: 2, los: 1, close: 1 },
   wand: { range: 3, dmg: 4, hands: 1, sure: 1, trap: 20 },
   // gun: its shots are bullets (cover from bushes and sandbags as from arrows);
-  // cycle: the Scope Rifle's reload, aim, fire; boom: the Boom Pack; one: one a squad
+  // cycle: the Scope Rifle's reload, aim, fire; boom: it carries the blast; fuse: it
+  // swings and only goes off when low; one: one of that kind a squad (1: explosives)
   rifle: { range: 4, dmg: 2, hands: 2, hits: 3, los: 1, gun: 1 },
   scope: { range: 7, dmg: RULES.scopeDmg, hands: 2, los: 1, gun: 1, cycle: 1, close: 1 },
   boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
+  last: { range: 1, dmg: 4, hands: 2, boom: 1, fuse: 1, one: 1 },
 });
 const GEAR = lock([
   ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
@@ -5653,8 +5667,8 @@ function cleanSquad(raw) {
     const { cls, wpn, gear, pow, tac } = u;
     if (!has(PLAYSTYLES, cls) || !has(WEAPONS, wpn) || !has(GEAR, gear) || !has(POWERS, pow) || !has(TACTICS, tac)) return null;
     if (gear === 'shield' && WEAPON_STATS[wpn].hands !== 1) return null;
-    // a squad carries one Boom Pack at most
-    if (WEAPON_STATS[wpn].one && units.some((v) => v.wpn === wpn)) return null;
+    // a squad carries one explosive at most
+    if (WEAPON_STATS[wpn].one && units.some((v) => WEAPON_STATS[v.wpn].one === WEAPON_STATS[wpn].one)) return null;
     const x = u.x;
     const y = u.y;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x >= SIZE || !DEPLOY_ROWS.includes(y)) return null;
@@ -5731,13 +5745,13 @@ function unitStats(u, captain) {
   const S = STYLE_STATS[u.cls];
   const W = WEAPON_STATS[u.wpn];
   const t = u.trn;
-  // the Boom Pack weighs on whoever carries it
-  const heavy = W.boom ? 1 : 0;
+  // the Boom Pack weighs on whoever carries it, the Last Stand Pack a little
+  const heavy = W.boom && !W.fuse ? 1 : 0;
   return {
-    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp + (u.pow === 'builder' || u.pow === 'miner' ? RULES.workHp : 0),
+    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp - (W.fuse ? RULES.lastHp : 0) + (u.pow === 'builder' || u.pow === 'miner' ? RULES.workHp : 0),
     move: Math.max(2, S.move + (u.gear === 'boots' ? 1 : 0) + (t.spd >= 3 ? 1 : 0) - heavy * RULES.boomMove),
     range: W.range,
-    dmg: W.boom ? RULES.boomDmg : W.dmg,
+    dmg: heavy ? RULES.boomDmg : W.dmg,
     hits: W.hits || 1,
     dodge: S.dodge + (W.dodge || 0) + (u.gear === 'boots' ? 5 : 0) + t.spd * 4,
     crit: 8 + (W.crit || 0) + t.lck * 6,
@@ -6027,7 +6041,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // arrows and bullets are 'ranged' (cover stops them alike), bubbles 'magic'
   const kindOf = (u) => (u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || W(u).gun ? 'ranged' : 'melee');
   // a Brawler's bonus is for what it swings or stabs with
-  const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && !WEAPON_STATS[v.wpn].boom;
+  const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && (!WEAPON_STATS[v.wpn].boom || WEAPON_STATS[v.wpn].fuse);
+  // a Last Stand Pack's Blub low enough to pull the cord, and the blast a pack carries
+  // (beside it, a tile farther)
+  const lastStand = (u) => W(u).fuse && u.hp * 100 <= u.max * RULES.lastAt;
+  const blastOf = (u) => (W(u).fuse ? [RULES.lastDmg, RULES.lastRing] : [RULES.boomDmg, RULES.boomRing]);
   const onShaft = (u) => shaftT[idx(u.x, u.y)] === u.team + 1;
   // What stops a shot is not always what stops a step: a Blub can stand in the
   // nuke's crater, but nothing shoots through it. Walking reads `tiles`, sight reads
@@ -6337,8 +6355,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
       return;
     }
-    // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it
-    if (W(u).boom) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
+    // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it;
+    // the Last Stand Pack swings, and pulls the cord once its Blub is low
+    if (W(u).boom && !W(u).fuse) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
+    if (lastStand(u) && blastWorth(u, u.x, u.y) >= RULES.boomLast) return blowUp(u);
     // the Scope Rifle: a turn to reload, a turn to aim, and then the shot
     if (W(u).cycle) {
       const v = scopeTurn(u, d);
@@ -6561,7 +6581,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
   }
   // how hard a unit hits: weapon damage per attack plus the Brawler's bonus
-  const punch = (v) => (WEAPON_STATS[v.wpn].boom ? RULES.boomDmg : WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (brawly(v) ? RULES.brawlerMelee : 0));
+  const punch = (v) => (WEAPON_STATS[v.wpn].boom && !WEAPON_STATS[v.wpn].fuse ? RULES.boomDmg : WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (brawly(v) ? RULES.brawlerMelee : 0));
   // the enemy this unit wants, by its tactic; ties go to the closest, then the lowest unit
   function chooseTarget(u, list) {
     const d = (v) => cheb(u.x, u.y, v.x, v.y);
@@ -6591,7 +6611,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const dist = cheb(x, y, v.x, v.y);
       const t = tiles[c];
       // a Boom Pack wants as many of them beside it as it can get
-      const s = W(u).boom
+      const s = W(u).boom && (!W(u).fuse || lastStand(u))
         ? foes(u).filter((e) => cheb(x, y, e.x, e.y) <= 1).length * 20 - dist
         : (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
       if (best < 0 || s > bs) {
@@ -6868,7 +6888,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // a Blub left standing at the other side's candle with nobody in reach chops at it
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
     // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
-    if (cp && !W(u).boom && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
+    if (cp && !(W(u).boom && !W(u).fuse) && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
     fight(u);
   }
   // What the chest throws in draws the Blubs that can use it. With nobody in reach,
@@ -6945,11 +6965,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function blowUp(u) {
     u.boomed = true;
     u.attacked = true;
-    push({ t: 'blowup', u: u.id, at: [u.x, u.y] });
+    push({ t: 'blowup', u: u.id, at: [u.x, u.y], ...(W(u).fuse ? { w: u.wpn } : {}) });
     for (const v of foes(u).slice()) {
       if (!v.alive) continue;
       const d = cheb(u.x, u.y, v.x, v.y);
-      if (d <= 2) pure(u, v, d <= 1 ? RULES.boomDmg : RULES.boomRing, 'blasted');
+      if (d <= 2) pure(u, v, blastOf(u)[d <= 1 ? 0 : 1], 'blasted');
     }
     checkOver();
     u.totem = false;
@@ -6968,7 +6988,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const v of foes(u)) {
       const d = cheb(x, y, v.x, v.y);
       if (d > 2 || v.bubble) continue;
-      let dmg = d <= 1 ? RULES.boomDmg : RULES.boomRing;
+      let dmg = blastOf(u)[d <= 1 ? 0 : 1];
       if (copiumOn(v)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
       s += Math.min(dmg, v.hp) + (dmg >= v.hp && !v.totem ? RULES.boomKo : 0);
     }
@@ -6981,7 +7001,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // it gets to this turn, when that is worth it. Not worth it yet but beside an enemy,
   // it edges to the best spot it gets to and waits there (knocked out beside them it
   // goes off anyway); otherwise it closes in like everybody else.
+  // The Last Stand Pack fights like anyone until its Blub is low; then it goes for the
+  // best blast it gets to this turn, and with none worth it, it fights on.
   function boomTurn(u) {
+    if (W(u).fuse && !lastStand(u)) return false;
+    const need = W(u).fuse ? RULES.boomLast : boomNeed(u);
     const list = foes(u);
     if (!list.some((v) => cheb(u.x, u.y, v.x, v.y) <= u.move + 2)) return false;
     const here = idx(u.x, u.y);
@@ -6997,9 +7021,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         best = c;
       }
     }
-    if (bs < boomNeed(u) && !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) return false;
+    if (bs < need && (W(u).fuse || !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1))) return false;
     if (best !== here) walk(u, route(P, best));
-    if (u.alive && over < 0 && blastWorth(u, u.x, u.y) >= boomNeed(u)) blowUp(u);
+    if (u.alive && over < 0 && blastWorth(u, u.x, u.y) >= need) blowUp(u);
+    else if (W(u).fuse) {
+      // the walk fell short of the blast: it swings at what it reaches
+      if (u.alive && over < 0) hitAround(u);
+    }
     else if (u.alive && over < 0 && !u.armed && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) {
       // beside the enemy, waiting for a better blast (said once a round)
       u.armed = 1;
@@ -8049,8 +8077,8 @@ function randomSquad(r) {
   for (let i = 0; i < TEAM; i++) {
     const cls = pick(PLAYSTYLES);
     let wpn = pick(WEAPONS);
-    // one Boom Pack a squad: a second one is picked again
-    while (WEAPON_STATS[wpn].one && units.some((v) => v.wpn === wpn)) wpn = pick(WEAPONS);
+    // one explosive a squad: a second one is picked again
+    while (WEAPON_STATS[wpn].one && units.some((v) => WEAPON_STATS[v.wpn].one === WEAPON_STATS[wpn].one)) wpn = pick(WEAPONS);
     let gear = pick(GEAR);
     if (gear === 'shield' && WEAPON_STATS[wpn].hands !== 1) gear = 'boots';
     const trn = { pow: 0, grd: 0, spd: 0, lck: 0 };
@@ -8281,6 +8309,10 @@ const SquadView = (() => {
   if (!ARMS_SPR.boom)
     ARMS_SPR.boom = { g: [2, 7], pal: { k: '#2B2B36', K: '#7A7A90', n: '#8C5A2B', y: '#FFD447', Y: '#FF8A3D' }, rows: [
       '..y..', '.yYy.', '..n..', '.kkk.', 'kKkkk', 'kKkkk', 'kkkkk', '.kkk.'] };
+  // the Last Stand Pack: a smaller charge with a red pull ring, swung like a club
+  if (!ARMS_SPR.last)
+    ARMS_SPR.last = { g: [2, 7], pal: { k: '#2B2B36', K: '#7A7A90', r: '#E2566E', R: '#FF8FA3' }, rows: [
+      '.rR..', 'r..r.', '.rr..', '..r..', '.kkk.', 'kKkkk', 'rrrrr', '.kkk.'] };
   // tools, not weapons: the Miner's pickaxe and the Builder's mallet
   if (!ARMS_SPR.pick)
     ARMS_SPR.pick = { g: [2, 9], swing: true, pal: { s: '#6E6E80', S: '#C9C9D6', n: '#8C5A2B', N: '#D9A05B' }, rows: [
@@ -8411,6 +8443,9 @@ const SquadView = (() => {
       // Boom Pack: a round bomb, its fuse fizzing
       boom: ['.......y.y..', '........Y...', '.......yky..', '........kn..', '....kkkkkn..',
         '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..kxxxxxxxk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
+      // Last Stand Pack: a bomb with a red band and a pull ring on its cord
+      last: ['.......rrr..', '......r...r.', '.......rrr..', '........r...', '....kkkkkr..',
+        '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..krrrrrrrk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
     },
     gear: {
       shield: ['....kkkk....', '..kkrPrPkk..', '.krPrPrPrPk.', '.kPrPrPrPrk.', 'krPrPrPrPrPk',
@@ -10259,7 +10294,7 @@ const SquadView = (() => {
       case 'arm':
         return u + "'s Boom Pack is armed: it waits beside them for a bigger blast.";
       case 'blowup':
-        return 'BOOM! ' + u + "'s Boom Pack goes off.";
+        return e.w === 'last' ? u + ' pulls the cord: BOOM!' : 'BOOM! ' + u + "'s Boom Pack goes off.";
       case 'blasted':
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
       case 'build':
@@ -16366,6 +16401,7 @@ const SquadView = (() => {
     more: ['.........', '.........', '.........', 'xx.xx.xx.', 'xx.xx.xx.', '.........', '.........', '.........', '.........'],
     x: ['xx.....xx', 'xxx...xxx', '.xxx.xxx.', '..xxxxx..', '...xxx...', '..xxxxx..', '.xxx.xxx.', 'xxx...xxx', 'xx.....xx'],
     rec: ['..xxxxx..', '.xxxxxxx.', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', 'xxxxxxxxx', '.xxxxxxx.', '..xxxxx..'],
+    share: ['......xx.', '.....xxxx', '...xx.xx.', '.xx......', 'xxx......', '.xx......', '...xx.xx.', '.....xxxx', '......xx.'],
   };
   function glyph(name, col) {
     const c = canvas(9, 9, 'sqv-g spr');
@@ -16405,10 +16441,10 @@ const SquadView = (() => {
     const scR = el('b', 'rival', '0');
     score.append(scY, el('i', '', '-'), scR);
     const close = btn('sqv-x', 'Close the arena', [glyph('x')]);
-    // the clip: the last seconds again, saved as a video (only where the browser records)
-    const bClip = btn('sqv-clip', 'Clip the last seconds as a video', [glyph('rec', '#FF5C77')]);
-    bClip.hidden = !clipOk();
-    bar.append(pips, title, score, turn, bClip, close);
+    // share the match: a link to the whole match (and a video of its last seconds)
+    const bShare = btn('sqv-clip sqv-share', 'Share this match', [glyph('share')]);
+    bShare.hidden = true;
+    bar.append(pips, title, score, turn, bShare, close);
 
     const mkRoster = (side) => {
       const box = el('section', 'sqv-ros sqv-' + side);
@@ -16497,10 +16533,10 @@ const SquadView = (() => {
       /* sound is optional */
     }
 
-    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bClip, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
+    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bShare, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
 
     close.onclick = () => finish();
-    bClip.onclick = () => startClip();
+    bShare.onclick = () => openShare();
     bPlay.onclick = () => togglePause();
     bPrev.onclick = () => stepTurn(-1);
     bNext.onclick = () => stepTurn(1);
@@ -16574,6 +16610,7 @@ const SquadView = (() => {
     if (k === 'Escape') {
       ev.preventDefault();
       if (P.clipBox) closeClip(true);
+      else if (P.shareBox) closeShare(true);
       else if (!D.card.hidden) D.card.hidden = true;
       else if (D.opts.classList.contains('open')) {
         D.opts.classList.remove('open');
@@ -17094,6 +17131,9 @@ const SquadView = (() => {
     D.logBox.textContent = '';
     D.live.textContent = '';
     D.opts.classList.remove('open');
+    // what the Share button hands out: given by the page (SquadHall), else none
+    P.share = typeof match.share === 'function' ? match.share : null;
+    D.bShare.hidden = !P.share;
     P.ctx = D.cv.getContext('2d');
     paintPlay();
     paintToggles();
@@ -17137,6 +17177,7 @@ const SquadView = (() => {
     if (!P) return;
     if (P.clip) stopClip(false);
     closeClip();
+    closeShare();
     const p = P;
     cancelAnimationFrame(p.raf);
     clearTimeout(p.popTimer);
@@ -17434,6 +17475,7 @@ const SquadView = (() => {
   function startClip() {
     if (!P || !D || P.clip || !clipOk() || (P.phase !== 'round' && P.phase !== 'outro')) return;
     closeClip();
+    closeShare();
     const after = P.phase === 'outro';
     const was = { speed: P.speed, paused: P.paused };
     // the end of the match: back into its last round, and to the result after it
@@ -17489,7 +17531,7 @@ const SquadView = (() => {
     P.clip = C;
     C.rec.start(500);
     D.recTag.hidden = false;
-    D.bClip.setAttribute('aria-disabled', 'true');
+    D.bShare.setAttribute('aria-disabled', 'true');
     say('Replaying the last seconds and recording them as a clip.', true);
   }
   // every frame of a clip: draw it, and stop where it was asked for (a skip or a jump
@@ -17569,7 +17611,7 @@ const SquadView = (() => {
     }
     if (D) {
       D.recTag.hidden = true;
-      D.bClip.removeAttribute('aria-disabled');
+      D.bShare.removeAttribute('aria-disabled');
     }
     if (C.was.speed !== P.speed) setSpeed(C.was.speed);
     if (C.was.paused && P.phase === 'round' && !P.paused) {
@@ -17657,7 +17699,105 @@ const SquadView = (() => {
       P.paused = false;
       paintPlay();
     }
-    if (D && !D.bClip.hidden) D.bClip.focus();
+    if (D && !D.bShare.hidden) D.bShare.focus();
+  }
+
+  // ---- sharing: the whole match as a link that replays it for anyone (or, where the
+  // page has no links, a code for the Duel Hall's code box); the page makes it
+  // (match.share), the theater hands it out
+  async function openShare() {
+    if (!P || !D || !P.share || P.shareBox || P.clip) return;
+    closeClip();
+    const box = el('div', 'sqv-clipbox sqv-sharebox');
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Share this match');
+    const note = el('p', 'sqv-sharen', 'Making the link…');
+    const field = document.createElement('input');
+    field.className = 'sqv-sharei';
+    field.readOnly = true;
+    field.setAttribute('aria-label', 'The link to this match');
+    field.addEventListener('focus', () => field.select());
+    const row = el('div', 'sqv-cliprow');
+    box.append(el('p', 'sqv-cliph', 'Share this match'), note, field, row);
+    D.root.append(box);
+    // the fight waits while the box is open
+    const resume = P.phase === 'round' && !P.paused;
+    if (resume) {
+      P.paused = true;
+      paintPlay();
+    }
+    const S = { box, resume };
+    P.shareBox = S;
+    let got = null;
+    try {
+      got = await P.share();
+    } catch (err) {
+      got = null;
+    }
+    if (!P || P.shareBox !== S) return;
+    const mk = (text, fn) => {
+      const b = el('button', 'sqv-cb', text);
+      b.type = 'button';
+      b.onclick = fn;
+      row.append(b);
+      return b;
+    };
+    const link = got && (got.url || got.code);
+    if (!link) {
+      note.textContent = 'This match cannot be shared.';
+      field.hidden = true;
+      mk('Close', () => closeShare(true)).focus();
+      return;
+    }
+    field.value = link;
+    note.textContent = got.url ? 'Anyone with this link watches the whole match, round by round.' : 'Anyone who pastes this code into the Duel Hall’s code box watches the whole match.';
+    const bShare = got.url && navigator.share
+      ? mk('Share', async () => {
+          try {
+            await navigator.share({ title: 'Squad Arena: ' + (got.title || P.title), text: 'Watch this Blub squad match', url: got.url });
+          } catch (err) {
+            /* the player changed their mind */
+          }
+        })
+      : null;
+    const bCopy = mk(got.url ? 'Copy link' : 'Copy code', async () => {
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(link);
+        ok = true;
+      } catch (err) {
+        try {
+          field.focus();
+          field.select();
+          ok = document.execCommand('copy');
+        } catch (err2) {
+          ok = false;
+        }
+      }
+      bCopy.textContent = ok ? 'Copied!' : 'Select and copy it';
+      say(ok ? 'Copied.' : 'Select the link and copy it.', true);
+    });
+    // the last seconds as a video too, where the browser records
+    if (clipOk() && (P.phase === 'round' || P.phase === 'outro'))
+      mk('Video clip', () => {
+        closeShare();
+        if (S.resume && P.phase === 'round' && P.paused) P.paused = false;
+        startClip();
+      }).title = 'Record the last seconds as a video';
+    mk('Close', () => closeShare(true));
+    (bShare || bCopy).focus();
+  }
+  function closeShare(refocus) {
+    const S = P && P.shareBox;
+    if (!S) return;
+    P.shareBox = null;
+    S.box.remove();
+    if (!refocus) return;
+    if (S.resume && P.phase === 'round' && P.paused) {
+      P.paused = false;
+      paintPlay();
+    }
+    if (D && !D.bShare.hidden) D.bShare.focus();
   }
 
   function skipRound() {
@@ -18743,7 +18883,9 @@ const SquadView = (() => {
      seasonEnd, clamp, ID_OK, DUEL_ID_RE, DUEL_OPEN_MAX, DUEL_TTL_H, isoOr, go, SquadNet, SquadEngine,
      and SquadView (src/squad/view.js) when it is there (unitCanvas, icon, and the
      trench kit's art through objectCanvas / icon('obj', ...) once view.js draws it).
-   Exports: SquadHall.{ready, render, openInvite, botShow, prefill, focus, record}.
+   Exports: SquadHall.{ready, render, openInvite, botShow, prefill, focus, record, watch}.
+   A match is shared as a link (SquadNet.watchLink, #watch=…) or, on a page without
+   links, as a code for the code box: the whole match is in it, so watching costs nothing.
    Zero database commands for everything that is not a real match: the
    builder, strength estimates, presets, practice, shows and history all
    live in this browser. While SquadNet.ready() is false (the demo, or no
@@ -18902,9 +19044,9 @@ const SquadHall = (() => {
   function problem(u, units){
     if (u.gear === 'shield' && twoHanded(u.wpn)) return GEAR.shield[1] + ' needs a one-handed weapon: pick other gear or another weapon.';
     if (trnUsed(u.trn) > E.TRAIN_POINTS) return 'Too many training points.';
-    // one Boom Pack a squad: the first Blub that has one keeps it
-    const list = units || (st.draft && st.draft.units.includes(u) ? st.draft.units : null);
-    if (list && E.WEAPON_STATS[u.wpn].one && list.find(v => v.wpn === u.wpn) !== u) return 'One ' + WPN[u.wpn][1] + ' a squad, and another Blub has it: pick another weapon.';
+    // one explosive a squad: the first Blub that has one keeps it
+    const list = units || (st.draft && st.draft.units.includes(u) ? st.draft.units : null), one = E.WEAPON_STATS[u.wpn].one;
+    if (list && one && list.find(v => E.WEAPON_STATS[v.wpn].one === one) !== u) return 'One explosive a squad, and another Blub has one: pick another weapon.';
     return '';
   }
   const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, trn: {...P.trn}, x, y}; };
@@ -19617,9 +19759,9 @@ const SquadHall = (() => {
   const LISTS = {wpn: E.WEAPONS, gear: E.GEAR, pow: E.POWERS, tac: E.TACTICS};
   function why(p, id, u){
     if (p === 'gear' && id === 'shield' && twoHanded(u.wpn)) return WPN[u.wpn][1] + ' needs both hands';
-    // one Boom Pack a squad
-    const i = p === 'wpn' && E.WEAPON_STATS[id].one ? st.draft.units.findIndex(v => v !== u && v.wpn === id) : -1;
-    return i >= 0 ? 'one a squad, and ' + nameOf(i) + ' has it' : '';
+    // one explosive a squad
+    const one = p === 'wpn' && E.WEAPON_STATS[id].one, i = one ? st.draft.units.findIndex(v => v !== u && E.WEAPON_STATS[v.wpn].one === one) : -1;
+    return i >= 0 ? 'one explosive a squad, and ' + nameOf(i) + ' has one' : '';
   }
   // the description box: the hovered or focused choice, else the one picked
   function detail(box, p, id){
@@ -21173,8 +21315,79 @@ const SquadHall = (() => {
     play(d);
   }
   function markSeen(id){ const list = mine(), x = list.find(y => y.id === id); if (x && !x.seen){ x.seen = true; saveMine(list); renderMine(); } }
+  /* ---------------------------------------------------------------
+     a match to share: everything a replay needs is in the link itself (both
+     sides' names, looks and squads, the seed and the format), packed small
+     (deflate where the browser has it), so watching it costs nothing
+     --------------------------------------------------------------- */
+  const WATCH_V = 1;
+  const b64u = bytes => {
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  };
+  const unb64u = s => {
+    const b = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+    const out = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
+    return out;
+  };
+  const viaStream = async (bytes, stream) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
+  async function packMatch(match){
+    const clean = q => E.cleanSquad(q) || q;
+    const side = t => ({l: t.label, n: t.names, k: t.looks, q: clean(t.squad), ...(t.plan && t.plan.length > 1 ? {p: t.plan.map(clean)} : {})});
+    const raw = new TextEncoder().encode(JSON.stringify({v: WATCH_V, e: E.SQUAD_ENGINE, t: match.title, bo: match.bo === 3 ? 3 : 1, s: match.seed, a: side(match.teams[0]), b: side(match.teams[1])}));
+    try {
+      if (typeof CompressionStream === 'function') return 'z' + b64u(await viaStream(raw, new CompressionStream('deflate-raw')));
+    } catch {}
+    return 'j' + b64u(raw);
+  }
+  // the code out of a link (or the code itself), else ''
+  const watchCode = s => { const v = String(s || '').trim(); return (v.match(/(?:^|[#&?])watch=([zj][A-Za-z0-9_-]{20,})/) || [])[1] || (/^[zj][A-Za-z0-9_-]{20,}$/.test(v) ? v : ''); };
+  async function unpackMatch(code){
+    try {
+      const s = watchCode(code);
+      if (!s || s.length > 30000) return null;
+      let bytes = unb64u(s.slice(1));
+      if (s[0] === 'z') bytes = await viaStream(bytes, new DecompressionStream('deflate-raw'));
+      return bytes.length > 200000 ? null : cleanShared(JSON.parse(new TextDecoder().decode(bytes)));
+    } catch {
+      return null;
+    }
+  }
+  // a shared match, rebuilt from known parts only (anybody can make a link)
+  function cleanShared(o){
+    if (!o || typeof o !== 'object' || o.v !== WATCH_V || !Number.isInteger(o.s) || o.s < 1 || o.s > 2147483646) return null;
+    const bo = o.bo === 3 ? 3 : 1;
+    const text = (v, d) => (typeof v === 'string' && v.trim() ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 40) : d);
+    const side = (x, d) => {
+      const squad = x && typeof x === 'object' ? E.cleanSquad(x.q) : null;
+      if (!squad) return null;
+      const plan = bo === 3 && Array.isArray(x.p) && x.p.length > 1 ? x.p.slice(0, E.PLAN_MAX).map(q => E.cleanSquad(q)) : null;
+      return {label: text(x.l, d), names: [0, 1, 2, 3, 4].map(i => cleanName(Array.isArray(x.n) ? x.n[i] : '') || 'Blub'), looks: [0, 1, 2, 3, 4].map(i => cleanLook(Array.isArray(x.k) ? x.k[i] : null)), squad,
+        ...(plan && plan.every(Boolean) ? {plan: [squad, ...plan.slice(1)]} : {})};
+    };
+    const a = side(o.a, 'Team A'), b = side(o.b, 'Team B');
+    if (!a || !b) return null;
+    return {kind: 'show', title: text(o.t, a.label + ' vs ' + b.label), teams: [a, b], viewer: -1, seed: o.s, bo, old: o.e !== E.SQUAD_ENGINE};
+  }
+  // what the theater's Share shows: the link, or the code where the page has no links
+  async function shareOf(match){
+    const code = await packMatch(match);
+    return {code, url: SquadNet.watchLink ? SquadNet.watchLink(code) : null, title: match.title};
+  }
+  // a shared match, from its link (#watch=…) or pasted into the code box
+  async function watch(code){
+    const m = await unpackMatch(code);
+    if (!m){ notify('That match link does not work', 'It may have been cut short: ask for the whole link again.'); return false; }
+    if (m.old) notify('Shared under older rules', 'The arena has changed since, so this replay may end differently.');
+    theater({kind: m.kind, title: m.title, teams: m.teams, viewer: -1, seed: m.seed, bo: m.bo});
+    return true;
+  }
   function theater(match){
     leaveFull();
+    // every match the theater shows can be shared, the shared ones too
+    if (!match.share) match.share = () => shareOf(match);
     if (hasView('play')) return Promise.resolve(SquadView.play(match)).catch(() => {});
     // until view.js is there: the result in the modal
     const m = E.matchRounds(match.teams[0].plan || match.teams[0].squad, match.teams[1].plan || match.teams[1].squad, match.seed, match.bo);
@@ -21444,15 +21657,17 @@ const SquadHall = (() => {
 
     // 3. open challenges
     R.open = h('ol', {class: 'sq-olist'}); R.openN = h('small');
-    const codeIn = h('input', {id: 'sqCodeIn', maxlength: '9', placeholder: 'Have a code?', spellcheck: 'false', autocapitalize: 'characters', autocomplete: 'off', enterkeyhint: 'go'});
+    const codeIn = h('input', {id: 'sqCodeIn', placeholder: 'Code or match link', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', enterkeyhint: 'go'});
     codeIn.addEventListener('input', () => codeIn.setCustomValidity(''));
-    const form = h('form', {class: 'sq-codein'}, h('label', {class: 'sr', for: 'sqCodeIn'}, 'Duel code'), codeIn, h('button', {type: 'submit', class: 'btn small'}, 'Open'));
+    const form = h('form', {class: 'sq-codein'}, h('label', {class: 'sr', for: 'sqCodeIn'}, 'Duel code or match link'), codeIn, h('button', {type: 'submit', class: 'btn small'}, 'Open'));
     form.addEventListener('submit', e => {
       e.preventDefault();
-      const code = parseCode(codeIn.value);
-      codeIn.setCustomValidity(code ? '' : 'A duel code has 8 letters and digits, like ABCD-2345.');
-      if (!code){ codeIn.reportValidity(); return; }
-      codeIn.value = ''; openInvite(code);
+      const code = parseCode(codeIn.value), w = code ? '' : watchCode(codeIn.value);
+      codeIn.setCustomValidity(code || w ? '' : 'Paste a duel code (8 letters and digits, like ABCD-2345) or a match link.');
+      if (!code && !w){ codeIn.reportValidity(); return; }
+      codeIn.value = '';
+      if (code) openInvite(code);
+      else watch(w);
     });
     R.openP = panel('sq-openp', 'sqoTitle', ['Open challenges ', R.openN], R.open, form);
 
@@ -21673,7 +21888,7 @@ const SquadHall = (() => {
     const x = topList().find(r => r.id === id) || ladder.get(id);
     return x && x.w + x.l > 0 ? {r: x.r, w: x.w, l: x.l} : null;
   }
-  return {ready, render, show, openInvite, botShow, prefill, focus, record};
+  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch};
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
@@ -21690,6 +21905,8 @@ function go(id){ if (window.blubFsLeave) window.blubFsLeave(); try { history.pus
 function route(hh){
   const h = typeof hh === 'string' ? hh : location.hash.slice(1);
   if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('arena'); if (code) SquadHall.openInvite(code); return; }
+  // a shared match: watched straight away, and the address goes back to the arena
+  if (h.startsWith('watch=')){ route('arena'); SquadHall.watch(h.slice(6)); try { history.replaceState(null, '', '#arena'); } catch {} return; }
   const v = viewOf(h);
   const was = Object.values(VIEWS).some(n => !n.hidden);
   homeEl.hidden = !!v;
