@@ -1018,6 +1018,10 @@ body.no-scroll{overflow:hidden}
 /* ---- the chest reveal: what the round throws in, before a Blub has moved */
 .sqi-box{transition:opacity .3s steps(3),transform .3s steps(3)}
 .sqi-box.gone{opacity:0;transform:scale(.88);pointer-events:none}
+/* the weather of a round in its banner (engine 11) */
+.sqv-sky{display:grid;place-items:center;width:36px;height:36px;flex:none;font-style:normal;font-size:24px;line-height:1;color:#fff;background:#2B1D3F;border:2px solid #000}
+.sqv-sky.rain{color:#FFB3C0}
+.sqv-sky.fog{color:#EEEEF5}
 .sqc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:10px;padding:12px 10px;overflow-y:auto;opacity:0;transition:opacity .3s steps(3)}
 .sqc:has(.sqc-box.in){opacity:1}
 .sqc.away{opacity:0;transform:scale(1.06);transition:opacity .4s steps(4),transform .4s steps(4)}
@@ -1828,7 +1832,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 10: Digger, Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 11: weather, Digger, Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5274,7 +5278,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 10;
+const SQUAD_ENGINE = 11;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5431,6 +5435,10 @@ const RULES = lock({
   // falls in and is out of the round. Within shaftNear tiles of its squad's Mine Shaft
   // it digs round the shaft instead, pitShaft at a time.
   pitSafe: 3, pitNear: 7, pitMax: 2, pitShaft: 2, shaftNear: 3,
+  // the weather (engine 11, WEATHER): rainPct% of rounds it rains (bows and guns reach
+  // rainRange less, wands rainRange more), fogPct% there is fog (nothing is seen or
+  // shot from farther than fogSight tiles); the rest are clear
+  rainPct: 15, fogPct: 20, rainRange: 1, fogSight: 5,
   // Builders, Miners and Diggers are made of tougher stuff: this much more HP
   workHp: 6,
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
@@ -5663,6 +5671,19 @@ const EVENT_ROWS = [5, 6, 7, 8, 9];
 // A mirrored pair ('pair') takes one of these rows on this side of the centre and
 // the turned-around tile on the other, so both squads get the same chance at it.
 const PAIR_ROWS = [8, 9, 10, 11];
+
+// ---- the weather: every round has a sky of its own, drawn from a stream of its own,
+// so the rest of a round rolls the same whatever falls
+const WEATHER = lock([
+  ['clear', 'Clear Skies', 'A fine day for it: nothing in the way.'],
+  ['rain', 'Pink Rain', `Wet bowstrings and damp powder: bows, rifles and Scope Rifles reach ${RULES.rainRange} tile less. Bubbles love it: wands reach ${RULES.rainRange} tile more.`],
+  ['fog', 'Candy Fog', `Nothing is seen from farther than ${RULES.fogSight} tiles: no shot, from a Blub or a cannon, flies farther than that.`],
+]);
+const WEATHER_SALT = 0x77e4;
+function weatherOf(seed, round) {
+  const p = Math.floor(rng(subSeed(seed, round, WEATHER_SALT))() * 100);
+  return p < RULES.rainPct ? 'rain' : p < RULES.rainPct + RULES.fogPct ? 'fog' : 'clear';
+}
 
 // arenas: how many of each feature are placed in each half
 const THEMES = lock([
@@ -5944,6 +5965,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const r = rng(subSeed(seed, round, 2));
   // makeMap builds a fresh arena every call: this round may dig objects into it
   const { theme, tiles } = makeMap(seed, round);
+  const weather = weatherOf(seed, round);
   const powerup = POWERUPS[Math.floor(rng(subSeed(seed, round, 3))() * POWERUPS.length)][0];
   const loud = !quiet;
   const U = [];
@@ -6066,7 +6088,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
     }
   const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
-  push({ t: 'round', n: round + 1, theme, powerup, chest: spin });
+  push({ t: 'round', n: round + 1, theme, weather, powerup, chest: spin });
   if (spin)
     for (const t of [0, 1]) {
       const m = meme[t];
@@ -6154,7 +6176,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // a watchtower serves the squad that built it; to the other side it is a few planks
   const onTower = (u, x, y) => towerT[idx(x, y)] === u.team + 1;
   // a shooter in a bush sees out less far
-  const rangeOf = (u, x, y) => W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0);
+  // the weather: rain wets bows and guns and suits wands; fog lets nobody see far
+  const rain = W0 => (weather === 'rain' && W0.range >= 3 ? (W0.sure ? RULES.rainRange : -RULES.rainRange) : 0);
+  const rangeOf = (u, x, y) => {
+    const r0 = W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0) + rain(W(u));
+    return weather === 'fog' ? Math.min(r0, RULES.fogSight) : r0;
+  };
   // a Blub in a bush lies in ambush: only what is close, or up high, finds it
   const hidden = (u, x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !onTower(u, x, y) && tiles[idx(x, y)] !== HIGH;
   // can u, standing on (x, y), hit v?
@@ -7502,6 +7529,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // see from its front within cannonRange, every cannonReload turns
   function fireCannon(w, turn) {
     if (w.stage < RULES.cannonBuild || turn < w.next) return;
+    const cannonReach = weather === 'fog' ? Math.min(RULES.cannonRange, RULES.fogSight) : RULES.cannonRange;
     let best = null;
     let bd = 99;
     for (const v of living[1 - w.team]) {
@@ -7509,9 +7537,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       for (const m of w.muzzle) {
         const [mx, my] = xyOf(m);
         const dm = cheb(mx, my, v.x, v.y);
-        if (dm <= RULES.cannonRange && dm < d && los(mx, my, v.x, v.y)) d = dm;
+        if (dm <= cannonReach && dm < d && los(mx, my, v.x, v.y)) d = dm;
       }
-      if (d > RULES.cannonRange) continue;
+      if (d > cannonReach) continue;
       if (d < bd || (d === bd && byHurt(v, best) < 0)) {
         best = v;
         bd = d;
@@ -8396,7 +8424,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     else over = r() < 0.5 ? 0 : 1;
   }
   push({ t: 'end', winner: over, reason, hp });
-  return { theme, tiles: startTiles, powerup, chest: spin, start, objs: objsOut, ev, winner: over, reason, hp, stats, work };
+  return { theme, weather, tiles: startTiles, powerup, chest: spin, start, objs: objsOut, ev, winner: over, reason, hp, stats, work };
 }
 
 // ---- a match: best of 1 or best of 3; round i is simulateRound(sqA, sqB, seed, i).
@@ -8620,7 +8648,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -8677,7 +8705,7 @@ const SquadView = (() => {
   // catalog names always come from the engine
   const CATS = {
     cls: SE.PLAYSTYLES, wpn: SE.TOOL ? SE.WEAPONS.concat([SE.TOOL]) : SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
-    obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], cmd: SE.COMMANDS || [],
+    obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], cmd: SE.COMMANDS || [], sky: SE.WEATHER || [],
   };
   const entry = (kind, id) => (CATS[kind] || []).find((x) => x[0] === id) || null;
   const nameOf = (kind, id) => (entry(kind, id) || [id, String(id || '')])[1];
@@ -10707,7 +10735,7 @@ const SquadView = (() => {
     const wn = (w) => nameOf('wpn', w);
     switch (e.t) {
       case 'round':
-        return 'Round ' + e.n + ': ' + nameOf('theme', e.theme) + '. Power-up of the round: ' + nameOf('item', e.powerup) + '.';
+        return 'Round ' + e.n + ': ' + nameOf('theme', e.theme) + (e.weather && e.weather !== 'clear' ? ', ' + nameOf('sky', e.weather) + ' (' + descOf('sky', e.weather) + ')' : '') + '. Power-up of the round: ' + nameOf('item', e.powerup) + '.';
       case 'turn':
         return 'Turn ' + e.n + '.';
       case 'mist':
@@ -13738,6 +13766,59 @@ const SquadView = (() => {
   // The scenes of the trench arsenal that start before their event: the Boom Pack's
   // fuse burning down, a barricade going up sack by sack, the pickaxe swinging, a gem
   // tossed over. True when the beat was one of these.
+  // ---- the weather (engine 11). Pink Rain: streaks slanting down over the arena and
+  // rings on the floor where drops land. Candy Fog: banks of pale fog drifting across,
+  // dithered so the Blubs still show through, thickest towards the far side.
+  function drawWeather(x, t, now) {
+    const R = P.rd && P.rd.R;
+    if (!R || !R.weather || R.weather === 'clear' || P.phase !== 'round') return;
+    const still = P.calm;
+    const W = N * TILE;
+    if (R.weather === 'rain') {
+      // a grey-violet cast over everything, then the streaks
+      x.globalAlpha = 0.1;
+      x.fillStyle = '#3E2C58';
+      x.fillRect(0, TOP, W, N * TILE);
+      x.globalAlpha = 1;
+      for (let i = 0; i < 72; i++) {
+        const ph = still ? hash(i, 7, 1) : (now / 480 + hash(i, 7, 1)) % 1;
+        const x0 = Math.round(hash(i, 7, 2) * (W + 40)) - 20;
+        const y0 = TOP + Math.round(ph * (N * TILE + 20)) - 20;
+        const X = x0 + Math.round(ph * 14);
+        x.fillStyle = i % 3 ? '#FFB3C0' : '#FFFFFF';
+        x.globalAlpha = 0.7;
+        x.fillRect(X, y0, 1, 4);
+        x.fillRect(X + 1, y0 + 4, 1, 2);
+        x.globalAlpha = 1;
+      }
+      if (!still)
+        for (let i = 0; i < 6; i++) {
+          const ph = (now / 900 + i / 6) % 1;
+          const cx = Math.round(hash(i, Math.floor(now / 900 + i / 6), 3) * W);
+          const cy = TOP + Math.round(hash(i, Math.floor(now / 900 + i / 6), 4) * N * TILE);
+          const r = Math.round(1 + ph * 4);
+          x.globalAlpha = 0.5 * (1 - ph);
+          x.fillStyle = '#FFE3EA';
+          x.fillRect(cx - r, cy, 2 * r + 1, 1);
+          x.fillRect(cx - r + 1, cy - 1, 1, 1);
+          x.fillRect(cx + r - 1, cy - 1, 1, 1);
+          x.globalAlpha = 1;
+        }
+      return;
+    }
+    // fog: a pale veil over everything, and banks drifting across it, thick in the
+    // middle and thin at their edges, each a run of dithered strips
+    ditherRect(x, 0, TOP, W, N * TILE, '#FFFFFF', 0.12);
+    for (let i = 0; i < 6; i++) {
+      const y0 = TOP + 6 + i * 40 + Math.round(Math.sin(i * 1.7) * 6);
+      const off = still ? 0 : now / (90 + i * 13);
+      const x0 = Math.round(((i * 71 + off) % (W + 160)) - 80);
+      ditherRect(x, x0, y0, 120, 10, '#FFFFFF', 0.34);
+      ditherRect(x, x0 + 14, y0 - 4, 92, 4, '#FFFFFF', 0.24);
+      ditherRect(x, x0 + 8, y0 + 10, 100, 4, '#FFFFFF', 0.24);
+      ditherRect(x, x0 + 30, y0 - 7, 50, 3, '#FFFFFF', 0.16);
+    }
+  }
   // ---- the Moon Rocket (engine 8). Ignition on the pad: smoke rolls off it both ways
   // and the flame catches while it shudders. It lifts off and swoops over to the Blub
   // the roulette picked, hovers over it and draws it up in a beam of light, mouth wide
@@ -15028,6 +15109,7 @@ const SquadView = (() => {
     // the overlay pass: nothing hides these
     drawFud(x, t, now);
     drawSmoke(x, t, now);
+    drawWeather(x, t, now);
     drawCurve(x, t, now);
     drawSights(x, now);
     drawPacks(x, now);
@@ -19645,7 +19727,16 @@ const SquadView = (() => {
     const sc = scoreNow();
     const pips = el('div', 'sqv-bp');
     pips.append(el('span', 'you', P.sideLabels.you + ' ' + sc[0]), el('span', 'rival', sc[1] + ' ' + P.sideLabels.rival));
-    b2.append(h, pc, pips);
+    b2.append(h, pc);
+    // the weather of the round, when it is not just a fine day
+    if (R.weather && R.weather !== 'clear') {
+      const wc = el('div', 'sqv-pu sky ' + R.weather);
+      const wt = el('div', '');
+      wt.append(el('span', 'sqv-pk', 'Weather'), el('strong', '', nameOf('sky', R.weather)), el('span', 'sqv-pd', descOf('sky', R.weather)));
+      wc.append(el('i', 'sqv-sky ' + R.weather, R.weather === 'rain' ? '☂' : '≋'), wt);
+      b2.append(wc);
+    }
+    b2.append(pips);
     // a best of 3 with plans: who brings in another strategy this round
     const r = P.rounds[P.ri];
     const prev = P.ri > 0 ? P.rounds[P.ri - 1] : null;
