@@ -1828,7 +1828,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 9: Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 10: Digger, Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5274,7 +5274,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 9;
+const SQUAD_ENGINE = 10;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5425,7 +5425,13 @@ const RULES = lock({
   // fights with its Build Hammer (toolDmg), whatever weapon it was given; another
   // Builder of the squad keeps its weapon and puts up barricades.
   cannonBuild: 3, cannonStart: 2, cannonReload: 2, cannonRange: 7, cannonDmg: 9, toolDmg: 2,
-  // Builders and Miners are made of tougher stuff: this much more HP
+  // Digger (engine 10): with no enemy within pitSafe tiles but one coming (within
+  // pitNear), it digs a pit beside it towards them and hides it under leaves, its whole
+  // turn, pitMax times a round. Its own squad never steps on one; an enemy that does
+  // falls in and is out of the round. Within shaftNear tiles of its squad's Mine Shaft
+  // it digs round the shaft instead, pitShaft at a time.
+  pitSafe: 3, pitNear: 7, pitMax: 2, pitShaft: 2, shaftNear: 3,
+  // Builders, Miners and Diggers are made of tougher stuff: this much more HP
   workHp: 6,
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
   // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
@@ -5496,6 +5502,7 @@ const POWERS = lock([
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
   ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, a 2x2 cannon round where it started (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Digs a pit and hides it under leaves: with no enemy within ${RULES.pitSafe} tiles but one coming (within ${RULES.pitNear}), it looks round, digs on a tile beside it where they will come and covers it up, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round. Its own squad never steps on it; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]);
 const TACTICS = lock([
@@ -5795,7 +5802,7 @@ function unitStats(u, captain, engineer) {
   // the Boom Pack weighs on whoever carries it, the Last Stand Pack a little
   const heavy = W.boom && !W.fuse ? 1 : 0;
   return {
-    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp - (W.fuse ? RULES.lastHp : 0) + (u.pow === 'builder' || u.pow === 'miner' ? RULES.workHp : 0),
+    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp - (W.fuse ? RULES.lastHp : 0) + (u.pow === 'builder' || u.pow === 'miner' || u.pow === 'digger' ? RULES.workHp : 0),
     move: Math.max(2, S.move + (u.gear === 'boots' ? 1 : 0) + (t.spd >= 3 ? 1 : 0) - heavy * RULES.boomMove),
     range: W.range,
     dmg: heavy ? RULES.boomDmg : W.dmg,
@@ -6006,6 +6013,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   const objs = OB.filter((o) => !o.off);
   const wireT = new Int8Array(N).fill(-1); // the team whose wire it is
+  const pitT = new Int8Array(N).fill(-1); // the team whose hidden pit it is (a Digger's)
+  const pitBy = new Int8Array(N).fill(-1); // the Digger that dug it
   const mineT = new Int16Array(N).fill(-1); // the object a live mine belongs to
   const towerT = new Uint8Array(N); // the team whose watchtower it is, plus 1
   const trenchT = new Uint8Array(N);
@@ -6552,7 +6561,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // over it still costs what the ground costs). Alpha Leak: a squad that knows where
   // the other side's hidden traps (and the chest's) are plans round those as well,
   // and only walks over one when there is no other way.
-  const known = (u, c) => (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || c === rug || c === honey;
+  const known = (u, c) => (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || c === honey;
   const stepCost = (c) => (tiles[c] === WATER ? 2 : 1);
   const planCost = (u, c) => stepCost(c) + (wireT[c] >= 0 && wireT[c] !== u.team ? RULES.wireAvoid : 0) + (meme[u.team].buff === 'alpha' && known(u, c) ? RULES.wireAvoid : 0);
   const sCost = new Int16Array(N).fill(-1);
@@ -6583,7 +6592,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         for (let k = 0; k < L; k++) {
           const n = list[flip ? L - 1 - k : k];
           const o = occ[n];
-          if (o >= 0 && U[o].team !== u.team) continue;
+          if ((o >= 0 && U[o].team !== u.team) || pitT[n] === u.team) continue;
           const nc = c + planCost(u, n);
           if (nc > maxCost || (sCost[n] >= 0 && sCost[n] <= nc)) continue;
           if (sCost[n] < 0) touched.push(n);
@@ -6609,7 +6618,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // walk along a path as far as the move points go, ending on a free tile;
   // returns true if it moved. `note`: an event that says why, told just before the move
   // the other side's wire or live mine on a free tile stops a walk there
-  const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team) || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || c === rug || cats.includes(c));
+  const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team) || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || cats.includes(c));
   function walk(u, path, note) {
     let spent = 0;
     let n = 0;
@@ -6651,6 +6660,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       hurt(u, RULES.mineDmg, 'mine', OB[m]);
       for (const v of U) if (v !== u && v.alive && v.team === u.team && cheb(v.x, v.y, u.x, u.y) <= 1) hurt(v, RULES.mineSplash, 'mine', OB[m]);
     }
+    // a Digger's hidden pit of the other side: it falls in
+    if (pitT[c] >= 0 && pitT[c] !== u.team && u.alive && over < 0) return pitFall(u, c);
     if (c === rug && u.alive && over < 0) pullRug(u);
     if (c === honey && u.alive && over < 0) springHoney(u);
     if (cats.includes(c) && u.alive && over < 0) sendIt(u, c);
@@ -6818,6 +6829,68 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (best >= 0) walk(u, route(P, best));
     }
     hitAround(u, target);
+  }
+  // ---- the Digger's pits (engine 10). With no enemy within pitSafe tiles but one
+  // coming (within pitNear) it digs a pit and hides it, its whole turn: on a free tile
+  // beside it, the one nearest the enemy (team B weighs ties on the board turned round);
+  // within shaftNear tiles of its squad's Mine Shaft round the shaft instead, pitShaft at
+  // a time. Its own squad plans round its pits; an enemy that ends a step on one falls in
+  // and is out of the round (not knocked out: no totem, tent or last blast), and the
+  // hole stays open where that leaves the arena in one piece.
+  function digPit(u) {
+    if ((u.pits || 0) >= RULES.pitMax || inReach(u).length) return false;
+    let near = 99;
+    for (const v of foes(u)) near = Math.min(near, cheb(u.x, u.y, v.x, v.y));
+    if (near <= RULES.pitSafe || near > RULES.pitNear) return false;
+    const shaft = objs.find((o) => o.k === 'shaft' && o.team === u.team && cheb(u.x, u.y, o.at[0], o.at[1]) <= RULES.shaftNear);
+    const [ax, ay] = shaft ? shaft.at : [u.x, u.y];
+    const cand = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = ax + dx;
+        const y = ay + dy;
+        if ((!dx && !dy) || !inside(x, y)) continue;
+        const c = idx(x, y);
+        if (occ[c] >= 0 || pitT[c] >= 0 || !freeFloor(c)) continue;
+        let d = 99;
+        for (const v of foes(u)) d = Math.min(d, cheb(x, y, v.x, v.y));
+        cand.push([d, u.team ? N - 1 - c : c, c]);
+      }
+    if (!cand.length) return false;
+    cand.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+    // best of all: the tile the nearest enemy would come to on its way at it
+    if (!shaft) {
+      const v = foes(u).slice().sort((p, q) => cheb(u.x, u.y, p.x, p.y) - cheb(u.x, u.y, q.x, q.y) || p.id - q.id)[0];
+      const P = search(v, 3 * v.move, (x, y) => cheb(x, y, ax, ay) <= 1);
+      const hit = P.found.find((f) => cand.some((q) => q[2] === f));
+      if (hit !== undefined) cand.sort((p, q) => (q[2] === hit) - (p[2] === hit));
+    }
+    const cells = cand.slice(0, shaft ? RULES.pitShaft : 1).map((q) => q[2]);
+    for (const c of cells) {
+      pitT[c] = u.team;
+      pitBy[c] = u.id;
+    }
+    u.pits = (u.pits || 0) + 1;
+    u.attacked = true;
+    push({ t: 'pit', u: u.id, at: cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]), ...(shaft ? { shaft: 1 } : {}) });
+    return true;
+  }
+  function pitFall(u, c) {
+    const by = U[pitBy[c]];
+    pitT[c] = -1;
+    push({ t: 'pitfall', u: u.id, by: by.id, at: [u.x, u.y] });
+    u.alive = false;
+    u.hp = 0;
+    living[u.team] = living[u.team].filter((w) => w !== u);
+    occ[c] = -1;
+    stats[by.id].kills++;
+    // the hole stays open: nobody walks there again (unless that would cut the arena)
+    tiles[c] = SAND;
+    if (connected(tiles)) {
+      shot[c] = SAND;
+      restep(c);
+    } else tiles[c] = GRASS;
+    checkOver();
   }
   // ---- the engine 7 trench kit
   // The Smoke Pot pops: the shot that set it off is lost, and the cloud comes up over
@@ -7065,6 +7138,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // a Builder's works come first while nobody is in its reach (its squad's cannon,
     // and the wall in front of it)
     if (u.engineer && engineer(u)) return;
+    if (u.pow === 'digger' && digPit(u)) return;
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
     if (W(u).boom && boomTurn(u)) return;
@@ -8425,7 +8499,7 @@ function randomSquad(r) {
   // (a watchtower only for a squad with a shooter to put on it)
   const objs = [];
   const shooter = units.some((u) => WEAPON_STATS[u.wpn].range >= 3);
-  const miner = units.some((u) => u.pow === 'miner');
+  const miner = units.some((u) => u.pow === 'miner' || u.pow === 'digger');
   const kinds = OBJECTS.map((o) => o[0]).filter((k) => (k !== 'tower' || shooter) && (k !== 'shaft' || miner));
   for (let k = 0; k < OBJECTS_MAX; k++) {
     const kind = kinds.splice(Math.floor(r() * kinds.length), 1)[0];
@@ -10700,6 +10774,11 @@ const SquadView = (() => {
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
       case 'build':
         return e.d >= 0 && e.d !== e.u ? u + ' puts up sandbags beside ' + d + '.' : u + ' puts up a barricade.';
+      // a Digger's pits (engine 10)
+      case 'pit':
+        return u + (e.at && e.at.length > 1 ? ' digs pits round the Mine Shaft and hides them under leaves.' : ' looks round, digs a pit and hides it under leaves.');
+      case 'pitfall':
+        return 'PITFALL! ' + u + ' falls into ' + nm(e.by) + "'s pit: out of the round.";
       // a Builder's works (engine 9)
       case 'craft':
         if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
@@ -11747,6 +11826,9 @@ const SquadView = (() => {
     // a Builder's works (engine 9): a stage of the cannon or a sandbag of its wall, done
     // at craftHit; its cannon firing: the ball takes cannonWind plus cannonTile a tile
     craft: 1000, craftHit: 640, cannon: 700, cannonWind: 170, cannonTile: 45,
+    // a Digger's pit (engine 10): the close-up, a look round through its binoculars,
+    // the digging and the leaves over it (done at pitHit); and an enemy falling in
+    pitdig: 2400, pitdigHit: 2050, pitfall: 1500,
     // the engine 7 trench kit: a Smoke Pot popping (after the shot it swallows) and
     // its cloud clearing, a Decoy Blub falling apart, the stretcher on its way to the
     // tent (in at stretcherHit), and the way back out of it
@@ -11818,7 +11900,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended']);
+  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -12041,6 +12123,18 @@ const SquadView = (() => {
           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
           return;
         }
+        // a Digger digs a pit (the crater has the beat called 'pit'), and a Blub falls
+        // into one: scenes of their own
+        if (t === 'pit') {
+          parent = add({ kind: 'pitdig', dur: MS.pitdig, contact: MS.pitdigHit, list: [{ ei: i, off: MS.pitdigHit }], e, actors: [e.u] });
+          return;
+        }
+        if (t === 'pitfall') {
+          parent = null;
+          add({ kind: 'pitfall', dur: MS.pitfall, contact: 0, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          pos[e.u] = null;
+          return;
+        }
         // a Builder's cannon fires by itself: the ball flies, and its hit rides on it
         if (t === 'cannon') {
           const fly = MS.cannonWind + MS.cannonTile * cheb(e.from, e.at);
@@ -12249,6 +12343,8 @@ const SquadView = (() => {
       smoke: [], smokeUsed: {}, decoys: {}, tents: {},
       // the Builders' cannons (engine 9), by id: { team, cells, stage, of, face }
       works: {},
+      // the Diggers' pits (engine 10): { x, y, team, open }
+      pits: [],
     };
   }
   function fold(S, e) {
@@ -12327,6 +12423,20 @@ const SquadView = (() => {
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         break;
+      // a Digger's pit, hidden under leaves; and a Blub that falls into one
+      case 'pit':
+        for (const [x0, y0] of e.at) S.pits.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM), open: false });
+        break;
+      case 'pitfall': {
+        U[e.u].alive = false;
+        U[e.u].hp = 0;
+        U[e.u].st = {};
+        U[e.u].dug = false;
+        U[e.u].pit = true;
+        const p = S.pits.find((v) => v.x === e.at[0] && v.y === e.at[1]);
+        if (p) p.open = true;
+        break;
+      }
       // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
       case 'craft':
         if (e.what === 'cannon') S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face };
@@ -13826,6 +13936,94 @@ const SquadView = (() => {
     });
     atClock(M0 + MD * HIT, () => sfx('bell'));
   }
+  // ---- a Digger's pit on the board (engine 10): hidden, a heap of leaves on the floor;
+  // once somebody has fallen in, a dark hole with the leaves torn round it
+  const LEAF = ['#2F7D46', '#4FB36B', '#9FE3A8'];
+  function drawLeaves(x, cx, cy, seed, n) {
+    for (let i = 0; i < n; i++) {
+      const a = hash(seed, i, 3) * Math.PI * 2;
+      const r = Math.sqrt(hash(seed, i, 4)) * 6;
+      const lx = Math.round(cx + Math.cos(a) * r * 1.2);
+      const ly = Math.round(cy + Math.sin(a) * r * 0.6);
+      x.fillStyle = LEAF[Math.floor(hash(seed, i, 5) * 3)];
+      x.fillRect(lx, ly, 2, 1);
+      if (i % 3 === 0) x.fillRect(lx + 1, ly - 1, 1, 1);
+    }
+    x.fillStyle = '#8C5A2B';
+    x.fillRect(Math.round(cx - 4), Math.round(cy + 1), 3, 1);
+    x.fillRect(Math.round(cx + 2), Math.round(cy - 2), 2, 1);
+  }
+  function drawHole(x, cx, cy, a) {
+    const w = Math.max(1, Math.round(6 * a));
+    const h = Math.max(1, Math.round(3 * a));
+    x.fillStyle = '#5A2440';
+    x.fillRect(cx - w - 1, cy - h, 2 * w + 3, 2 * h + 1);
+    x.fillStyle = '#120A1C';
+    x.fillRect(cx - w, cy - h + 1, 2 * w + 1, 2 * h - 1);
+  }
+  function drawPit(x, p, t) {
+    const [cx, cy] = tileC(p.x, p.y);
+    const ov = P.ov['pit' + p.x + ',' + p.y];
+    if (ov && ov.digT != null && t < ov.doneT) return; // still being dug: the scene draws it
+    if (p.open) {
+      drawHole(x, cx, cy + 3, 1);
+      drawLeaves(x, cx - 6, cy + 6, p.x * 31 + p.y, 6);
+      drawLeaves(x, cx + 6, cy + 1, p.x * 17 + p.y, 5);
+      return;
+    }
+    drawLeaves(x, cx, cy + 3, p.x * 13 + p.y * 7, 22);
+  }
+  // A Digger digs a pit: the camera cuts in close; it raises its binoculars and looks
+  // one way, then the other; then it digs like mad, dirt flying, the hole opening up,
+  // and leaves come down over it till nothing shows but a heap of leaves.
+  function pitBeat(b, T, k) {
+    const S = P.S;
+    const e = b.e;
+    if (b.kind !== 'pitdig') return false;
+    const u = S.u[e.u];
+    if (!u) return true;
+    const [ux, uy] = centreOf(u);
+    const LOOK = 900 * k;
+    const DIG = 1550 * k;
+    const DONE = b.contact;
+    closeUp(T, b.dur, ux, uy - 4);
+    label(T + 80 * k, 'SHHH...', '#C9C9D6', ux, above(uy - 22), true);
+    // the binoculars, at its eyes, turning one way and the other
+    const face0 = u.face || 1;
+    atClock(T + 300 * k, () => (u.face = -face0));
+    atClock(T + 620 * k, () => (u.face = face0));
+    addFx(T + 120 * k, LOOK - 120 * k, (x) => {
+      const ub = u._b;
+      if (!ub) return;
+      const s = u.face > 0 ? 1 : -1;
+      const bx = ub.ox + (s > 0 ? 9 : 1);
+      const by = ub.oy + 7;
+      x.fillStyle = INK;
+      x.fillRect(bx, by, 6, 3);
+      x.fillStyle = '#3E86C9';
+      x.fillRect(bx + 1, by + 1, 1, 1);
+      x.fillRect(bx + 4, by + 1, 1, 1);
+      x.fillStyle = '#BDE7FF';
+      x.fillRect(bx + (s > 0 ? 5 : 0), by + 1, 1, 1);
+    });
+    for (const [px0, py0] of e.at) {
+      const [cx, cy] = tileC(px0, py0);
+      const ov = ovOf('pit' + px0 + ',' + py0);
+      ov.digT = T;
+      ov.doneT = T + DONE;
+      // the hole opening up, dirt flying off the spade, then the leaves coming down
+      addFx(T + LOOK, DONE - LOOK + 60 * k, (x, kk, el) => {
+        const dig = clamp(el / (DIG - LOOK), 0, 1);
+        drawHole(x, cx, cy + 3, 0.3 + dig * 0.7);
+        if (el > DIG - LOOK) drawLeaves(x, cx, cy + 3, px0 * 13 + py0 * 7, Math.round(22 * clamp((el - (DIG - LOOK)) / (DONE - DIG), 0, 1)));
+      }, true);
+      for (let j = 0; j < 5; j++) addParts(4, cx, cy + 2, [OC.dt, OC.dtD, OC.dtL], 0.06, 0.0005, 340 * k, T + LOOK + j * 120 * k, true, [Math.PI * 1.1, Math.PI * 1.9]);
+      for (let j = 0; j < 4; j++) addParts(3, cx, cy - 14, LEAF, 0.02, 0.0002, 520 * k, T + DIG + j * 90 * k, true, [Math.PI * 0.3, Math.PI * 0.7]);
+    }
+    for (let j = 0; j < 5; j++) atClock(T + LOOK + j * 120 * k, () => sfx('dig'));
+    label(T + DONE, e.shaft ? 'PITS ROUND THE SHAFT' : 'PIT HIDDEN', '#4BE08F', ux, above(uy - 22), true);
+    return true;
+  }
   // ---- a Builder's cannon on the board (engine 9): in its row (the lower of its two),
   // pointing at the other side, a stage at a time; the squad's band round its barrel,
   // and a kick back when it fires
@@ -14805,6 +15003,7 @@ const SquadView = (() => {
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
       for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
       for (const id in S.works) if (cannonRow(S.works[id]) === r) drawCannon(x, S.works[id], t);
+      for (const p of S.pits) if (scr(p.x, p.y)[1] === r) drawPit(x, p, t);
       const ol = P.objRows[r];
       if (ol) for (const o of ol) drawObj(x, o, 'back', t, now, intro);
       const list = rows[r];
@@ -15181,6 +15380,31 @@ const SquadView = (() => {
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
     if (worksBeat(b, T, k)) return;
+    if (pitBeat(b, T, k)) return;
+    // a Blub steps on the leaves: they give way and down it goes, out of the round
+    if (b.kind === 'pitfall') {
+      const e = b.e;
+      const u = S.u[e.u];
+      if (!u) return;
+      const [cx, cy] = tileC(e.at[0], e.at[1]);
+      const sp = P.spr[u.id].get(u.face || 1, 'o');
+      u.air = [T, 1e12];
+      shake(T);
+      sfx('crit');
+      label(T + 60 * k, 'PITFALL!', '#FF5C77', cx, above(cy - 24), true);
+      addParts(12, cx, cy + 2, LEAF.concat(['#8C5A2B']), 0.07, 0.0004, 520 * k, T, true, [Math.PI * 1.05, Math.PI * 1.95]);
+      addFx(T, 700 * k, (x, kk) => {
+        // it drops into the hole, the rim cutting it off
+        const dy = Math.round(kk * kk * 22);
+        x.save();
+        x.beginPath();
+        x.rect(0, 0, CW, cy + 4);
+        x.clip();
+        x.drawImage(sp, cx - 8, cy - 13 + dy);
+        x.restore();
+      });
+      return;
+    }
     // a swing at one of the contested props looks like any other swing
     if (b.kind === 'prophit') {
       const e = b.e;
@@ -17910,7 +18134,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -18053,7 +18277,7 @@ const SquadView = (() => {
         if (u.alive && u.ammo) sts.push('ammo');
         if (u.alive && u.gone) sts.push('rugged');
         const acting = P.actors.includes(r.id) && P.phase === 'round';
-        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting, u.fell, u.tent, u.moon].join('|');
+        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting, u.fell, u.tent, u.moon, u.pit].join('|');
         if (key === r.key) return;
         r.key = key;
         r.hp.textContent = '';
@@ -18063,6 +18287,7 @@ const SquadView = (() => {
         else if (u.fell) r.hp.append(el('span', 'long', 'Exited'), el('span', 'short', 'EXIT'));
         else if (u.tent) r.hp.append(el('span', 'long', 'In the tent'), el('span', 'short', 'TENT'));
         else if (u.moon) r.hp.append(el('span', 'long', 'On the moon'), el('span', 'short', 'MOON'));
+        else if (u.pit) r.hp.append(el('span', 'long', 'In a pit'), el('span', 'short', 'PIT'));
         else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
         r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
         r.b.classList.toggle('ko', !u.alive);
@@ -18078,7 +18303,7 @@ const SquadView = (() => {
         });
         if (u.held && !sts.length) r.sts.append(icon('item', u.held, 14));
         else if (u.held) r.sts.append(icon('item', u.held, 14));
-        r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : u.tent ? 'in the Field Hospital' : u.moon ? 'gone to the moon' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
+        r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : u.tent ? 'in the Field Hospital' : u.moon ? 'gone to the moon' : u.pit ? 'fallen into a pit' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
       }),
     );
     D.you.cnt.textContent = alive.you + '/5';
