@@ -22765,13 +22765,18 @@ const SquadHall = (() => {
       faces.set(id, {name: E.RECRUIT_NAMES[ni], look: freeLook(r), style: STY[Math.floor(r() * STY.length)]});
       m.push({id, p: 3 * w + l, w, l, j: i + 2});
     });
+    // (a first visit has no captain yet: the plain Blub stands in)
     const cap = SquadNet.captain();
-    faces.set('you', {name: cap && cap.name ? cap.name : 'You', look: cap ? cap.look : null, style: cap ? cap.style : 'playful'});
+    faces.set('you', {name: cap && cap.name ? cap.name : 'You', look: cleanLook(cap ? cap.look : null), style: cap && cap.style ? cap.style : 'playful'});
     m.push({id: 'you', p: 14, w: 4, l: 2, j: 1});
     m.sort((a, b) => b.p - a.p || b.w - a.w || a.j - b.j);
     return {g: {d: 1, g: 0, m}, who: id => faces.get(id) || null};
   }
+  // the league is an add-on: whatever goes wrong drawing it, the rest of the hall carries on
   function renderLeague(){
+    try { drawLeague(); } catch (e) { console.error(e); }
+  }
+  function drawLeague(){
     if (!R.lg) return;
     const me = SquadNet.me(), L = st.league, box = R.lg, was = box.scrollTop;
     R.lgWeek.textContent = ''; R.lgMe.textContent = ''; box.textContent = '';
