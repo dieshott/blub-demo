@@ -2071,7 +2071,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 13: no fog, cannon out front (blind in smoke), one Pop Mine, ranks everywhere</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 14: smoke makes shots blind, the Digger's smoke grenade, max 1-2 of a perk</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5617,7 +5617,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 13;
+const SQUAD_ENGINE = 14;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5702,6 +5702,10 @@ const RULES = lock({
   // its squad within smokeNear tiles of it; the cloud (smokeRing tiles round it) hangs
   // for the rest of that turn and smokeTurns more.
   smokeNear: 2, smokeRing: 1, smokeTurns: 2,
+  // Smoke (engine 14): an arrow or bullet that flies into a cloud, out of one or through
+  // one (from farther than a tile) goes blind and hits blindHit% of the time, whatever
+  // the cover (the cannon's shots alike); Smoke Goggles see through it
+  blindHit: 35,
   decoyHp: 8, // the Decoy Blub falls apart after this much damage
   // the Field Hospital: the first Blub of its squad knocked out is carried in on a
   // stretcher, and hospTurns turns later it is back beside the tent with hospHp HP
@@ -5769,19 +5773,30 @@ const RULES = lock({
   // (the ball lands beside the enemy otherwise). That Builder fights with its Build
   // Hammer (toolDmg), whatever weapon it was given; another Builder of the squad keeps
   // its weapon and puts up barricades.
-  cannonBuild: 3, cannonStart: 3, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10, blindHit: 35,
-  // Digger (engine 10): with no enemy within pitSafe tiles but one coming (within
-  // pitNear), it digs a pit beside it towards them and hides it under leaves, its whole
-  // turn, pitMax times a round. Its own squad never steps on one; an enemy that does
-  // falls in and is out of the round. Within shaftNear tiles of its squad's Mine Shaft
-  // it digs round the shaft instead, pitShaft at a time.
+  cannonBuild: 3, cannonStart: 3, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10,
+  // Digger (engine 10): it digs a pit beside it where the enemy will come and hides it
+  // under leaves, its whole turn, pitMax times a round. Its own squad never steps on
+  // one; an enemy that does falls in and is out of the round. Within shaftNear tiles of
+  // its squad's Mine Shaft it digs round the shaft instead, pitShaft at a time.
+  // Engine 14: it carries dsmoke smoke grenades a round. With the enemy coming (within
+  // sneakNear) it runs out ahead, at least to sneakRow rows from its own back row (the
+  // middle is 7) and never nearer an enemy than sneakGap, and throws one at its feet: a
+  // cloud over it and the tiles round it for the rest of that turn and dsmokeTurns more.
+  // Hidden in a cloud a Digger digs (unless an enemy is right next to it), pitSmoke
+  // pits at once, first creeping through the cloud to where the enemy will walk; when
+  // its cloud lifts it falls back to its squad. Out of a cloud it digs only with no
+  // enemy within pitSafe tiles but one coming (within pitNear).
   pitSafe: 3, pitNear: 7, pitMax: 2, pitShaft: 2, shaftNear: 3,
+  dsmoke: 1, dsmokeTurns: 2, sneakNear: 9, sneakRow: 6, sneakGap: 3, pitSmoke: 2,
   // the weather (engine 11, WEATHER): rainPct% of rounds it rains (bows and guns reach
   // rainRange less, wands rainRange more); the rest are clear. Engine 13 took the fog
   // out: its pale veil hid the arena.
   rainPct: 15, rainRange: 1,
   // Builders, Miners and Diggers are made of tougher stuff: this much more HP
   workHp: 6,
+  // How many Blubs of a squad may have a power (engine 14, the owner's call: never a
+  // squad of five Diggers): the trench jobs and the Freeze Ray once, the rest twice
+  powMax: { freeze: 1, storm: 2, rage: 2, nap: 2, bubble: 2, builder: 1, digger: 1, miner: 1 },
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
   // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
   // its Mine Shaft, where it digs whenever nobody is in its reach and which it keeps
@@ -5842,17 +5857,20 @@ const GEAR = lock([
   ['potion', 'Berry Potion', `Once per round, when a hit leaves you at ${RULES.potionAt}% HP or less: heal ${RULES.potionHeal}.`],
   ['banner', 'Team Banner', 'Allies within 2 tiles deal +1 damage.'],
   ['pillow', 'Fluff Pillow', `Every ${RULES.pillowEvery} turns: heal the most hurt ally (${RULES.pillowAt}% HP or less) within 2 tiles for ${RULES.pillowHeal}. On a Medic: heals reach 3 tiles instead.`],
+  ['goggles', 'Smoke Goggles', `Sees through smoke and leaves: its arrows and bullets never go blind in a cloud (blind, they hit ${RULES.blindHit}% of the time), and a Blub in a bush neither hides from it nor dodges it any better.`],
 ]);
-const POWERS = lock([
+// a power's card ends with how many a squad may have
+const capped = (list) => list.map(([id, n, t]) => [id, n, t + (RULES.powMax[id] === 1 ? ' One a squad.' : RULES.powMax[id] ? ' At most ' + RULES.powMax[id] + ' a squad.' : '')]);
+const POWERS = lock(capped([
   ['freeze', 'Freeze Ray', `From turn ${RULES.freezeTurn}: freezes the most dangerous enemy in sight within ${RULES.freezeRange} tiles for a turn.`],
   ['storm', 'Pixel Storm', `Lightning on a 3x3 patch of enemies within ${RULES.stormRange} tiles: ${RULES.stormDmg} damage each.`],
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
   ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
-  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Digs a pit and hides it under leaves: with no enemy within ${RULES.pitSafe} tiles but one coming (within ${RULES.pitNear}), it looks round, digs on a tile beside it where they will come and covers it up, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round. Its own squad never steps on it; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
+  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs pits beside it, ${RULES.pitSmoke} at a time, and covers them with leaves, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round; when the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
-]);
+]));
 const TACTICS = lock([
   ['nearest', 'Nearest', 'Attacks whoever is closest.'],
   ['weakest', 'Finisher', 'Goes for the enemy with the least HP left.'],
@@ -5900,7 +5918,7 @@ const OBJECTS = lock([
   ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
   ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
-  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. The first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it is lost in the smoke: the pot pops, and for the rest of that turn and ${RULES.smokeTurns} more a cloud hangs over it and the tiles around it. No arrow or bullet flies into the cloud, out of it or through it, not even from a watchtower; from right next to a Blub they still find it.`],
+  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. The first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it is lost in the smoke: the pot pops, and for the rest of that turn and ${RULES.smokeTurns} more a cloud hangs over it and the tiles around it. An arrow or bullet that flies into the cloud, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it.`],
   ['decoy', 'Decoy Blub', `A dummy in your colours, also out in no man's land; nobody walks through it. Enemy shooters that can hit it from 2 tiles or more take it for a Blub and shoot it first, unless an enemy stands right next to them. It falls apart after ${RULES.decoyHp} damage.`],
   ['hospital', 'Field Hospital', `A tent on your own rows; nobody walks through it. The first Blub of yours knocked out is carried to it on a stretcher, and ${RULES.hospTurns} turns later it is back on its feet beside the tent with ${RULES.hospHp} HP. (Not one that blew itself up.)`],
 ]);
@@ -6098,6 +6116,8 @@ function cleanSquad(raw) {
     }
     units.push({ cls, wpn, gear, pow, tac, trn, x, y });
   }
+  // so many Blubs of a squad with a power, and no more (RULES.powMax)
+  for (const [id] of POWERS) if (units.filter((u) => u.pow === id).length > (RULES.powMax[id] || TEAM)) return null;
   // the trench kit: up to two different objects on the squad's own rows
   const rawObjs = raw.objs === undefined ? [] : raw.objs;
   if (!Array.isArray(rawObjs) || rawObjs.length > OBJECTS_MAX) return null;
@@ -6123,6 +6143,19 @@ function cleanSquad(raw) {
   const cmd = raw.cmd === undefined || raw.cmd === '' ? '' : raw.cmd;
   if (cmd && !has(COMMANDS, cmd)) return null;
   return { units, ...(objs.length ? { objs } : {}), ...(cmd ? { cmd } : {}) };
+}
+// A power one too many for a squad (RULES.powMax) swapped, in place, for the first in
+// POW_SPARE with room; the Blubs listed first keep theirs. For squads saved or built
+// before the caps (engine 14), and for squads filled in from the role presets.
+const POW_SPARE = lock(['rage', 'nap', 'bubble', 'storm', 'freeze', 'builder', 'miner', 'digger']);
+function capPowers(units) {
+  const n = {};
+  const room = (p) => (n[p] || 0) < (RULES.powMax[p] || TEAM);
+  for (const u of units) {
+    if (!room(u.pow)) u.pow = POW_SPARE.find(room) || u.pow;
+    n[u.pow] = (n[u.pow] || 0) + 1;
+  }
+  return units;
 }
 // the tiles an object takes, as its owner sees the arena; null when it does not fit
 function objCells(o) {
@@ -6491,8 +6524,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const fog = new Uint8Array(N);
   const fogMemo = new Uint8Array(N * N);
   let clouds = 0;
-  // arrows and bullets go neither into a cloud, nor out of it, nor through it (not even
-  // from a watchtower); from a tile away they still find their mark
+  // an arrow or bullet that flies into a cloud, out of it or through it (even from a
+  // watchtower) goes blind (engine 14; before that it did not fly at all); from a tile
+  // away it still finds its mark. The Diggers' grenades make clouds too.
   function smoked(ax, ay, bx, by) {
     if (!clouds || cheb(ax, ay, bx, by) <= 1) return false;
     const a = idx(ax, ay);
@@ -6527,17 +6561,23 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const rangeOf = (u, x, y) => {
     return W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0) + rain(W(u));
   };
-  // a Blub in a bush lies in ambush: only what is close, or up high, finds it
-  const hidden = (u, x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !onTower(u, x, y) && tiles[idx(x, y)] !== HIGH;
-  // can u, standing on (x, y), hit v?
+  // a Blub in a bush lies in ambush: only what is close, or up high, finds it (and
+  // Smoke Goggles see through the leaves)
+  const hidden = (u, x, y, v) => tiles[idx(v.x, v.y)] === BUSH && u.gear !== 'goggles' && cheb(x, y, v.x, v.y) > RULES.bushSight && !onTower(u, x, y) && tiles[idx(x, y)] !== HIGH;
+  // can u, standing on (x, y), hit v? (Smoke no longer stops a shot, engine 14: it
+  // makes it blind.)
   const canHit = (u, x, y, v) => {
     const d = cheb(x, y, v.x, v.y);
     if (d < 1 || d > rangeOf(u, x, y) || hidden(u, x, y, v)) return false;
     if (!W(u).los) return true;
-    if (smoked(x, y, v.x, v.y)) return false;
     // a shooter up on its own watchtower sees over walls and bushes
     return onTower(u, x, y) || los(x, y, v.x, v.y);
   };
+  // would u's arrow or bullet from (x, y) at v go blind in the smoke? (never with goggles)
+  const blindFrom = (u, x, y, v) => clouds > 0 && !!W(u).los && u.gear !== 'goggles' && smoked(x, y, v.x, v.y);
+  // a Blub in a cloud is hard to make out (engine 14): from farther than right next to
+  // it, and without Smoke Goggles
+  const veiled = (u, v) => clouds > 0 && smokeT[idx(v.x, v.y)] > 0 && u.gear !== 'goggles' && cheb(u.x, u.y, v.x, v.y) > 1;
   // the most hurt first (by share of HP), then by unit
   const byHurt = (a, b) => a.hp * b.max - b.hp * a.max || a.id - b.id;
 
@@ -6709,13 +6749,19 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.attacked = true;
     let res = 'hit';
     let cover = 0;
+    // in the smoke (engine 14) the shot goes blind: it hits blindHit% of the time, and
+    // neither cover nor dodging comes into it
+    const blind = blindFrom(u, u.x, u.y, d) ? 1 : 0;
     if (w.whiff && r() * 100 < w.whiff) res = 'whiff';
-    else if (!w.sure) {
+    else if (blind) {
+      if (r() * 100 >= RULES.blindHit) res = 'miss';
+    } else if (!w.sure) {
       // cover from a bush (1), sandbags (2), a foxhole (3) or a watchtower (4).
       // A bush hides a Blub from everything that can miss; the rest only stop arrows.
+      // (Smoke Goggles see through the leaves.)
       let extra = 0;
       const c = idx(d.x, d.y);
-      if (tiles[c] === BUSH) {
+      if (tiles[c] === BUSH && u.gear !== 'goggles') {
         extra = kind === 'ranged' ? RULES.bushArrow : RULES.bushMelee;
         cover = 1;
       }
@@ -6749,8 +6795,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       res = 'miss';
     }
     const guard = gd >= 0 ? { gd } : null;
+    const bl = blind ? { blind } : null;
     if (res !== 'hit') {
-      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, cover, dmg: 0, hp: d.hp, ...guard });
+      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, cover, dmg: 0, hp: d.hp, ...guard, ...bl });
       return res;
     }
     // the attack's bonuses ride on its first hit that lands
@@ -6779,7 +6826,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (d.bubble) {
       d.bubble = false;
-      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res: 'absorb', crit, amb, dmg: 0, hp: d.hp, ...guard });
+      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res: 'absorb', crit, amb, dmg: 0, hp: d.hp, ...guard, ...bl });
       return 'absorb';
     }
     if (!w.sure && d.block && r() * 100 < d.block) {
@@ -6801,7 +6848,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     stats[u.id].dmg += dmg;
     stats[d.id].taken += dmg;
     u.dealt += dmg;
-    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}) });
+    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}), ...bl });
     if (!d.hp) {
       knockOut(d, u);
       return res;
@@ -7076,6 +7123,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const m = list.find((v) => v.id === orders[u.team].mark);
       if (m) return m;
     }
+    // Blubs hidden in a cloud come last (engine 14): the others are easier to make out
+    if (clouds) {
+      const clear = list.filter((v) => !veiled(u, v));
+      if (clear.length && clear.length < list.length) list = clear;
+    }
     const d = (v) => cheb(u.x, u.y, v.x, v.y);
     const by = (f) => list.slice().sort((a, b) => f(a, b) || d(a) - d(b) || a.id - b.id)[0];
     if (u.tac === 'weakest') return by((a, b) => a.hp - b.hp);
@@ -7105,7 +7157,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       // a Boom Pack wants as many of them beside it as it can get
       const s = W(u).boom
         ? foes(u).filter((e) => cheb(x, y, e.x, e.y) <= 1).length * 20 - dist
-        : (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
+        : (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0) - (blindFrom(u, x, y, v) ? 20 : 0);
       if (best < 0 || s > bs) {
         best = c;
         bs = s;
@@ -7200,19 +7252,67 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     hitAround(u, target);
   }
-  // ---- the Digger's pits (engine 10). With no enemy within pitSafe tiles but one
-  // coming (within pitNear) it digs a pit and hides it, its whole turn: on a free tile
-  // beside it, the one nearest the enemy (team B weighs ties on the board turned round);
-  // within shaftNear tiles of its squad's Mine Shaft round the shaft instead, pitShaft at
-  // a time. Its own squad plans round its pits; an enemy that ends a step on one falls in
-  // and is out of the round (not knocked out: no totem, tent or last blast), and the
-  // hole stays open where that leaves the arena in one piece.
+  // ---- the Digger's pits (engine 10) and its smoke grenade (engine 14).
+  // How far out a row lies for u's squad: 0 on its own back row, 7 in the middle
+  const ahead = (u, y) => (u.team ? y : SIZE - 1 - y);
+  // how close the nearest enemy of u is to (x, y)
+  const foeGap = (u, x, y) => {
+    let d = 99;
+    for (const v of foes(u)) d = Math.min(d, cheb(x, y, v.x, v.y));
+    return d;
+  };
+  // the free tiles round a tile a pit could go on
+  const pitRoom = (x0, y0) => {
+    let n = 0;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if ((dx || dy) && inside(x, y) && occ[idx(x, y)] < 0 && pitT[idx(x, y)] < 0 && freeFloor(idx(x, y))) n++;
+      }
+    return n;
+  };
+  // Where the other side will walk (engine 14): each enemy's way to the tile it would
+  // hit its target from, as far as two turns of moving take it (the first turn's steps
+  // count twice). It reads them the way they choose: by their tactics.
+  function theirWays(u) {
+    const ways = new Map();
+    for (const v of foes(u)) {
+      if (!v.alive) continue;
+      const t = chooseTarget(v, foes(v));
+      if (!t || canHit(v, v.x, v.y, t)) continue;
+      const P = search(v, 999, (x, y) => canHit(v, x, y, t));
+      const goal = attackGoal(v, P, t);
+      if (goal < 0) continue;
+      let spent = 0;
+      for (const c of route(P, goal)) {
+        spent += stepCost(c);
+        if (spent > 2 * v.move) break;
+        ways.set(c, (ways.get(c) || 0) + (spent <= v.move ? 2 : 1));
+      }
+    }
+    return ways;
+  }
+  // The Digger digs a pit and hides it, its whole turn: on a free tile beside it where
+  // the enemy will walk (else the one nearest the enemy; team B weighs ties on the
+  // board turned round). Out in the open only with no enemy within pitSafe tiles but
+  // one coming (within pitNear); hidden in a cloud whenever no enemy stands right next
+  // to it (engine 14). Within shaftNear tiles of its squad's Mine Shaft it digs round
+  // the shaft instead, pitShaft at a time. Its own squad plans round its pits; an enemy
+  // that steps on one falls in and is out of the round (not knocked out: no totem, tent
+  // or last blast), and the hole stays open where that leaves the arena in one piece.
   function digPit(u) {
-    if ((u.pits || 0) >= RULES.pitMax || inReach(u).length) return false;
-    let near = 99;
-    for (const v of foes(u)) near = Math.min(near, cheb(u.x, u.y, v.x, v.y));
-    if (near <= RULES.pitSafe || near > RULES.pitNear) return false;
+    if ((u.pits || 0) >= RULES.pitMax) return false;
+    const near = foeGap(u, u.x, u.y);
+    const hid = smokeT[idx(u.x, u.y)] > 0;
+    if (hid ? near <= 1 : inReach(u).length || near <= RULES.pitSafe || near > RULES.pitNear) return false;
     const shaft = objs.find((o) => o.k === 'shaft' && o.team === u.team && cheb(u.x, u.y, o.at[0], o.at[1]) <= RULES.shaftNear);
+    // where they will walk (round the shaft it digs to guard it, wherever they walk)
+    const ways = shaft ? null : theirWays(u);
+    // hidden in a cloud with none of their ways beside it, it creeps through the cloud
+    // to a tile one passes beside first (engine 14)
+    if (hid && ways && !waysBeside(u.x, u.y, ways)) creep(u, ways);
+    if (!u.alive || over >= 0) return true;
     const [ax, ay] = shaft ? shaft.at : [u.x, u.y];
     const cand = [];
     for (let dy = -1; dy <= 1; dy++)
@@ -7226,16 +7326,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         for (const v of foes(u)) d = Math.min(d, cheb(x, y, v.x, v.y));
         cand.push([d, u.team ? N - 1 - c : c, c]);
       }
-    if (!cand.length) return false;
+    // (having crept there, that was its turn)
+    if (!cand.length) return u.moved;
     cand.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
-    // best of all: the tile the nearest enemy would come to on its way at it
-    if (!shaft) {
-      const v = foes(u).slice().sort((p, q) => cheb(u.x, u.y, p.x, p.y) - cheb(u.x, u.y, q.x, q.y) || p.id - q.id)[0];
-      const P = search(v, 3 * v.move, (x, y) => cheb(x, y, ax, ay) <= 1);
-      const hit = P.found.find((f) => cand.some((q) => q[2] === f));
-      if (hit !== undefined) cand.sort((p, q) => (q[2] === hit) - (p[2] === hit));
-    }
-    const cells = cand.slice(0, shaft ? RULES.pitShaft : 1).map((q) => q[2]);
+    // best of all: where the most of them will walk soonest
+    if (ways) cand.sort((p, q) => (ways.get(q[2]) || 0) - (ways.get(p[2]) || 0) || p[0] - q[0] || p[1] - q[1]);
+    // hidden in a cloud it digs two at once
+    const cells = cand.slice(0, shaft ? RULES.pitShaft : smokeT[idx(u.x, u.y)] ? RULES.pitSmoke : 1).map((q) => q[2]);
     for (const c of cells) {
       pitT[c] = u.team;
       pitBy[c] = u.id;
@@ -7243,6 +7340,127 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.pits = (u.pits || 0) + 1;
     u.attacked = true;
     push({ t: 'pit', u: u.id, at: cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]), ...(shaft ? { shaft: 1 } : {}) });
+    return true;
+  }
+  // the most of their ways beside (x, y), on a tile a pit could go on
+  function waysBeside(x0, y0, ways) {
+    let best = 0;
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if ((!dx && !dy) || !inside(x, y)) continue;
+        const c = idx(x, y);
+        if (occ[c] < 0 && pitT[c] < 0 && freeFloor(c)) best = Math.max(best, ways.get(c) || 0);
+      }
+    return best;
+  }
+  // through the cloud (its tiles in its reach, none right next to an enemy) to the one
+  // with the most of their ways beside it
+  function creep(u, ways) {
+    const P = search(u, u.move);
+    let best = -1;
+    let bw = 0;
+    for (const c of seen(P)) {
+      if (!smokeT[c] || occ[c] >= 0) continue;
+      const [x, y] = xyOf(c);
+      if (foeGap(u, x, y) <= 1) continue;
+      const w = waysBeside(x, y, ways);
+      if (w > bw) {
+        bw = w;
+        best = c;
+      }
+    }
+    if (best >= 0) walk(u, route(P, best));
+  }
+  // The smoke grenade (engine 14): a Digger carries dsmoke a round (and a squad has one
+  // Digger). With the enemy coming (within sneakNear, but none in its reach or within
+  // sneakGap tiles) it runs out ahead, its whole move and ahead of its squad, and once
+  // it stands at least sneakRow rows out (the middle is 7) it throws one at its feet.
+  // Where to: a tile in its reach no nearer an enemy than sneakGap, out there (but not
+  // past the middle row and one more), by where the enemy will walk, with room round
+  // it to dig.
+  const puffs = []; // the grenades' clouds: { u, cells, until }
+  function sneak(u) {
+    if ((u.gren || 0) >= RULES.dsmoke || (u.pits || 0) >= RULES.pitMax || smokeT[idx(u.x, u.y)]) return false;
+    const list = foes(u);
+    const near = foeGap(u, u.x, u.y);
+    if (!list.length || near > RULES.sneakNear + u.move || near < RULES.sneakGap || inReach(u).length) return false;
+    let mx = 0;
+    for (const v of list) mx += v.x;
+    mx = Math.round(mx / list.length);
+    // where they will walk: it wants to stand right by their ways
+    const ways = theirWays(u);
+    const P = search(u, u.move);
+    const here = idx(u.x, u.y);
+    let best = -1;
+    let bs = -1e9;
+    for (const c of [here, ...seen(P)]) {
+      const [x, y] = xyOf(c);
+      const a = ahead(u, y);
+      const gap = foeGap(u, x, y);
+      if (a > 8 || gap < RULES.sneakGap || (c !== here && occ[c] >= 0)) continue;
+      let w = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if ((dx || dy) && inside(x + dx, y + dy)) w += ways.get(idx(x + dx, y + dy)) || 0;
+      const s = Math.min(a, 8) * 20 + Math.min(gap, 5) * 2 - Math.abs(x - mx) * 4 + pitRoom(x, y) * 3 + Math.min(w, 8) * 6;
+      if (s > bs) {
+        bs = s;
+        best = c;
+      }
+    }
+    if (best < 0) return false;
+    const [bx, by] = xyOf(best);
+    // no farther out than where it stands: nothing to run for
+    if (ahead(u, by) < RULES.sneakRow && ahead(u, by) <= ahead(u, u.y)) return false;
+    if (best !== here) walk(u, route(P, best));
+    if (!u.alive || over >= 0) return true;
+    // out there, with somebody coming and room to dig: the grenade
+    if (ahead(u, u.y) >= RULES.sneakRow && foeGap(u, u.x, u.y) <= RULES.sneakNear && pitRoom(u.x, u.y)) throwSmoke(u);
+    return true;
+  }
+  function throwSmoke(u) {
+    u.gren = (u.gren || 0) + 1;
+    u.attacked = true;
+    const cells = [];
+    const R = RULES.smokeRing;
+    for (let y = u.y - R; y <= u.y + R; y++) for (let x = u.x - R; x <= u.x + R; x++) if (inside(x, y)) cells.push(idx(x, y));
+    for (const c of cells) {
+      smokeT[c]++;
+      fog[c] = BLOCK;
+    }
+    clouds++;
+    fogMemo.fill(0);
+    u.puff = { u, cells, until: now + RULES.dsmokeTurns };
+    puffs.push(u.puff);
+    push({ t: 'grenade', u: u.id, at: [u.x, u.y], until: u.puff.until, cells: cells.map(xyOf) });
+  }
+  // ...and once its cloud has lifted, out there, it falls back to its squad (once): to
+  // the tile in its reach nearest its squad's Blubs, as far from the enemy as it can.
+  function fallBack(u) {
+    if (!u.gren || u.puff || u.back) return false;
+    u.back = true;
+    const mates = friends(u);
+    if (ahead(u, u.y) < RULES.sneakRow || !mates.length) return false;
+    const P = search(u, u.move);
+    // back towards its own rows first, then near its squad and clear of the enemy
+    const score = (c) => {
+      const [x, y] = xyOf(c);
+      let m = 99;
+      for (const v of mates) m = Math.min(m, cheb(x, y, v.x, v.y));
+      return Math.min(foeGap(u, x, y), 3) * 6 - Math.min(m, 6) * 2 - ahead(u, y) * 10;
+    };
+    let best = idx(u.x, u.y);
+    let bs = score(best);
+    for (const c of seen(P)) {
+      const s = score(c);
+      if (s > bs) {
+        bs = s;
+        best = c;
+      }
+    }
+    if (best === idx(u.x, u.y)) return false;
+    walk(u, route(P, best), { t: 'fallback', u: u.id });
+    if (over < 0 && u.alive) hitAround(u);
     return true;
   }
   function pitFall(u, c) {
@@ -7290,6 +7508,16 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       clouds--;
       fogMemo.fill(0);
       push({ t: 'smoke', on: 0, o: o.id });
+    }
+    // and the Diggers' grenades (engine 14)
+    for (const p of puffs.slice()) {
+      if (turn <= p.until) continue;
+      for (const c of p.cells) if (!--smokeT[c]) fog[c] = 0;
+      puffs.splice(puffs.indexOf(p), 1);
+      p.u.puff = null;
+      clouds--;
+      fogMemo.fill(0);
+      push({ t: 'smoke', on: 0, g: p.u.id });
     }
   }
   // The Decoy Blub an enemy shooter takes for the real thing: the nearest one standing
@@ -7394,7 +7622,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.used) return;
     if (u.pow === 'freeze') {
       if (turn < RULES.freezeTurn + gas(u)) return;
-      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y) && !hidden(u, u.x, u.y, v));
+      const list = foes(u).filter((v) => !v.skip && !v.immune && cheb(u.x, u.y, v.x, v.y) <= RULES.freezeRange && los(u.x, u.y, v.x, v.y) && !hidden(u, u.x, u.y, v) && !veiled(u, v));
       if (!list.length) return;
       const v = list.sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || cheb(u.x, u.y, a.x, a.y) - cheb(u.x, u.y, b.x, b.y) || a.id - b.id)[0];
       u.used = true;
@@ -7508,7 +7736,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // a Builder's works come first while nobody is in its reach (its squad's cannon,
     // and the wall in front of it)
     if (u.engineer && engineer(u)) return;
-    if (u.pow === 'digger' && digPit(u)) return;
+    // the Digger: back from out there once its cloud lifts, out there with its grenade,
+    // or a pit
+    if (u.pow === 'digger' && (fallBack(u) || sneak(u) || digPit(u))) return;
     if (u.cls === 'sweet' && medic(u, false, turn)) return;
     if (u.cls === 'sleepy' && guardian(u)) return;
     if (W(u).boom && boomTurn(u)) return;
@@ -8898,7 +9128,10 @@ function randomSquad(r) {
           break;
         }
     used.add(idx(x, y));
-    units.push({ cls, wpn, gear, pow: pick(POWERS), tac: cls === 'cheeky' ? 'backline' : cls === 'sleepy' ? 'protect' : pick(TACTICS), trn, x, y });
+    // so many of a power a squad: one too many is picked again
+    let pow = pick(POWERS);
+    while (units.filter((v) => v.pow === pow).length >= (RULES.powMax[pow] || TEAM)) pow = pick(POWERS);
+    units.push({ cls, wpn, gear, pow, tac: cls === 'cheeky' ? 'backline' : cls === 'sleepy' ? 'protect' : pick(TACTICS), trn, x, y });
   }
 
   // two different objects of the trench kit, dug in where they make sense
@@ -9026,7 +9259,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -9254,6 +9487,9 @@ const SquadView = (() => {
         'kNkyBBBBByk.', 'kNkyyyyyyk..', 'kNkkkkkkk...', 'kNk.........', 'kNk.........', 'kNk.........', 'kkk.........'],
       pillow: ['............', '.kk......kk.', 'kWWkkkkkkWWk', 'kWWWWWWWWWWk', '.kWWWWpWWWk.',
         '.kWWWpPpWWk.', '.kWWWWpWWWk.', '.kWWWWWWWWk.', 'kWWWWWWWWWWk', 'kWWkkkkkkWWk', '.kk......kk.', '............'],
+      // Smoke Goggles (engine 14): two round lenses on a strap
+      goggles: ['............', '............', '............', '............', '.kkkk..kkkk.',
+        'kSuuSkkSuuSk', 'nSlmSkkSlmSn', 'nSmMS..SmMSn', '.kkkk..kkkk.', '............', '............', '............'],
     },
     pow: {
       freeze: ['.....kk.....', '..kk.kk.kk..', '..klkllklk..', '...kllllk...', '.kkklwwlkkk.',
@@ -11131,6 +11367,9 @@ const SquadView = (() => {
         // a Guardian took this arrow for the ally next to it; the hit comes first,
         // since on a phone the ticker is one short line
         if (e.gd != null && e.n === 0) return describe({ ...e, gd: null }, names, labels).replace(/\.$/, '') + ' (' + d + ' covers ' + nm(e.gd) + ').';
+        // engine 14: through the smoke it fires blind
+        if (e.blind && e.res === 'miss') return u + ' fires blind into the smoke and misses ' + d + '.';
+        if (e.blind) return describe({ ...e, blind: 0 }, names, labels).replace(/\.(?= Sneak attack!$|$)/, ' (blind, through the smoke).');
         if (e.res === 'miss') return d + ' dodges ' + u + "'s " + wn(e.w) + (COVER_AT[e.cover] || '.');
         if (e.res === 'whiff') return u + "'s " + wn(e.w) + ' misses ' + d + '.';
         if (e.res === 'absorb') return u + ' pops ' + d + "'s bubble shield." + sneak;
@@ -11163,6 +11402,11 @@ const SquadView = (() => {
         return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
       case 'goal':
         return u + ' runs for the ' + (e.id === 'sendit' ? 'catapult' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
+      // the Digger's smoke grenade (engine 14), and its way back once the cloud lifts
+      case 'grenade':
+        return u + ' throws a smoke grenade at its feet and hides in the cloud.';
+      case 'fallback':
+        return 'The smoke clears: ' + u + ' falls back to its squad.';
       // the trench arsenal
       case 'reload':
         return u + ' reloads the Scope Rifle.';
@@ -12236,7 +12480,7 @@ const SquadView = (() => {
     // the engine 7 trench kit: a Smoke Pot popping (after the shot it swallows) and
     // its cloud clearing, a Decoy Blub falling apart, the stretcher on its way to the
     // tent (in at stretcherHit), and the way back out of it
-    smokePop: 1100, smokeOff: 450, decoyDown: 700, stretcher: 1500, stretcherHit: 1150, mended: 1250, mendedHit: 520,
+    smokePop: 1100, smokeOff: 450, decoyDown: 700, stretcher: 1500, stretcherHit: 1150, mended: 1250, mendedHit: 520, grenade: 1250, grenadeHit: 420,
     // the chest's pill: a reading each turn, a longer one once it locks on, and the
     // graduation itself, which is the biggest single thing that happens in a round
     // nukeHit is the drop: a twitch, up off the chart, a beat of empty sky while the
@@ -12304,7 +12548,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall']);
+  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -12451,7 +12695,7 @@ const SquadView = (() => {
         }
         flush();
         // what a Blub heads for rides on its walk, like its turn starting
-        if (t === 'act' || t === 'goal' || t === 'stake') {
+        if (t === 'act' || t === 'goal' || t === 'stake' || t === 'fallback') {
           parent = null;
           pre.push(i);
           return;
@@ -12531,6 +12775,11 @@ const SquadView = (() => {
         // into one: scenes of their own
         if (t === 'pit') {
           parent = add({ kind: 'pitdig', dur: MS.pitdig, contact: MS.pitdigHit, list: [{ ei: i, off: MS.pitdigHit }], e, actors: [e.u] });
+          return;
+        }
+        // the Digger's smoke grenade (engine 14): a scene of its own, the cloud at its contact
+        if (t === 'grenade') {
+          parent = add({ kind: 'grenade', dur: MS.grenade, contact: MS.grenadeHit, list: [{ ei: i, off: MS.grenadeHit }], e, actors: [e.u] });
           return;
         }
         if (t === 'pitfall') {
@@ -12744,7 +12993,7 @@ const SquadView = (() => {
       walls: [], sights: {}, packs: {},
       // the engine 7 trench kit: Smoke Pot clouds hanging ({o, cells}) and pots spent,
       // what each Decoy Blub has left, and who lies in each Field Hospital (-1: nobody)
-      smoke: [], smokeUsed: {}, decoys: {}, tents: {},
+      smoke: [], smokeUsed: {}, decoys: {}, tents: {}, gren: {},
       // the Builders' cannons (engine 9), by id: { team, cells, stage, of, face }
       works: {},
       // the Diggers' pits (engine 10): { x, y, team, open }
@@ -13013,7 +13262,12 @@ const SquadView = (() => {
         if (e.on) {
           S.smoke = S.smoke.concat([{ o: e.o, cells: e.cells }]);
           S.smokeUsed[e.o] = 1;
-        } else S.smoke = S.smoke.filter((c) => c.o !== e.o);
+        } else S.smoke = S.smoke.filter((c) => c.o !== (e.g != null ? 'g' + e.g : e.o));
+        break;
+      // a Digger's smoke grenade (engine 14): its cloud, keyed 'g' and the Digger
+      case 'grenade':
+        S.smoke = S.smoke.concat([{ o: 'g' + e.u, at: e.at, cells: e.cells }]);
+        S.gren = { ...S.gren, [e.u]: e.at };
         break;
       case 'decoy':
         S.decoys[e.o] = e.hp;
@@ -14423,6 +14677,25 @@ const SquadView = (() => {
   function pitBeat(b, T, k) {
     const S = P.S;
     const e = b.e;
+    // the smoke grenade (engine 14): the canister comes off its belt, a little toss,
+    // and down at its feet, where it pops at the beat's contact
+    if (b.kind === 'grenade') {
+      const u = S.u[e.u];
+      if (!u) return true;
+      P.actors = [e.u];
+      const [ux, uy] = centreOf(u);
+      addFx(T + 60 * k, b.contact - 60 * k, (x, kk) => {
+        const X = Math.round(ux + 6 - kk * 6);
+        const Y = Math.round(uy - 6 - Math.sin(kk * Math.PI) * 8 + kk * 10);
+        x.fillStyle = INK;
+        x.fillRect(X - 2, Y - 3, 4, 6);
+        x.fillStyle = '#6E6E80';
+        x.fillRect(X - 1, Y - 2, 2, 4);
+        x.fillStyle = '#FFD447';
+        x.fillRect(X - 1, Y - 3, 2, 1);
+      });
+      return true;
+    }
     if (b.kind !== 'pitdig') return false;
     const u = S.u[e.u];
     if (!u) return true;
@@ -14646,7 +14919,8 @@ const SquadView = (() => {
     if (!S.smoke || !S.smoke.length) return;
     const f = P.calm ? 0 : Math.floor(now / 320) % fxCount('smog');
     for (const c of S.smoke) {
-      const o = objById(c.o);
+      // (a Digger's grenade cloud has no pot: it centres on where it was thrown)
+      const o = c.at ? { at: c.at } : objById(c.o);
       if (!o) continue;
       const ov = ovOf(c.o);
       const el = ov.smokeT == null ? 1e9 : t - ov.smokeT;
@@ -16244,6 +16518,8 @@ const SquadView = (() => {
         const [dx, dy] = centreOf(d);
         const [ux, uy] = centreOf(u);
         const top = (d._b ? d._b.oy : dy - 13) - 2;
+        // through the smoke (engine 14) it fires blind: said once over the shooter
+        if (e.blind && !e.n) label(T - 120 * k, 'BLIND', '#C9C9D6', ux, (u._b ? u._b.oy : uy - 13) - 4, false);
         if (e.res === 'miss' || e.res === 'whiff') {
           const end = b && b.e === e && b.end;
           if (end && b.endKind === 'sand') {
@@ -16393,7 +16669,7 @@ const SquadView = (() => {
       // the Smoke Pot pops: the shot is lost in a burst of puffs, and the cloud
       // blooms out of the pot; later it thins away
       case 'smoke': {
-        const o = objById(e.o);
+        const o = e.g != null ? (S.gren[e.g] ? { at: S.gren[e.g] } : null) : objById(e.o);
         if (!o) return;
         const [cx, cy] = tileC(o.at[0], o.at[1]);
         if (!e.on) {
@@ -17171,6 +17447,30 @@ const SquadView = (() => {
         const [gx, gy] = tileC(e.at[0], e.at[1]);
         ringFx(T, gx, gy + 4, 640 * k, POOL_COLS[0], 14, 6, true, 0.6);
         ringFx(T + 160 * k, gx, gy + 4, 560 * k, POOL_COLS[3], 10, 5, true, 0.5);
+        return;
+      }
+      // the Digger's smoke grenade (engine 14): the canister pops at its feet, a ring of
+      // puffs rolls out and the cloud blooms over it and the tiles round it
+      case 'grenade': {
+        const u = U[e.u];
+        if (!u) return;
+        const [cx, cy] = tileC(e.at[0], e.at[1]);
+        ovOf('g' + e.u).smokeT = T;
+        for (let j = 0; j < 10; j++) {
+          const a = (j / 10) * Math.PI * 2;
+          addFx(T + j * 16 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + Math.cos(a) * (3 + (el * 0.035) / k)), Math.round(cy - 6 + Math.sin(a) * (2 + (el * 0.025) / k))));
+        }
+        ringFx(T, cx, cy + 2, 420 * k, '#EEEEF5', 4, 24, false, 0.75);
+        label(T, 'SMOKE!', '#EEEEF5', cx, above((u._b ? u._b.oy : cy - 13) - 4), true);
+        sfx('thud');
+        return;
+      }
+      // the cloud has lifted: the Digger heads home ('FALL BACK' over it)
+      case 'fallback': {
+        const u = U[e.u];
+        if (!u) return;
+        const [ux, uy] = centreOf(u);
+        label(T, 'FALL BACK', colors[u.side].light, ux, uy - 20, false);
         return;
       }
       // a Blub heads for something the chest threw in: a '!' over it, and the spot it
@@ -18657,7 +18957,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -21128,9 +21428,17 @@ const SquadHall = (() => {
     // one explosive a squad: the first Blub that has one keeps it
     const list = units || (st.draft && st.draft.units.includes(u) ? st.draft.units : null), one = E.WEAPON_STATS[u.wpn].one;
     if (list && one && list.find(v => E.WEAPON_STATS[v.wpn].one === one) !== u) return 'One explosive a squad, and another Blub has one: pick another weapon.';
+    // so many of a power a squad: the first Blubs that have it keep it
+    if (list && POW_MAX[u.pow] && list.filter(v => v.pow === u.pow).indexOf(u) >= POW_MAX[u.pow]) return POW[u.pow][1] + ' is ' + capWord(u.pow) + ', and others have it: pick another power.';
     return '';
   }
   const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, trn: {...P.trn}, x, y}; };
+  // so many Blubs of a squad with a power (engine 14, E.RULES.powMax): is there room for
+  // u to have it? And the one u wants if there is, else the first spare with room
+  const POW_MAX = E.RULES.powMax || {};
+  const powRoom = (units, u, id) => !POW_MAX[id] || units.filter(v => v !== u && v.pow === id).length < POW_MAX[id];
+  const fitPow = (units, u, want) => powRoom(units, u, want) ? want : ((E.POW_SPARE || E.POWERS.map(p => p[0])).find(id => powRoom(units, u, id)) || want);
+  const capWord = id => POW_MAX[id] === 1 ? 'one a squad' : POW_MAX[id] + ' a squad';
   function freeLook(r){
     const L = {};
     CAT.forEach(c => { const ids = c.items.filter(i => !i[2]).map(i => i[0]); L[c.k] = ids[Math.floor(r() * ids.length)]; });
@@ -21189,7 +21497,7 @@ const SquadHall = (() => {
   // a unit whose role the player never picked follows its Blub's personality
   function followTeam(d){
     let n = 0;
-    d.units.forEach((u, i) => { const s = team()[i].style; if (u.auto && u.cls !== s){ Object.assign(u, roleUnit(s, u.x, u.y), {auto: true}); n++; } });
+    d.units.forEach((u, i) => { const s = team()[i].style; if (u.auto && u.cls !== s){ Object.assign(u, roleUnit(s, u.x, u.y), {auto: true}); u.pow = fitPow(d.units, u, u.pow); n++; } });
     return n;
   }
 
@@ -21210,7 +21518,8 @@ const SquadHall = (() => {
   const onObj = (o, x, y) => cellsOf(o).some(c => c[0] === x && c[1] === y);
   const objAt = (x, y) => st.draft.objs.find(o => onObj(o, x, y)) || null;
   // only the start tiles matter for where objects may go
-  const posOnly = units => units.map(u => ({cls: 'fierce', wpn: 'sword', gear: 'boots', pow: 'rage', tac: 'nearest', trn: {}, x: u.x, y: u.y}));
+  // (powers a squad may have, so the check is only about where things stand)
+  const posOnly = units => units.map((u, i) => ({cls: 'fierce', wpn: 'sword', gear: 'boots', pow: ['rage', 'rage', 'nap', 'nap', 'bubble'][i] || 'rage', tac: 'nearest', trn: {}, x: u.x, y: u.y}));
   const kitOk = (units, objs) => !!E.cleanSquad({units: posOnly(units), objs: objs.map(o => ({k: o.k, x: o.x, y: o.y}))});
   const ROW_NAME = {9: 'no man’s land, far row', 10: 'no man’s land, middle row', 11: 'no man’s land, near row', 12: 'front row', 13: 'middle row', 14: 'back row'};
   const spotName = o => 'column ' + (o.x + 1) + ', ' + ROW_NAME[o.y];
@@ -21274,7 +21583,7 @@ const SquadHall = (() => {
   }
   const CMD_OK = v => E.COMMANDS.some(c => c[0] === v);
   function defaultDraft(){
-    const units = team().map(m => ({...roleUnit(m.style, 7, 12), auto: true}));
+    const units = E.capPowers(team().map(m => ({...roleUnit(m.style, 7, 12), auto: true})));
     applyForm(units, 'wedge');
     return {units, objs: suggestKit(units), cmd: suggestCmd(units)};
   }
@@ -21296,6 +21605,8 @@ const SquadHall = (() => {
       E.TRAINING.forEach(([k]) => { const n = Math.min(E.TRAIN_MAX, Math.max(0, Math.floor(+t[k]) || 0), left); u.trn[k] = n; left -= n; });
       units.push(u);
     }
+    // a squad saved before engine 14 may have one of a power too many: swapped
+    E.capPowers(units);
     const used = new Set();
     units.forEach(u => {
       const ok = Number.isInteger(u.x) && u.x >= 0 && u.x < E.SIZE && E.DEPLOY_ROWS.includes(u.y) && !used.has(cellKey(u.x, u.y));
@@ -21440,6 +21751,7 @@ const SquadHall = (() => {
     const preset = (roles, form, tweak) => {
       const units = roles.map(c => roleUnit(c, 7, 12));
       if (tweak) units.forEach(u => Object.assign(u, tweak(u)));
+      E.capPowers(units);
       applyForm(units, form);
       return E.cleanSquad({units, objs: suggestKit(units), cmd: E.COMMANDS[nth++ % E.COMMANDS.length][0]});
     };
@@ -21888,6 +22200,11 @@ const SquadHall = (() => {
   const LISTS = {wpn: E.WEAPONS, gear: E.GEAR, pow: E.POWERS, tac: E.TACTICS};
   function why(p, id, u){
     if (p === 'gear' && id === 'shield' && twoHanded(u.wpn)) return WPN[u.wpn][1] + ' needs both hands';
+    // so many of a power a squad (engine 14)
+    if (p === 'pow' && !powRoom(st.draft.units, u, id)){
+      const who = st.draft.units.map((v, k) => v !== u && v.pow === id ? nameOf(k) : null).filter(Boolean);
+      return capWord(id) + ', and ' + who.join(' and ') + (who.length > 1 ? ' have it' : ' has it');
+    }
     // one explosive a squad
     const one = p === 'wpn' && E.WEAPON_STATS[id].one, i = one ? st.draft.units.findIndex(v => v !== u && E.WEAPON_STATS[v.wpn].one === one) : -1;
     return i >= 0 ? 'one explosive a squad, and ' + nameOf(i) + ' has one' : '';
@@ -21906,7 +22223,7 @@ const SquadHall = (() => {
     }
     const list = LISTS[p], kind = p, cur = u[p], c = id || cur, C = list.find(x => x[0] === c) || list[0], bad = why(p, C[0], u);
     box.append(h('p', {class: 'sq-chd-t'}, vIcon(kind, C[0], 20), h('b', null, C[1]), p === 'wpn' ? h('span', null, weaponLine(C[0])) : null), h('p', {class: 'sq-desc'}, C[2]));
-    if (bad) box.append(h('p', {class: 'sq-chg bad'}, (p === 'wpn' ? 'Not now: ' : 'Not with this weapon: ') + bad + '.'));
+    if (bad) box.append(h('p', {class: 'sq-chg bad'}, (p === 'wpn' || p === 'pow' ? 'Not now: ' : 'Not with this weapon: ') + bad + '.'));
     else if (C[0] === cur) box.append(h('p', {class: 'sq-chg now'}, 'Picked.'));
     else {
       const ch = p === 'wpn' ? changes(u, i, wpnPatch(u, C[0])) : p === 'gear' ? changes(u, i, {gear: C[0]}) : [];
@@ -21954,7 +22271,7 @@ const SquadHall = (() => {
       ROLES.forEach(c => {
         const S = E.STYLE_STATS[c];
         const b = radio(g, c === u.cls, [vIcon('cls', c, 28), h('span', {class: 'sq-rt'}, h('b', null, CLS[c][1]), h('small', null, 'HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ' · Move ' + S.move))],
-          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, trn: {...P.trn}}, c === fit); },
+          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: fitPow(st.draft.units, u, P.pow), tac: P.tac, trn: {...P.trn}}, c === fit); },
           {class: 'sq-role' + (c === fit ? ' fit' : ''), 'data-k': 'role:' + c, 'data-id': c, 'aria-describedby': 'sqChDesc', 'aria-label': CLS[c][1] + ', HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ', move ' + S.move + (c === fit ? '. Suits ' + m.name + '’s personality' : '')});
         if (c === fit) b.append(h('i', {class: 'sq-fit', 'aria-hidden': 'true', title: 'Suits ' + m.name + '’s personality'}, '♥'));
         hover(b, c);
