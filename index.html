@@ -1836,6 +1836,28 @@ body.no-scroll{overflow:hidden}
 .sq-lgrule{margin:0}
 /* the rankings page: the league is what the page is for, so its list may run longer */
 .sq-ranks .sq-league{max-height:min(72vh,860px)}
+/* friend leagues (the rankings page): yours one line each, the one open as a card with
+   its table and invite link, then make one or join one */
+.sq-frp{order:2}
+.sq-frbody{display:flex;flex-direction:column;gap:12px}
+.sq-frlead{color:#fff}
+.sq-frlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sq-frlist li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:var(--sq-deep);border:3px solid #000;box-shadow:inset 0 0 0 2px #24474B}
+.sq-frlist li.on{box-shadow:inset 0 0 0 2px var(--gold)}
+.sq-frn{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sq-frn b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sq-frn small{font-family:var(--f-data);font-size:16px;color:var(--sq-soft)}
+.sq-frcard{display:flex;flex-direction:column;gap:10px;padding:12px;background:#0B1F23;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold)}
+.sq-frhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.sq-frhead b{font-family:var(--f-display);font-weight:400;font-size:12px;color:var(--gold)}
+.sq-frhead span{font-family:var(--f-data);font-size:17px;color:var(--sq-soft)}
+.sq-frt{max-height:360px}
+.sq-frinv{display:flex;flex-direction:column;gap:6px}
+.sq-frurl{min-height:40px;width:100%;font-family:var(--f-data);font-size:16px;color:var(--sq-text);background:var(--sq-deep);border:3px solid #000;padding:0 8px}
+.sq-frforms{display:grid;gap:12px}
+/* the challenger's rank this week, on the open board (any rank may duel any other) */
+.sq-orank{display:inline-flex;align-items:center;gap:6px}
+.sq-orank canvas.sq-lgb{width:16px;height:16px;flex:none}
 /* the ranks: a row per sea creature (Whale at the top), its bronze, silver and gold badges; yours ringed */
 .sq-rankl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
 .sq-rankl li{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:10px}
@@ -2020,7 +2042,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · ranks from Bronze Shrimp to Gold Whale, Start here on Practice, the wallet explained, engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · friend leagues, the group winner moves up two, ranks from Bronze Shrimp to Gold Whale, engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -3511,6 +3533,12 @@ const API = (() => {
     // the weekly league: this week (one URL), or one of the five weeks before
     league: () => call('GET', 'league'),
     leagueWeek: week => call('GET', 'league/' + week),
+    // friend leagues (lib/friends.mjs): your codes, one league, make, join, leave
+    friendsMine: () => call('GET', 'friends'),
+    friends: code => call('GET', 'friends/' + code),
+    friendsMake: name => call('POST', 'friends', {name}),
+    friendsJoin: code => call('POST', 'friends/' + code + '/join', {}),
+    friendsLeave: code => call('POST', 'friends/' + code + '/leave', {}),
   };
 })();
 const LS = 'blub-weiland-v1';
@@ -5442,6 +5470,15 @@ const SquadNet = {
   // the weekly league (lib/league.mjs): null in the demo, which has no server
   league: DEMO ? null : () => API.league(),
   leagueWeek: DEMO ? null : week => API.leagueWeek(week),
+  // friend leagues (lib/friends.mjs): null in the demo, which has no server
+  friends: DEMO ? null : {
+    mine: async () => (await API.friendsMine()).codes || [],
+    get: async code => (await API.friends(code)).league,
+    make: name => API.friendsMake(name),
+    join: code => API.friendsJoin(code),
+    leave: code => API.friendsLeave(code),
+    link: code => location.origin + location.pathname + '#friends=' + code,
+  },
   watch(){},
   get: async id => (await API.duel(id)).duel,
   // a best of 3 may bring a plan (squads: your strategies in the order you play them)
@@ -22890,9 +22927,11 @@ const SquadHall = (() => {
     box.textContent = ''; R.openN.textContent = total ? String(total) : '';
     if (!list.length) box.append(h('li', {class: 'sq-empty'}, !SquadNet.ready() ? SquadNet.offline : !st.boardAt ? 'Loading the board…' : boardFailed() ? 'The board did not load. It tries again in a minute.' : 'No open challenges. Throw down the first one!'));
     list.slice(0, 20).forEach(d => {
-      const forMe = !!me && d.t === me, own = !!me && d.c === me;
+      const forMe = !!me && d.t === me, own = !!me && d.c === me, rk = rankOf(d.c);
       const li = h('li', {class: 'sq-orow' + (forMe ? ' foryou' : own ? ' own' : '')});
+      // the challenger's rank this week: any rank may duel any other
       const tx = h('div', {class: 'sq-ot'}, h('b', null, d.cr.name + (own ? ' (you)' : '')),
+        rk ? h('span', {class: 'sq-orank'}, divBadge(rk, 16), DIVS[rk - 1]) : null,
         h('span', null, (d.bo === 3 ? 'Best of 3' : 'Best of 1') + ' · ' + leftText(Date.parse(d.exp) - now)),
         h('span', {class: forMe ? 'fy' : ''}, forMe ? 'For you!' : own ? (d.t ? 'For ' + (d.tn || 'a Blub') : 'Open to anyone') : d.t ? 'For ' + (d.tn || 'a Blub') : 'Open to anyone'));
       const acts = h('div', {class: 'sq-oacts'});
@@ -22913,6 +22952,8 @@ const SquadHall = (() => {
     });
     if (total > 20) box.append(h('li', {class: 'sq-empty'}, (total - 20) + ' more on the board: enter a code below to open one.'));
   }
+  // a wallet's rank this week (its league group), 0 when it has not played this week
+  function rankOf(id){ const g = st.league && id ? groupIn(st.league, id) : null; return g ? g.d : 0; }
   function seasonLine(){
     const days = Math.max(0, Math.ceil((Date.parse(st.board.ends || seasonEnd()) - Date.now()) / 86400000));
     return days > 1 ? 'ends in ' + days + ' days' : days === 1 ? 'ends tomorrow' : 'ends today';
@@ -22973,7 +23014,8 @@ const SquadHall = (() => {
     const g = groupIn(L, id);
     if (!g) return null;
     const r = g.m.findIndex(m => m.id === id) + 1, n = g.m.length, mv = movers(n);
-    const next = r <= mv && g.d < DIVS.length ? g.d + 1 : r > n - mv && r > mv && g.d > 1 ? g.d - 1 : g.d;
+    // the top fifth moves up a step and the winner two (lib/league.mjs nextDivision)
+    const next = r <= mv && g.d < DIVS.length ? Math.min(DIVS.length, g.d + (r === 1 ? 2 : 1)) : r > n - mv && r > mv && g.d > 1 ? g.d - 1 : g.d;
     return {d: g.d, rank: r, n, next};
   }
   async function loadLeague(){
@@ -22985,7 +23027,7 @@ const SquadHall = (() => {
     if (L && L.prev && me && !groupIn(L, me) && typeof SquadNet.leagueWeek === 'function' && (!st.lastLeague || st.lastLeague.week !== L.prev)){
       try { st.lastLeague = cleanLeague(await SquadNet.leagueWeek(L.prev)); } catch { st.lastLeague = null; }
     }
-    renderLeague();
+    renderLeague(); renderOpen();
   }
   // a rank's badge: its sea creature on a dark tile framed in its grade's metal, with one,
   // two or three pips on the foot (bronze, silver, gold). Two frames each: the shrimp
@@ -23134,11 +23176,11 @@ const SquadHall = (() => {
     g.m.forEach((m, i) => {
       if (i === downFrom && mv) box.append(h('li', {class: 'lg-zone down', 'aria-hidden': 'true'}, 'Demotion zone'));
       const w = who(m.id), up = i < upTo, down = i >= downFrom;
-      const li = h('li', {class: ['lg-row', m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
+      const li = h('li', {class: ['lg-row', m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? (i ? 'Moves up a step when the week ends' : 'Wins the group: moves up two steps when the week ends') : down ? 'Moves down a step when the week ends' : ''});
       li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
         whoBlock(m.id, w, {me: m.id === me, example}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l)));
       box.append(li);
-      if (i === upTo - 1) box.append(h('li', {class: 'lg-zone up', 'aria-hidden': 'true'}, 'Promotion zone'));
+      if (i === upTo - 1) box.append(h('li', {class: 'lg-zone up', 'aria-hidden': 'true'}, 'Promotion zone · the winner moves up two'));
     });
     if (n < 5) box.append(h('li', {class: 'sq-empty'}, 'Your group fills up as more Blubs play: with 5 or more, the top and bottom fifth move.'));
     if (st.lgKey === key) box.scrollTop = was;
@@ -23208,6 +23250,176 @@ const SquadHall = (() => {
     R.profGo.textContent = p ? 'Save' : SquadNet.signInLabel || 'Sign in';
     if (R.profSafe) R.profSafe.hidden = !!p;
     if (document.activeElement !== R.profIn) R.profIn.value = p ? p.player : '';
+  }
+  /* ---------------------------------------------------------------
+     friend leagues (lib/friends.mjs; the owner, 12 Oct 2026): a league among friends,
+     made by one of them and joined by code or link (#friends=<code>), up to 35 players.
+     Its table counts the rated duels between its members, a new one every Monday; a
+     wallet is in up to 3. SquadNet.friends is null where there is no server.
+     --------------------------------------------------------------- */
+  const FR_ID = /^[a-hjkmnp-z2-9]{8}$/, FR_MAX = 3, FR_PLAYERS = 35;
+  const frName = s => String(s || '').normalize('NFC').replace(/[^\p{L}\p{N} _.\-!']/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  // a code, or a link with one in it
+  function frCode(s){
+    const v = String(s || '').trim(), m = v.match(/friends=([A-Za-z0-9]{8})/);
+    const c = (m ? m[1] : v.replace(/[^A-Za-z0-9]/g, '')).toLowerCase();
+    return FR_ID.test(c) ? c : '';
+  }
+  function cleanFriends(L){
+    if (!L || typeof L !== 'object' || typeof L.code !== 'string' || !FR_ID.test(L.code)) return null;
+    const rows = t => (Array.isArray(t) ? t : []).slice(0, FR_PLAYERS).filter(r => Array.isArray(r) && typeof r[0] === 'string' && ID_OK.test(r[0]))
+      .map(r => ({id: r[0], p: clamp(Math.floor(+r[1]) || 0, 0, 1e6), w: clamp(Math.floor(+r[2]) || 0, 0, 1e6), l: clamp(Math.floor(+r[3]) || 0, 0, 1e6)}));
+    const last = L.last && typeof L.last === 'object' ? L.last : {};
+    return {code: L.code, name: frName(L.name) || 'Friends', owner: typeof L.owner === 'string' && ID_OK.test(L.owner) ? L.owner : null,
+      members: (Array.isArray(L.members) ? L.members : []).filter(id => typeof id === 'string' && ID_OK.test(id)).slice(0, FR_PLAYERS),
+      week: typeof L.week === 'string' && WEEK_OK.test(L.week) ? L.week : '', ends: isoOr(L.ends) || '', table: rows(L.table),
+      last: {week: typeof last.week === 'string' && WEEK_OK.test(last.week) ? last.week : '', table: rows(last.table)}};
+  }
+  const frState = () => st.fr || (st.fr = {codes: null, map: new Map(), open: null, at: 0, busy: false, off: null});
+  // your leagues: their codes (1 command, private), then each league (cached at the CDN)
+  async function loadFriends(force){
+    const F = frState(), net = SquadNet.friends;
+    if (!net || !SquadNet.ready() || !signedIn() || F.busy || (!force && F.at && Date.now() - F.at < 60000)) return renderFriends();
+    F.busy = true; renderFriends();
+    try {
+      F.codes = (await net.mine()).filter(c => FR_ID.test(c)).slice(0, FR_MAX);
+      for (const c of F.codes){ try { const L = cleanFriends(await net.get(c)); if (L) F.map.set(c, L); } catch { /* that one shows as not loaded */ } }
+      if (!F.open && F.codes.length) F.open = F.codes[0];
+    } catch (e) { say(R.frMsg, (e && e.message) || 'Your friend leagues did not load. Try again in a moment.'); }
+    finally { F.busy = false; F.at = Date.now(); }
+    renderFriends();
+  }
+  // a league from its link: show it (and the way to join when it is not yours)
+  async function openFriends(code){
+    const F = frState(), c = frCode(code);
+    if (!c) return;
+    F.open = c;
+    if (!st.ready) return;
+    reveal(R.frP);
+    const net = SquadNet.friends;
+    if (net && SquadNet.ready()){
+      try { const L = cleanFriends(await net.get(c)); if (L) F.map.set(c, L); }
+      catch (e) { say(R.frMsg, e && e.status === 404 ? 'This friend league does not exist (any more).' : 'The league did not load. Try again in a moment.'); if (e && e.status === 404) F.open = null; }
+    }
+    renderFriends();
+  }
+  // a team must be saved before it plays in a league: the hall saves it in one go
+  async function frTeam(){
+    if (SquadNet.captain()) return true;
+    const r = typeof SquadNet.saveTeam === 'function' ? await SquadNet.saveTeam().catch(() => null) : null;
+    if (r && r.ok) return true;
+    say(R.frMsg, (r && r.error) || 'Save your team first: a friend league is for teams.');
+    return false;
+  }
+  async function frMake(){
+    const name = frName(R.frName.value);
+    if ([...name].length < 2){ say(R.frMsg, 'Give the league a name of 2 to 24 letters or digits.'); R.frName.focus(); return; }
+    if (!(await frTeam())) return;
+    say(R.frMsg, 'Making your league…');
+    try {
+      const out = await SquadNet.friends.make(name);
+      const F = frState();
+      R.frName.value = ''; F.open = out.code;
+      await loadFriends(true);
+      say(R.frMsg, 'Your league is ready. Send the invite link to your friends!', true); Sfx.play('bell');
+    } catch (e) { say(R.frMsg, (e && e.message) || 'Making the league did not work. Try again.'); }
+  }
+  async function frJoin(code){
+    const c = frCode(code);
+    if (!c){ say(R.frMsg, 'Paste a league code (8 letters and digits) or its invite link.'); R.frCode.focus(); return; }
+    if (!(await frTeam())) return;
+    say(R.frMsg, 'Joining…');
+    try {
+      await SquadNet.friends.join(c);
+      const F = frState();
+      R.frCode.value = ''; F.open = c;
+      await loadFriends(true);
+      say(R.frMsg, 'You are in! Your rated duels with its players count here.', true); Sfx.play('bell');
+    } catch (e) { say(R.frMsg, (e && e.message) || 'Joining did not work. Try again.'); }
+  }
+  async function frLeave(code){
+    const F = frState();
+    // leaving takes two taps: the first one asks
+    if (!(F.off && F.off.code === code && F.off.until > Date.now())){ F.off = {code, until: Date.now() + 3000}; renderFriends(); setTimeout(() => { if (F.off && F.off.until <= Date.now()){ F.off = null; renderFriends(); } }, 3100); return; }
+    F.off = null;
+    try {
+      await SquadNet.friends.leave(code);
+      F.map.delete(code); F.open = null;
+      await loadFriends(true);
+      say(R.frMsg, 'You left the league.', true);
+    } catch (e) { say(R.frMsg, (e && e.message) || 'Leaving did not work. Try again.'); }
+  }
+  // a league's table this week: its members ranked by points, those without a duel yet at 0
+  function frTable(L){
+    const me = SquadNet.me(), rows = L.table.slice(), ol = h('ol', {class: 'sq-top sq-league sq-frt'});
+    L.members.forEach(id => { if (!rows.some(r => r.id === id)) rows.push({id, p: 0, w: 0, l: 0}); });
+    ol.append(h('li', {class: 'lg-head', 'aria-hidden': 'true'}, h('span', null, '#'), h('span'), h('span', null, 'Player'), h('span', null, 'Points')));
+    rows.forEach((m, i) => {
+      const w = SquadNet.who(m.id);
+      ol.append(h('li', {class: 'lg-row' + (m.id === me ? ' me' : '')},
+        h('span', {class: 'rk' + (i < 3 && m.p ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+        whoBlock(m.id, w, {me: m.id === me}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l))));
+    });
+    return ol;
+  }
+  function frWho(id){ const w = id ? SquadNet.who(id) : null; return (w && (cleanName(w.player) || cleanName(w.name))) || (id ? shortId(id) : 'someone'); }
+  function renderFriends(){
+    if (!R.frP) return;
+    const F = frState(), net = SquadNet.friends, box = R.frBody, me = SquadNet.me();
+    box.textContent = '';
+    R.frN.textContent = signedIn() && F.codes ? F.codes.length + ' of ' + FR_MAX : '';
+    const RULES = h('p', {class: 'sq-desc'}, 'Up to ' + FR_PLAYERS + ' players. Every rated duel between members counts: 3 points for a win, 1 for a loss, with a new table every Monday. It counts in the weekly league too, and anyone may play anyone, whatever their rank.');
+    if (!net || !SquadNet.ready()){
+      box.append(h('p', {class: 'sq-desc sq-frlead'}, (SquadNet.demo ? 'Opens at launch. ' : !net ? 'This runs on the live site. ' : '') + 'Make a league with your friends: a table of your own, every week.'), RULES);
+      return;
+    }
+    if (!signedIn()){
+      box.append(h('p', {class: 'sq-desc sq-frlead'}, 'Play your friends in a league of your own: send them a link, and your duels with each other fill your own table every week.'),
+        button(SquadNet.signInLabel || 'Sign in', 'gold', () => SquadNet.signIn('Connect your wallet to make or join a friend league.'), {'data-k': 'frsign'}), safeNote(), RULES);
+    }
+    else {
+      // your leagues, one line each
+      if (F.busy && !F.codes) box.append(h('p', {class: 'sq-desc'}, 'Loading your friend leagues…'));
+      else if (F.codes && F.codes.length){
+        const list = h('ul', {class: 'sq-frlist'});
+        F.codes.forEach(c => {
+          const L = F.map.get(c), on = F.open === c;
+          const rows = L ? L.table : [], k = L ? rows.findIndex(r => r.id === me) : -1;
+          const where = !L ? 'not loaded' : L.members.length + ' player' + (L.members.length === 1 ? '' : 's') + (k >= 0 ? ' · you #' + (k + 1) + ', ' + rows[k].p + ' pts' : '');
+          list.append(h('li', {class: on ? 'on' : ''}, h('span', {class: 'sq-frn'}, h('b', null, L ? L.name : c.toUpperCase()), h('small', null, where)),
+            button(on ? 'Open' : 'Show', on ? 'gold' : '', () => { F.open = c; renderFriends(); }, {'data-k': 'fr:' + c, 'aria-pressed': String(on)})));
+        });
+        box.append(list);
+      }
+      else if (F.codes) box.append(h('p', {class: 'sq-desc sq-frlead'}, 'No friend league yet. Make one and send your friends the link, or join one with a code.'));
+    }
+    // the league open: its table, the invite link, last week's winner, leaving
+    const L = F.open ? F.map.get(F.open) : null;
+    if (L){
+      const mine = !!me && L.members.includes(me), link = net.link(L.code);
+      const card = h('div', {class: 'sq-frcard'},
+        h('div', {class: 'sq-frhead'}, h('b', null, L.name), h('span', null, (L.week ? 'Week ' + Number(L.week.slice(5)) + ' · ' : '') + (L.ends ? endsText(L.ends) : '') + ' · ' + L.members.length + '/' + FR_PLAYERS)),
+        frTable(L));
+      const lw = L.last.table[0];
+      if (lw && lw.p) card.append(h('p', {class: 'sq-desc'}, 'Last week: ' + frWho(lw.id) + ' won with ' + lw.p + ' points.'));
+      if (mine){
+        const url = h('input', {readonly: true, value: link, 'aria-label': 'Invite link', class: 'sq-frurl'});
+        const acts = h('div', {class: 'sq-gacts'},
+          button('Copy invite link', 'gold', e => copy(link, e.currentTarget, url), {'data-k': 'frcopy'}),
+          ...(navigator.share ? [button('Share', 'pink', () => navigator.share({title: L.name + ' · $BLUB friend league', text: 'Join my $BLUB friend league "' + L.name + '"!', url: link}).catch(() => {}), {'data-k': 'frshare'})] : []),
+          button(F.off && F.off.code === L.code ? 'Sure? Tap again' : 'Leave', '', () => frLeave(L.code), {'data-k': 'frleave'}));
+        card.append(h('div', {class: 'sq-frinv'}, h('span', {class: 'sq-lbl'}, 'Invite your friends · code ' + L.code.toUpperCase()), url), acts);
+      }
+      else if (signedIn()) card.append(h('div', {class: 'sq-gacts'}, button('Join this league', 'gold', () => frJoin(L.code), {'data-k': 'frjoinit'})));
+      box.append(card);
+    }
+    if (!signedIn()) return;
+    // make one, or join one with a code
+    const full = F.codes && F.codes.length >= FR_MAX;
+    box.append(h('div', {class: 'sq-frforms'},
+      h('div', {class: 'sq-field'}, h('label', {class: 'sq-lbl', for: 'sqFrName'}, 'Make a league'), h('div', {class: 'sq-pfrow'}, R.frName, button('Make', 'gold', frMake, {'data-k': 'frmake', ...(full ? {'aria-disabled': 'true'} : {})}))),
+      h('div', {class: 'sq-field'}, h('label', {class: 'sq-lbl', for: 'sqFrCode'}, 'Join with a code or link'), h('div', {class: 'sq-pfrow'}, R.frCode, button('Join', '', () => frJoin(R.frCode.value), {'data-k': 'frjoin', ...(full ? {'aria-disabled': 'true'} : {})})))),
+      ...(full ? [h('p', {class: 'sq-desc'}, 'You are in ' + FR_MAX + ' friend leagues: leave one to make or join another.')] : []), RULES);
   }
   async function saveProfile(){
     if (!R.profIn || st.profSaving) return;
@@ -24069,7 +24281,7 @@ const SquadHall = (() => {
     R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
     // the weekly league: your group of 35, or how to join one
     R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('div', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
-    const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 at every rank; every Monday 00:00 UTC the top 7 of a group move up a step and the bottom 7 down a step. Everyone starts as a Bronze Shrimp.';
+    const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 at every rank; every Monday 00:00 UTC the top 7 of a group move up a step (the winner two) and the bottom 7 down a step. Everyone starts as a Bronze Shrimp, and you can duel anyone, whatever their rank: each of you scores in your own group.';
     R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg, ...(kroot ? [] : [h('p', {class: 'sq-desc sq-lgrule'}, RULE)]));
     // the ranks and how a week works (the rankings page)
     // your profile name: the rankings show it above your wallet address
@@ -24082,6 +24294,13 @@ const SquadHall = (() => {
       R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
         h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
     }
+    // friend leagues (the rankings page): yours, the one open, make one, join one
+    R.frN = h('small'); R.frBody = h('div', {class: 'sq-frbody'}); R.frMsg = h('p', {class: 'sq-msg', 'aria-live': 'polite'});
+    R.frName = h('input', {class: 'sq-pfin', id: 'sqFrName', maxlength: '24', placeholder: 'League name', autocomplete: 'off', spellcheck: 'false', enterkeyhint: 'done'});
+    R.frName.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); frMake(); } });
+    R.frCode = h('input', {class: 'sq-pfin', id: 'sqFrCode', placeholder: 'Code or invite link', autocomplete: 'off', spellcheck: 'false', autocapitalize: 'off', enterkeyhint: 'go'});
+    R.frCode.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); frJoin(R.frCode.value); } });
+    R.frP = kroot ? panel('sq-frp', 'sqfrTitle', ['Friend leagues ', R.frN], R.frMsg, R.frBody) : null;
     R.rankL = h('ol', {class: 'sq-rankl'});
     R.divP = panel('sq-divp', 'sqdTitle', 'The ranks', R.rankL,
       h('p', {class: 'sq-desc'}, RULE),
@@ -24124,7 +24343,7 @@ const SquadHall = (() => {
       h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'rankTitle'}, 'Rankings')),
       h('p', null, 'Every week a league of 35 at your rank, from Bronze Shrimp to Gold Whale, and every month the duel season. Rated duels between wallets count.'),
       h('div', {class: 'sq-heada'}, h('a', {class: 'btn small mint', href: '#practice', 'data-k': 'toprac'}, 'To practice'))),
-      h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP), h('div', {class: 'sq-col'}, ...(R.profP ? [R.profP] : []), R.divP, R.topP)));
+      h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP, R.frP), h('div', {class: 'sq-col'}, ...(R.profP ? [R.profP] : []), R.divP, R.topP)));
     buildModal();
     return true;
   }
@@ -24164,6 +24383,8 @@ const SquadHall = (() => {
     if (first) return false;
     st.made = null; if (R.cLink) R.cLink.hidden = true; st.looked.clear(); st.seen.clear(); st.back = null; barLabel(); renderSync();
     renderMine(); renderOpen(); renderChallenge(); renderPath(); renderLeague(); renderProfile();
+    // another wallet: its own friend leagues
+    if (st.fr){ st.fr = null; if (R.kroot && !R.kroot.closest('main').hidden) loadFriends(true); else renderFriends(); }
     return true;
   }
   // the team changed (loaded, or saved in the Blub Maker): names, looks, and the
@@ -24201,6 +24422,9 @@ const SquadHall = (() => {
     new ResizeObserver(steadyK).observe(R.kitSide);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { st.trayW = 0; kitKey = ''; steady(); steadyK(); }).catch(() => {});
     renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderProfile(); renderMine(); renderBots(); renderPath();
+    // friend leagues, and one a link opened before the hall was built
+    renderFriends(); if (st.fr && st.fr.open) openFriends(st.fr.open);
+    if (R.kroot && !R.kroot.closest('main').hidden) loadFriends();
     st.me = SquadNet.me();
     if (mqMotion.addEventListener){
       mqMotion.addEventListener('change', () => paintBoard());
@@ -24246,6 +24470,8 @@ const SquadHall = (() => {
       // the board is cached for a minute at the edge: asking more often gains nothing
       if (!SquadNet.live && (st.inView || waiting) && Date.now() - st.boardAt > 60000) refreshBoard();
       if (st.inView){ renderOpen(); if (Date.now() % 30000 < 5000){ renderTop(); renderLeague(); renderMine(); renderChallenge(); } }
+      // the rankings open and signed in, but your friend leagues not asked for yet
+      if (R.kroot && !R.kroot.closest('main').hidden && signedIn() && (!st.fr || (st.fr.codes === null && !st.fr.busy))) loadFriends();
       // back from signing in or making your Blub: the challenge opens again
       if (st.reopen && st.pending && SquadNet.signedIn() && SquadNet.captain() && R.modal.hidden){ st.reopen = false; const id = st.pending; st.pending = null; openInvite(id); }
     }, 5000);
@@ -24271,6 +24497,8 @@ const SquadHall = (() => {
     if (!teamChanged()){ keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); }
     renderChallenge(); renderTop(); renderLeague(); renderProfile(); renderPath();
     if (st.online && !was) refreshBoard();
+    // signed in (or the server answered) while the rankings are open: your friend leagues
+    if (R.kroot && !R.kroot.closest('main').hidden) loadFriends();
   }
 
   // ---- what the rest of the page calls
@@ -24288,7 +24516,7 @@ const SquadHall = (() => {
     if (view === 'team' && hash === 'make') st.tab = 'looks';
     if (!st.ready) return;
     if (view === 'team') setTab(st.tab);
-    if (view === 'rankings'){ renderLeague(); renderTop(); renderProfile(); }
+    if (view === 'rankings'){ renderLeague(); renderTop(); renderProfile(); loadFriends(); }
     seen();
   }
   function focus(){
@@ -24318,7 +24546,9 @@ const SquadHall = (() => {
     const x = topList().find(r => r.id === id) || ladder.get(id);
     return x && x.w + x.l > 0 ? {r: x.r, w: x.w, l: x.l} : null;
   }
-  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace};
+  // a friend league's invite link (#friends=<code>), from the page's router
+  const friends = openFriends;
+  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace, friends};
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
@@ -24338,6 +24568,8 @@ function route(hh){
   if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('practice'); if (code) SquadHall.openInvite(code); return; }
   // a shared match: watched straight away, and the address goes back to practice
   if (h.startsWith('watch=')){ route('practice'); SquadHall.watch(h.slice(6)); try { history.replaceState(null, '', '#practice'); } catch {} return; }
+  // a friend league's invite link: the rankings, with that league open
+  if (h.startsWith('friends=')){ route('rankings'); SquadHall.friends(h.slice(8)); return; }
   const v = viewOf(h);
   const was = Object.values(VIEWS).some(n => !n.hidden);
   homeEl.hidden = !!v;
