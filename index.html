@@ -127,6 +127,10 @@ p{margin:0}
 .btn.wbtn{--bg:#EDE7FF;--hi:#FFFFFF;--lo:#A99CC9;gap:8px}
 .wbtn-on{width:10px;height:10px;flex:none;background:var(--up);border:2px solid var(--ink)}
 .wbtn-on[hidden]{display:none}
+/* your rank's badge (the hall tells it: SquadNet.onRank) */
+.wbtn-rk{display:inline-flex}
+.wbtn-rk[hidden]{display:none}
+.wbtn-rk canvas{width:16px;height:16px}
 @media (max-width:860px){.wbtn-t{display:none}.nav .btn.wbtn{gap:4px}}
 .nav .btn[aria-current="page"]{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
 /* the text links make room for the five buttons (the wallet's one says "Connect wallet" up to 1240px) */
@@ -1032,6 +1036,8 @@ body.no-scroll{overflow:hidden}
 .sqi-eyebrow{margin:0;font-family:var(--f-display);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--pink,#F59AB0)}
 .sqi-h{margin:0 0 4px;font-family:var(--f-display);font-weight:400;font-size:clamp(12px,3.4vw,18px);line-height:1.4;color:var(--gold);text-shadow:3px 3px 0 #000;overflow-wrap:anywhere}
 .sqi-lbl{margin:0;font-family:var(--f-display);font-size:9px;line-height:1.5;padding:4px 8px;border:2px solid #000;color:#fff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a side's rank in the weekly league, by its name */
+.sqi-lbl canvas.sq-lgb{width:20px;height:20px;vertical-align:middle;margin:-4px 6px -2px 0}
 .sqi-lbl.them{background:var(--riv-d);box-shadow:inset 0 -3px 0 var(--riv)}
 .sqi-lbl.you{background:var(--you-d);box-shadow:inset 0 -3px 0 var(--you)}
 .sqi-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%}
@@ -1855,6 +1861,29 @@ body.no-scroll{overflow:hidden}
 .sq-frinv{display:flex;flex-direction:column;gap:6px}
 .sq-frurl{min-height:40px;width:100%;font-family:var(--f-data);font-size:16px;color:var(--sq-text);background:var(--sq-deep);border:3px solid #000;padding:0 8px}
 .sq-frforms{display:grid;gap:12px}
+/* a player's rank by their name in a table of mixed ranks, and your rank in your profile */
+.lg-rk{display:inline-flex;align-items:center}
+.lg-rk canvas.sq-lgb{width:16px;height:16px}
+.sq-pfrank{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0B1F23;border:3px solid #000}
+.sq-pfrank[hidden]{display:none}
+.sq-pfrank canvas.sq-lgb{width:32px;height:32px;flex:none}
+.sq-pfrk{display:flex;flex-direction:column;gap:3px}
+.sq-pfrk b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:var(--gold)}
+.sq-pfrk small{font-family:var(--f-data);font-size:16px;color:var(--sq-soft)}
+/* the week's moment: the badge of your rank now, popping in; pixel confetti when you went up */
+.sq-moment{position:relative;display:grid;place-items:center;min-height:150px;margin:6px 0;background:radial-gradient(circle,rgba(255,212,71,.18),transparent 65%)}
+.sq-moment canvas.sq-lgb{width:96px;height:96px;filter:drop-shadow(4px 4px 0 rgba(0,0,0,.5));animation:sqPop .6s steps(6) both}
+.sq-moment.down canvas.sq-lgb{animation:sqDrop .6s steps(6) both}
+@keyframes sqPop{0%{transform:scale(.2)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes sqDrop{0%{transform:translateY(-30px);opacity:0}100%{transform:none;opacity:1}}
+.sq-confetti{position:absolute;inset:0;pointer-events:none;background:
+  radial-gradient(circle,#FFD447 2px,transparent 3px) 10% 20%/74px 66px,
+  radial-gradient(circle,#5EC8F2 2px,transparent 3px) 30% 70%/92px 80px,
+  radial-gradient(circle,#F05A4F 2px,transparent 3px) 70% 30%/84px 96px,
+  radial-gradient(circle,#B6F2EA 2px,transparent 3px) 85% 75%/66px 78px;animation:sqFall 2.4s steps(12) infinite}
+@keyframes sqFall{to{background-position:10% 120%,30% 170%,70% 130%,85% 175%}}
+.sq-momtx{text-align:center}
+@media (prefers-reduced-motion:reduce){.sq-moment canvas.sq-lgb,.sq-confetti{animation:none}}
 /* the challenger's rank this week, on the open board (any rank may duel any other) */
 .sq-orank{display:inline-flex;align-items:center;gap:6px}
 .sq-orank canvas.sq-lgb{width:16px;height:16px;flex:none}
@@ -2042,7 +2071,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · friend leagues, the group winner moves up two, ranks from Bronze Shrimp to Gold Whale, engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 13: no fog, cannon out front (blind in smoke), one Pop Mine, ranks everywhere</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2051,7 +2080,7 @@ body.no-scroll{overflow:hidden}
       <li><a href="#sift">About Blub</a></li>
       <li><a href="#tokenomics">Tokenomics</a></li>
     </ul>
-    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-rk" id="walletBtnRk" aria-hidden="true" hidden></span><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
   </div>
 </nav>
 
@@ -5470,6 +5499,8 @@ const SquadNet = {
   // the weekly league (lib/league.mjs): null in the demo, which has no server
   league: DEMO ? null : () => API.league(),
   leagueWeek: DEMO ? null : week => API.leagueWeek(week),
+  // your rank this week (the hall: when it changes): its badge on the header's wallet button
+  onRank: (d, badge, name) => Wallet.rank(d, badge, name),
   // friend leagues (lib/friends.mjs): null in the demo, which has no server
   friends: DEMO ? null : {
     mine: async () => (await API.friendsMine()).codes || [],
@@ -5586,7 +5617,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 12;
+const SQUAD_ENGINE = 13;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5662,7 +5693,10 @@ const RULES = lock({
   wireAvoid: 6, // wire lies out in the open: the other side plans its way as if crossing it took this many steps more
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
-  mineDmg: 4, mineSplash: 3, // mines always lie on clear ground (the ground makes way), and Blubs walk out to the chest's events: they hit a little softer
+  // the Pop Mine (engine 13: one strong mine instead of three small ones): mineDmg on
+  // the enemy that steps on it, mineSplash on its squad beside it; it always lies on
+  // clear ground (the ground makes way)
+  mineDmg: 10, mineSplash: 4,
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // engine 7. The Smoke Pot pops at the first arrow or bullet that flies at a Blub of
   // its squad within smokeNear tiles of it; the cloud (smokeRing tiles round it) hangs
@@ -5724,14 +5758,18 @@ const RULES = lock({
   // medics, and anyone in a fight); building leaves it buildTake% easier to hurt till
   // its next turn
   buildMax: 3, buildNear: 8, buildTake: 25,
-  // ...and the squad's cannon first (engine 9): its first Builder builds it round where
-  // it started, a 2x2 block of floor (laid out only in its first cannonStart turns), one
-  // stage a turn for cannonBuild turns, then a wall of two sandbags in front of it, a turn
-  // each. The cannon fires by itself from the turn after it is done: every cannonReload
-  // turns at the nearest enemy it can see within cannonRange, cannonDmg. That Builder
-  // fights with its Build Hammer (toolDmg), whatever weapon it was given; another
-  // Builder of the squad keeps its weapon and puts up barricades.
-  cannonBuild: 3, cannonStart: 2, cannonReload: 2, cannonRange: 7, cannonDmg: 9, toolDmg: 2,
+  // ...and the squad's cannon first (engine 9): its first Builder builds it, a 2x2 block
+  // of floor (laid out only in its first cannonStart turns), one stage a turn for
+  // cannonBuild turns, then a wall of two sandbags in front of it, a turn each. Since
+  // engine 13 it first walks a little way out, to cannonRow (as team A counts the rows:
+  // the cannon's front row in no man's land), and lays it out there. The cannon fires
+  // by itself from the turn after it is done: every cannonReload turns at the nearest
+  // enemy it can see within cannonRange, cannonDmg. Smoke throws it off: under a cloud,
+  // or at an enemy in one or behind one, it fires blind and hits blindHit% of the time
+  // (the ball lands beside the enemy otherwise). That Builder fights with its Build
+  // Hammer (toolDmg), whatever weapon it was given; another Builder of the squad keeps
+  // its weapon and puts up barricades.
+  cannonBuild: 3, cannonStart: 3, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10, blindHit: 35,
   // Digger (engine 10): with no enemy within pitSafe tiles but one coming (within
   // pitNear), it digs a pit beside it towards them and hides it under leaves, its whole
   // turn, pitMax times a round. Its own squad never steps on one; an enemy that does
@@ -5739,9 +5777,9 @@ const RULES = lock({
   // it digs round the shaft instead, pitShaft at a time.
   pitSafe: 3, pitNear: 7, pitMax: 2, pitShaft: 2, shaftNear: 3,
   // the weather (engine 11, WEATHER): rainPct% of rounds it rains (bows and guns reach
-  // rainRange less, wands rainRange more), fogPct% there is fog (nothing is seen or
-  // shot from farther than fogSight tiles); the rest are clear
-  rainPct: 15, fogPct: 20, rainRange: 1, fogSight: 5,
+  // rainRange less, wands rainRange more); the rest are clear. Engine 13 took the fog
+  // out: its pale veil hid the arena.
+  rainPct: 15, rainRange: 1,
   // Builders, Miners and Diggers are made of tougher stuff: this much more HP
   workHp: 6,
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
@@ -5811,7 +5849,7 @@ const POWERS = lock([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
-  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, a 2x2 cannon round where it started (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
   ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Digs a pit and hides it under leaves: with no enemy within ${RULES.pitSafe} tiles but one coming (within ${RULES.pitNear}), it looks round, digs on a tile beside it where they will come and covers it up, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round. Its own squad never steps on it; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]);
@@ -5859,7 +5897,7 @@ const OBJECTS = lock([
   ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that has to cross gets stuck for the rest of its move and loses ${RULES.wireDmg} HP.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
-  ['mines', 'Pop Mines', `Three hidden mines with a tile between them, also out in no man's land. The first enemy to step on one loses ${RULES.mineDmg} HP (its neighbours ${RULES.mineSplash}) and stops.`],
+  ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
   ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
   ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. The first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it is lost in the smoke: the pot pops, and for the rest of that turn and ${RULES.smokeTurns} more a cloud hangs over it and the tiles around it. No arrow or bullet flies into the cloud, out of it or through it, not even from a watchtower; from right next to a Blub they still find it.`],
@@ -5872,7 +5910,7 @@ const OBJECT_STATS = lock({
   wire: { cells: [-2, -1, 0, 1, 2], stand: 1, out: 1 },
   mortar: { cells: [0], solid: 1 },
   trench: { cells: [-1, 0, 1], stand: 1 },
-  mines: { cells: [-2, 0, 2], out: 1 },
+  mines: { cells: [0], out: 1 },
   crate: { cells: [0], solid: 1 },
   shaft: { cells: [0], stand: 1 },
   smoke: { cells: [0], stand: 1, out: 1 },
@@ -5880,6 +5918,9 @@ const OBJECT_STATS = lock({
   hospital: { cells: [0], solid: 1 },
 });
 const OBJECTS_MAX = 2;
+// out of the kit for now (the owner, engine 13: for more tests first): a squad saved
+// with one of these simply goes without it, and bots never pick them
+const OBJECTS_OFF = lock(['mortar', 'trench', 'decoy']);
 // the rows an object may lie in: its own three, and no man's land for those marked `out`
 const OBJECT_ROWS = [9, 10, 11, 12, 13, 14];
 
@@ -5979,12 +6020,11 @@ const PAIR_ROWS = [8, 9, 10, 11];
 const WEATHER = lock([
   ['clear', 'Clear Skies', 'A fine day for it: nothing in the way.'],
   ['rain', 'Pink Rain', `Wet bowstrings and damp powder: bows, rifles and Scope Rifles reach ${RULES.rainRange} tile less. Bubbles love it: wands reach ${RULES.rainRange} tile more.`],
-  ['fog', 'Candy Fog', `Nothing is seen from farther than ${RULES.fogSight} tiles: no shot, from a Blub or a cannon, flies farther than that.`],
 ]);
 const WEATHER_SALT = 0x77e4;
 function weatherOf(seed, round) {
   const p = Math.floor(rng(subSeed(seed, round, WEATHER_SALT))() * 100);
-  return p < RULES.rainPct ? 'rain' : p < RULES.rainPct + RULES.fogPct ? 'fog' : 'clear';
+  return p < RULES.rainPct ? 'rain' : 'clear';
 }
 
 // arenas: how many of each feature are placed in each half
@@ -6065,6 +6105,8 @@ function cleanSquad(raw) {
   const kinds = new Set();
   const used = new Set();
   for (const o of rawObjs) {
+    // an object out of the kit for now: the squad simply goes without it
+    if (o && typeof o === 'object' && OBJECTS_OFF.includes(o.k)) continue;
     if (!o || typeof o !== 'object' || !has(OBJECTS, o.k) || kinds.has(o.k)) return null;
     const cells = objCells(o);
     if (!cells) return null;
@@ -6480,11 +6522,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // a watchtower serves the squad that built it; to the other side it is a few planks
   const onTower = (u, x, y) => towerT[idx(x, y)] === u.team + 1;
   // a shooter in a bush sees out less far
-  // the weather: rain wets bows and guns and suits wands; fog lets nobody see far
+  // the weather: rain wets bows and guns and suits wands
   const rain = W0 => (weather === 'rain' && W0.range >= 3 ? (W0.sure ? RULES.rainRange : -RULES.rainRange) : 0);
   const rangeOf = (u, x, y) => {
-    const r0 = W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0) + rain(W(u));
-    return weather === 'fog' ? Math.min(r0, RULES.fogSight) : r0;
+    return W(u).range + (laserOn(u) ? RULES.laserRange : 0) + (u.wpn === 'bow' && tiles[idx(x, y)] === HIGH ? 1 : 0) + (W(u).range >= 3 && onTower(u, x, y) ? RULES.towerRange : 0) - (W(u).range >= 3 && tiles[idx(x, y)] === BUSH ? RULES.bushRange : 0) + rain(W(u));
   };
   // a Blub in a bush lies in ambush: only what is close, or up high, finds it
   const hidden = (u, x, y, v) => tiles[idx(v.x, v.y)] === BUSH && cheb(x, y, v.x, v.y) > RULES.bushSight && !onTower(u, x, y) && tiles[idx(x, y)] !== HIGH;
@@ -7672,7 +7713,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // plain floor nothing else lies on: no trap, object, event or power-up
   function freeFloor(c) {
     if (tiles[c] !== GRASS && tiles[c] !== BUSH) return false;
-    if (wireT[c] >= 0 || mineT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
+    // (nor a Digger's pit: a pit and a wall never share a tile, engine 13)
+    if (wireT[c] >= 0 || mineT[c] >= 0 || pitT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
     if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c)) return false;
     if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
     if (crater && crater.cells.indexOf(c) >= 0) return false;
@@ -7761,19 +7803,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // works wait. Team B lays its block out on the board turned round, as everywhere.
   const works = []; // { id, team, u (who laid it out), cells, muzzle: [2 cells], front: [2 cells], stage, wall, next }
   const xyOf = (c) => [c % SIZE, (c - (c % SIZE)) / SIZE];
-  function cannonSpot(u) {
+  // (from where u stands, or from (ux, uy): where it would stand)
+  function cannonSpot(u, ux = u.x, uy = u.y) {
     const s = u.team ? -1 : 1;
     let best = null;
     let bs = -1e9;
     for (let k = 0; k < N; k++) {
       const a = u.team ? N - 1 - k : k;
       const [ax, ay] = xyOf(a);
-      if (!inside(ax + s, ay + s)) continue;
+      if (!inside(ax + s, ay + s) || Math.abs(ax - ux) > 2 || Math.abs(ay - uy) > 2) continue;
       const cells = [idx(ax, ay), idx(ax + s, ay), idx(ax, ay + s), idx(ax + s, ay + s)];
-      if (!cells.some((c) => cheb(u.x, u.y, ...xyOf(c)) <= 1)) continue;
+      if (!cells.some((c) => cheb(ux, uy, ...xyOf(c)) <= 1) || cells.includes(idx(ux, uy))) continue;
       // the front row faces the other side; the wall goes a row further out
       const front = inside(ax, ay - s) ? [idx(ax, ay - s), idx(ax + s, ay - s)] : [];
-      const back = s * (ay - u.y);
+      const back = s * (ay - uy);
       const score = (front.length && front.every(freeFloor) ? 100 : 0) + Math.max(-1, Math.min(1, back)) * 10;
       if (score <= bs || !canBuild(cells)) continue;
       best = { cells, muzzle: [cells[0], cells[1]], front };
@@ -7787,12 +7830,35 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.attacked = true;
     push({ t: 'craft', u: u.id, what, w: w.id, stage, of, cells: cells.map(xyOf), face: u.team ? 1 : -1 });
   }
+  // The cannon goes up a little way out (engine 13): before it lays one out, its Builder
+  // walks to its squad's cannonRow (a row either side will do; the nearest column it can
+  // reach, a tile it could lay a cannon out from). It walks only on its first turn, and
+  // not when it is there already or no such tile is in its reach.
+  function walkOut(u) {
+    const ty = u.team ? SIZE - 1 - RULES.cannonRow : RULES.cannonRow;
+    if (now > 1 || Math.abs(u.y - ty) <= 1) return false;
+    const P = search(u, u.move);
+    let best = -1;
+    let bs = 1e9;
+    for (const c of seen(P)) {
+      const [x, y] = xyOf(c);
+      if (Math.abs(y - ty) > 1 || occ[c] >= 0) continue;
+      const sc = Math.abs(y - ty) * 100 + Math.abs(x - u.x) * 4 + Math.abs(x - 7);
+      if (sc >= bs || !cannonSpot(u, x, y)) continue;
+      best = c;
+      bs = sc;
+    }
+    if (best < 0) return false;
+    walk(u, route(P, best));
+    return true;
+  }
   function engineer(u) {
     let w = works.find((v) => v.team === u.team);
     if (w && w.stage >= RULES.cannonBuild && w.wall >= w.front.length) return false;
     if (inReach(u).length) return false;
     if (!w) {
       if (now > RULES.cannonStart) return false;
+      if (walkOut(u)) return true;
       const spot = cannonSpot(u);
       if (!spot) return false;
       w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0 };
@@ -7821,10 +7887,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     return true;
   }
   // a finished cannon fires by itself: at the nearest enemy (then the most hurt) it can
-  // see from its front within cannonRange, every cannonReload turns
+  // see from its front within cannonRange, every cannonReload turns. Smoke throws it off
+  // (engine 13): under a cloud, at an enemy in one or behind one, it fires blind and hits
+  // blindHit% of the time; a miss lands on a tile beside that enemy.
   function fireCannon(w, turn) {
     if (w.stage < RULES.cannonBuild || turn < w.next) return;
-    const cannonReach = weather === 'fog' ? Math.min(RULES.cannonRange, RULES.fogSight) : RULES.cannonRange;
+    const cannonReach = RULES.cannonRange;
     let best = null;
     let bd = 99;
     for (const v of living[1 - w.team]) {
@@ -7843,7 +7911,22 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (!best) return;
     w.next = turn + RULES.cannonReload;
     const m = w.muzzle.slice().sort((p, q) => cheb(...xyOf(p), best.x, best.y) - cheb(...xyOf(q), best.x, best.y) || (w.team ? q - p : p - q))[0];
-    push({ t: 'cannon', u: w.u.id, w: w.id, from: xyOf(m), d: best.id, at: [best.x, best.y] });
+    const [mx, my] = xyOf(m);
+    const blind = clouds > 0 && (w.cells.some((c) => smokeT[c]) || smokeT[idx(best.x, best.y)] > 0 || smoked(mx, my, best.x, best.y));
+    if (blind && r() * 100 >= RULES.blindHit) {
+      // it misses: the ball comes down on a free tile beside its enemy (or right by it)
+      const near = [];
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = best.x + dx;
+          const y = best.y + dy;
+          if ((dx || dy) && inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)])) near.push([x, y]);
+        }
+      const at = near.length ? near[Math.floor(r() * near.length)] : [best.x, best.y];
+      push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at, blind: 1, miss: 1 });
+      return;
+    }
+    push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at: [best.x, best.y], ...(blind ? { blind: 1 } : {}) });
     pure(w.u, best, RULES.cannonDmg, 'cannonball');
     checkOver();
   }
@@ -8823,7 +8906,7 @@ function randomSquad(r) {
   const objs = [];
   const shooter = units.some((u) => WEAPON_STATS[u.wpn].range >= 3);
   const miner = units.some((u) => u.pow === 'miner' || u.pow === 'digger');
-  const kinds = OBJECTS.map((o) => o[0]).filter((k) => (k !== 'tower' || shooter) && (k !== 'shaft' || miner));
+  const kinds = OBJECTS.map((o) => o[0]).filter((k) => !OBJECTS_OFF.includes(k) && (k !== 'tower' || shooter) && (k !== 'shaft' || miner));
   for (let k = 0; k < OBJECTS_MAX; k++) {
     const kind = kinds.splice(Math.floor(r() * kinds.length), 1)[0];
     for (const at of objectSpots(kind, units, r)) {
@@ -8943,7 +9026,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -9189,6 +9272,9 @@ const SquadView = (() => {
       // Miner: a pickaxe
       miner: ['..kkkkkkkk..', '.kSSSSSSSSk.', 'kSSkkkkkkSSk', 'kSk..kk..kSk', 'kk...kNk..kk',
         '.....kNk....', '.....kNk....', '.....kNk....', '.....kNk....', '.....knk....', '.....knk....', '.....kkk....'],
+      // Digger: a spade and the heap it dug
+      digger: ['.......kkk..', '......kSSSk.', '.....kSSSSSk', '.....kSSSsk.', '......kssk..',
+        '.....kNkk...', '....kNk.....', '...kNk......', '..kNk...kkk.', 'kNNNk..kNnNk', 'kkkkk.knNnnk', '......kkkkkk'],
     },
     tac: {
       // Nearest: a target with the dot close by
@@ -11100,7 +11186,9 @@ const SquadView = (() => {
         if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
         return e.stage === 1 ? u + ' starts building a cannon.' : e.stage >= e.of ? u + ' finishes the cannon: it is ready to fire!' : u + ' works on the cannon.';
       case 'cannon':
-        return 'BOOM! ' + u + "'s cannon fires at " + d + '.';
+        // engine 13: smoke throws it off, and it fires blind
+        if (e.miss) return 'BOOM! ' + u + "'s cannon fires blind through the smoke and misses " + d + '.';
+        return 'BOOM! ' + u + "'s cannon fires " + (e.blind ? 'blind through the smoke at ' : 'at ') + d + '.';
       case 'cannonball':
         return e.res === 'absorb' ? 'The cannonball pops ' + d + "'s bubble." : 'The cannonball hits ' + d + ': -' + e.dmg + '.';
       case 'dig': {
@@ -14055,11 +14143,10 @@ const SquadView = (() => {
   // fuse burning down, a barricade going up sack by sack, the pickaxe swinging, a gem
   // tossed over. True when the beat was one of these.
   // ---- the weather (engine 11). Pink Rain: streaks slanting down over the arena and
-  // rings on the floor where drops land. Candy Fog: banks of pale fog drifting across,
-  // dithered so the Blubs still show through, thickest towards the far side.
+  // rings on the floor where drops land. (Engine 13 took the Candy Fog out.)
   function drawWeather(x, t, now) {
     const R = P.rd && P.rd.R;
-    if (!R || !R.weather || R.weather === 'clear' || P.phase !== 'round') return;
+    if (!R || R.weather !== 'rain' || P.phase !== 'round') return;
     const still = P.calm;
     const W = N * TILE;
     if (R.weather === 'rain') {
@@ -14093,18 +14180,6 @@ const SquadView = (() => {
           x.globalAlpha = 1;
         }
       return;
-    }
-    // fog: a pale veil over everything, and banks drifting across it, thick in the
-    // middle and thin at their edges, each a run of dithered strips
-    ditherRect(x, 0, TOP, W, N * TILE, '#FFFFFF', 0.12);
-    for (let i = 0; i < 6; i++) {
-      const y0 = TOP + 6 + i * 40 + Math.round(Math.sin(i * 1.7) * 6);
-      const off = still ? 0 : now / (90 + i * 13);
-      const x0 = Math.round(((i * 71 + off) % (W + 160)) - 80);
-      ditherRect(x, x0, y0, 120, 10, '#FFFFFF', 0.34);
-      ditherRect(x, x0 + 14, y0 - 4, 92, 4, '#FFFFFF', 0.24);
-      ditherRect(x, x0 + 8, y0 + 10, 100, 4, '#FFFFFF', 0.24);
-      ditherRect(x, x0 + 30, y0 - 7, 50, 3, '#FFFFFF', 0.16);
     }
   }
   // ---- the Moon Rocket (engine 8). Ignition on the pad: smoke rolls off it both ways
@@ -14477,9 +14552,15 @@ const SquadView = (() => {
       const mx = box ? box.px + 16 : fx0;
       const my = box ? box.py + (up ? 2 : 28) : fy0;
       const d = S.u[e.d];
-      const [tx, ty] = centreOf(d);
+      // a blind shot that misses (engine 13) comes down on the tile beside its enemy
+      const [tx, ty] = e.miss ? tileC(e.at[0], e.at[1]) : centreOf(d);
       ovOf('cannon' + e.w).fireT = T;
       sfx('boom');
+      if (e.blind) label(T, 'BLIND', '#C9C9D6', mx, my - 12, false);
+      if (e.miss) {
+        addFx(T + b.contact, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(tx - 8), Math.round(ty - 8)));
+        label(T + b.contact, 'MISS', '#C9C9D6', tx, ty - 16, false);
+      }
       addFx(T, 150 * k, (x, kk) => {
         x.fillStyle = kk < 0.4 ? '#FFFFFF' : '#FFD447';
         x.fillRect(mx - 3, my - 3, 7, 7);
@@ -19784,6 +19865,10 @@ const SquadView = (() => {
     }
     const lr = el('p', 'sqi-lbl them', P.sideLabels.rival);
     const ly = el('p', 'sqi-lbl you', P.sideLabels.you);
+    // each side's rank in the weekly league, a badge the hall drew (match.badges, per team)
+    const bd = Array.isArray(P.match.badges) ? P.match.badges : [];
+    if (bd[rt] instanceof HTMLCanvasElement) lr.prepend(bd[rt]);
+    if (bd[P.me] instanceof HTMLCanvasElement) ly.prepend(bd[P.me]);
     const vs = el('div', 'sqi-vs', 'VS');
     // each side's trench kit, next to its row
     const kits = [rt, P.me].map((team, i) => {
@@ -20035,8 +20120,8 @@ const SquadView = (() => {
     else if (t >= CM.count) {
       const p = (t - CM.count) / (CM.race - CM.count);
       const k = Math.floor(26 * (1 - (1 - p) * (1 - p)));
-      // it ends on the count: count back from there
-      const v = ((((C.spin.count - 1 - (26 - k)) % 3) + 3) % 3) + 1;
+      // it ends on the count: count back from there (k runs 0 to 25, and lands on it)
+      const v = ((((C.spin.count - 1 - (25 - k)) % 3) + 3) % 3) + 1;
       C.countNum.textContent = '×' + v;
       if (k !== C.tick) {
         C.tick = k;
@@ -21113,6 +21198,8 @@ const SquadHall = (() => {
      squad's own rows (wire, mines and sandbags also in no man's land)
      --------------------------------------------------------------- */
   const OBJ = byId(E.OBJECTS);
+  // what a squad may dig in: the kit without what is out of it for now (engine 13)
+  const OFF = E.OBJECTS_OFF || [], KIT = E.OBJECTS.filter(([k]) => !OFF.includes(k));
   const KMAX = E.OBJECTS_MAX;
   const OST = k => E.OBJECT_STATS[k];
   const objRows = k => (OST(k).out ? E.OBJECT_ROWS : E.DEPLOY_ROWS);
@@ -21220,7 +21307,7 @@ const SquadHall = (() => {
     if (!Array.isArray(raw.objs)) return {units, objs: suggestKit(units), cmd};
     const objs = [];
     raw.objs.slice(0, 8).forEach(o => {
-      if (!o || typeof o !== 'object' || !OBJ[o.k] || objs.length >= KMAX || objs.some(p => p.k === o.k)) return;
+      if (!o || typeof o !== 'object' || !OBJ[o.k] || OFF.includes(o.k) || objs.length >= KMAX || objs.some(p => p.k === o.k)) return;
       const c = {k: o.k, x: Math.floor(+o.x), y: Math.floor(+o.y)};
       if (kitOk(units, [...objs, c])) objs.push(c);
     });
@@ -21929,7 +22016,7 @@ const SquadHall = (() => {
     kitKey = key;
     const kf = document.activeElement && kd.contains(document.activeElement) ? document.activeElement.getAttribute('data-k') : null;
     let km = 0; kd.style.minHeight = '';
-    E.OBJECTS.forEach(([k]) => { kitDetail(k); km = Math.max(km, kd.offsetHeight); });
+    KIT.forEach(([k]) => { kitDetail(k); km = Math.max(km, kd.offsetHeight); });
     kitDetail(); kd.style.minHeight = km + 'px';
     if (kf){ const b = kd.querySelector('[data-k="' + kf + '"]'); if (b) try { b.focus({preventScroll: true}); } catch {} }
   }
@@ -22544,8 +22631,8 @@ const SquadHall = (() => {
     R.kitN.textContent = n + '/' + KMAX; R.kitN.classList.toggle('full', full); R.kitN.classList.toggle('nudge', nudging());
     R.kitHint.textContent = Tword() + ': dig in / take out · max ' + KMAX;
     box.setAttribute('aria-label', 'Trench kit objects, ' + n + ' of ' + KMAX + ' dug in');
-    const stop = st.objSel || (d.objs[0] && d.objs[0].k) || E.OBJECTS[0][0];
-    E.OBJECTS.forEach(([k, nm]) => {
+    const stop = st.objSel || (d.objs[0] && d.objs[0].k) || KIT[0][0];
+    KIT.forEach(([k, nm]) => {
       const o = d.objs.find(p => p.k === k), moving = st.place === k;
       const b = h('button', {type: 'button', class: 'sq-kc' + (o ? ' on' + (nudging() ? ' nudge' : '') : full ? ' full' : '') + (st.objSel === k ? ' cur' : '') + (moving ? ' mv' : ''), 'aria-pressed': String(!!o), 'data-k': 'obj:' + k,
         tabindex: k === stop ? '0' : '-1', 'aria-describedby': 'sqKitDesc sqKitKeys',
@@ -22567,7 +22654,7 @@ const SquadHall = (() => {
   // the object looked at (or under the mouse): what it does, where it is, and its buttons
   function kitDetail(peek){
     const d = st.draft, box = R.kitDesc; if (!box) return;
-    const k = peek || st.objSel || (d.objs[0] && d.objs[0].k) || E.OBJECTS[0][0], o = d.objs.find(p => p.k === k), full = d.objs.length >= KMAX;
+    const k = peek || st.objSel || (d.objs[0] && d.objs[0].k) || KIT[0][0], o = d.objs.find(p => p.k === k), full = d.objs.length >= KMAX;
     box.textContent = '';
     box.append(h('p', {class: 'sq-kd-t'}, objIcon(k, 32), h('span', null, h('b', null, OBJ[k][1]), h('small', null, objFacts(k)))), h('p', {class: 'sq-desc'}, OBJ[k][2]));
     const acts = h('div', {class: 'sq-kd-a'});
@@ -22972,7 +23059,7 @@ const SquadHall = (() => {
       const w = SquadNet.who(r.id), li = h('li', {class: 'lg-row' + (r.id === me ? ' me' : '')});
       const sc = h('span', {class: 'lg-pts', title: 'Season rating · ' + r.w + ' won, ' + r.l + ' lost'}, h('b', null, String(r.r)), h('small', null, r.w + '–' + r.l));
       li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
-        whoBlock(r.id, w, {me: r.id === me}), sc);
+        whoBlock(r.id, w, {me: r.id === me, rank: true}), sc);
       box.append(li);
     });
   }
@@ -23022,12 +23109,36 @@ const SquadHall = (() => {
     if (typeof SquadNet.league !== 'function' || !SquadNet.ready() || st.lgLoading || Date.now() - st.leagueAt < 60000) return;
     st.lgLoading = true;
     try { st.league = cleanLeague(await SquadNet.league()) || st.league; } catch { /* the last good one stays */ } finally { st.lgLoading = false; st.leagueAt = Date.now(); }
-    // not in this week's league yet: how last week ended for you (asked once; it never changes)
-    const me = SquadNet.me(), L = st.league;
-    if (L && L.prev && me && !groupIn(L, me) && typeof SquadNet.leagueWeek === 'function' && (!st.lastLeague || st.lastLeague.week !== L.prev)){
+    // how last week ended for you (asked once; it never changes): when you are not in this
+    // week's league yet, or the week's moment is still to be shown
+    const me = SquadNet.me(), L = st.league, shown = (lsGet() || {}).sqWeekSeen;
+    if (L && L.prev && me && (!groupIn(L, me) || shown !== L.prev) && typeof SquadNet.leagueWeek === 'function' && (!st.lastLeague || st.lastLeague.week !== L.prev)){
       try { st.lastLeague = cleanLeague(await SquadNet.leagueWeek(L.prev)); } catch { st.lastLeague = null; }
     }
     renderLeague(); renderOpen();
+    weekMoment();
+  }
+  // ---- the week's moment (the owner, 12 Oct 2026): the first visit of a new week says how
+  // the last one ended for you, with your rank's badge: up (two for a group winner), the
+  // same, or down. Once per week in this browser (sqWeekSeen), when nothing else is open.
+  function weekMoment(){
+    const me = SquadNet.me(), L = st.league, prev = L && L.prev;
+    if (!me || !prev || !st.lastLeague || st.lastLeague.week !== prev || (lsGet() || {}).sqWeekSeen === prev) return;
+    const res = weekResult(st.lastLeague, me);
+    if (!res){ lsPatch({sqWeekSeen: prev}); return; }
+    // not over a duel, a match or an invite: it waits for the next look
+    if (!R.modal || !R.modal.hidden || !onScreen() || document.querySelector('.sqv:not([hidden])')) return;
+    lsPatch({sqWeekSeen: prev});
+    const up = res.next > res.d, down = res.next < res.d, two = res.next - res.d >= 2;
+    modalHead('Week ' + Number(prev.slice(5)) + ' is over', up ? (two ? 'Group winner! Up two, to ' : 'Promoted to ') + DIVS[res.next - 1] + '!' : down ? 'Down to ' + DIVS[res.next - 1] : 'You stay a ' + DIVS[res.next - 1]);
+    const big = divBadge(res.next, 96);
+    R.mBody.append(h('div', {class: 'sq-moment' + (up ? ' up' : down ? ' down' : '')}, ...(up ? [h('span', {class: 'sq-confetti', 'aria-hidden': 'true'})] : []), big),
+      h('p', {class: 'sq-desc sq-momtx'}, 'You finished #' + res.rank + ' of ' + res.n + ' in ' + DIVS[res.d - 1] + '. ' +
+        (up ? (two ? 'Winning the group moves you up two steps.' : 'The top fifth of a group moves up a step.') : down ? 'The bottom fifth moves down a step: win a few duels this week and you climb back.' : 'Finish in the top fifth this week to move up.')));
+    act('Play a duel', 'gold', () => { closeModal(); reveal(R.chal || R.root); });
+    if (R.kroot) act('See the rankings', '', () => { closeModal(); reveal(R.lgP); });
+    st.modal = 'week'; openModal();
+    Sfx.play(up ? 'win' : 'bell');
   }
   // a rank's badge: its sea creature on a dark tile framed in its grade's metal, with one,
   // two or three pips on the foot (bronze, silver, gold). Two frames each: the shrimp
@@ -23148,6 +23259,9 @@ const SquadHall = (() => {
     if (wallet) top.append(h('b', {class: player ? '' : 'lg-addr', title: id}, player || shortId(id)));
     else top.append(h('b', null, (me && player) || cap || (me ? 'You' : 'Blub')));
     if (bot) top.append(h('span', {class: 'lg-tag bot', title: 'A bot, not a player'}, pixRows(BOT_ROWS, BOT_PAL, 12, 'lg-boti'), 'Bot'));
+    // in a table of mixed ranks (the season, a friend league): each player's rank this week
+    const rk = o && o.rank ? rankOf(id) : 0;
+    if (rk) top.append(h('span', {class: 'lg-rk', title: DIVS[rk - 1]}, divBadge(rk, 16)));
     if (me) top.append(h('span', {class: 'lg-tag you'}, 'You'));
     if (bot) sub.push(h('span', null, 'Not a real player'));
     else if (wallet){
@@ -23209,7 +23323,22 @@ const SquadHall = (() => {
   }
   // the league is an add-on: whatever goes wrong drawing it, the rest of the hall carries on
   function renderLeague(){
-    try { drawLeague(); renderRanks(); } catch (e) { console.error(e); }
+    try { drawLeague(); renderRanks(); tellRank(); renderProfile(); } catch (e) { console.error(e); }
+  }
+  // your rank now: your group this week, else where last week sent you (0: not known)
+  function myRank(){
+    const me = SquadNet.me(), g = me ? groupIn(st.league, me) : null;
+    if (g) return g.d;
+    const last = me && st.lastLeague ? weekResult(st.lastLeague, me) : null;
+    return last ? last.next : 0;
+  }
+  // the page shows it too (the header's wallet button): only when it changes
+  function tellRank(){
+    if (typeof SquadNet.onRank !== 'function') return;
+    const d = myRank();
+    if (st.rankTold === d) return;
+    st.rankTold = d;
+    SquadNet.onRank(d, d ? divBadge(d, 16) : null, d ? DIVS[d - 1] : '');
   }
   function drawLeague(){
     if (!R.lg) return;
@@ -23246,6 +23375,11 @@ const SquadHall = (() => {
       h('div', {class: 'lg-who'}, h('span', {class: 'lg-name'}, h('b', null, p && p.player ? p.player : cap ? cleanName(cap.name) || 'Your Blub' : 'No team yet')),
         p && p.addr ? h('span', {class: 'lg-sub'}, h('span', {class: 'lg-addr', title: p.addr}, shortId(p.addr)), copyBtn(p.addr))
           : h('span', {class: 'lg-sub'}, p ? 'Test phase: kept in this browser' : 'Not signed in')));
+    // your rank: your group this week, else where last week sent you
+    const rk = p && p.addr ? myRank() : 0, g = rk ? groupIn(st.league, p.addr) : null;
+    R.profRank.textContent = ''; R.profRank.hidden = !rk;
+    if (rk) R.profRank.append(divBadge(rk, 32), h('span', {class: 'sq-pfrk'}, h('b', null, DIVS[rk - 1]),
+      h('small', null, g ? 'Group ' + (g.g + 1) + ' · #' + (g.m.findIndex(m => m.id === p.addr) + 1) + ' this week' : 'Play a rated duel to join this week')));
     R.profIn.disabled = !p;
     R.profGo.textContent = p ? 'Save' : SquadNet.signInLabel || 'Sign in';
     if (R.profSafe) R.profSafe.hidden = !!p;
@@ -23358,7 +23492,7 @@ const SquadHall = (() => {
       const w = SquadNet.who(m.id);
       ol.append(h('li', {class: 'lg-row' + (m.id === me ? ' me' : '')},
         h('span', {class: 'rk' + (i < 3 && m.p ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
-        whoBlock(m.id, w, {me: m.id === me}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l))));
+        whoBlock(m.id, w, {me: m.id === me, rank: true}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l))));
     });
     return ol;
   }
@@ -23939,8 +24073,10 @@ const SquadHall = (() => {
     markSeen(d.id);
     const actions = [{label: 'Share card', fn: () => { closeTheater(); showCard(d); }}];
     if (viewer >= 0 && SquadNet.signedIn()) actions.unshift({label: 'Rematch', fn: () => { closeTheater(); rematch(d); }});
+    // each side's rank this week, by its name in the intro
+    const rc = rankOf(d.c), ra = rankOf(d.a);
     theater({kind: 'match', title: d.cr.name + ' vs ' + d.ar.name, teams: [teamA(d), teamB(d)], viewer, seed: d.seed, bo: d.bo,
-      extra: {elo: d.rated ? d.elo : null, rating: d.rated ? d.rating : null, taunt: TAUNTS[d.taunt]}, actions});
+      extra: {elo: d.rated ? d.elo : null, rating: d.rated ? d.rating : null, taunt: TAUNTS[d.taunt]}, actions, badges: [rc ? divBadge(rc, 24) : null, ra ? divBadge(ra, 24) : null]});
   }
   function closeTheater(){ if (hasView('close')) try { SquadView.close(); } catch {} }
 
@@ -23989,9 +24125,11 @@ const SquadHall = (() => {
     lsPatch({sqPractice: pr}); renderBots(); renderPath();
     say(R.pMsg, '');
     const actions = [{label: 'Practice again', fn: () => { closeTheater(); setTimeout(() => practice(b, bo), 30); }}];
+    // your rank's badge by your name in the intro (bots have none)
+    const rk = myRank();
     // a win while signed out: real players are the next step
     if (res.winner === 0 && !signedIn() && typeof SquadNet.signIn === 'function') actions.push({label: 'Play real players', fn: () => { closeTheater(); SquadNet.signIn(JOIN_WHY); }});
-    theater({kind: 'practice', title: 'Practice vs ' + b.name, teams: [mine0, botTeam(b)], viewer: 0, seed, bo, actions});
+    theater({kind: 'practice', title: 'Practice vs ' + b.name, teams: [mine0, botTeam(b)], viewer: 0, seed, bo, actions, badges: [rk ? divBadge(rk, 24) : null, null]});
   }
   // the bots exist from the first call on: the Meadow's bot fight buttons work before the hall is built
   function ensureBots(){ if (st.bots.length < 2){ st.botSeed = newSeed(); st.bots = makeBots(st.botSeed); } }
@@ -24286,12 +24424,12 @@ const SquadHall = (() => {
     // the ranks and how a week works (the rankings page)
     // your profile name: the rankings show it above your wallet address
     if (kroot && typeof SquadNet.profile === 'function'){
-      R.profWho = h('div', {class: 'sq-pfwho'});
+      R.profWho = h('div', {class: 'sq-pfwho'}); R.profRank = h('div', {class: 'sq-pfrank', hidden: true});
       R.profIn = h('input', {class: 'sq-pfin', id: 'sqProfIn', maxlength: '14', placeholder: 'Your name in the rankings', autocomplete: 'nickname', spellcheck: 'false', enterkeyhint: 'done', 'aria-describedby': 'sqProfMsg'});
       R.profIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveProfile(); } });
       R.profGo = button('Save', 'gold', saveProfile, {'data-k': 'profsave'});
       R.profMsg = h('p', {class: 'sq-msg', id: 'sqProfMsg', 'aria-live': 'polite'});
-      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
+      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, R.profRank, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
         h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
     }
     // friend leagues (the rankings page): yours, the one open, make one, join one
@@ -24350,8 +24488,8 @@ const SquadHall = (() => {
 
   // the sticky roster sits under the page's sticky menu
   function measureNav(){ const n = document.querySelector('.nav'), v = (n ? n.offsetHeight : 0) + 'px'; [R.root, R.troot].forEach(r => { if (r) r.style.setProperty('--sq-navh', v); }); }
-  // is either of the hall's views on screen?
-  const onScreen = () => [R.root, R.troot].some(r => r && r.getClientRects().length > 0);
+  // is one of the hall's views on screen (the team page, practice or the rankings)?
+  const onScreen = () => [R.root, R.troot, R.kroot].some(r => r && r.getClientRects().length > 0);
   // the Duel Hall section the hall lives in
   const section = () => document.getElementById('duels') || R.root;
 
@@ -24470,6 +24608,8 @@ const SquadHall = (() => {
       // the board is cached for a minute at the edge: asking more often gains nothing
       if (!SquadNet.live && (st.inView || waiting) && Date.now() - st.boardAt > 60000) refreshBoard();
       if (st.inView){ renderOpen(); if (Date.now() % 30000 < 5000){ renderTop(); renderLeague(); renderMine(); renderChallenge(); } }
+      // a week's moment that waited for the screen to be free
+      weekMoment();
       // the rankings open and signed in, but your friend leagues not asked for yet
       if (R.kroot && !R.kroot.closest('main').hidden && signedIn() && (!st.fr || (st.fr.codes === null && !st.fr.busy))) loadFriends();
       // back from signing in or making your Blub: the challenge opens again
@@ -24642,7 +24782,8 @@ const Wallet = (() => {
     btn.hidden = false;
     btnT.textContent = on ? shortAddr(S.addr) : 'Connect wallet';
     btnOn.hidden = !on;
-    btn.setAttribute('aria-label', on ? 'Your wallet ' + shortAddr(S.addr) + ', signed in' : 'Connect wallet');
+    btn.setAttribute('aria-label', on ? 'Your wallet ' + shortAddr(S.addr) + ', signed in' + (rankName ? ', rank ' + rankName : '') : 'Connect wallet');
+    $('#walletBtnRk').hidden = !on || !rankName;
     $('#holderChip').hidden = !(on && S.holder === true);
   }
   function close(){ modal.hidden = true; }
@@ -24704,13 +24845,21 @@ const Wallet = (() => {
   }
   // why the dialog opened (a duel to accept, the league to join), over the rest
   function prompt(t){ open(); if (S.mode !== 'wallet') why.textContent = t || ''; }
+  // your rank in the weekly league, from the hall: its badge on the button
+  let rankName = '';
+  function rank(d, badge, name){
+    const slot = $('#walletBtnRk');
+    slot.textContent = ''; rankName = d && badge ? name : '';
+    if (rankName) slot.append(badge);
+    render();
+  }
   btn.onclick = () => open();
   // the home page's How to play has a Connect wallet button of its own
   document.querySelectorAll('[data-wallet]').forEach(b => { b.onclick = () => (S.mode === 'wallet' ? open() : prompt('Connect your wallet to duel real players and join the weekly league.')); });
   $('#wClose').onclick = close;
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
-  return {render, open, prompt};
+  return {render, open, prompt, rank};
 })();
 
 /* =====================================================================
