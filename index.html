@@ -1832,14 +1832,19 @@ body.no-scroll{overflow:hidden}
 .sq-lgme{align-items:center}
 /* a league the moderators paused */
 .lg-paused{font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.1em;text-transform:uppercase;padding:4px 6px;border:2px solid #000;background:#E2566E;color:#fff;align-self:center}
-.sq-lgme canvas.sq-lgb{width:24px;height:24px;flex:none}
+.sq-lgme canvas.sq-lgb{width:32px;height:32px;flex:none}
 .sq-lgrule{margin:0}
 /* the rankings page: the league is what the page is for, so its list may run longer */
 .sq-ranks .sq-league{max-height:min(72vh,860px)}
-.sq-divs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.sq-divs li{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:12px;align-items:center;font-family:var(--f-data);font-size:19px;line-height:1.05;color:var(--sq-soft)}
-.sq-divs li canvas{grid-row:1 / span 2;width:32px;height:32px}
-.sq-divs li b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff}
+/* the ranks: a row per sea creature (Whale at the top), its bronze, silver and gold badges; yours ringed */
+.sq-rankl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.sq-rankl li{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:10px}
+.sq-rankl li > b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff}
+.sq-rankg{display:flex;gap:14px}
+.sq-rankb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px;font-family:var(--f-data);font-size:15px;line-height:1;color:var(--sq-soft)}
+.sq-rankb canvas{width:32px;height:32px}
+.sq-rankb.me small{color:var(--gold)}
+.sq-rankb.me canvas{outline:2px solid var(--gold);outline-offset:2px}
 /* your profile on the rankings page */
 .sq-pfwho{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0B1F23;border:3px solid #000}
 .sq-pfwho canvas{width:32px;height:40px;flex:none}
@@ -2015,7 +2020,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · beginners: Start here on Practice, the wallet explained (read-only and safe), engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · ranks from Bronze Shrimp to Gold Whale, Start here on Practice, the wallet explained, engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -22932,11 +22937,14 @@ const SquadHall = (() => {
   }
 
   /* ---------------------------------------------------------------
-     the weekly league (lib/league.mjs): groups of 35 per division, a week at a time;
+     the weekly league (lib/league.mjs): groups of 35 per rank, a week at a time;
      rated duels give 3 points for a win and 1 for a loss; each Monday 00:00 UTC the
-     top fifth of a group moves up a division and the bottom fifth down
+     top fifth of a group moves up a step and the bottom fifth down. The ranks (the
+     owner, 12 Oct 2026: holder style): six sea creatures in bronze, silver and gold,
+     18 steps from Bronze Shrimp to Gold Whale (lib/league.mjs DIVISIONS)
      --------------------------------------------------------------- */
-  const DIVS = ['Bronze', 'Silver', 'Gold', 'Diamond', 'Moon'];
+  const ANIMALS = ['Shrimp', 'Crab', 'Fish', 'Dolphin', 'Shark', 'Whale'], TIERS = ['Bronze', 'Silver', 'Gold'];
+  const DIVS = ANIMALS.flatMap(a => TIERS.map(t => t + ' ' + a));
   const WEEK_OK = /^\d{4}w\d{2}$/;
   function cleanLeague(d){
     if (!d || typeof d !== 'object' || typeof d.week !== 'string' || !WEEK_OK.test(d.week)) return null;
@@ -22979,16 +22987,59 @@ const SquadHall = (() => {
     }
     renderLeague();
   }
-  // a division's badge: bronze, silver and gold medals, a diamond, the moon
-  const BADGE = {
-    medal: ['..rR....Rr..', '..rR....Rr..', '...rR..Rr...', '....rRRr....', '....kkkk....', '..kkMHHMkk..', '.kMHHMMMMSk.', '.kMHMMMMMSk.', '.kMMMMMMMSk.', '.kMMMMMMSSk.', '..kkMSSSkk..', '....kkkk....'],
-    gem: ['............', '............', '...kkkkkk...', '..kWHHMMSk..', '.kWHHMMMMSk.', 'kkkkkkkkkkkk', '.kHMMMMMSSk.', '..kHMMMMSk..', '...kMMMSk...', '....kMSk....', '.....kk.....', '............'],
-    moon: ['....kkkk....', '..kkHHMMk...', '.kHHMMkk..W.', '.kHMMk....WW', 'kHMMk......W', 'kHMMk.......', 'kHMMk.......', 'kHMMMk......', '.kMMMMkk..kk', '.kSMMMMMkkMk', '..kkSSSMMMk.', '....kkkkkk..'],
-  };
-  const BADGE_PAL = [
-    {M: '#C77B30', H: '#F0A860', S: '#8A4F1C'}, {M: '#C9D3E0', H: '#FFFFFF', S: '#8A96A8'}, {M: '#FFD447', H: '#FFF3B0', S: '#C98A12'},
-    {M: '#7FE7F2', H: '#D9FBFF', S: '#2BB5C8', W: '#FFFFFF'}, {M: '#FFF3B0', H: '#FFFFFF', S: '#E0C060', W: '#FFD447'},
+  // a rank's badge: its sea creature on a dark tile framed in its grade's metal, with one,
+  // two or three pips on the foot (bronze, silver, gold). Two frames each: the shrimp
+  // flicks, the crab snaps, the fish swims, the dolphin jumps, the shark bites, the whale spouts.
+  const RANK_SPR = [
+    [['k.k.........', '.k.k........', '..kkkkk.....', '.kWkPPPkk...', '.kPPPPPPPk..', '..kkkPwPPPk.', '.....kPwPPk.', '.....kPPwPk.', '....kPPwPk..', '..kkPPPPk...', '.kppkkkk....', 'kppk........'],
+      ['.k.k........', 'k.k.........', '..kkkkk.....', '.kWkPPPkk...', '.kPPPPPPPk..', '..kkkPwPPPk.', '.....kPwPPk.', '.....kPPwPk.', '....kPPwPk..', '..kkPPPPk...', '..kppkkk....', '.kppk.......']],
+    [['kk........kk', 'kRk......kRk', 'kRRk....kRRk', '.kRk.kk.kRk.', '..kkkWWkkk..', '..kRRkkRRk..', '.kRRRRRRRRk.', 'kRRrRRRRrRRk', '.kRRrrrrRRk.', '..kkkkkkkk..', '.k.k.k.k.k..', 'k.k.k..k.k.k'],
+      ['............', 'kk........kk', 'kRk......kRk', 'kRRkk..kkRRk', '.kkkkWWkkkk.', '..kRRkkRRk..', '.kRRRRRRRRk.', 'kRRrRRRRrRRk', '.kRRrrrrRRk.', '..kkkkkkkk..', '..k.k.k.k.k.', '.k.k.k.k.k.k']],
+    [['............', '.....kkk....', '....kYYYk...', 'k..kBBBBBk..', 'kk.kBBBBWkk.', 'kBkBBBBBkkBk', 'kBBBBBBBBBk.', 'kBkBbBbBBBk.', 'kk.kBbBbBk..', 'k...kkkkk...', '............', '............'],
+      ['..........k.', '.....kkk...k', '....kYYYk...', '...kBBBBBk..', 'kk.kBBBBWkk.', 'kBkBBBBBkkBk', '.kBBBBBBBBk.', 'kBkBbBbBBBk.', 'kk.kBbBbBk..', '....kkkkk...', '............', '............']],
+    [['............', '............', '....kk......', '....kGk.....', 'k.kkkGGkk...', 'kkGGGGGGGk..', '.kGGGGGGWGk.', 'kkGgggggGGGk', 'k..kgggkkkk.', '....kkk.....', '............', '............'],
+      ['............', '....kk......', '....kGk.....', 'k.kkkGGkk...', 'kkGGGGGGGk..', '.kGGGGGGWGk.', 'kkGgggggGGGk', 'k..kgggkkkk.', '....kkk.....', '............', '.w.w....w.w.', 'w...w..w...w']],
+    [['............', '.....k......', '....kGk.....', '...kGGk.....', '..kGGGGkkk..', 'kkGGGGGGGGk.', 'kGkGGGGGWkGk', 'kGGGGGGGGGGk', 'kGkwwwwkwkGk', 'kk.kwwwwwwk.', '....kkkkkk..', '............'],
+      ['............', '.....k......', '....kGk.....', '...kGGk.....', '..kGGGGkkk..', 'kkGGGGGGGGk.', 'kGkGGGGGWkGk', 'kGGGGGGGkkkk', 'kGkwwwwkWkWk', 'kk.kwwwwkkk.', '....kkkkkk..', '............']],
+    [['...w...w....', '....w.w.....', '.....w......', '..kkkkkk....', '.kBBBBBBkk.k', 'kBBBBBBBBBkB', 'kBWkBBBBBBBk', 'kBBBBBBBBBk.', 'kbbbbbbbbk..', '.kbbbbbbk...', '..kkkkkk....', '............'],
+      ['..w.....w...', '...w...w....', '....w.w.....', '..kkkwkk....', '.kBBBBBBkk.k', 'kBBBBBBBBBkB', 'kBWkBBBBBBBk', 'kBBBBBBBBBk.', 'kbbbbbbbbk..', '.kbbbbbbk...', '..kkkkkk....', '............']],
   ];
+  const RANK_PAL = [
+    {k: '#1A1030', P: '#FF9FB0', p: '#E2566E', w: '#FFE3E8', W: '#FFFFFF'},
+    {k: '#1A1030', R: '#F05A4F', r: '#B8324A', W: '#FFFFFF'},
+    {k: '#1A1030', B: '#5EC8F2', b: '#2E86C1', Y: '#FFD447', W: '#FFFFFF'},
+    {k: '#1A1030', G: '#8FB8D8', g: '#DDEBF5', W: '#FFFFFF', w: '#9FE3FF'},
+    {k: '#1A1030', G: '#7D8FA3', w: '#E8EEF4', W: '#FFFFFF'},
+    {k: '#1A1030', B: '#3E6FC9', b: '#9CC4F2', W: '#FFFFFF', w: '#9FE3FF'},
+  ];
+  const METAL = [{M: '#C77B30', H: '#F0A860', S: '#7A4518'}, {M: '#B9C4D2', H: '#FFFFFF', S: '#6F7988'}, {M: '#FFD447', H: '#FFF3B0', S: '#B07A0E'}];
+  // rank d (1 Bronze Shrimp ... 18 Gold Whale), frame f, on a 16x16 canvas
+  function paintRank(c, d, f){
+    const x = c.getContext('2d'), a = Math.floor((d - 1) / 3), t = (d - 1) % 3, T = METAL[t], pal = RANK_PAL[a];
+    x.clearRect(0, 0, 16, 16);
+    x.fillStyle = '#1A1030'; x.fillRect(1, 0, 14, 16); x.fillRect(0, 1, 16, 14);
+    x.fillStyle = T.M; x.fillRect(1, 1, 14, 14);
+    x.fillStyle = T.H; x.fillRect(1, 1, 14, 1); x.fillRect(1, 1, 1, 14);
+    x.fillStyle = T.S; x.fillRect(1, 14, 14, 1); x.fillRect(14, 2, 1, 13);
+    x.fillStyle = '#132E33'; x.fillRect(2, 2, 12, 12);
+    RANK_SPR[a][f].forEach((row, y) => { for (let i = 0; i < 12; i++){ const col = pal[row[i]]; if (col){ x.fillStyle = col; x.fillRect(i + 2, y + 2, 1, 1); } } });
+    x.fillStyle = '#FFFFFF';
+    for (let i = 0; i <= t; i++) x.fillRect(7 - t + i * 2, 15, 1, 1);
+    // gold glints now and then
+    if (t === 2 && f){ x.fillRect(12, 1, 3, 1); x.fillRect(13, 0, 1, 3); }
+  }
+  // badges on the page move together, every half second, while on screen (still when calm)
+  const rankLive = new Set();
+  let rankT = 0, rankF = 0;
+  function stepRanks(){
+    rankF ^= 1;
+    for (const c of rankLive){
+      if (!c.isConnected){ rankLive.delete(c); continue; }
+      if (document.hidden || calm() || !c.offsetParent) continue;
+      paintRank(c, +c.dataset.rank, rankF);
+    }
+    if (!rankLive.size){ clearInterval(rankT); rankT = 0; }
+  }
   // pixel rows to a canvas, shown at px
   function pixRows(rows, pal, px, cls){
     const c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length;
@@ -22998,8 +23049,27 @@ const SquadHall = (() => {
     return c;
   }
   function divBadge(d, px){
-    const rows = d >= 5 ? BADGE.moon : d === 4 ? BADGE.gem : BADGE.medal;
-    return pixRows(rows, {k: '#000', r: '#5E3A8A', R: '#9B6BD6', ...BADGE_PAL[clamp(d, 1, 5) - 1]}, px, 'sq-lgb');
+    const c = document.createElement('canvas'); c.width = c.height = 16;
+    c.className = 'sq-lgb spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
+    c.dataset.rank = String(clamp(Math.floor(d) || 1, 1, DIVS.length));
+    paintRank(c, +c.dataset.rank, calm() ? 0 : rankF);
+    rankLive.add(c);
+    if (!rankT) rankT = setInterval(stepRanks, 500);
+    return c;
+  }
+  // the ranks panel: a row per creature (Whale at the top), its three grades, yours marked
+  function renderRanks(){
+    if (!R.rankL) return;
+    // yours: your group's rank, or in the preview (no league yet) the example's Bronze Shrimp
+    const preview = typeof SquadNet.league !== 'function' || !SquadNet.ready();
+    const me = SquadNet.me(), g = st.league && me ? groupIn(st.league, me) : null, mine = g ? g.d : preview ? 1 : 0;
+    if (R.rankL.childElementCount && R.rankL.dataset.mine === String(mine)) return;
+    R.rankL.dataset.mine = String(mine); R.rankL.textContent = '';
+    ANIMALS.map((an, a) => [an, a]).reverse().forEach(([an, a]) => R.rankL.append(h('li', null, h('b', null, an),
+      h('span', {class: 'sq-rankg'}, ...TIERS.map((t, k) => {
+        const d = a * 3 + k + 1;
+        return h('span', {class: 'sq-rankb' + (d === mine ? ' me' : ''), title: DIVS[d - 1] + (d === 1 ? ': where everyone starts' : d === DIVS.length ? ': the top' : '')}, divBadge(d, 32), h('small', null, d === mine ? 'You' : t));
+      })))));
   }
   // a bot's mark in the rankings: a small robot head
   const BOT_ROWS = ['.....RR.....', '.....kk.....', '.kkkkkkkkkk.', 'kGGGGGGGGGGk', 'kGkkkkkkkkGk', 'kGkCCkkCCkGk', 'kGkCCkkCCkGk', 'kGkkkkkkkkGk', 'kGGGGGGGGGGk', 'kGGkWkWkWGGk', 'kGGGGGGGGGGk', '.kkkkkkkkkk.'];
@@ -23057,7 +23127,7 @@ const SquadHall = (() => {
   // your row the first time, then it stays where you left it (`was`, `key`).
   function drawGroup(g, me, who, key, was, example){
     const box = R.lg, k = g.m.findIndex(m => m.id === me), x = g.m[k];
-    if (x) R.lgMe.append(divBadge(g.d, 24), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
+    if (x) R.lgMe.append(divBadge(g.d, 32), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
     const n = g.m.length, mv = movers(n), upTo = g.d < DIVS.length ? mv : 0, downFrom = g.d > 1 ? n - mv : n;
     // a head that stays put while the list scrolls, then the rows with the zones between
     box.append(h('li', {class: 'lg-head', 'aria-hidden': 'true'}, h('span', null, '#'), h('span'), h('span', null, 'Player'), h('span', null, 'Points')));
@@ -23097,7 +23167,7 @@ const SquadHall = (() => {
   }
   // the league is an add-on: whatever goes wrong drawing it, the rest of the hall carries on
   function renderLeague(){
-    try { drawLeague(); } catch (e) { console.error(e); }
+    try { drawLeague(); renderRanks(); } catch (e) { console.error(e); }
   }
   function drawLeague(){
     if (!R.lg) return;
@@ -23116,7 +23186,7 @@ const SquadHall = (() => {
     if (g) return drawGroup(g, me, id => botFace(id) || SquadNet.who(id), L.week + me, was);
     // not in this week's league yet
     const last = me ? weekResult(st.lastLeague, me) : null;
-    if (last) R.lgMe.append(divBadge(last.next, 24), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
+    if (last) R.lgMe.append(divBadge(last.next, 32), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
     else if (me) R.lgMe.append(h('span', null, 'Not in this week’s league yet.'));
     // signed out: how to join, and what signing in does
     else R.lgMe.append(h('div', {class: 'sq-join'}, h('span', null, 'Connect your wallet to join this week’s league: a rated duel you win is 3 points, a loss 1.'),
@@ -23999,9 +24069,9 @@ const SquadHall = (() => {
     R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
     // the weekly league: your group of 35, or how to join one
     R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('div', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
-    const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.';
+    const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 at every rank; every Monday 00:00 UTC the top 7 of a group move up a step and the bottom 7 down a step. Everyone starts as a Bronze Shrimp.';
     R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg, ...(kroot ? [] : [h('p', {class: 'sq-desc sq-lgrule'}, RULE)]));
-    // the five divisions and how a week works (the rankings page)
+    // the ranks and how a week works (the rankings page)
     // your profile name: the rankings show it above your wallet address
     if (kroot && typeof SquadNet.profile === 'function'){
       R.profWho = h('div', {class: 'sq-pfwho'});
@@ -24012,8 +24082,8 @@ const SquadHall = (() => {
       R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
         h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
     }
-    R.divP = panel('sq-divp', 'sqdTitle', 'Five divisions',
-      h('ol', {class: 'sq-divs'}, ...DIVS.map((n, i) => h('li', null, divBadge(i + 1, 32), h('b', null, n), h('span', null, i === 0 ? 'where everyone starts' : i === DIVS.length - 1 ? 'the top: nowhere higher to go' : 'division ' + (i + 1))))),
+    R.rankL = h('ol', {class: 'sq-rankl'});
+    R.divP = panel('sq-divp', 'sqdTitle', 'The ranks', R.rankL,
       h('p', {class: 'sq-desc'}, RULE),
       h('p', {class: 'sq-desc'}, 'A duel is rated between teams that are a day old, at most twice a day for the same pair. Practice against bots and bot shows count for nothing.'));
 
@@ -24052,7 +24122,7 @@ const SquadHall = (() => {
     root.append(R.path, h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, ...(kroot ? [] : [R.lgP]), R.openP, ...(kroot ? [] : [R.topP]), R.mineP)));
     if (kroot) kroot.append(h('div', {class: 'sec-head sq-head'},
       h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'rankTitle'}, 'Rankings')),
-      h('p', null, 'Every week a league of 35 in five divisions, every month the duel season. Rated duels between wallets count.'),
+      h('p', null, 'Every week a league of 35 at your rank, from Bronze Shrimp to Gold Whale, and every month the duel season. Rated duels between wallets count.'),
       h('div', {class: 'sq-heada'}, h('a', {class: 'btn small mint', href: '#practice', 'data-k': 'toprac'}, 'To practice'))),
       h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP), h('div', {class: 'sq-col'}, ...(R.profP ? [R.profP] : []), R.divP, R.topP)));
     buildModal();
