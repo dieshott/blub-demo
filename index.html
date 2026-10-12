@@ -123,14 +123,22 @@ p{margin:0}
 .nav ul a{text-decoration:none;color:var(--ink-soft)}
 .nav ul a:hover{color:var(--pink)}
 .nav-cta{display:flex;gap:8px}
+/* the wallet button: "Connect wallet", or your address with a green light; narrower, just its icon */
+.btn.wbtn{--bg:#EDE7FF;--hi:#FFFFFF;--lo:#A99CC9;gap:8px}
+.wbtn-on{width:10px;height:10px;flex:none;background:var(--up);border:2px solid var(--ink)}
+.wbtn-on[hidden]{display:none}
+@media (max-width:860px){.wbtn-t{display:none}.nav .btn.wbtn{gap:4px}}
 .nav .btn[aria-current="page"]{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
-@media (max-width:1040px){.nav ul{display:none}.nav-cta{margin-left:auto}}
-/* four buttons on a phone: smaller, and "Buy $BLUB" says just "Buy" */
-@media (max-width:560px){.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
-@media (max-width:440px){.logo span{display:none}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
-/* a moderator has a fifth button (Admin): the text links make room sooner, and on a phone Buy does */
-@media (max-width:1240px){.nav:has(#navAdmin:not([hidden])) ul{display:none}.nav:has(#navAdmin:not([hidden])) .nav-cta{margin-left:auto}}
-@media (max-width:560px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
+/* the text links make room for the five buttons (the wallet's one says "Connect wallet" up to 1240px) */
+@media (max-width:1240px){.nav ul{display:none}.nav-cta{margin-left:auto}}
+/* narrower: smaller buttons, the logo without its name, and "Buy $BLUB" says just "Buy";
+   on a phone "Rankings" says "Rank" */
+@media (max-width:700px){.logo span{display:none}.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
+@media (max-width:440px){.nav-long{display:none}.nav .wrap{gap:10px}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
+/* a moderator has a sixth button (Admin): no text links at all, and on a phone Buy makes room */
+.nav:has(#navAdmin:not([hidden])) ul{display:none}
+.nav:has(#navAdmin:not([hidden])) .nav-cta{margin-left:auto}
+@media (max-width:700px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
 
 /* ---------- hero ---------- */
 /* Phones and tablets: the stage (sky, terraces and the one blue Blub) on top, the copy on a solid band under it,
@@ -343,6 +351,16 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 }
 
 /* ---------- the sift ---------- */
+/* ---------- how to play: the way in for a new player (owner, 12 Oct 2026) ---------- */
+#how{background:var(--pink-3)}
+.how-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.how-steps li{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
+.how-steps li > span:not(.how-n){flex:1;font-size:16px;line-height:1.4}
+.how-steps li.how-key{box-shadow:inset 0 0 0 4px var(--gold),8px 8px 0 rgba(43,29,63,.18)}
+.how-n{display:grid;place-items:center;width:36px;height:36px;font-family:var(--f-display);font-size:14px;color:var(--gold);background:var(--ink);border:3px solid #000}
+.how-steps b{font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5}
+@media (max-width:1040px){.how-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:599px){.how-steps{grid-template-columns:1fr}}
 #sift{background:#21494B;color:#EAF6F4}
 #sift .eyebrow{color:#9FE3D6}
 #sift h2{color:#fff}
@@ -410,6 +428,17 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .wlist .btn{justify-content:center}
 .wwhy{font-weight:700;color:var(--coral-deep)}
 .wwhy:empty{display:none}
+/* the sign-in dialog says what signing in is before any wallet asks: read-only, no transaction */
+.wbox{max-height:calc(100dvh - 32px);overflow:auto}
+.wsafe{display:grid;gap:10px;margin:0;padding:12px 14px;background:#EFFFF6;border:3px solid var(--ink);box-shadow:inset 0 0 0 2px #B6F2D0}
+.wsafe[hidden]{display:none}
+.wsafe-h{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:10px;line-height:1.5}
+.wsafe ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.wsafe li{display:flex;align-items:flex-start;gap:8px;font-size:16px;line-height:1.3}
+.wsafe li [data-ic]{margin-top:3px}
+.wfine{font-size:14px;line-height:1.35;color:var(--ink-2)}
+.wfine:empty{display:none}
+.wfine b{font-family:var(--f-data);font-size:19px;font-weight:400}
 
 /* ---------- brawls, pops, full screen ---------- */
 .field.pseudo-fs{position:fixed;inset:0;z-index:90;height:auto;border:0;box-shadow:none}
@@ -996,7 +1025,7 @@ body.no-scroll{overflow:hidden}
 }
 
 /* match intro: the reveal */
-.sqv-over{grid-row:2 / -1;grid-column:1 / -1;z-index:6;overflow:auto;display:grid;place-items:center;padding:12px 10px;background:radial-gradient(circle at 50% 45%,rgba(43,29,63,.92),rgba(14,8,22,.97))}
+.sqv-over{position:relative;grid-row:2 / -1;grid-column:1 / -1;z-index:6;overflow:auto;display:grid;place-items:center;padding:12px 10px;background:radial-gradient(circle at 50% 45%,rgba(43,29,63,.92),rgba(14,8,22,.97))}
 .sqv-over[hidden]{display:none}
 .sqi{cursor:pointer}
 .sqi-box{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(560px,100%);text-align:center}
@@ -1954,13 +1983,39 @@ body.no-scroll{overflow:hidden}
 .sq-looks{background:var(--pink);border:3px solid #000;box-shadow:0 4px 0 #000;padding:14px;color:var(--ink)}
 .sq-looks :is(#mkTeam,.mk-mode,#mkBuild,#wallet,#buybar,.oven){display:none!important}
 .sq-looks .maker{margin:0}
+/* the practice page's first steps for a newcomer: three cards, the next one lit, the done ones ticked */
+.sq-path{display:grid;gap:12px;margin:22px 0 0;padding:14px 16px 16px;background:linear-gradient(135deg,#1C4C55,#12323A);border:4px solid #000;box-shadow:inset 0 0 0 3px var(--gold),8px 8px 0 rgba(0,0,0,.35)}
+.sq-path[hidden]{display:none}
+.sq-pathh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.sq-pathh h3{margin:0;font-size:13px;color:var(--gold);text-shadow:2px 2px 0 #000}
+.sq-pathn{flex:1;font-family:var(--f-data);font-size:19px;color:var(--sq-soft)}
+.sq-pathx{min-height:44px;padding:0 6px;font-family:var(--f-data);font-size:17px;color:var(--sq-soft);background:none;border:0;text-decoration:underline;cursor:pointer}
+.sq-pathx:hover{color:#fff}
+.sq-psteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.sq-pstep{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:1fr auto;gap:10px 12px;padding:12px;background:var(--sq-deep);border:3px solid #000;box-shadow:inset 0 0 0 2px #24474B}
+.sq-pstep .btn{grid-column:1 / -1;justify-self:start}
+.sq-pstep.next{background:#0F2E33;box-shadow:inset 0 0 0 2px var(--gold)}
+.sq-pstep.done{opacity:.75}
+.sq-pnum{display:grid;place-items:center;width:30px;height:30px;font-family:var(--f-display);font-size:12px;color:var(--gold);background:#1A1030;border:2px solid #000}
+.sq-pstep.done .sq-pnum{font-size:0;color:#fff;background:#2E7D74}
+.sq-pstep.done .sq-pnum::before{content:'✓';font-family:var(--f-data);font-size:18px}
+.sq-ptx{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sq-ptx b{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.35;letter-spacing:.04em;text-transform:uppercase;color:#fff}
+.sq-ptx > span{font-family:var(--f-data);font-size:18px;line-height:1.1;color:var(--sq-soft)}
+@media (max-width:760px){.sq-psteps{grid-template-columns:1fr}}
+/* the padlock line next to a sign-in button: what signing in shares, and that it sends no transaction */
+.sq-safe{display:flex;align-items:flex-start;gap:8px;margin:0;font-family:var(--f-data);font-size:16px;line-height:1.15;color:var(--sq-soft,#A9D3CE)}
+.sq-safe[hidden]{display:none}
+.sq-safe canvas.sq-padlock{width:15px;height:15px;flex:none;margin-top:1px}
+.sq-join{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.sq-join > span{color:#fff}
 @media (prefers-reduced-motion:reduce){.arena-sec *,.sq-modal *{animation:none!important;transition:none!important}}
 /* ==== end squad arena css ==== */
 </style>
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · team page in three steps (Looks, Skills, Strategy) with a newcomer's guide, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · beginners: Start here on Practice, the wallet explained (read-only and safe), engine 12</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -1969,7 +2024,7 @@ body.no-scroll{overflow:hidden}
       <li><a href="#sift">About Blub</a></li>
       <li><a href="#tokenomics">Tokenomics</a></li>
     </ul>
-    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings">Rankings</a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings">Rank<span class="nav-long">ings</span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
   </div>
 </nav>
 
@@ -2000,6 +2055,22 @@ body.no-scroll{overflow:hidden}
   <canvas class="walker" id="walker" width="16" height="15" aria-hidden="true"></canvas>
   <div class="ticker-track" id="tickerTrack"></div>
 </div>
+
+<section id="how" class="sec" aria-labelledby="howTitle">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">How to play</span><h2 id="howTitle">Your first duel in four steps</h2></div>
+      <p>Squad Arena is 5v5: you build the squad and its plan, then the fight plays itself. Practice is free and needs no wallet.</p>
+    </div>
+    <ol class="how-steps">
+      <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Five Blubs: their looks, their skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
+      <li><span class="how-n" aria-hidden="true">2</span><b>Play your first match</b><span>Free against bots, no wallet needed. Cards explain what happens.</span><a class="btn small mint" href="#practice">Practice</a></li>
+      <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transaction, no fees, and your coins stay put.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
+      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the weekly league</b><span>Duel real players: a win is 3 points, and the top 7 of your group move up.</span><a class="btn small" href="#rankings">Rankings</a></li>
+    </ol>
+  </div>
+</section>
+<div class="edge" data-top="#FFE9EE" data-bot="#21494B"></div>
 
 <section id="sift" class="sec">
   <div class="wrap">
@@ -2180,7 +2251,6 @@ body.no-scroll{overflow:hidden}
         <span class="pill" id="stOnlineWrap" hidden>Here now <b id="stOnline">–</b></span>
         <span class="pill">You burned <b id="stBurn">–</b></span>
         <span class="mode" id="wMode"><i></i><span id="wModeTxt">Loading the Meadow…</span></span>
-        <button type="button" class="btn small gold" id="walletBtn" hidden>Connect wallet</button>
         <span class="pill" id="holderChip" hidden>$BLUB holder</span>
       </div>
     </div>
@@ -2335,11 +2405,21 @@ body.no-scroll{overflow:hidden}
 <div class="wmodal" id="wModal" hidden role="dialog" aria-modal="true" aria-labelledby="wTitle">
   <div class="wbox panel">
     <button type="button" class="x" id="wClose" aria-label="Close">×</button>
-    <h3 id="wTitle">Connect a Solana wallet</h3>
+    <h3 id="wTitle">Connect your wallet to play</h3>
     <p class="wwhy" id="wWhy"></p>
-    <p>Your wallet holds your team of 5: names, looks and battle builds. Coins, items and scores stay on this device. Signing in only signs a message: it is free and sends no transaction.</p>
+    <p id="wLead">Your wallet is your player account: it keeps your team of 5, lets you duel real players and puts you in the weekly league.</p>
+    <div class="wsafe" id="wSafe">
+      <p class="wsafe-h"><i data-ic="lock" aria-hidden="true"></i>Read-only and safe</p>
+      <ul>
+        <li><i data-ic="check" aria-hidden="true"></i><span><b>Read-only:</b> Blub only sees your public wallet address.</span></li>
+        <li><i data-ic="check" aria-hidden="true"></i><span><b>No transaction, no fees:</b> you sign a short sign-in message, nothing else.</span></li>
+        <li><i data-ic="check" aria-hidden="true"></i><span><b>Your coins stay put:</b> signing in cannot move tokens or NFTs, or approve anything.</span></li>
+        <li><i data-ic="check" aria-hidden="true"></i><span><b>Keep your seed phrase secret:</b> Blub never asks for it. Anyone who does is a scammer.</span></li>
+      </ul>
+    </div>
     <div class="wlist" id="wList"></div>
     <p class="note" id="wMsg" aria-live="polite"></p>
+    <p class="wfine" id="wFine"></p>
   </div>
 </div>
 
@@ -2397,6 +2477,10 @@ SPR.tabMeadow={pal:{t:'#2FA79C',T:'#5ED6CB',W:'#A6EBE2',k:'#1E3B3D',g:'#F59AB0'}
 SPR.tabArena={pal:{B:'#E6F2FF',y:'#FFD447',k:'#B5762F'},rows:['B......B','.B....B.','..B..B..','...BB...','.y.BB.y.','..y..y..','.k.yy.k.','k......k']};
 SPR.tabMaker={pal:{P:'#F59AB0',p:'#E2566E',y:'#FFD447',h:'#86CBF3',H:'#3E86C9'},rows:['......PP','.....PpP','....yPp.','...yy...','..hy....','.hH.....','hH......','H.......']};
 SPR.play={pal:{k:'#2B1D3F'},rows:['.k......','.kk.....','.kkk....','.kkkk...','.kkkk...','.kkk....','.kk.....','.k......']};
+// the wallet button's wallet, and the sign-in dialog's padlock and ticks
+SPR.wallet={pal:{k:'#2B1D3F',P:'#7C5CC4',W:'#A98BEA',Y:'#FFD447'},rows:['........','.kkkkkk.','kWWWWWWk','kPPPPPkk','kPPPPkYk','kPPPPkkk','kPPPPPPk','.kkkkkk.']};
+SPR.lock={pal:{k:'#2B1D3F',S:'#8A96A8',G:'#FFD447'},rows:['..kkkk..','.kS..Sk.','.kS..Sk.','kkkkkkkk','kGGGGGGk','kGGkkGGk','kGGGGGGk','kkkkkkkk']};
+SPR.check={pal:{g:'#1F9D5B'},rows:['........','.......g','......gg','g....gg.','gg..gg..','.gggg...','..gg....','........']};
 // the small Blub the roadmap shows
 SPR.blub8={pal:{a:'#BDE7FF',b:'#86CBF3',c:'#5FA6DC',m:'#3B2A6B',d:'#4A8DC6'},rows:['.a....a.','aaaaaaaa','abbbbbbc','ambbbbmc','abbbbbbc','abbmmbbc','cccccccc','.d....d.']};
 function paint(ctx, spr, x, y, s=1){
@@ -3539,12 +3623,14 @@ function setMode(m){
   $('#wMode').className = 'mode ' + m;
   $('#wModeTxt').textContent = m === 'wallet' ? 'Signed in as ' + shortAddr(S.addr) : ({boot:'Loading the Meadow…', guest:'Browsing as a guest', local:'Saved in this browser only'})[m];
 }
+// an API error: in the Meadow's status line and, as the Meadow is hidden now, in a toast
 function apiFail(e){
   const st = e && e.status, code = e && e.code;
   if (st === 401){ applyMe(null); Wallet.prompt('Your session ended. Connect your wallet again.'); return; }
-  if (st === 429){ status('Easy there. Too many requests, try again in a moment.'); return; }
-  if (code === 'not_holder'){ status('Only $BLUB holders can do this, and this wallet holds no $BLUB yet.'); return; }
-  status((e && e.message) || 'Something went wrong. Try again in a moment.');
+  const t = st === 429 ? 'Easy there. Too many requests, try again in a moment.'
+    : code === 'not_holder' ? 'Only $BLUB holders can do this, and this wallet holds no $BLUB yet.'
+    : (e && e.message) || 'Something went wrong. Try again in a moment.';
+  status(t); notify('That did not work', t);
 }
 async function persistMe(first){
   S.look = wearable(cleanLook(S.look), S.owned);
@@ -4897,11 +4983,18 @@ const Maker = (() => {
   };
   cv.addEventListener('click', () => { jv = -3; burst(8); });
   saveBtn.onclick = save;
-  async function save(){
+  // quick: a save the Squad Arena hall asks for (a duel needs a saved team): the names the
+  // hall shows stand in for the ones never given
+  async function save(quick){
     if (saving) return;
     if (Date.now() - lastSave < 1500){ msg.textContent = 'One moment…'; return; }
     const nm = cleanName(nameIn.value); nameIn.value = nm; plate.textContent = nm || 'Nameless';
     stash();
+    if (quick === true){
+      const shown = myTeam();
+      team.forEach((m, i) => { if ([...cleanName(m.name)].length < 2) m.name = cleanName(shown[i] && shown[i].name) || 'Blub'; });
+      loadMember(sel);
+    }
     // every Blub in the team needs a name and may only wear what you own
     const bad = team.findIndex(m => [...cleanName(m.name)].length < 2);
     if (bad >= 0){ if (bad !== sel) loadMember(bad); msg.textContent = 'Give every Blub in your team a name of at least 2 characters.'; nameIn.focus(); return; }
@@ -4922,6 +5015,7 @@ const Maker = (() => {
       SquadHall.render();
       persistWallet();
     }
+    return ok;
   }
   function adopt(force){
     if (dirty && !force) return;
@@ -5073,7 +5167,7 @@ const Maker = (() => {
   }
   team = savedTeam(); renderTiles(); renderStyles(); renderBattle(); renderTeam();
   return {
-    renderTiles, renderBuy, adopt, loadDraft,
+    renderTiles, renderBuy, adopt, loadDraft, save,
     // the Squad Arena hall renamed a Blub: the team bar follows, unsaved looks stay
     renameMember(i, nm){
       if (!team || !team[i]) return;
@@ -5321,6 +5415,8 @@ const Use = (() => {
    The board answer is cached for a minute at the edge. */
 const SquadNet = {
   live: false, signInLabel: 'Connect wallet', demo: DEMO,
+  // next to the sign-in buttons: what signing in shares, and that it sends no transaction
+  safeLine: 'Read-only and safe: signing in shares only your wallet address, sends no transaction and costs nothing.',
   offline: DEMO ? 'Online duels open at launch. Build your squad, practice against bot squads or watch two bot squads fight now.' : 'Duels need the server. Reload the page to try again.',
   ready: () => S.api, signedIn: () => S.mode === 'wallet',
   signIn: why => Wallet.prompt(why),
@@ -5351,6 +5447,9 @@ const SquadNet = {
   rename: (i, name) => (renameJob = renameJob.then(() => renameOne(i, name), () => renameOne(i, name))),
   // your three strategies as your wallet keeps them ({a, s, at}), or null
   strats: () => (S.mode === 'wallet' && S.strats ? {a: S.strats.a, s: S.strats.s, at: S.teamAt} : null),
+  // a wallet's first save of its team (the Blub Maker's Save team, 1 command): the hall
+  // offers it where a duel needs a saved team
+  saveTeam: async () => ((await Maker.save(true)) ? {ok: true} : {ok: false, error: $('#wStatus').textContent || $('#mkMsg').textContent || 'Your team was not saved. Try again.'}),
   // keep them with your wallet: saved with your team, in the same command
   async saveStrats(data){
     if (S.mode !== 'wallet') return {ok: true, local: true};
@@ -5392,7 +5491,7 @@ async function renameOne(i, name){
     Maker.renameMember(i, v);
   };
   put(nm);
-  if (!S.saved){ refreshAll(); return {ok: true, local: true, note: 'Put your team in the Meadow (Blub Maker) to keep it'}; }
+  if (!S.saved){ refreshAll(); return {ok: true, local: true, note: 'Save your team (Looks, Save team) to keep it'}; }
   const gap = 1500 - (Date.now() - renameAt);
   if (gap > 0) await new Promise(ok => setTimeout(ok, gap));
   renameAt = Date.now();
@@ -18324,7 +18423,7 @@ const SquadView = (() => {
     roles: ['Roles', 'Brawlers charge in, Guardians hold the line and take arrows for a friend, Skirmishers shoot from afar, Medics heal, and Tricksters slip round to the back line.'],
     powers: ['Powers and commands', 'Every Blub has a power: a freeze, a storm, a cannon to build, pits to dig, a shield... and once a round the captain calls a command to the whole squad.'],
     ko: ['Out!', 'A squad wins the round once the other has nobody left standing, or with more of its HP left when turn ' + SE.TURNS + ' is over. A best of 3 brings a second and third arena.'],
-    end: ['Your turn', 'Build your own five on the Team page: role, weapon, gear, power, tactic and training for each, the formation and the trench kit. Then take them into the Arena.'],
+    end: ['Your turn', 'Now your own five: "Now play with your team" sends them against a bot squad, free. Their looks, skills and strategy are on the Team page.'],
   };
   function tourSay(key) {
     if (!P || !P.tour || P.tour.seen[key] || P.seeking || !TOUR[key]) return;
@@ -22905,6 +23004,17 @@ const SquadHall = (() => {
   // a bot's mark in the rankings: a small robot head
   const BOT_ROWS = ['.....RR.....', '.....kk.....', '.kkkkkkkkkk.', 'kGGGGGGGGGGk', 'kGkkkkkkkkGk', 'kGkCCkkCCkGk', 'kGkCCkkCCkGk', 'kGkkkkkkkkGk', 'kGGGGGGGGGGk', 'kGGkWkWkWGGk', 'kGGGGGGGGGGk', '.kkkkkkkkkk.'];
   const BOT_PAL = {k: '#000', G: '#9FB4C8', R: '#E2566E', C: '#5EE6FF', W: '#2B3A4A'};
+  // ---- signing in, said plainly (owner, 12 Oct 2026): next to the sign-in buttons on the
+  // site a padlock line says what signing in shares and that it sends no transaction
+  // (SquadNet.safeLine; the claude.ai page has no wallets and no line)
+  const LOCK_ROWS = ['...kkkk...', '..kSSSSk..', '.kSk..kSk.', '.kSk..kSk.', 'kkkkkkkkkk', 'kGGGGGGGGk', 'kGGGkkGGGk', 'kGGGkkGGGk', 'kGGGGGGGGk', 'kkkkkkkkkk'];
+  const LOCK_PAL = {k: '#000', S: '#B9C9D6', G: '#FFD447'};
+  function safeNote(){
+    const t = typeof SquadNet.safeLine === 'string' ? SquadNet.safeLine : '';
+    return t ? h('p', {class: 'sq-safe'}, pixRows(LOCK_ROWS, LOCK_PAL, 15, 'sq-padlock'), h('span', null, t)) : null;
+  }
+  const signedIn = () => typeof SquadNet.signedIn === 'function' && !!SquadNet.signedIn();
+  const JOIN_WHY = 'Connect your wallet to duel real players and join the weekly league.';
   const shortId = id => id.slice(0, 4) + '…' + id.slice(-4);
   // copies a wallet address, with a tick for a moment
   function copyBtn(text){
@@ -23007,7 +23117,10 @@ const SquadHall = (() => {
     // not in this week's league yet
     const last = me ? weekResult(st.lastLeague, me) : null;
     if (last) R.lgMe.append(divBadge(last.next, 24), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
-    else R.lgMe.append(h('span', null, me ? 'Not in this week’s league yet.' : 'Sign in to play in a league.'));
+    else if (me) R.lgMe.append(h('span', null, 'Not in this week’s league yet.'));
+    // signed out: how to join, and what signing in does
+    else R.lgMe.append(h('div', {class: 'sq-join'}, h('span', null, 'Connect your wallet to join this week’s league: a rated duel you win is 3 points, a loss 1.'),
+      button(SquadNet.signInLabel || 'Sign in', 'gold', () => SquadNet.signIn(JOIN_WHY), {'data-k': 'lgjoin'}), safeNote()));
     const players = L.groups.reduce((s, x) => s + x.m.length, 0);
     box.append(h('li', {class: 'sq-empty'}, (me ? 'Play a rated duel to join this week’s league. ' : '') + (players ? players + ' Blub' + (players === 1 ? '' : 's') + ' in ' + L.groups.length + ' group' + (L.groups.length === 1 ? '' : 's') + ' this week.' : 'Nobody has played a rated duel this week yet.')));
   }
@@ -23022,7 +23135,8 @@ const SquadHall = (() => {
         p && p.addr ? h('span', {class: 'lg-sub'}, h('span', {class: 'lg-addr', title: p.addr}, shortId(p.addr)), copyBtn(p.addr))
           : h('span', {class: 'lg-sub'}, p ? 'Test phase: kept in this browser' : 'Not signed in')));
     R.profIn.disabled = !p;
-    R.profGo.textContent = p ? 'Save' : 'Sign in';
+    R.profGo.textContent = p ? 'Save' : SquadNet.signInLabel || 'Sign in';
+    if (R.profSafe) R.profSafe.hidden = !!p;
     if (document.activeElement !== R.profIn) R.profIn.value = p ? p.player : '';
   }
   async function saveProfile(){
@@ -23071,7 +23185,7 @@ const SquadHall = (() => {
   function renderChallenge(){
     if (!R.chal) return;
     keepFocus(() => {
-      seg(R.cWho, [['any', 'Anyone'], ['blub', 'A Blub in the Meadow']], () => st.who, v => { st.who = v; });
+      seg(R.cWho, [['any', 'Anyone'], ['blub', 'A player you pick']], () => st.who, v => { st.who = v; });
       seg(R.cBo, [[1, 'Best of 1'], [3, 'Best of 3']], () => st.bo, v => { st.bo = v; });
       R.cBoHint.textContent = planHint(st.bo); R.cBoHint.hidden = !R.cBoHint.textContent;
       seg(R.cTaunt, TAUNTS.map((t, i) => [i, t]), () => st.taunt, v => { st.taunt = v; });
@@ -23080,7 +23194,7 @@ const SquadHall = (() => {
     const sig = blubs.map(b => b.id + ':' + b.name).join('|');
     if (sig !== R.cSel.dataset.sig){
       R.cSel.dataset.sig = sig; R.cSel.textContent = '';
-      R.cSel.append(h('option', {value: ''}, blubs.length ? 'Pick a Blub…' : 'No other Blubs in the Meadow yet'));
+      R.cSel.append(h('option', {value: ''}, blubs.length ? 'Pick a player…' : 'No other players yet'));
       blubs.forEach(b => R.cSel.append(h('option', {value: b.id}, b.name)));
     }
     if (st.target && !blubs.some(b => b.id === st.target)) st.target = '';
@@ -23088,12 +23202,13 @@ const SquadHall = (() => {
     let label = 'Create challenge';
     if (!SquadNet.ready()) label = 'Duels are offline';
     else if (!SquadNet.signedIn()) label = SquadNet.signInLabel;
-    else if (!SquadNet.captain()) label = 'Make your Blub first';
+    else if (!SquadNet.captain()) label = 'Save your team first';
     else if (readyCount(st.draft) < 5) label = 'Fix your squad first';
     else if (openCount() >= DUEL_OPEN_MAX) label = DUEL_OPEN_MAX + ' challenges open';
     else if (st.creating) label = 'Creating…';
     if (R.cGo.textContent !== label) R.cGo.textContent = label;
     R.cGo.setAttribute('aria-disabled', String(!SquadNet.ready() || st.creating));
+    if (R.cSafe) R.cSafe.hidden = !SquadNet.ready() || signedIn();
     if (!SquadNet.ready()) say(R.cMsg, SquadNet.offline);
     renderChalSquad();
   }
@@ -23137,10 +23252,19 @@ const SquadHall = (() => {
   async function create(){
     if (R.cGo.getAttribute('aria-disabled') === 'true' || st.creating) return;
     if (!SquadNet.signedIn()) return SquadNet.signIn('Connect your wallet to send a duel challenge.');
-    if (!SquadNet.captain()){ say(R.cMsg, 'Put your Blub in the Meadow first: it leads your squad.'); go('make'); return; }
+    if (!SquadNet.captain()){
+      // a wallet without a saved team: save the one in this browser (the Blub Maker's Save team)
+      if (typeof SquadNet.saveTeam !== 'function'){ say(R.cMsg, 'Save your team on the team page first: your captain leads your squad.'); go('make'); return; }
+      st.creating = true; say(R.cMsg, 'Saving your team to your wallet…'); renderChallenge();
+      const r = await SquadNet.saveTeam().catch(() => null);
+      st.creating = false; renderChallenge();
+      // the button said "Save your team first": the challenge is the next press
+      say(R.cMsg, r && r.ok ? 'Your team is saved to your wallet. Now create the challenge.' : (r && r.error) || 'Your team was not saved. Try again.', !!(r && r.ok));
+      return;
+    }
     const sq = E.cleanSquad(squadOf(st.draft));
     if (!sq){ say(R.cMsg, 'Your squad is not ready yet: look for the red dots.'); scrollTo(R.builder); return; }
-    if (st.who === 'blub' && !st.target){ say(R.cMsg, 'Pick a Blub to challenge.'); R.cSel.focus(); return; }
+    if (st.who === 'blub' && !st.target){ say(R.cMsg, 'Pick a player to challenge.'); R.cSel.focus(); return; }
     // the board already shows your open challenges: one more would only be refused
     if (openCount() >= DUEL_OPEN_MAX){ say(R.cMsg, 'You have ' + DUEL_OPEN_MAX + ' open challenges. Call one off below to send another.'); scrollTo(R.openP); return; }
     st.creating = true; say(R.cMsg, ''); renderChallenge();
@@ -23305,7 +23429,7 @@ const SquadHall = (() => {
     // a challenge for a named Blub, opened while signed out: maybe it is you
     if (d.t && !me && SquadNet.ready()){
       modalHead('Duel challenge', d.cr.name + ' challenges ' + (d.tn || 'a Blub'));
-      R.mBody.append(capCard(d.cr, 'Challenger', 'b'), taunt, R.mMeta, h('p', {class: 'sq-desc'}, 'Are you ' + (d.tn || 'that Blub') + '? Connect that wallet to accept.'));
+      R.mBody.append(capCard(d.cr, 'Challenger', 'b'), taunt, R.mMeta, h('p', {class: 'sq-desc'}, 'Are you ' + (d.tn || 'that Blub') + '? Connect that wallet to accept.'), safeNote());
       act(SquadNet.signInLabel, 'gold', () => { st.pending = d.id; st.reopen = true; closeModal(); SquadNet.signIn('Connect your wallet to accept this duel.'); });
       act('Not now', '', closeModal); return;
     }
@@ -23318,8 +23442,18 @@ const SquadHall = (() => {
     R.mBody.append(capCard(d.cr, 'Challenger', 'b'), taunt, R.mMeta, h('span', {class: 'sq-lbl'}, 'Their squad'), secretRow(d.cr),
       h('p', {class: 'sq-desc'}, 'Their squad stays secret until the fight. Yours does too.'));
     if (!SquadNet.ready()){ say(R.mMsg, SquadNet.offline); act('Close', '', closeModal); return; }
-    if (!SquadNet.signedIn()){ act(SquadNet.signInLabel, 'gold', () => { st.pending = d.id; st.reopen = true; closeModal(); SquadNet.signIn('Connect your wallet to accept this duel.'); }); act('Not now', '', closeModal); return; }
-    if (!SquadNet.captain()){ R.mBody.append(h('p', {class: 'sq-desc'}, 'Your saved Blub leads your squad. Make one first.')); act('Make your Blub', 'gold', () => { st.pending = d.id; st.reopen = true; closeModal(); go('make'); }); act('Not now', '', closeModal); return; }
+    if (!SquadNet.signedIn()){ const sn = safeNote(); if (sn) R.mBody.append(sn); act(SquadNet.signInLabel, 'gold', () => { st.pending = d.id; st.reopen = true; closeModal(); SquadNet.signIn('Connect your wallet to accept this duel.'); }); act('Not now', '', closeModal); return; }
+    if (!SquadNet.captain()){
+      R.mBody.append(h('p', {class: 'sq-desc'}, 'Save your team to your wallet first: your captain leads your squad.'));
+      if (typeof SquadNet.saveTeam === 'function') act('Save my team', 'gold', async e => {
+        const b = e.currentTarget; b.disabled = true; say(R.mMsg, 'Saving your team…');
+        const r = await SquadNet.saveTeam().catch(() => null);
+        b.disabled = false;
+        if (r && r.ok && SquadNet.captain()) openInvite(d.id); else say(R.mMsg, (r && r.error) || 'Your team was not saved. Try again.');
+      });
+      else act('Make your Blub', 'gold', () => { st.pending = d.id; st.reopen = true; closeModal(); go('make'); });
+      act('Not now', '', closeModal); return;
+    }
     const picks = h('div');
     R.mBody.append(h('span', {class: 'sq-lbl'}, 'Pick your squad'), picks);
     if (st.pick !== 'cur' && st.pick !== 'rand' && !(presets()[+String(st.pick).slice(1)])) st.pick = 'cur';
@@ -23562,18 +23696,20 @@ const SquadHall = (() => {
       });
     });
   }
-  function practice(b){
-    if (readyCount(st.draft) < 5){ say(R.pMsg, 'Your squad is not ready yet: look for the red dots in the builder.'); scrollTo(R.builder); return; }
-    const mine0 = teamOf(st.draft, 'Your squad'), seed = newSeed(), bo = st.pbo;
+  function practice(b, bo1){
+    if (readyCount(st.draft) < 5){ say(R.pMsg, 'Your squad is not ready yet: look for the red dots in the builder.'); reveal(R.builder); return; }
+    const mine0 = teamOf(st.draft, 'Your squad'), seed = newSeed(), bo = bo1 || st.pbo;
     // a best of 3 brings your strategies, as in a duel
     const plan = bo === 3 ? planOf(st.draft) : null;
     if (plan && plan.length > 1) mine0.plan = plan;
     const res = E.matchRounds(mine0.plan || mine0.squad, b.squad, seed, bo), pr = practiceRec();
     if (res.winner === 0) pr.w++; else pr.l++;
-    lsPatch({sqPractice: pr}); renderBots();
+    lsPatch({sqPractice: pr}); renderBots(); renderPath();
     say(R.pMsg, '');
-    theater({kind: 'practice', title: 'Practice vs ' + b.name, teams: [mine0, botTeam(b)], viewer: 0, seed, bo,
-      actions: [{label: 'Practice again', fn: () => { closeTheater(); setTimeout(() => practice(b), 30); }}]});
+    const actions = [{label: 'Practice again', fn: () => { closeTheater(); setTimeout(() => practice(b, bo), 30); }}];
+    // a win while signed out: real players are the next step
+    if (res.winner === 0 && !signedIn() && typeof SquadNet.signIn === 'function') actions.push({label: 'Play real players', fn: () => { closeTheater(); SquadNet.signIn(JOIN_WHY); }});
+    theater({kind: 'practice', title: 'Practice vs ' + b.name, teams: [mine0, botTeam(b)], viewer: 0, seed, bo, actions});
   }
   // the bots exist from the first call on: the Meadow's bot fight buttons work before the hall is built
   function ensureBots(){ if (st.bots.length < 2){ st.botSeed = newSeed(); st.bots = makeBots(st.botSeed); } }
@@ -23591,8 +23727,47 @@ const SquadHall = (() => {
     if (!hasView('play') && !st.ready) return;
     ensureBots();
     const pool = st.bots.slice(), a = pool.splice(Math.floor(Math.random() * pool.length), 1)[0], b = pool[Math.floor(Math.random() * pool.length)];
+    // its end leads to the next first step: a match with your own five (or the team page)
     theater({kind: 'show', title: 'Guided first match', teams: [botTeam(a), botTeam(b)], viewer: -1, seed: newSeed(), bo: 1, tour: true,
-      actions: [{label: 'Build your team', fn: () => { closeTheater(); location.hash = '#team'; }}, {label: 'Watch a bot show', fn: () => { closeTheater(); setTimeout(botShow, 30); }}]});
+      actions: [{label: 'Now play with your team', fn: () => { closeTheater(); setTimeout(quickMatch, 30); }}, {label: 'Build your team', fn: () => { closeTheater(); location.hash = '#team'; }}]})
+      .then(() => pathDone('guided'));
+  }
+  // the start-here card's match: your five against the weakest of the five bot squads (by
+  // their strength estimates; a random one when those take more than a moment), best of 1
+  function quickMatch(){
+    if (!st.ready) return;
+    ensureBots();
+    const bots = st.bots.slice();
+    let went = false;
+    const go1 = b => { if (went) return; went = true; practice(b, 1); };
+    setTimeout(() => go1(bots[Math.floor(Math.random() * bots.length)]), 1200);
+    Promise.all(bots.map(b => estimate(b.squad, true))).then(rs => go1(bots[rs.reduce((m, r, i) => (r.pct < rs[m].pct ? i : m), 0)]));
+  }
+
+  // ---- the practice page's first steps for a newcomer (owner, 12 Oct 2026): watch the
+  // guided first match, win a practice match with your own five, then sign in to play real
+  // players. Kept in this browser (sqPath); the card goes once all three are done, or hidden.
+  const PATH = [
+    ['guided', 'Watch your first match', 'Two bot squads fight while cards explain what happens. About two minutes.', 'Start'],
+    ['win', 'Win with your team', 'Your five against the easiest bot squad. Free, and as often as you like.', 'Play'],
+    ['real', 'Play real players', '', ''],
+  ];
+  const pathSeen = () => { const p = (lsGet() || {}).sqPath; return p && typeof p === 'object' ? p : {}; };
+  function pathDone(k){ const p = pathSeen(); if (!p[k]) lsPatch({sqPath: {...p, [k]: 1}}); renderPath(); }
+  function renderPath(){
+    if (!R.path) return;
+    const p = pathSeen(), done = [!!p.guided, practiceRec().w > 0, signedIn()];
+    R.path.hidden = !!p.hide || done.every(Boolean);
+    if (R.path.hidden) return;
+    const next = done.indexOf(false);
+    R.pathN.textContent = done.filter(Boolean).length + ' of 3 done';
+    R.pathSteps.forEach((li, i) => {
+      li.classList.toggle('done', done[i]); li.classList.toggle('next', i === next);
+      const b = li.querySelector('.btn');
+      b.classList.toggle('gold', i === next);
+      b.textContent = i === 2 ? (done[i] ? 'Signed in' : SquadNet.signInLabel || 'Sign in') : done[i] ? 'Again' : PATH[i][3];
+      b.disabled = i === 2 && done[i];
+    });
   }
 
   /* ---------------------------------------------------------------
@@ -23790,7 +23965,7 @@ const SquadHall = (() => {
     R.cTaunt = h('div', {class: 'sq-taunts', id: 'sqcTaunt', role: 'radiogroup', 'aria-labelledby': 'sqcTauntL'});
     [R.cWho, R.cBo, R.cTaunt].forEach(radioKeys);
     R.cSel = h('select', {id: 'sqcTarget', 'data-k': 'target'}); R.cSel.addEventListener('change', () => { st.target = R.cSel.value; renderChallenge(); });
-    R.cPick = h('div', {class: 'sq-cpick', hidden: true}, h('label', {class: 'sr', for: 'sqcTarget'}, 'Pick a Blub'), R.cSel);
+    R.cPick = h('div', {class: 'sq-cpick', hidden: true}, h('label', {class: 'sr', for: 'sqcTarget'}, 'Pick a player'), R.cSel);
     R.cGo = h('button', {type: 'button', class: 'btn gold sq-go', onclick: create, 'data-k': 'cgo'}, 'Create challenge');
     R.cCode = h('b'); R.cUrl = h('input', {readonly: true, id: 'sqcUrl'}); R.cNote = h('p', {class: 'sq-desc'});
     R.cCopy = button('Copy link', '', e => { if (st.made) copy(SquadNet.link(st.made.id) || shareText(st.made), e.currentTarget, R.cUrl); });
@@ -23801,7 +23976,7 @@ const SquadHall = (() => {
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcWhoL'}, 'Opponent'), R.cWho, R.cPick),
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcBoL'}, 'Format'), R.cBo, R.cBoHint = h('p', {class: 'sq-desc sq-bohint', hidden: true})),
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqcTauntL'}, 'Trash talk'), R.cTaunt),
-      R.cGo, R.cLink, R.cMsg);
+      R.cGo, R.cSafe = safeNote(), R.cLink, R.cMsg);
 
     // 3. open challenges
     R.open = h('ol', {class: 'sq-olist'}); R.openN = h('small');
@@ -23823,7 +23998,7 @@ const SquadHall = (() => {
     R.season = h('p', {class: 'sq-season'}); R.myRank = h('p', {class: 'sq-myrank'}); R.top = h('ol', {class: 'sq-top'});
     R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
     // the weekly league: your group of 35, or how to join one
-    R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('p', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
+    R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('div', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
     const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.';
     R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg, ...(kroot ? [] : [h('p', {class: 'sq-desc sq-lgrule'}, RULE)]));
     // the five divisions and how a week works (the rankings page)
@@ -23834,7 +24009,7 @@ const SquadHall = (() => {
       R.profIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveProfile(); } });
       R.profGo = button('Save', 'gold', saveProfile, {'data-k': 'profsave'});
       R.profMsg = h('p', {class: 'sq-msg', id: 'sqProfMsg', 'aria-live': 'polite'});
-      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg,
+      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
         h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
     }
     R.divP = panel('sq-divp', 'sqdTitle', 'Five divisions',
@@ -23861,9 +24036,20 @@ const SquadHall = (() => {
       R.offMsg);
     R.offP.hidden = true;
 
+    // the first steps for a newcomer, over everything else on the practice page
+    R.pathN = h('small', {class: 'sq-pathn'});
+    R.pathSteps = PATH.map(([k, title, line, label], i) => h('li', {class: 'sq-pstep'},
+      h('span', {class: 'sq-pnum', 'aria-hidden': 'true'}, String(i + 1)),
+      h('div', {class: 'sq-ptx'}, h('b', null, title), h('span', null, line || SquadNet.joinLine || 'Duel other players and climb the weekly league.'), k === 'real' ? safeNote() : null),
+      button(label || SquadNet.signInLabel || 'Sign in', '', [() => guidedShow(), () => quickMatch(), () => SquadNet.signIn(JOIN_WHY)][i], {'data-k': 'path:' + k})));
+    R.path = h('section', {class: 'sq-path', 'aria-labelledby': 'sqPathT', hidden: true},
+      h('div', {class: 'sq-pathh'}, h('h3', {id: 'sqPathT'}, 'Start here'), R.pathN,
+        h('button', {type: 'button', class: 'sq-pathx', 'data-k': 'pathhide', onclick: () => { lsPatch({sqPath: {...pathSeen(), hide: 1}}); renderPath(); }}, 'Hide')),
+      h('ol', {class: 'sq-psteps'}, ...R.pathSteps));
+
     troot.append(R.builder);
     // practice: duels with friends and the bots; the rankings get a page of their own
-    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, ...(kroot ? [] : [R.lgP]), R.openP, ...(kroot ? [] : [R.topP]), R.mineP)));
+    root.append(R.path, h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, ...(kroot ? [] : [R.lgP]), R.openP, ...(kroot ? [] : [R.topP]), R.mineP)));
     if (kroot) kroot.append(h('div', {class: 'sec-head sq-head'},
       h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'rankTitle'}, 'Rankings')),
       h('p', null, 'Every week a league of 35 in five divisions, every month the duel season. Rated duels between wallets count.'),
@@ -23907,7 +24093,7 @@ const SquadHall = (() => {
     st.me = me;
     if (first) return false;
     st.made = null; if (R.cLink) R.cLink.hidden = true; st.looked.clear(); st.seen.clear(); st.back = null; barLabel(); renderSync();
-    renderMine(); renderOpen(); renderChallenge();
+    renderMine(); renderOpen(); renderChallenge(); renderPath(); renderLeague(); renderProfile();
     return true;
   }
   // the team changed (loaded, or saved in the Blub Maker): names, looks, and the
@@ -23944,7 +24130,7 @@ const SquadHall = (() => {
     new ResizeObserver(steady).observe(R.tray2);
     new ResizeObserver(steadyK).observe(R.kitSide);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { st.trayW = 0; kitKey = ''; steady(); steadyK(); }).catch(() => {});
-    renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderProfile(); renderMine(); renderBots();
+    renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderProfile(); renderMine(); renderBots(); renderPath();
     st.me = SquadNet.me();
     if (mqMotion.addEventListener){
       mqMotion.addEventListener('change', () => paintBoard());
@@ -24013,7 +24199,7 @@ const SquadHall = (() => {
     // the team came in (signed in, or saved elsewhere): its strategies with it
     adoptStrats(); renderSync();
     if (!teamChanged()){ keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); }
-    renderChallenge(); renderTop(); renderLeague(); renderProfile();
+    renderChallenge(); renderTop(); renderLeague(); renderProfile(); renderPath();
     if (st.online && !was) refreshBoard();
   }
 
@@ -24050,7 +24236,7 @@ const SquadHall = (() => {
       return reveal(R.offP, () => { const g = R.bots && R.bots.querySelector('.btn.gold'); if (g) g.focus({preventScroll: true}); });
     }
     if (id === SquadNet.me()){ say(R.cMsg, 'That is your own Blub: pick a rival.'); return reveal(R.chal); }
-    if (!b){ st.who = 'any'; st.target = ''; renderChallenge(); say(R.cMsg, 'That Blub left the Meadow. Send an open challenge instead.'); return reveal(R.chal); }
+    if (!b){ st.who = 'any'; st.target = ''; renderChallenge(); say(R.cMsg, 'That player is not around any more. Send an open challenge instead.'); return reveal(R.chal); }
     st.who = 'blub'; st.target = id; R.cLink.hidden = true; st.made = null;
     renderChallenge();
     say(R.cMsg, 'Challenge ' + name + ': check your squad, pick a format and create the challenge.', true);
@@ -24130,10 +24316,13 @@ document.querySelectorAll('[data-botshow]').forEach(b => { b.onclick = () => Squ
 
 /* =====================================================================
    WALLET: sign in with a Solana wallet (Phantom, Solflare, Backpack).
-   The wallet signs a plain message; no transaction, no fee.
+   The wallet signs a plain message; no transaction, no fee. The header's
+   button opens a dialog that says so before any wallet asks (owner,
+   12 Oct 2026: players should see that it is read-only and safe).
    ===================================================================== */
 const Wallet = (() => {
-  const btn = $('#walletBtn'), modal = $('#wModal'), list = $('#wList'), msg = $('#wMsg'), why = $('#wWhy');
+  const btn = $('#walletBtn'), btnT = $('#walletBtnT'), btnOn = $('#walletBtnOn'), modal = $('#wModal'), title = $('#wTitle'), lead = $('#wLead'), safe = $('#wSafe'),
+    list = $('#wList'), msg = $('#wMsg'), why = $('#wWhy'), fine = $('#wFine');
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   function detect(){
     const out = [], seen = new Set();
@@ -24145,16 +24334,40 @@ const Wallet = (() => {
     return out;
   }
   const b64 = bytes => { let s = ''; for (const x of bytes) s += String.fromCharCode(x); return btoa(s); };
+  // the header's button: "Connect wallet", or your short address with a green light
   function render(){
-    btn.hidden = !S.api;
-    btn.textContent = S.mode === 'wallet' ? 'Sign out ' + shortAddr(S.addr) : 'Connect wallet';
-    $('#holderChip').hidden = !(S.mode === 'wallet' && S.holder === true);
+    const on = S.mode === 'wallet';
+    btn.hidden = false;
+    btnT.textContent = on ? shortAddr(S.addr) : 'Connect wallet';
+    btnOn.hidden = !on;
+    btn.setAttribute('aria-label', on ? 'Your wallet ' + shortAddr(S.addr) + ', signed in' : 'Connect wallet');
+    $('#holderChip').hidden = !(on && S.holder === true);
   }
   function close(){ modal.hidden = true; }
   function open(){
-    list.textContent = ''; msg.textContent = ''; why.textContent = '';
+    list.textContent = ''; msg.textContent = ''; why.textContent = ''; fine.textContent = '';
+    const on = S.mode === 'wallet';
+    title.textContent = on ? 'Your wallet' : 'Connect your wallet to play';
+    lead.textContent = on ? 'Signed in as ' + shortAddr(S.addr) + '. Blub only reads your public address: it never moves your coins.'
+      : 'Your wallet is your player account: it keeps your team of 5, lets you duel real players and puts you in the weekly league.';
+    safe.hidden = on;
+    if (on){
+      const out = el('button', 'btn pink', 'Sign out'); out.type = 'button';
+      out.onclick = async () => { try { await API.logout(); } catch {} applyMe(null); pullMeadow(false); log('Signed out.', 'sys'); close(); };
+      const done = el('button', 'btn', 'Close'); done.type = 'button'; done.onclick = close;
+      list.append(out, done);
+      modal.hidden = false; out.focus();
+      return;
+    }
+    // the demo, or no server: what signing in will be, and what works now
+    if (!S.api){
+      msg.textContent = DEMO ? 'Wallet sign-in opens at launch. Until then everything runs in this browser: build your team and practice for free.' : 'The server is not reachable right now. Reload the page to try again.';
+      modal.hidden = false; $('#wClose').focus();
+      return;
+    }
     const found = detect();
     found.forEach(w => { const b = el('button', 'btn', w.name); b.type = 'button'; b.onclick = () => signIn(w); list.append(b); });
+    if (found.length) fine.append('Your wallet shows a sign-in request from ', el('b', '', location.host), '. Sign it only when that is the address of this page.');
     if (!found.length){
       msg.textContent = mobile ? 'Open this page inside your wallet app to sign in.' : 'No Solana wallet found in this browser. Install one, then reload this page.';
       const here = encodeURIComponent(location.href), ref = encodeURIComponent(location.origin);
@@ -24187,14 +24400,15 @@ const Wallet = (() => {
       msg.textContent = declined ? 'You declined the request in your wallet.' : 'Signing in failed: ' + ((e && e.message) || 'unknown error');
     } finally { list.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
   }
-  btn.onclick = async () => {
-    if (S.mode === 'wallet'){ try { await API.logout(); } catch {} applyMe(null); pullMeadow(false); log('Signed out.', 'sys'); return; }
-    open();
-  };
+  // why the dialog opened (a duel to accept, the league to join), over the rest
+  function prompt(t){ open(); if (S.mode !== 'wallet') why.textContent = t || ''; }
+  btn.onclick = () => open();
+  // the home page's How to play has a Connect wallet button of its own
+  document.querySelectorAll('[data-wallet]').forEach(b => { b.onclick = () => (S.mode === 'wallet' ? open() : prompt('Connect your wallet to duel real players and join the weekly league.')); });
   $('#wClose').onclick = close;
   modal.addEventListener('click', e => { if (e.target === modal) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) close(); });
-  return {render, open, prompt(t){ if (!S.api){ status(t); return; } open(); why.textContent = t; }};
+  return {render, open, prompt};
 })();
 
 /* =====================================================================
@@ -24204,7 +24418,7 @@ function localMode(){
   setMode('local');
   const d = lsGet(), L = loadLocal();
   if (L){ S.name = cleanName(L.name); S.look = wearable(cleanLook(L.look), S.owned); S.saved = !!L.saved && S.name.length > 1; S.style = cleanStyle(L.style); S.build = cleanBuild(L.build, S.style); S.squad = Array.isArray(L.squad) ? cleanSquad(L.squad, 'local', S.style) : null; S.player = cleanName(L.player); }
-  status(DEMO ? 'Test phase: your team is saved in this browser. Wallet sign-in and the shared Meadow open at launch.' : 'The Meadow server is not reachable, so your Blub stays in this browser for now.');
+  status(DEMO ? 'Test phase: your team is saved in this browser. Wallet sign-in and online duels open at launch.' : 'The server is not reachable, so your team stays in this browser for now.');
   Maker.adopt(!!S.saved); if (!S.saved) Maker.loadDraft(d && d.draft);
   Maker.renderTiles(); Maker.renderBuy(); Wallet.render();
   refreshCoins(); Field.sync(); refreshAll(); SquadHall.ready();
@@ -24222,6 +24436,8 @@ function applyMe(me){
   }
   Wallet.render(); refreshCoins(); Maker.renderTiles(); Maker.renderBuy(); Field.sync();
   const na = $('#navAdmin'); if (na) na.hidden = !S.admin;
+  // signed in or out: the hall's sign-in buttons, first steps and league say so at once
+  SquadHall.render();
 }
 async function pullMeadow(first){
   let r;
