@@ -1674,7 +1674,7 @@ body.no-scroll{overflow:hidden}
 /* ---- below the builder ---- */
 .sq-grid2{display:flex;flex-direction:column;gap:18px;margin-top:22px}
 .sq-col{display:contents}
-.sq-offp{order:0}.sq-chal{order:1}.sq-openp{order:2}.sq-topp{order:3}.sq-minep{order:4}.sq-pracp{order:5}
+.sq-offp{order:0}.sq-chal{order:1}.sq-lgp{order:2}.sq-openp{order:3}.sq-topp{order:4}.sq-minep{order:5}.sq-pracp{order:6}
 @media (min-width:900px){.sq-grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}.sq-col{display:flex;flex-direction:column;gap:18px;min-width:0}}
 
 /* challenge */
@@ -1742,6 +1742,15 @@ body.no-scroll{overflow:hidden}
 .sq-tr{color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
 .sq-tr small{color:var(--sq-soft);font-size:17px;margin-left:6px}
 .sq-top li.sq-empty{display:block}
+/* the weekly league: a bar on the left for the top fifth (moving up) and the bottom fifth (down) */
+.sq-league{max-height:520px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+.sq-league li{border-left:4px solid transparent;padding-left:4px}
+.sq-league li.up{border-left-color:#4FB36B}
+.sq-league li.down{border-left-color:#E2566E}
+.sq-league li.sq-empty{border-left:0;padding-left:0}
+.sq-lgme{align-items:center}
+.sq-lgme canvas.sq-lgb{width:24px;height:24px;flex:none}
+.sq-lgrule{margin:0}
 
 /* your matches */
 .sq-mlist{max-height:460px;overflow:auto}
@@ -1844,7 +1853,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 12: guided first match, one Boom Pack, balance pass</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · weekly leagues (open at launch), guided first match, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -3290,6 +3299,9 @@ const API = (() => {
     duelCreate: o => call('POST', 'duel', o),
     duelAccept: (id, squad, squads) => call('POST', 'duel/' + id + '/accept', squads ? {squad, squads} : {squad}),
     duelCancel: id => call('POST', 'duel/' + id + '/cancel', {}),
+    // the weekly league: this week (one URL), or one of the five weeks before
+    league: () => call('GET', 'league'),
+    leagueWeek: week => call('GET', 'league/' + week),
   };
 })();
 const LS = 'blub-weiland-v1';
@@ -5201,6 +5213,9 @@ const SquadNet = {
   captain: () => { const b = Field.get(myId()); return b ? {name: b.rec.name, look: b.rec.look, style: b.rec.style} : null; },
   team: () => myTeam().map(m => ({name: m.name, look: m.look, style: m.style})),
   async board(){ const d = await API.duels(); return {open: d.open || [], targeted: d.targeted || [], recent: d.recent || [], top: d.top || [], count: d.count || 0, season: d.season, ends: d.ends}; },
+  // the weekly league (lib/league.mjs): null in the demo, which has no server
+  league: DEMO ? null : () => API.league(),
+  leagueWeek: DEMO ? null : week => API.leagueWeek(week),
   watch(){},
   get: async id => (await API.duel(id)).duel,
   // a best of 3 may bring a plan (squads: your strategies in the order you play them)
@@ -20612,6 +20627,8 @@ const SquadHall = (() => {
     place: null, hover: null, bad: null, objSel: null, trayW: 0, dmax: 0,
     who: 'any', target: '', bo: 3, taunt: 0, pbo: 1, creating: false, accepting: false, made: null,
     board: {open: [], recent: [], top: [], count: 0, season: '', ends: ''}, boardAt: 0, loading: false, boardOk: false,
+    // the weekly league (SquadNet.league): this week, and last week once, for how yours ended
+    league: null, leagueAt: 0, lgLoading: false, lastLeague: null,
     known: new Map(), full: new Map(), looked: new Set(), gone: new Set(), extra: new Map(), seen: new Set(),
     strength: null, sSig: '', inView: false, pending: null, bots: [], botSeed: 0, modal: null, pick: 'cur', rand: null,
     team: null, prefill: null, online: null, back: null, seenOnce: false, me: undefined, offArm: null,
@@ -22457,6 +22474,8 @@ const SquadHall = (() => {
       d.elo = d.rated && Array.isArray(o.elo) && o.elo.length === 2 ? o.elo.map(v => num(v, -64, 64)) : null;
       d.rating = Array.isArray(o.rating) && o.rating.length === 2 ? o.rating.map(v => num(v, 0, 9999)) : null;
       d.stats = Array.isArray(o.stats) && o.stats.length === 2 && o.stats.every(x => x && +x.r > 0) ? o.stats.map(x => ({r: num(x.r, 0, 9999), w: num(x.w, 0, 1e6), l: num(x.l, 0, 1e6)})) : null;
+      // the weekly league: what each side got for it (rated duels only)
+      d.lp = d.rated && Array.isArray(o.lp) && o.lp.length === 2 ? o.lp.map(v => num(v, 0, 9)) : null;
       d.live = !!(d.cs && d.as && d.seed && d.se === E.SQUAD_ENGINE);
       // the board lists a result in short (no squads): the full record is one GET away
       d.brief = !(d.cs && d.as);
@@ -22492,14 +22511,14 @@ const SquadHall = (() => {
   }
   function summary(d, role){
     const i = role === 'c' ? 0 : 1, s = {st: d.state, on: foeName(d, i), bo: d.bo};
-    if (d.state === 'done'){ s.sc = [d.score[i], d.score[1 - i]]; s.w = d.winner === i ? 1 : 0; s.dl = d.elo ? d.elo[i] : null; s.at = d.at; s.old = !d.live && !d.brief; }
+    if (d.state === 'done'){ s.sc = [d.score[i], d.score[1 - i]]; s.w = d.winner === i ? 1 : 0; s.dl = d.elo ? d.elo[i] : null; s.lp = d.lp ? d.lp[i] : null; s.at = d.at; s.old = !d.live && !d.brief; }
     return s;
   }
   function cleanSum(s){
     if (!s || typeof s !== 'object') return null;
     const n = (v, lo, hi) => clamp(Math.round(+v) || 0, lo, hi);
     return {st: ['open', 'done', 'cancelled', 'expired'].includes(s.st) ? s.st : 'open', on: cleanName(s.on) || 'a rival', bo: s.bo === 3 ? 3 : 1,
-      sc: Array.isArray(s.sc) && s.sc.length === 2 ? s.sc.map(v => n(v, 0, 3)) : null, w: s.w ? 1 : 0, dl: s.dl == null ? null : n(s.dl, -64, 64), at: isoOr(s.at)};
+      sc: Array.isArray(s.sc) && s.sc.length === 2 ? s.sc.map(v => n(v, 0, 3)) : null, w: s.w ? 1 : 0, dl: s.dl == null ? null : n(s.dl, -64, 64), lp: s.lp == null ? null : n(s.lp, 0, 9), at: isoOr(s.at)};
   }
   // every wallet's matches in this browser (mine() shows the signed-in wallet's)
   function allMine(){ const d = lsGet(); return Array.isArray(d && d.sqMine) ? d.sqMine.filter(m => m && typeof m === 'object').slice(0, 60) : []; }
@@ -22551,6 +22570,7 @@ const SquadHall = (() => {
     try { onBoard(await SquadNet.board()); st.boardOk = true; } catch { st.boardOk = false; } finally { st.loading = false; st.boardAt = Date.now(); }
     renderOpen(); renderTop(); renderMine();
     checkMine();
+    loadLeague();
   }
   function onBoard(b){
     b = b && typeof b === 'object' ? b : {};
@@ -22637,6 +22657,113 @@ const SquadHall = (() => {
       box.append(li);
     });
   }
+
+  /* ---------------------------------------------------------------
+     the weekly league (lib/league.mjs): groups of 35 per division, a week at a time;
+     rated duels give 3 points for a win and 1 for a loss; each Monday 00:00 UTC the
+     top fifth of a group moves up a division and the bottom fifth down
+     --------------------------------------------------------------- */
+  const DIVS = ['Bronze', 'Silver', 'Gold', 'Diamond', 'Moon'];
+  const WEEK_OK = /^\d{4}w\d{2}$/;
+  function cleanLeague(d){
+    if (!d || typeof d !== 'object' || typeof d.week !== 'string' || !WEEK_OK.test(d.week)) return null;
+    const num = (v, hi) => clamp(Math.floor(+v) || 0, 0, hi);
+    const groups = (Array.isArray(d.groups) ? d.groups : []).slice(0, 3000).map(g => (g && typeof g === 'object' ? {
+      d: clamp(Math.floor(+g.d) || 1, 1, DIVS.length), g: num(g.g, 99999),
+      m: (Array.isArray(g.m) ? g.m : []).slice(0, 35).filter(x => Array.isArray(x) && typeof x[0] === 'string' && ID_OK.test(x[0])).map(x => ({id: x[0], p: num(x[1], 1e6), w: num(x[2], 1e6), l: num(x[3], 1e6)})),
+    } : null)).filter(g => g && g.m.length);
+    return {week: d.week, ends: isoOr(d.ends) || '', final: d.final === true, prev: typeof d.prev === 'string' && WEEK_OK.test(d.prev) ? d.prev : '', groups};
+  }
+  // the group a wallet plays in this week, if any
+  const groupIn = (L, id) => (L && id ? L.groups.find(g => g.m.some(m => m.id === id)) || null : null);
+  // a fifth of a group moves up and a fifth down (7 of 35; nobody in a group under 5)
+  const movers = n => Math.floor(n / 5);
+  // how a finished week went for a wallet: its rank, and the division it plays next
+  function weekResult(L, id){
+    const g = groupIn(L, id);
+    if (!g) return null;
+    const r = g.m.findIndex(m => m.id === id) + 1, n = g.m.length, mv = movers(n);
+    const next = r <= mv && g.d < DIVS.length ? g.d + 1 : r > n - mv && r > mv && g.d > 1 ? g.d - 1 : g.d;
+    return {d: g.d, rank: r, n, next};
+  }
+  async function loadLeague(){
+    if (typeof SquadNet.league !== 'function' || !SquadNet.ready() || st.lgLoading || Date.now() - st.leagueAt < 60000) return;
+    st.lgLoading = true;
+    try { st.league = cleanLeague(await SquadNet.league()) || st.league; } catch { /* the last good one stays */ } finally { st.lgLoading = false; st.leagueAt = Date.now(); }
+    // not in this week's league yet: how last week ended for you (asked once; it never changes)
+    const me = SquadNet.me(), L = st.league;
+    if (L && L.prev && me && !groupIn(L, me) && typeof SquadNet.leagueWeek === 'function' && (!st.lastLeague || st.lastLeague.week !== L.prev)){
+      try { st.lastLeague = cleanLeague(await SquadNet.leagueWeek(L.prev)); } catch { st.lastLeague = null; }
+    }
+    renderLeague();
+  }
+  // a division's badge: bronze, silver and gold medals, a diamond, the moon
+  const BADGE = {
+    medal: ['..rR....Rr..', '..rR....Rr..', '...rR..Rr...', '....rRRr....', '....kkkk....', '..kkMHHMkk..', '.kMHHMMMMSk.', '.kMHMMMMMSk.', '.kMMMMMMMSk.', '.kMMMMMMSSk.', '..kkMSSSkk..', '....kkkk....'],
+    gem: ['............', '............', '...kkkkkk...', '..kWHHMMSk..', '.kWHHMMMMSk.', 'kkkkkkkkkkkk', '.kHMMMMMSSk.', '..kHMMMMSk..', '...kMMMSk...', '....kMSk....', '.....kk.....', '............'],
+    moon: ['....kkkk....', '..kkHHMMk...', '.kHHMMkk..W.', '.kHMMk....WW', 'kHMMk......W', 'kHMMk.......', 'kHMMk.......', 'kHMMMk......', '.kMMMMkk..kk', '.kSMMMMMkkMk', '..kkSSSMMMk.', '....kkkkkk..'],
+  };
+  const BADGE_PAL = [
+    {M: '#C77B30', H: '#F0A860', S: '#8A4F1C'}, {M: '#C9D3E0', H: '#FFFFFF', S: '#8A96A8'}, {M: '#FFD447', H: '#FFF3B0', S: '#C98A12'},
+    {M: '#7FE7F2', H: '#D9FBFF', S: '#2BB5C8', W: '#FFFFFF'}, {M: '#FFF3B0', H: '#FFFFFF', S: '#E0C060', W: '#FFD447'},
+  ];
+  function divBadge(d, px){
+    const rows = d >= 5 ? BADGE.moon : d === 4 ? BADGE.gem : BADGE.medal;
+    const pal = {k: '#000', r: '#5E3A8A', R: '#9B6BD6', ...BADGE_PAL[clamp(d, 1, 5) - 1]};
+    const c = document.createElement('canvas'); c.width = 12; c.height = 12;
+    const x = c.getContext('2d');
+    rows.forEach((row, y) => [...row].forEach((ch, i) => { if (pal[ch]){ x.fillStyle = pal[ch]; x.fillRect(i, y, 1, 1); } }));
+    c.className = 'sq-lgb spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
+    return c;
+  }
+  function endsText(iso){
+    const ms = Date.parse(iso) - Date.now();
+    if (!(ms > 0)) return 'ends now';
+    const hrs = Math.floor(ms / 3600000);
+    return hrs >= 48 ? 'ends in ' + Math.floor(hrs / 24) + ' days' : hrs >= 1 ? 'ends in ' + hrs + ' hour' + (hrs === 1 ? '' : 's') : 'ends in minutes';
+  }
+  function renderLeague(){
+    if (!R.lg) return;
+    const me = SquadNet.me(), L = st.league, box = R.lg, was = box.scrollTop;
+    R.lgWeek.textContent = ''; R.lgMe.textContent = ''; box.textContent = '';
+    if (typeof SquadNet.league !== 'function' || !SquadNet.ready()){
+      R.lgWeek.append(h('b', null, 'Five divisions'), h('span', null, DIVS.join(' · ')));
+      box.append(h('li', {class: 'sq-empty'}, SquadNet.demo ? 'Weekly leagues open at launch, with online duels.' : typeof SquadNet.league !== 'function' ? 'Weekly leagues run on the live site.' : SquadNet.offline));
+      return;
+    }
+    if (!L){ box.append(h('li', {class: 'sq-empty'}, st.leagueAt ? 'The league did not load. It tries again in a minute.' : 'Loading the league…')); return; }
+    R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), h('span', null, endsText(L.ends)));
+    const g = groupIn(L, me);
+    if (g){
+      const k = g.m.findIndex(m => m.id === me), x = g.m[k];
+      R.lgMe.append(divBadge(g.d, 24), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
+      const n = g.m.length, mv = movers(n);
+      g.m.forEach((m, i) => {
+        const w = SquadNet.who(m.id), up = i < mv && g.d < DIVS.length, down = i >= n - mv && i >= mv && g.d > 1;
+        const li = h('li', {class: [m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
+        li.append(h('span', {class: 'rk'}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+          h('b', null, w ? cleanName(w.name) || 'Blub' : m.id.slice(0, 4) + '…' + m.id.slice(-4)), h('span', {class: 'sq-tr', title: 'League points'}, String(m.p), h('small', null, m.w + '–' + m.l)));
+        box.append(li);
+      });
+      if (n < 5) box.append(h('li', {class: 'sq-empty'}, 'Your group fills up as more Blubs play: with 5 or more, the top and bottom fifth move.'));
+      // the list scrolls on its own: to your row the first time, then it stays where you left it
+      const key = L.week + me;
+      if (st.lgKey === key) box.scrollTop = was;
+      else {
+        st.lgKey = key;
+        const li = box.querySelector('li.me');
+        if (li) requestAnimationFrame(() => { box.scrollTop += li.getBoundingClientRect().top - box.getBoundingClientRect().top - 72; });
+      }
+      return;
+    }
+    // not in this week's league yet
+    const last = me ? weekResult(st.lastLeague, me) : null;
+    if (last) R.lgMe.append(divBadge(last.next, 24), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
+    else R.lgMe.append(h('span', null, me ? 'Not in this week’s league yet.' : 'Sign in to play in a league.'));
+    const players = L.groups.reduce((s, x) => s + x.m.length, 0);
+    box.append(h('li', {class: 'sq-empty'}, (me ? 'Play a rated duel to join this week’s league. ' : '') + (players ? players + ' Blub' + (players === 1 ? '' : 's') + ' in ' + L.groups.length + ' group' + (L.groups.length === 1 ? '' : 's') + ' this week.' : 'Nobody has played a rated duel this week yet.')));
+  }
+
   function renderMine(){ if (R.mine) keepFocus(drawMine); }
   function drawMine(){
     const list = mine(), now = Date.now(), box = R.mine;
@@ -22647,7 +22774,7 @@ const SquadHall = (() => {
       const state = s ? s.st : 'open', li = h('li', {class: 'sq-mrow'});
       let tag = 'WAIT', cls = 'wait', line = 'Checking…';
       if (state === 'open'){ line = 'Waiting for a rival' + (d ? ' · ' + leftText(Date.parse(d.exp) - now) : ''); }
-      else if (state === 'done'){ tag = s.w ? 'WON' : 'LOST'; cls = s.w ? 'won' : 'lost'; line = (s.sc ? s.sc[0] + '–' + s.sc[1] + ' · ' : '') + (s.bo === 3 ? 'Bo3' : 'Bo1') + (s.at ? ' · ' + agoText(s.at) : '') + (s.dl != null ? ' · ' + (s.dl >= 0 ? '+' : '−') + Math.abs(s.dl) : d && d.state === 'done' && !d.rated ? ' · unrated' : ''); }
+      else if (state === 'done'){ tag = s.w ? 'WON' : 'LOST'; cls = s.w ? 'won' : 'lost'; line = (s.sc ? s.sc[0] + '–' + s.sc[1] + ' · ' : '') + (s.bo === 3 ? 'Bo3' : 'Bo1') + (s.at ? ' · ' + agoText(s.at) : '') + (s.dl != null ? ' · ' + (s.dl >= 0 ? '+' : '−') + Math.abs(s.dl) : d && d.state === 'done' && !d.rated ? ' · unrated' : '') + (s.lp ? ' · +' + s.lp + ' league' : ''); }
       else { tag = state === 'cancelled' ? 'OFF' : 'GONE'; cls = 'off'; line = state === 'cancelled' ? 'Called off' : 'Expired'; }
       if (m.gone && state === 'done'){ tag = 'GONE'; cls = 'off'; line = 'Replay gone: results are kept for 30 days'; }
       const tx = h('div', null, h('b', null, 'You vs ' + (s ? s.on : 'code ' + fmtCode(m.id))), h('span', null, line));
@@ -23407,6 +23534,10 @@ const SquadHall = (() => {
     // 4. the season
     R.season = h('p', {class: 'sq-season'}); R.myRank = h('p', {class: 'sq-myrank'}); R.top = h('ol', {class: 'sq-top'});
     R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
+    // the weekly league: your group of 35, or how to join one
+    R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('p', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
+    R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg,
+      h('p', {class: 'sq-desc sq-lgrule'}, 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.'));
 
     // 5. your matches
     R.mine = h('ol', {class: 'sq-mlist'});
@@ -23428,7 +23559,7 @@ const SquadHall = (() => {
     R.offP.hidden = true;
 
     troot.append(R.builder);
-    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, R.openP, R.topP, R.mineP)));
+    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, R.lgP, R.openP, R.topP, R.mineP)));
     buildModal();
     return true;
   }
@@ -23504,7 +23635,7 @@ const SquadHall = (() => {
     new ResizeObserver(steady).observe(R.tray2);
     new ResizeObserver(steadyK).observe(R.kitSide);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { st.trayW = 0; kitKey = ''; steady(); steadyK(); }).catch(() => {});
-    renderChallenge(); renderOpen(); renderTop(); renderMine(); renderBots();
+    renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderMine(); renderBots();
     st.me = SquadNet.me();
     if (mqMotion.addEventListener){
       mqMotion.addEventListener('change', () => paintBoard());
@@ -23549,7 +23680,7 @@ const SquadHall = (() => {
       const waiting = mine().some(m => !m.done);
       // the board is cached for a minute at the edge: asking more often gains nothing
       if (!SquadNet.live && (st.inView || waiting) && Date.now() - st.boardAt > 60000) refreshBoard();
-      if (st.inView){ renderOpen(); if (Date.now() % 30000 < 5000){ renderTop(); renderMine(); renderChallenge(); } }
+      if (st.inView){ renderOpen(); if (Date.now() % 30000 < 5000){ renderTop(); renderLeague(); renderMine(); renderChallenge(); } }
       // back from signing in or making your Blub: the challenge opens again
       if (st.reopen && st.pending && SquadNet.signedIn() && SquadNet.captain() && R.modal.hidden){ st.reopen = false; const id = st.pending; st.pending = null; openInvite(id); }
     }, 5000);
@@ -23573,7 +23704,7 @@ const SquadHall = (() => {
     // the team came in (signed in, or saved elsewhere): its strategies with it
     adoptStrats(); renderSync();
     if (!teamChanged()){ keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); }
-    renderChallenge(); renderTop();
+    renderChallenge(); renderTop(); renderLeague();
     if (st.online && !was) refreshBoard();
   }
 
