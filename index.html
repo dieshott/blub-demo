@@ -1906,11 +1906,50 @@ body.no-scroll{overflow:hidden}
 /* phones: the five come first, so the page head keeps to its title and buttons */
 @media (max-width:520px){.team-sec .sq-head p,.arena-sec .sq-head p{display:none}}
 @media (max-width:520px){.sq-strat .sq-stb{font-size:13px;padding:6px;gap:6px}.sq-strat .sq-stb b{width:20px;height:20px}}
-.sq-tabs{display:flex;margin:12px 0 4px;border:3px solid #000;background:var(--sq-deep);box-shadow:0 4px 0 #000}
-.sq-tabs [role="tab"]{flex:1 1 0;min-height:44px;padding:0 8px;font-family:var(--f-display);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--sq-soft);background:transparent;border:0;border-right:3px solid #000;cursor:pointer}
-.sq-tabs [role="tab"]:last-child{border-right:0}
-.sq-tabs [role="tab"][aria-selected="true"]{background:var(--gold);color:#000}
-.sq-tabs [role="tab"]:focus-visible{outline:3px solid #fff;outline-offset:-7px}
+/* the team page's three steps: big cards with a number, a picture, a title, a line and
+   how far you are; the one you are on is gold, the ones never opened say NEW */
+.sq-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 8px}
+.sq-tabs [role="tab"]{position:relative;display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;column-gap:10px;min-height:76px;padding:10px 12px;text-align:left;
+  color:#fff;background:#12323A;border:3px solid #000;box-shadow:inset 0 0 0 2px rgba(255,255,255,.06),0 4px 0 #000;cursor:pointer;transition:transform .12s,background .12s,box-shadow .12s}
+.sq-tabs [role="tab"]:hover{background:#174A52;transform:translateY(-2px);box-shadow:inset 0 0 0 2px rgba(255,255,255,.1),0 6px 0 #000}
+.sq-tabs [role="tab"][aria-selected="true"]{background:var(--gold);color:#1A1030;transform:translateY(-2px);box-shadow:inset 0 0 0 2px #FFF3B0,0 6px 0 #000}
+.sq-tabs [role="tab"]:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sq-stn{display:grid;place-items:center;width:26px;height:26px;font-family:var(--f-display);font-size:11px;line-height:1;color:var(--gold);background:#0B1F23;border:2px solid #000}
+.sq-tabs [aria-selected="true"] .sq-stn{color:var(--gold);background:#1A1030}
+.sq-tabs canvas.sq-sti{width:36px;height:36px;flex:none;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.45))}
+.sq-stx{display:flex;flex-direction:column;gap:4px;min-width:0}
+.sq-stt{font-family:var(--f-display);font-size:12px;line-height:1.2;letter-spacing:.06em;text-transform:uppercase}
+.sq-std{font-family:var(--f-data);font-size:17px;line-height:1;color:var(--sq-soft)}
+.sq-sts{font-family:var(--f-data);font-size:16px;line-height:1;color:#9FE3D9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sq-sts.done::before{content:'✓ '}
+.sq-tabs [aria-selected="true"] .sq-std{color:#5A4510}
+.sq-tabs [aria-selected="true"] .sq-sts{color:#1A1030}
+.sq-new{position:absolute;right:-6px;top:-10px;padding:3px 5px;font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#E2566E;border:2px solid #000;box-shadow:2px 2px 0 #000;animation:sqNew 1.4s steps(2) infinite}
+@keyframes sqNew{50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.sq-new{animation:none}}
+/* a phone: the picture over the title, and how far you are; the number and the line go */
+@media (max-width:640px){
+  .sq-tabs{gap:6px}
+  .sq-tabs [role="tab"]{grid-template-columns:1fr;justify-items:center;row-gap:5px;min-height:92px;padding:8px 4px;text-align:center}
+  .sq-stn,.sq-std{display:none}
+  .sq-tabs canvas.sq-sti{width:30px;height:30px}
+  .sq-stx{align-items:center}
+  .sq-stt{font-size:10px}
+  .sq-sts{font-size:14px;max-width:100%}
+}
+/* a newcomer's guide over the five (until dismissed, or all three steps opened) */
+.sq-guide{display:grid;gap:10px;margin:0 0 14px;padding:14px 16px;background:linear-gradient(135deg,#1C4C55,#12323A);border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold),0 4px 0 #000}
+.sq-guide[hidden]{display:none}
+.sq-guide h4{margin:0;font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.4;color:var(--gold);text-shadow:2px 2px 0 #000}
+.sq-gsteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.sq-gsteps li{display:flex;align-items:center;gap:10px;font-family:var(--f-data);font-size:18px;line-height:1.05;color:#fff}
+.sq-gsteps canvas{width:28px;height:28px;flex:none}
+.sq-gsteps b{display:block;margin-bottom:3px;font-family:var(--f-display);font-weight:400;font-size:9px;line-height:1.3;color:var(--gold);text-transform:uppercase}
+.sq-guide .sq-desc{margin:0}
+.sq-gacts{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:640px){.sq-gsteps{grid-template-columns:1fr}}
+.sq-fivehint{flex:1;font-family:var(--f-data);font-size:17px;line-height:1;color:var(--sq-soft)}
+@media (max-width:520px){.sq-fivehint{order:3;flex:1 0 100%}}
 .sq-tabnote{margin:8px 0 10px;font-size:14px;line-height:1.35;color:var(--sq-soft)}
 .sq-looks{background:var(--pink);border:3px solid #000;box-shadow:0 4px 0 #000;padding:14px;color:var(--ink)}
 .sq-looks :is(#mkTeam,.mk-mode,#mkBuild,#wallet,#buybar,.oven){display:none!important}
@@ -1921,7 +1960,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · admin panel (live site only), rankings with bots and pause, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · team page in three steps (Looks, Skills, Strategy) with a newcomer's guide, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -21150,6 +21189,7 @@ const SquadHall = (() => {
     R.stratChip.textContent = '';
     R.stratChip.append(h('b', null, 'ABC'[a]), h('span', null, slotName(a)));
     R.stratChip.setAttribute('aria-label', 'Strategy ' + 'ABC'[a] + ': ' + slotName(a) + '. Show the strategies');
+    renderSteps();
   }
   // a saved squad with the roles that follow their Blub's personality brought up to date
   const fitted = d => { const c = copyDraft(d); if (c) followTeam(c); return c; };
@@ -21384,9 +21424,42 @@ const SquadHall = (() => {
     syncLooks();
     if (focusCell){ const u = st.draft.units[st.sel]; st.cur = [u.x, u.y]; focusCur(); }
   }
-  // ---- the team page's three tabs: a Blub's looks (the Blub Maker's panel), its battle
-  // build (the parts), and the team as a whole (formation, trench kit and squad sheet)
-  const TABS = [['looks', 'Looks', 'Looks'], ['build', 'Battle build', 'Build'], ['plan', 'Team overview', 'Overview']];
+  // ---- the team page's three steps: a Blub's looks (the Blub Maker's panel), its skills
+  // (role, weapon, gear, power, tactic, training) and the team's strategy (formation,
+  // trench kit, command, the three plans). Big cards with a picture, a line and how far
+  // you are, so a new player sees at once where everything is (the owner, 12 Oct 2026).
+  const TABS = [['looks', 'Looks', 'Name, colours, hats'], ['build', 'Skills', 'Role, weapon, power, training'], ['plan', 'Strategy', 'Formation, trench kit, plans']];
+  // their pictures: a palette, a sword, a tactics board
+  const STEP_ICONS = {
+    looks: [['...kkkkk....', '..kWWWWWkk..', '.kWRRWWWWWk.', 'kWWRRWWYYWWk', 'kWWWWWWYYWWk', 'kWBBWWWWWWk.', 'kWBBWWWWkk..', 'kWWWWWWk....', 'kWWGGWWWk...', '.kWGGWWWWk..', '..kkWWWWWk..', '....kkkkk...'],
+      {k: '#000', W: '#FFE9D6', R: '#F59AB0', Y: '#FFD447', B: '#86CBF3', G: '#5ED6CB'}],
+    build: [['.........kkk', '........kWWk', '.......kWSk.', '......kWSk..', '.....kWSk...', '.kk.kWSk....', '.kGkWSk.....', '..kGSk......', '..kkGGk.....', '.kNkkkGk....', 'kNNk..kk....', 'kkk.........'],
+      {k: '#000', W: '#FFFFFF', S: '#B9C9D6', G: '#FFD447', N: '#8C5A2B'}],
+    plan: [['kkkkkkkkkkkk', 'kTTTTTTTTTTk', 'kTBBTTTTTTTk', 'kTBBTTTTRRTk', 'kTTkTTTTRRTk', 'kTTTkTTTTTTk', 'kTTTTkkTTTTk', 'kTTTTTTkTTTk', 'kTTTTTTTkYTk', 'kTTTTTTTYYYk', 'kTTTTTTTTYTk', 'kkkkkkkkkkkk'],
+      {k: '#000', T: '#2E7D74', B: '#86CBF3', R: '#E2566E', Y: '#FFD447'}],
+  };
+  const stepIcon = (k, px) => pixRows(STEP_ICONS[k][0], STEP_ICONS[k][1], px, 'sq-sti');
+  // the steps this browser has opened: a NEW tag on the others, and the guide for a newcomer
+  const seenSteps = () => { const s = (lsGet() || {}).sqSeen; return s && typeof s === 'object' ? s : {}; };
+  function stepSeen(t){ if (!TABS.some(x => x[0] === t)) return; const s = seenSteps(); if (!s[t]) lsPatch({sqSeen: {...s, [t]: 1}}); }
+  function renderSteps(){
+    if (!R.tabs) return;
+    // the step on screen counts as seen (the team page open, this step showing)
+    const main = R.tabs.closest('main');
+    if (main && !main.hidden) stepSeen(st.tab);
+    const s = seenSteps(), a = activeIdx(), ready = st.draft ? readyCount(st.draft) : 0;
+    R.tabs.querySelectorAll('[role="tab"]').forEach(b => {
+      const k = b.getAttribute('data-tab'), on = k === st.tab;
+      b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1;
+      const sts = b.querySelector('.sq-sts'), nw = b.querySelector('.sq-new');
+      if (sts){
+        sts.textContent = k === 'looks' ? 'Now: ' + nameOf(st.sel) : k === 'build' ? ready + ' of 5 ready' : 'Plan ' + 'ABC'[a] + ' · ' + slotName(a);
+        sts.classList.toggle('done', k === 'build' && ready === 5);
+      }
+      if (nw) nw.hidden = !!s[k] || on;
+    });
+    if (R.guide) R.guide.hidden = !!(lsGet() || {}).sqGuide || TABS.every(([k]) => s[k]);
+  }
   function setTab(t, quiet){
     st.tab = TABS.some(x => x[0] === t) ? t : 'build';
     if (!quiet) lsPatch({sqTab: st.tab});
@@ -21394,8 +21467,8 @@ const SquadHall = (() => {
     const looks = st.tab === 'looks', plan = st.tab === 'plan';
     R.stage.hidden = looks || plan; R.looks.hidden = !looks;
     R.zStrat.hidden = !plan; R.zField.hidden = !plan; R.zSheet.hidden = !plan;
-    R.tabs.querySelectorAll('[role="tab"]').forEach(b => { const on = b.getAttribute('data-tab') === st.tab; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
-    R.tabNote.textContent = looks ? 'How ' + nameOf(st.sel) + ' looks: name, colors, parts and personality.' : plan ? 'The whole team: where everyone starts, the trench kit, and how strong the squad is.' : 'How ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic and training.';
+    renderSteps();
+    R.tabNote.textContent = looks ? 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.' : plan ? 'Strategy: where everyone starts, the trench kit, the captain’s command and your three plans.' : 'Skills: how ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic and training.';
     if (looks) mountLooks();
     else if (plan){ paintBoard(); keepFocus(renderSheet); }
     else keepFocus(renderUnit);
@@ -21408,12 +21481,12 @@ const SquadHall = (() => {
   }
   function syncLooks(){
     if (st.tab !== 'looks' || !R.tabNote) return;
-    R.tabNote.textContent = 'How ' + nameOf(st.sel) + ' looks: name, colors, parts and personality.';
+    R.tabNote.textContent = 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.';
     const b = document.querySelectorAll('#mkTeam [role="tab"]')[st.sel];
     if (b && b.getAttribute('aria-selected') !== 'true') b.click();
   }
   // the parts of the builder that show the picked Blub
-  function renderUnit(){ renderFive(); renderStage(); renderChoices(); renderStats(); renderStrip(); }
+  function renderUnit(){ renderFive(); renderStage(); renderChoices(); renderStats(); renderStrip(); renderSteps(); }
   function changed(){ saveDraft(); keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); }
   // the sheet's Edit buttons and the strip's Edit: that Blub's parts, in sight
   function editBlub(i){
@@ -23606,7 +23679,7 @@ const SquadHall = (() => {
       const snd2 = h('button', {type: 'button', class: 'btn small snd'}, 'Sound on'); Sfx.bind(snd2);
       troot.append(h('div', {class: 'sec-head sq-head'},
         h('div', null, h('span', {class: 'eyebrow'}, 'Your team · 5v5'), h('h2', {id: 'teamTitle'}, 'Team')),
-        h('p', null, 'Pick a Blub, then its looks or its battle build. The overview shows the whole team and its plan.'),
+        h('p', null, 'Make your team in three steps: Looks, Skills and Strategy. Pick a Blub at the top to work on it, then try the team in Practice.'),
         h('div', {class: 'sq-heada'}, h('a', {class: 'btn small gold', href: '#practice', 'data-k': 'toarena'}, 'To practice'), snd2)));
     }
 
@@ -23642,10 +23715,12 @@ const SquadHall = (() => {
     R.stage = h('div', {class: 'sq-stage', role: 'region', 'aria-labelledby': 'sqEdEye'},
       h('div', {class: 'sq-sthead'}, R.stEye, h('label', {class: 'sq-namebox'}, R.nameIn, canRename() ? pen : null), R.nameMsg, R.chips), R.figGrid, R.tray2, R.who);
     R.five = h('div', {class: 'sq-five', role: 'radiogroup', 'aria-label': 'Your team of five: pick one'}); radioKeys(R.five);
-    // the three tabs under the five
-    R.tabs = h('div', {class: 'sq-tabs', role: 'tablist', 'aria-label': 'Show'});
-    TABS.forEach(([k, long, short]) => R.tabs.append(h('button', {type: 'button', role: 'tab', 'data-tab': k, 'data-k': 'tab:' + k, 'aria-selected': 'false', onclick: () => { setTab(k); Sfx.play('click'); }},
-      h('span', {class: 'sq-long'}, long), h('span', {class: 'sq-short'}, short))));
+    // the three steps under the five: a number, a picture, a title, a line and how far you are
+    R.tabs = h('div', {class: 'sq-tabs', role: 'tablist', 'aria-label': 'Make your team'});
+    TABS.forEach(([k, title, line], i) => R.tabs.append(h('button', {type: 'button', role: 'tab', 'data-tab': k, 'data-k': 'tab:' + k, 'aria-selected': 'false', onclick: () => { setTab(k); Sfx.play('click'); }},
+      h('span', {class: 'sq-stn', 'aria-hidden': 'true'}, String(i + 1)), stepIcon(k, 36),
+      h('span', {class: 'sq-stx'}, h('span', {class: 'sq-stt'}, title), h('span', {class: 'sq-std'}, line), h('span', {class: 'sq-sts'})),
+      h('span', {class: 'sq-new', 'aria-hidden': 'true', hidden: true}, 'New'))));
     R.tabs.addEventListener('keydown', e => {
       const d = {ArrowRight: 1, ArrowLeft: -1}[e.key]; if (!d) return;
       e.preventDefault();
@@ -23666,7 +23741,7 @@ const SquadHall = (() => {
     R.cmdBox = h('div', {class: 'sq-field sq-cmdf'}, h('span', {class: 'sq-lbl', id: 'sqCmdL'}, 'Captain’s command'), R.cmd, R.cmdDesc);
     R.zSheet = h('div', {class: 'sq-zone sq-szone'}, h('span', {class: 'sq-lbl', id: 'sqSheetT'}, 'Squad sheet'), R.plan, R.cmdBox,
       h('div', {class: 'sq-scards'}, R.rateBox, R.sheetTeam, R.sheetKit), R.rateHow, R.sheet);
-    // the three strategies (on the overview tab), the active one's name, and a chip over
+    // the three strategies (under the Strategy step), the active one's name, and a chip over
     // the five that says which strategy is being edited
     R.strat = h('div', {class: 'sq-strat', role: 'radiogroup', 'aria-labelledby': 'sqStratT'}); radioKeys(R.strat);
     R.stratName = h('select', {'data-k': 'sname', 'aria-label': 'Name of this strategy'});
@@ -23694,8 +23769,18 @@ const SquadHall = (() => {
       h('div', {class: 'sq-bar-l'}, R.barReady, R.rateBtn, R.ratePop),
       R.barMsg,
       h('div', {class: 'sq-bar-r'}, R.barGo));
+    // a newcomer's way in: the three steps, a line each, until dismissed or all three opened
+    const GUIDE = {looks: 'Dress each Blub up: colours, hats and faces.', build: 'Give each one a role, a weapon, a power and training.', plan: 'Pick where they start, a trench kit and your plans.'};
+    R.guide = h('div', {class: 'sq-guide', role: 'note', 'aria-labelledby': 'sqGuideT', hidden: true},
+      h('h4', {id: 'sqGuideT'}, 'New here? Your team in three steps'),
+      h('ol', {class: 'sq-gsteps'}, ...TABS.map(([k, title], i) => h('li', null, stepIcon(k, 28), h('span', null, h('b', null, (i + 1) + ' · ' + title), GUIDE[k])))),
+      h('p', {class: 'sq-desc'}, 'Then try your team in Practice: the guided first match, bot squads, or a friend.'),
+      h('div', {class: 'sq-gacts'},
+        button('Start with Looks', 'gold', () => { setTab('looks'); Sfx.play('click'); R.tabs.scrollIntoView({block: 'start', behavior: calm() ? 'auto' : 'smooth'}); }, {'data-k': 'guidego'}),
+        button('Got it', '', () => { lsPatch({sqGuide: 1}); R.guide.hidden = true; }, {'data-k': 'guideok'})));
     R.builder = h('article', {class: 'sq-panel sq-builder', 'aria-labelledby': 'sqBTitle', id: 'sqBuilder'},
-      h('div', {class: 'sq-bhead'}, h('h3', {id: 'sqBTitle'}, 'Your five'), R.stratChip),
+      R.guide,
+      h('div', {class: 'sq-bhead'}, h('h3', {id: 'sqBTitle'}, 'Your five'), h('span', {class: 'sq-fivehint'}, (touchy.matches ? 'Tap' : 'Click') + ' a Blub to work on it'), R.stratChip),
       R.zBlub, R.zStrat, R.zField, R.zSheet, bar);
 
     // 2. the challenge
