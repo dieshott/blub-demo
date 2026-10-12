@@ -1745,12 +1745,58 @@ body.no-scroll{overflow:hidden}
 .sq-tr{color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
 .sq-tr small{color:var(--sq-soft);font-size:17px;margin-left:6px}
 .sq-top li.sq-empty{display:block}
-/* the weekly league: a bar on the left for the top fifth (moving up) and the bottom fifth (down) */
-.sq-league{max-height:520px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
-.sq-league li{border-left:4px solid transparent;padding-left:4px}
+/* the rankings' rows: rank, Blub, who (a profile name or the wallet; under it the wallet
+   with a copy button and the team's captain; tags for a bot and for you), points */
+.sq-top li.lg-row{padding:6px 8px 6px 6px;transition:background .15s}
+.sq-top li.lg-row:hover{background:rgba(255,255,255,.035)}
+.sq-top li.me{background:linear-gradient(90deg,rgba(255,212,71,.15),rgba(255,212,71,.03));box-shadow:inset 0 0 0 2px rgba(255,212,71,.45)}
+.sq-top .rk.r1{background:var(--gold);color:var(--ink)}
+.sq-top .rk.r2{background:#D9E3E3;color:var(--ink)}
+.sq-top .rk.r3{background:#E8A87C;color:var(--ink)}
+.lg-who{display:flex;flex-direction:column;gap:5px;min-width:0}
+.lg-name{display:flex;align-items:center;gap:6px;min-width:0;font-family:var(--f-data);font-size:20px;line-height:1;color:#fff}
+.lg-name > b{font-weight:400;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sq-top li.me .lg-name > b{color:var(--gold)}
+.lg-sub{display:flex;align-items:center;gap:6px;min-width:0;font-family:var(--f-data);font-size:16px;line-height:1;color:var(--sq-soft);white-space:nowrap;overflow:hidden}
+.lg-sub > span{overflow:hidden;text-overflow:ellipsis}
+.lg-addr{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,'Liberation Mono',monospace;font-size:.78em;letter-spacing:.03em;color:#BFE6E0}
+.lg-name > b.lg-addr{color:#fff}
+.lg-cap{color:var(--sq-soft)}
+.lg-tag{flex:none;display:inline-flex;align-items:center;gap:4px;padding:3px 5px;border:2px solid #000;font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.08em;text-transform:uppercase;box-shadow:2px 2px 0 rgba(0,0,0,.45)}
+.lg-tag.bot{background:#24364A;color:#BFE3FF;padding-left:3px}
+.lg-tag.bot canvas{width:12px;height:12px}
+.lg-tag.you{background:var(--gold);color:var(--ink)}
+.lg-copy{flex:none;position:relative;width:20px;height:20px;padding:0;border:2px solid #000;background:#0B1F23;color:#7FB9B2;cursor:pointer}
+.lg-copy::before,.lg-copy::after{content:'';position:absolute;width:6px;height:7px;border:2px solid currentColor;background:#0B1F23}
+.lg-copy::before{left:2px;top:2px}
+.lg-copy::after{left:5px;top:5px}
+.lg-copy:hover,.lg-copy:focus-visible{color:#fff}
+.lg-copy:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.lg-copy.ok{color:#6FD08A}
+.lg-copy.ok::before{display:none}
+.lg-copy.ok::after{left:5px;top:2px;width:4px;height:8px;border-width:0 2px 2px 0;background:none;transform:rotate(45deg)}
+.lg-pts{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+.lg-pts b{font-family:var(--f-data);font-weight:400;font-size:24px;line-height:.9;color:var(--gold)}
+.lg-pts small{font-family:var(--f-data);font-size:15px;line-height:1;color:var(--sq-soft)}
+
+/* the weekly league: a bar on the left for the top fifth (moving up) and the bottom fifth
+   (down), a line where each zone starts, and a head that stays put while the list scrolls */
+.sq-league{max-height:520px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;gap:4px}
+.sq-league li{border-left:4px solid transparent}
 .sq-league li.up{border-left-color:#4FB36B}
 .sq-league li.down{border-left-color:#E2566E}
 .sq-league li.sq-empty{border-left:0;padding-left:0}
+.sq-league li:nth-child(n) .rk{background:var(--sq-panel2);color:inherit}
+.sq-league li .rk.r1{background:var(--gold);color:var(--ink)}
+.sq-league li .rk.r2{background:#D9E3E3;color:var(--ink)}
+.sq-league li .rk.r3{background:#E8A87C;color:var(--ink)}
+.sq-league li.lg-head{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:28px 32px minmax(0,1fr) auto;gap:8px;padding:7px 8px 7px 10px;border-left:0;background:#0E262B;border-bottom:2px solid #000;
+  font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.12em;text-transform:uppercase;color:var(--sq-soft)}
+.sq-league li.lg-head span:first-child{text-align:center}
+.sq-league li.lg-zone{display:flex;align-items:center;gap:10px;padding:4px 2px;border-left:0;font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.14em;text-transform:uppercase}
+.sq-league li.lg-zone::before,.sq-league li.lg-zone::after{content:'';flex:1;height:2px;background:currentColor;opacity:.5}
+.sq-league li.lg-zone.up{color:#6FD08A}
+.sq-league li.lg-zone.down{color:#FF8A9A}
 .sq-lgme{align-items:center}
 .sq-lgme canvas.sq-lgb{width:24px;height:24px;flex:none}
 .sq-lgrule{margin:0}
@@ -1760,6 +1806,14 @@ body.no-scroll{overflow:hidden}
 .sq-divs li{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:12px;align-items:center;font-family:var(--f-data);font-size:19px;line-height:1.05;color:var(--sq-soft)}
 .sq-divs li canvas{grid-row:1 / span 2;width:32px;height:32px}
 .sq-divs li b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff}
+/* your profile on the rankings page */
+.sq-pfwho{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0B1F23;border:3px solid #000}
+.sq-pfwho canvas{width:32px;height:40px;flex:none}
+.sq-pfrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sq-pfin{flex:1;min-width:140px;min-height:44px;font-family:var(--f-data);font-size:22px;padding:4px 10px;border:3px solid #000;background:#fff;color:var(--ink)}
+.sq-pfin:disabled{background:#C9D6D6;color:#5B6B6B}
+.sq-pfin:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.sq-profp{order:2}
 
 /* your matches */
 .sq-mlist{max-height:460px;overflow:auto}
@@ -1862,7 +1916,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · new header: Practice and Rankings (league preview), engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · rankings with wallets, profile names and bot tags, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -3301,7 +3355,8 @@ const API = (() => {
     logout: () => call('POST', 'auth/logout', {}),
     meadow: () => call('GET', 'meadow'),
     // with strats, the wallet's three strategies are saved along (the same command)
-    save: (name, look, style, build, squad, strats) => call('PUT', 'blub', strats ? {name, look, style, build, squad, strats} : {name, look, style, build, squad}),
+    // with player, the profile name shown in the rankings (the same save)
+    save: (name, look, style, build, squad, strats, player) => call('PUT', 'blub', {name, look, style, build, squad, ...(strats ? {strats} : {}), ...(player ? {player} : {})}),
     team: () => call('GET', 'team'),
     remove: addr => call('DELETE', 'blub/' + encodeURIComponent(addr)),
     brawl: (target, revenge) => call('POST', 'brawl', {target, revenge}),
@@ -3316,7 +3371,7 @@ const API = (() => {
   };
 })();
 const LS = 'blub-weiland-v1';
-S.style = 'playful'; S.build = null; S.squad = null; S.teamAt = '';
+S.style = 'playful'; S.build = null; S.squad = null; S.teamAt = ''; S.player = '';
 S.king = null; S.kingLoaded = false;
 function lsGet(){ try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch { return null; } }
 function lsSet(v){ try { localStorage.setItem(LS, JSON.stringify(v)); } catch {} }
@@ -3396,7 +3451,7 @@ function localRec(){ return {id:'local', name:S.name || 'Blub', look:wearable(S.
 // Blubs from the server: name and look only (items are cosmetic and free to wear for now).
 function cleanRec(id, o){
   if (!o || typeof o !== 'object') return null;
-  return {id, name: cleanName(o.name) || 'Blub', look: cleanLook(o.look), owned: [], best: 0, bestMs: 0, week: 0,
+  return {id, name: cleanName(o.name) || 'Blub', player: cleanName(o.player), look: cleanLook(o.look), owned: [], best: 0, bestMs: 0, week: 0,
     style: cleanStyle(o.style), build: cleanBuild(o.build, o.style), holder: o.holder === true, created: typeof o.created === 'string' ? o.created.slice(0, 32) : '',
     updated: typeof o.updated === 'string' ? o.updated.slice(0, 32) : ''};
 }
@@ -3444,7 +3499,7 @@ async function persistMe(first){
     if (S.saved && !S.squad) await loadTeam();
     if (S.saved && !S.squad){ status('Your team is still loading. Try again in a moment.'); return false; }
     try {
-      const r = await API.save(S.name, S.look, cleanStyle(S.style), cleanBuild(S.build, S.style), S.squad, S.stratsOut || undefined);
+      const r = await API.save(S.name, S.look, cleanStyle(S.style), cleanBuild(S.build, S.style), S.squad, S.stratsOut || undefined, S.player);
       const rec = cleanRec(S.addr, r && r.blub);
       if (rec) keepTeam(r.blub.squad, r.blub.updated, r.strats);
       if (rec){ const had = S.docs.has(S.addr); S.docs.set(S.addr, rec); S.saved = true; S.justSaved = Date.now(); S.holder = rec.holder; Wallet.render(); Field.sync(had ? null : new Set([S.addr])); refreshAll(); }
@@ -3458,7 +3513,7 @@ async function persistMe(first){
   return true;
 }
 function persistWallet(){ if (S.mode === 'local') saveLocal(); }
-function saveLocal(){ lsPatch({local:{squad:S.squad, coins:S.coins, owned:S.owned, best:S.best, bestMs:S.bestMs, runs:S.runs, saved:S.mode === 'local' && S.saved, name:S.name, look:S.look, style:S.style, build:S.build}}); }
+function saveLocal(){ lsPatch({local:{squad:S.squad, coins:S.coins, owned:S.owned, best:S.best, bestMs:S.bestMs, runs:S.runs, saved:S.mode === 'local' && S.saved, name:S.name, look:S.look, style:S.style, build:S.build, player:S.player}}); }
 function loadLocal(){
   const d = lsGet(), L = d && d.local; if (!L) return null;
   const c = Math.floor(+L.coins); S.coins = Number.isFinite(c) ? clamp(c, 0, 1e6) : 150;
@@ -5219,7 +5274,12 @@ const SquadNet = {
   // a shared match: the whole match rides in the link (SquadHall.watch opens it)
   watchLink: code => location.origin + location.pathname + '#watch=' + code,
   me: () => (S.mode === 'wallet' ? S.addr : null),
-  who: id => { const b = Field.get(id); return b ? {name: b.rec.name, look: b.rec.look, style: b.rec.style} : null; },
+  who: id => { const b = Field.get(id); return b ? {name: b.rec.name, look: b.rec.look, style: b.rec.style, player: b.rec.player || ''} : null; },
+  // the rankings name wallets: their address (short, with a copy button) under a profile name
+  walletIds: !DEMO,
+  // your profile name (shown in the rankings next to your wallet address), and setting it
+  profile: () => (S.mode === 'wallet' || S.mode === 'local' ? {player: S.player || '', addr: S.mode === 'wallet' ? S.addr : null, saved: !!S.saved} : null),
+  setProfile: name => (profileJob = profileJob.then(() => setProfile(name), () => setProfile(name))),
   blubs: () => Field.ids().filter(id => id !== SquadNet.me()).map(id => ({id, ...SquadNet.who(id)})).filter(b => b.name),
   captain: () => { const b = Field.get(myId()); return b ? {name: b.rec.name, look: b.rec.look, style: b.rec.style} : null; },
   team: () => myTeam().map(m => ({name: m.name, look: m.look, style: m.style})),
@@ -5246,7 +5306,22 @@ const SquadNet = {
     return ok ? {ok: true, at: S.teamAt} : {ok: false, error: $('#wStatus').textContent || 'Saving did not work. Try again.'};
   },
 };
-let renameJob = Promise.resolve(), renameAt = 0;
+let renameJob = Promise.resolve(), renameAt = 0, profileJob = Promise.resolve();
+// the profile name rides along with the team: the same save, the same cooldown
+async function setProfile(name){
+  const nm = cleanName(name);
+  if (nm && [...nm].length < 2) return {ok: false, error: 'A profile name needs 2 to 14 letters or digits, or none.'};
+  if (S.mode === 'boot') return {ok: false, error: 'Your team is still loading. Try again in a moment.'};
+  if (S.mode !== 'wallet' && S.mode !== 'local') return {ok: false, error: 'Connect your wallet first.'};
+  if (nm === (S.player || '')) return {ok: true};
+  const was = S.player;
+  S.player = nm;
+  if (S.mode === 'local'){ saveLocal(); return {ok: true, local: true, note: 'Saved in this browser.'}; }
+  if (!S.saved) return {ok: true, local: true, note: 'It goes along when you save your team on the Team page.'};
+  if (await persistMe(false)){ persistWallet(); return S.mode === 'wallet' ? {ok: true} : {ok: true, local: true, note: 'Saved in this browser'}; }
+  S.player = was;
+  return {ok: false, error: 'The profile name was not saved. Try again in a moment.'};
+}
 async function renameOne(i, name){
   const nm = cleanName(name);
   if (!(Number.isInteger(i) && i >= 0 && i < 5) || [...nm].length < 2) return {ok: false, error: 'A name needs 2 to 14 letters or digits.'};
@@ -22661,10 +22736,10 @@ const SquadHall = (() => {
     else R.myRank.append(h('span', null, me ? 'Win duels to climb the ladder.' : 'Sign in and win duels to get on the ladder.'));
     if (!top.length){ box.append(h('li', {class: 'sq-empty'}, !SquadNet.ready() ? SquadNet.offline : boardFailed() ? 'The ladder did not load. It tries again in a minute.' : 'No duels this season yet. Be the first name here.')); return; }
     top.forEach((r, i) => {
-      const w = SquadNet.who(r.id), li = h('li', {class: r.id === me ? 'me' : ''});
-      const sc = h('span', {class: 'sq-tr', title: 'Season rating'}, String(r.r), h('small', null, r.w + '–' + r.l));
-      li.append(h('span', {class: 'rk'}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
-        h('b', null, w ? cleanName(w.name) || 'Blub' : r.id.slice(0, 4) + '…' + r.id.slice(-4)), sc);
+      const w = SquadNet.who(r.id), li = h('li', {class: 'lg-row' + (r.id === me ? ' me' : '')});
+      const sc = h('span', {class: 'lg-pts', title: 'Season rating · ' + r.w + ' won, ' + r.l + ' lost'}, h('b', null, String(r.r)), h('small', null, r.w + '–' + r.l));
+      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+        whoBlock(r.id, w, {me: r.id === me}), sc);
       box.append(li);
     });
   }
@@ -22718,14 +22793,51 @@ const SquadHall = (() => {
     {M: '#C77B30', H: '#F0A860', S: '#8A4F1C'}, {M: '#C9D3E0', H: '#FFFFFF', S: '#8A96A8'}, {M: '#FFD447', H: '#FFF3B0', S: '#C98A12'},
     {M: '#7FE7F2', H: '#D9FBFF', S: '#2BB5C8', W: '#FFFFFF'}, {M: '#FFF3B0', H: '#FFFFFF', S: '#E0C060', W: '#FFD447'},
   ];
-  function divBadge(d, px){
-    const rows = d >= 5 ? BADGE.moon : d === 4 ? BADGE.gem : BADGE.medal;
-    const pal = {k: '#000', r: '#5E3A8A', R: '#9B6BD6', ...BADGE_PAL[clamp(d, 1, 5) - 1]};
-    const c = document.createElement('canvas'); c.width = 12; c.height = 12;
+  // pixel rows to a canvas, shown at px
+  function pixRows(rows, pal, px, cls){
+    const c = document.createElement('canvas'); c.width = rows[0].length; c.height = rows.length;
     const x = c.getContext('2d');
     rows.forEach((row, y) => [...row].forEach((ch, i) => { if (pal[ch]){ x.fillStyle = pal[ch]; x.fillRect(i, y, 1, 1); } }));
-    c.className = 'sq-lgb spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
+    c.className = cls + ' spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
     return c;
+  }
+  function divBadge(d, px){
+    const rows = d >= 5 ? BADGE.moon : d === 4 ? BADGE.gem : BADGE.medal;
+    return pixRows(rows, {k: '#000', r: '#5E3A8A', R: '#9B6BD6', ...BADGE_PAL[clamp(d, 1, 5) - 1]}, px, 'sq-lgb');
+  }
+  // a bot's mark in the rankings: a small robot head
+  const BOT_ROWS = ['.....RR.....', '.....kk.....', '.kkkkkkkkkk.', 'kGGGGGGGGGGk', 'kGkkkkkkkkGk', 'kGkCCkkCCkGk', 'kGkCCkkCCkGk', 'kGkkkkkkkkGk', 'kGGGGGGGGGGk', 'kGGkWkWkWGGk', 'kGGGGGGGGGGk', '.kkkkkkkkkk.'];
+  const BOT_PAL = {k: '#000', G: '#9FB4C8', R: '#E2566E', C: '#5EE6FF', W: '#2B3A4A'};
+  const shortId = id => id.slice(0, 4) + '…' + id.slice(-4);
+  // copies a wallet address, with a tick for a moment
+  function copyBtn(text){
+    const b = h('button', {type: 'button', class: 'lg-copy', title: 'Copy wallet address', 'aria-label': 'Copy wallet address'});
+    b.onclick = e => {
+      e.stopPropagation();
+      const done = () => { b.classList.add('ok'); setTimeout(() => b.classList.remove('ok'), 1400); };
+      try { navigator.clipboard.writeText(text).then(done, () => {}); } catch { /* no clipboard here */ }
+    };
+    return b;
+  }
+  // Who a row of the rankings is: a profile name, else the wallet address, with a tag for
+  // a bot or for you; under it the wallet address (with a copy button) and the team's
+  // captain. Where ids are no wallets (the claude.ai page, the preview), names only.
+  function whoBlock(id, w, o){
+    const bot = !!(w && w.bot), wallet = !bot && !!SquadNet.walletIds && ID_OK.test(id), me = !!(o && o.me);
+    const player = w && w.player ? cleanName(w.player) : '', cap = w ? cleanName(w.name) : '';
+    const top = h('span', {class: 'lg-name'}), sub = [];
+    if (wallet) top.append(h('b', {class: player ? '' : 'lg-addr', title: id}, player || shortId(id)));
+    else top.append(h('b', null, (me && player) || cap || (me ? 'You' : 'Blub')));
+    if (bot) top.append(h('span', {class: 'lg-tag bot', title: 'A bot, not a player'}, pixRows(BOT_ROWS, BOT_PAL, 12, 'lg-boti'), 'Bot'));
+    if (me) top.append(h('span', {class: 'lg-tag you'}, 'You'));
+    if (bot) sub.push(h('span', null, 'Not a real player'));
+    else if (wallet){
+      if (player) sub.push(h('span', {class: 'lg-addr', title: id}, shortId(id)));
+      sub.push(copyBtn(id));
+      if (cap) sub.push(h('span', {class: 'lg-cap'}, 'Blub ' + cap));
+    }
+    else if (me) sub.push(h('span', {class: 'lg-cap'}, player && cap ? 'Blub ' + cap : o.example ? 'You, in the example' : 'Your team'));
+    return h('span', {class: 'lg-who'}, top, ...(sub.length ? [h('span', {class: 'lg-sub'}, ...sub)] : []));
   }
   function endsText(iso){
     const ms = Date.parse(iso) - Date.now();
@@ -22736,16 +22848,20 @@ const SquadHall = (() => {
   // A group of the league, ranked: the top fifth has a green bar (moving up), the bottom
   // fifth a red one (moving down). `who` names a member. The list scrolls on its own: to
   // your row the first time, then it stays where you left it (`was`, `key`).
-  function drawGroup(g, me, who, key, was){
+  function drawGroup(g, me, who, key, was, example){
     const box = R.lg, k = g.m.findIndex(m => m.id === me), x = g.m[k];
     if (x) R.lgMe.append(divBadge(g.d, 24), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
-    const n = g.m.length, mv = movers(n);
+    const n = g.m.length, mv = movers(n), upTo = g.d < DIVS.length ? mv : 0, downFrom = g.d > 1 ? n - mv : n;
+    // a head that stays put while the list scrolls, then the rows with the zones between
+    box.append(h('li', {class: 'lg-head', 'aria-hidden': 'true'}, h('span', null, '#'), h('span'), h('span', null, 'Player'), h('span', null, 'Points')));
     g.m.forEach((m, i) => {
-      const w = who(m.id), up = i < mv && g.d < DIVS.length, down = i >= n - mv && i >= mv && g.d > 1;
-      const li = h('li', {class: [m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
-      li.append(h('span', {class: 'rk'}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
-        h('b', null, w ? cleanName(w.name) || 'Blub' : m.id.slice(0, 4) + '…' + m.id.slice(-4)), h('span', {class: 'sq-tr', title: 'League points'}, String(m.p), h('small', null, m.w + '–' + m.l)));
+      if (i === downFrom && mv) box.append(h('li', {class: 'lg-zone down', 'aria-hidden': 'true'}, 'Demotion zone'));
+      const w = who(m.id), up = i < upTo, down = i >= downFrom;
+      const li = h('li', {class: ['lg-row', m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
+      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+        whoBlock(m.id, w, {me: m.id === me, example}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l)));
       box.append(li);
+      if (i === upTo - 1) box.append(h('li', {class: 'lg-zone up', 'aria-hidden': 'true'}, 'Promotion zone'));
     });
     if (n < 5) box.append(h('li', {class: 'sq-empty'}, 'Your group fills up as more Blubs play: with 5 or more, the top and bottom fifth move.'));
     if (st.lgKey === key) box.scrollTop = was;
@@ -22762,12 +22878,12 @@ const SquadHall = (() => {
     const STY = ['fierce', 'sleepy', 'playful', 'sweet', 'cheeky'];
     pickNames(r, 34, []).forEach((ni, i) => {
       const id = 'ex' + i, w = Math.floor(r() * 7), l = Math.floor(r() * 5);
-      faces.set(id, {name: E.RECRUIT_NAMES[ni], look: freeLook(r), style: STY[Math.floor(r() * STY.length)]});
+      faces.set(id, {name: E.RECRUIT_NAMES[ni], look: freeLook(r), style: STY[Math.floor(r() * STY.length)], bot: true});
       m.push({id, p: 3 * w + l, w, l, j: i + 2});
     });
     // (a first visit has no captain yet: the plain Blub stands in)
-    const cap = SquadNet.captain();
-    faces.set('you', {name: cap && cap.name ? cap.name : 'You', look: cleanLook(cap ? cap.look : null), style: cap && cap.style ? cap.style : 'playful'});
+    const cap = SquadNet.captain(), prof = typeof SquadNet.profile === 'function' ? SquadNet.profile() : null;
+    faces.set('you', {name: cap && cap.name ? cap.name : '', player: prof && prof.player || '', look: cleanLook(cap ? cap.look : null), style: cap && cap.style ? cap.style : 'playful'});
     m.push({id: 'you', p: 14, w: 4, l: 2, j: 1});
     m.sort((a, b) => b.p - a.p || b.w - a.w || a.j - b.j);
     return {g: {d: 1, g: 0, m}, who: id => faces.get(id) || null};
@@ -22783,7 +22899,7 @@ const SquadHall = (() => {
     if (typeof SquadNet.league !== 'function' || !SquadNet.ready()){
       R.lgWeek.append(h('b', null, 'Preview'), h('span', null, (SquadNet.demo ? 'opens at launch' : typeof SquadNet.league !== 'function' ? 'runs on the live site' : 'needs the server') + ' · example names and points'));
       const P = previewGroup();
-      drawGroup(P.g, 'you', P.who, 'preview', was);
+      drawGroup(P.g, 'you', P.who, 'preview', was, true);
       return;
     }
     if (!L){ box.append(h('li', {class: 'sq-empty'}, st.leagueAt ? 'The league did not load. It tries again in a minute.' : 'Loading the league…')); return; }
@@ -22796,6 +22912,31 @@ const SquadHall = (() => {
     else R.lgMe.append(h('span', null, me ? 'Not in this week’s league yet.' : 'Sign in to play in a league.'));
     const players = L.groups.reduce((s, x) => s + x.m.length, 0);
     box.append(h('li', {class: 'sq-empty'}, (me ? 'Play a rated duel to join this week’s league. ' : '') + (players ? players + ' Blub' + (players === 1 ? '' : 's') + ' in ' + L.groups.length + ' group' + (L.groups.length === 1 ? '' : 's') + ' this week.' : 'Nobody has played a rated duel this week yet.')));
+  }
+
+  // your profile on the rankings page: your captain, your wallet, the name the rankings show
+  function renderProfile(){
+    if (!R.profP) return;
+    const p = SquadNet.profile(), cap = SquadNet.captain();
+    R.profWho.textContent = '';
+    R.profWho.append(cap ? face(cap.look, cap.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+      h('div', {class: 'lg-who'}, h('span', {class: 'lg-name'}, h('b', null, p && p.player ? p.player : cap ? cleanName(cap.name) || 'Your Blub' : 'No team yet')),
+        p && p.addr ? h('span', {class: 'lg-sub'}, h('span', {class: 'lg-addr', title: p.addr}, shortId(p.addr)), copyBtn(p.addr))
+          : h('span', {class: 'lg-sub'}, p ? 'Test phase: kept in this browser' : 'Not signed in')));
+    R.profIn.disabled = !p;
+    R.profGo.textContent = p ? 'Save' : 'Sign in';
+    if (document.activeElement !== R.profIn) R.profIn.value = p ? p.player : '';
+  }
+  async function saveProfile(){
+    if (!R.profIn || st.profSaving) return;
+    const p = SquadNet.profile();
+    if (!p){ SquadNet.signIn('Sign in to set your profile name.'); return; }
+    st.profSaving = true; say(R.profMsg, 'Saving…');
+    let r;
+    try { r = await SquadNet.setProfile(R.profIn.value); } catch { r = {ok: false, error: 'The profile name was not saved. Try again in a moment.'}; }
+    st.profSaving = false;
+    say(R.profMsg, r.ok ? r.note || (cleanName(R.profIn.value) ? 'Saved. The rankings show it.' : 'Saved. The rankings show your wallet address.') : r.error, r.ok);
+    renderProfile(); renderLeague(); renderTop();
   }
 
   function renderMine(){ if (R.mine) keepFocus(drawMine); }
@@ -23576,6 +23717,16 @@ const SquadHall = (() => {
     const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.';
     R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg, ...(kroot ? [] : [h('p', {class: 'sq-desc sq-lgrule'}, RULE)]));
     // the five divisions and how a week works (the rankings page)
+    // your profile name: the rankings show it above your wallet address
+    if (kroot && typeof SquadNet.profile === 'function'){
+      R.profWho = h('div', {class: 'sq-pfwho'});
+      R.profIn = h('input', {class: 'sq-pfin', id: 'sqProfIn', maxlength: '14', placeholder: 'Your name in the rankings', autocomplete: 'nickname', spellcheck: 'false', enterkeyhint: 'done', 'aria-describedby': 'sqProfMsg'});
+      R.profIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveProfile(); } });
+      R.profGo = button('Save', 'gold', saveProfile, {'data-k': 'profsave'});
+      R.profMsg = h('p', {class: 'sq-msg', id: 'sqProfMsg', 'aria-live': 'polite'});
+      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg,
+        h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
+    }
     R.divP = panel('sq-divp', 'sqdTitle', 'Five divisions',
       h('ol', {class: 'sq-divs'}, ...DIVS.map((n, i) => h('li', null, divBadge(i + 1, 32), h('b', null, n), h('span', null, i === 0 ? 'where everyone starts' : i === DIVS.length - 1 ? 'the top: nowhere higher to go' : 'division ' + (i + 1))))),
       h('p', {class: 'sq-desc'}, RULE),
@@ -23607,7 +23758,7 @@ const SquadHall = (() => {
       h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'rankTitle'}, 'Rankings')),
       h('p', null, 'Every week a league of 35 in five divisions, every month the duel season. Rated duels between wallets count.'),
       h('div', {class: 'sq-heada'}, h('a', {class: 'btn small mint', href: '#practice', 'data-k': 'toprac'}, 'To practice'))),
-      h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP), h('div', {class: 'sq-col'}, R.divP, R.topP)));
+      h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP), h('div', {class: 'sq-col'}, ...(R.profP ? [R.profP] : []), R.divP, R.topP)));
     buildModal();
     return true;
   }
@@ -23683,7 +23834,7 @@ const SquadHall = (() => {
     new ResizeObserver(steady).observe(R.tray2);
     new ResizeObserver(steadyK).observe(R.kitSide);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { st.trayW = 0; kitKey = ''; steady(); steadyK(); }).catch(() => {});
-    renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderMine(); renderBots();
+    renderChallenge(); renderOpen(); renderTop(); renderLeague(); renderProfile(); renderMine(); renderBots();
     st.me = SquadNet.me();
     if (mqMotion.addEventListener){
       mqMotion.addEventListener('change', () => paintBoard());
@@ -23752,7 +23903,7 @@ const SquadHall = (() => {
     // the team came in (signed in, or saved elsewhere): its strategies with it
     adoptStrats(); renderSync();
     if (!teamChanged()){ keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); }
-    renderChallenge(); renderTop(); renderLeague();
+    renderChallenge(); renderTop(); renderLeague(); renderProfile();
     if (st.online && !was) refreshBoard();
   }
 
@@ -23771,7 +23922,7 @@ const SquadHall = (() => {
     if (view === 'team' && hash === 'make') st.tab = 'looks';
     if (!st.ready) return;
     if (view === 'team') setTab(st.tab);
-    if (view === 'rankings'){ renderLeague(); renderTop(); }
+    if (view === 'rankings'){ renderLeague(); renderTop(); renderProfile(); }
     seen();
   }
   function focus(){
@@ -23921,7 +24072,7 @@ const Wallet = (() => {
 function localMode(){
   setMode('local');
   const d = lsGet(), L = loadLocal();
-  if (L){ S.name = cleanName(L.name); S.look = wearable(cleanLook(L.look), S.owned); S.saved = !!L.saved && S.name.length > 1; S.style = cleanStyle(L.style); S.build = cleanBuild(L.build, S.style); S.squad = Array.isArray(L.squad) ? cleanSquad(L.squad, 'local', S.style) : null; }
+  if (L){ S.name = cleanName(L.name); S.look = wearable(cleanLook(L.look), S.owned); S.saved = !!L.saved && S.name.length > 1; S.style = cleanStyle(L.style); S.build = cleanBuild(L.build, S.style); S.squad = Array.isArray(L.squad) ? cleanSquad(L.squad, 'local', S.style) : null; S.player = cleanName(L.player); }
   status(DEMO ? 'Test phase: your team is saved in this browser. Wallet sign-in and the shared Meadow open at launch.' : 'The Meadow server is not reachable, so your Blub stays in this browser for now.');
   Maker.adopt(!!S.saved); if (!S.saved) Maker.loadDraft(d && d.draft);
   Maker.renderTiles(); Maker.renderBuy(); Wallet.render();
@@ -23958,7 +24109,7 @@ async function pullMeadow(first){
   S.saved = !!mine;
   S.holder = mine ? mine.holder : null; Wallet.render();
   if (mine && !was){
-    S.name = mine.name; S.style = mine.style; S.build = mine.build; S.look = wearable(mine.look, S.owned);
+    S.name = mine.name; S.style = mine.style; S.build = mine.build; S.look = wearable(mine.look, S.owned); S.player = mine.player || '';
     if (!teamFromCache(mine)){ S.squad = null; loadTeam(); }
     Maker.adopt(firstLoad);
   }
