@@ -128,6 +128,9 @@ p{margin:0}
 /* four buttons on a phone: smaller, and "Buy $BLUB" says just "Buy" */
 @media (max-width:560px){.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
 @media (max-width:440px){.logo span{display:none}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
+/* a moderator has a fifth button (Admin): the text links make room sooner, and on a phone Buy does */
+@media (max-width:1240px){.nav:has(#navAdmin:not([hidden])) ul{display:none}.nav:has(#navAdmin:not([hidden])) .nav-cta{margin-left:auto}}
+@media (max-width:560px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
 
 /* ---------- hero ---------- */
 /* Phones and tablets: the stage (sky, terraces and the one blue Blub) on top, the copy on a solid band under it,
@@ -1798,6 +1801,8 @@ body.no-scroll{overflow:hidden}
 .sq-league li.lg-zone.up{color:#6FD08A}
 .sq-league li.lg-zone.down{color:#FF8A9A}
 .sq-lgme{align-items:center}
+/* a league the moderators paused */
+.lg-paused{font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.1em;text-transform:uppercase;padding:4px 6px;border:2px solid #000;background:#E2566E;color:#fff;align-self:center}
 .sq-lgme canvas.sq-lgb{width:24px;height:24px;flex:none}
 .sq-lgrule{margin:0}
 /* the rankings page: the league is what the page is for, so its list may run longer */
@@ -1916,7 +1921,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · rankings with wallets, profile names and bot tags, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · admin panel (live site only), rankings with bots and pause, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -1925,7 +1930,7 @@ body.no-scroll{overflow:hidden}
       <li><a href="#sift">About Blub</a></li>
       <li><a href="#tokenomics">Tokenomics</a></li>
     </ul>
-    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings">Rankings</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings">Rankings</a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a></div>
   </div>
 </nav>
 
@@ -2116,6 +2121,10 @@ body.no-scroll{overflow:hidden}
 </main>
 <main id="rankings" hidden>
   <section id="ranks" class="sec duel-sec arena-sec" aria-labelledby="rankTitle"><div class="wrap" id="rankRoot"></div></section>
+</main>
+<!-- the moderators' panel: public/admin.js, fetched only for a moderator's wallet -->
+<main id="admin" hidden>
+  <section id="adminSec" class="sec duel-sec arena-sec" aria-labelledby="adminTitle"><div class="wrap" id="adminRoot"></div></section>
 </main>
 <!-- the old Meadow view, out of sight until the clean-up removes it; the Blub Maker's
      panel (.maker) moves from here into the team page -->
@@ -3359,6 +3368,12 @@ const API = (() => {
     save: (name, look, style, build, squad, strats, player) => call('PUT', 'blub', {name, look, style, build, squad, ...(strats ? {strats} : {}), ...(player ? {player} : {})}),
     team: () => call('GET', 'team'),
     remove: addr => call('DELETE', 'blub/' + encodeURIComponent(addr)),
+    // the moderators' panel (public/admin.js, lib/admin.mjs)
+    adminOverview: () => call('GET', 'admin/overview'),
+    adminPlayer: addr => call('GET', 'admin/player/' + encodeURIComponent(addr)),
+    adminLeague: what => call('POST', 'admin/league', {do: what}),
+    adminEdit: o => call('POST', 'admin/player', o),
+    adminBots: o => call('POST', 'admin/bots', o),
     brawl: (target, revenge) => call('POST', 'brawl', {target, revenge}),
     duels: () => call('GET', 'duels'),
     duel: id => call('GET', 'duel/' + id),
@@ -22756,9 +22771,18 @@ const SquadHall = (() => {
     const num = (v, hi) => clamp(Math.floor(+v) || 0, 0, hi);
     const groups = (Array.isArray(d.groups) ? d.groups : []).slice(0, 3000).map(g => (g && typeof g === 'object' ? {
       d: clamp(Math.floor(+g.d) || 1, 1, DIVS.length), g: num(g.g, 99999),
-      m: (Array.isArray(g.m) ? g.m : []).slice(0, 35).filter(x => Array.isArray(x) && typeof x[0] === 'string' && ID_OK.test(x[0])).map(x => ({id: x[0], p: num(x[1], 1e6), w: num(x[2], 1e6), l: num(x[3], 1e6)})),
+      m: (Array.isArray(g.m) ? g.m : []).slice(0, 35).filter(x => Array.isArray(x) && typeof x[0] === 'string' && (ID_OK.test(x[0]) || BOT_RE.test(x[0]))).map(x => ({id: x[0], p: num(x[1], 1e6), w: num(x[2], 1e6), l: num(x[3], 1e6)})),
     } : null)).filter(g => g && g.m.length);
-    return {week: d.week, ends: isoOr(d.ends) || '', final: d.final === true, prev: typeof d.prev === 'string' && WEEK_OK.test(d.prev) ? d.prev : '', groups};
+    return {week: d.week, ends: isoOr(d.ends) || '', final: d.final === true, paused: d.paused === true, prev: typeof d.prev === 'string' && WEEK_OK.test(d.prev) ? d.prev : '', groups};
+  }
+  // A bot a moderator put in a league (bot:<n>, lib/admin.mjs): its name and looks come
+  // from its number, the same on every page and in the admin panel; it carries the bot tag.
+  const BOT_RE = /^bot:[1-9][0-9]{0,5}$/;
+  const BOT_NAMES = ['Bleep', 'Sprocket', 'Widget', 'Ratchet', 'Diode', 'Gizmo', 'Byte', 'Circuit', 'Rivet', 'Servo', 'Gearbox', 'Tinker', 'Volt', 'Chip', 'Flux', 'Echo', 'Nano', 'Zappy', 'Clank', 'Boltz'];
+  function botFace(id){
+    if (typeof id !== 'string' || !BOT_RE.test(id)) return null;
+    const n = Number(id.slice(4)), r = E.rng(7919 * n + 13), k = BOT_NAMES.length;
+    return {name: BOT_NAMES[(n - 1) % k] + (n > k ? ' ' + Math.ceil(n / k) : ''), look: freeLook(r), style: ['fierce', 'sleepy', 'playful', 'sweet', 'cheeky'][n % 5], bot: true};
   }
   // the group a wallet plays in this week, if any
   const groupIn = (L, id) => (L && id ? L.groups.find(g => g.m.some(m => m.id === id)) || null : null);
@@ -22903,9 +22927,10 @@ const SquadHall = (() => {
       return;
     }
     if (!L){ box.append(h('li', {class: 'sq-empty'}, st.leagueAt ? 'The league did not load. It tries again in a minute.' : 'Loading the league…')); return; }
-    R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), h('span', null, endsText(L.ends)));
+    R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), ...(L.paused ? [h('span', {class: 'lg-paused', title: 'Duels count for the season only until the moderators resume it'}, 'Paused')] : []), h('span', null, endsText(L.ends)));
+    if (L.paused) R.lgMe.append(h('span', null, 'The league is paused by the moderators: duels count for the season only for now.'));
     const g = groupIn(L, me);
-    if (g) return drawGroup(g, me, id => SquadNet.who(id), L.week + me, was);
+    if (g) return drawGroup(g, me, id => botFace(id) || SquadNet.who(id), L.week + me, was);
     // not in this week's league yet
     const last = me ? weekResult(st.lastLeague, me) : null;
     if (last) R.lgMe.append(divBadge(last.next, 24), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
@@ -23952,7 +23977,7 @@ const SquadHall = (() => {
     const x = topList().find(r => r.id === id) || ladder.get(id);
     return x && x.w + x.l > 0 ? {r: x.r, w: x.w, l: x.l} : null;
   }
-  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch};
+  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace};
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
@@ -23963,7 +23988,7 @@ const SquadHall = (() => {
    the team page's looks; #arena, #meadow, #play and #duels in practice.
    ===================================================================== */
 const homeEl = $('#home');
-const VIEWS = {team: $('#team'), practice: $('#practice'), rankings: $('#rankings')};
+const VIEWS = {team: $('#team'), practice: $('#practice'), rankings: $('#rankings'), admin: $('#admin')};
 const ALIAS = {make: 'team', arena: 'practice', meadow: 'practice', play: 'practice', duels: 'practice', ranks: 'rankings', league: 'rankings'};
 const viewOf = h => VIEWS[h] ? h : ALIAS[h] || '';
 function go(id){ if (window.blubFsLeave) window.blubFsLeave(); try { history.pushState(null, '', '#' + id); } catch {} route(id); }
@@ -23979,13 +24004,34 @@ function route(hh){
   document.querySelectorAll('[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav === v ? 'page' : 'false'));
   if (v){
     // the hall opens the team page on the right tab (#make: the looks)
-    SquadHall.show(v, h);
+    if (v === 'admin') openAdmin(); else SquadHall.show(v, h);
     requestAnimationFrame(() => window.scrollTo(0, 0));
   } else {
     if (was) dispatchEvent(new Event('resize'));
     if (h){ const tEl = document.getElementById(h); if (tEl) requestAnimationFrame(() => tEl.scrollIntoView()); }
     else if (was) window.scrollTo(0, 0);
   }
+}
+/* =====================================================================
+   ADMIN: the moderators' panel (#admin). Only a moderator's wallet (S.admin,
+   from /api/me) fetches public/admin.js, the first time it opens; the server
+   checks every request again (lib/admin.mjs). Everyone else sees a note.
+   ===================================================================== */
+let adminMod = null;
+function openAdmin(){
+  const root = $('#adminRoot'); if (!root) return;
+  if (!S.admin){
+    root.textContent = '';
+    const p = document.createElement('p'); p.className = 'adm-note';
+    p.textContent = S.mode === 'wallet' ? 'This page is for moderators, and this wallet is not one.' : 'This page is for moderators. Connect a moderator’s wallet to open it.';
+    root.append(p);
+    if (S.mode !== 'wallet' && S.api){ const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small gold'; b.textContent = 'Connect wallet'; b.onclick = () => Wallet.prompt('Connect a moderator’s wallet to open the admin panel.'); root.append(b); }
+    return;
+  }
+  const ctx = {API, E: SquadEngine, View: SquadView, Hall: SquadHall, lookCanvas, cleanLook, cleanName, memberOf, mates: cleanSquad, me: () => S.addr, docs: () => S.docs};
+  (adminMod ? Promise.resolve(adminMod) : import('./admin.js').then(m => (adminMod = m)))
+    .then(m => m.open(root, ctx))
+    .catch(() => { root.textContent = 'The admin panel did not load. Reload the page to try again.'; });
 }
 addEventListener('hashchange', () => route());
 addEventListener('popstate', () => route());
@@ -24081,6 +24127,8 @@ function localMode(){
 function applyMe(me){
   if (me && typeof me.address === 'string' && ADDR_RE.test(me.address)){
     S.addr = me.address; S.admin = me.admin === true;
+    // the admin panel opened before the sign-in came back: now it can
+    if (S.admin && !$('#admin').hidden) setTimeout(openAdmin);
     const mine = S.docs.get(S.addr); S.holder = mine ? mine.holder : null;
     setMode('wallet');
   } else {
@@ -24088,6 +24136,7 @@ function applyMe(me){
     setMode('guest');
   }
   Wallet.render(); refreshCoins(); Maker.renderTiles(); Maker.renderBuy(); Field.sync();
+  const na = $('#navAdmin'); if (na) na.hidden = !S.admin;
 }
 async function pullMeadow(first){
   let r;
