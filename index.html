@@ -67,6 +67,7 @@ p{margin:0}
 .btn:hover{transform:translateY(-3px);box-shadow:inset 4px 4px 0 var(--hi),inset -4px -4px 0 var(--lo),0 9px 0 var(--ink)}
 .btn:active{transform:translateY(5px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 1px 0 var(--ink)}
 .btn.pink{--bg:var(--pink);--hi:var(--pink-2);--lo:var(--coral)}
+.btn.mint{--bg:#5ED6CB;--hi:#B6F2EA;--lo:#2E9C92}
 .btn.small{font-size:10px;padding:10px 12px}
 .panel{background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
 .badge{font-family:var(--f-data);font-size:20px;line-height:1;padding:4px 8px 5px;border:3px solid var(--ink);background:var(--gold);display:inline-block}
@@ -124,7 +125,9 @@ p{margin:0}
 .nav-cta{display:flex;gap:8px}
 .nav .btn[aria-current="page"]{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
 @media (max-width:1040px){.nav ul{display:none}.nav-cta{margin-left:auto}}
-@media (max-width:440px){.logo span{display:none}.nav .btn.small{padding:10px 9px;font-size:10px}}
+/* four buttons on a phone: smaller, and "Buy $BLUB" says just "Buy" */
+@media (max-width:560px){.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
+@media (max-width:440px){.logo span{display:none}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
 
 /* ---------- hero ---------- */
 /* Phones and tablets: the stage (sky, terraces and the one blue Blub) on top, the copy on a solid band under it,
@@ -1674,7 +1677,7 @@ body.no-scroll{overflow:hidden}
 /* ---- below the builder ---- */
 .sq-grid2{display:flex;flex-direction:column;gap:18px;margin-top:22px}
 .sq-col{display:contents}
-.sq-offp{order:0}.sq-chal{order:1}.sq-lgp{order:2}.sq-openp{order:3}.sq-topp{order:4}.sq-minep{order:5}.sq-pracp{order:6}
+.sq-offp{order:0}.sq-chal{order:1}.sq-lgp{order:2}.sq-divp{order:3}.sq-openp{order:3}.sq-topp{order:4}.sq-minep{order:5}.sq-pracp{order:6}
 @media (min-width:900px){.sq-grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:start}.sq-col{display:flex;flex-direction:column;gap:18px;min-width:0}}
 
 /* challenge */
@@ -1751,6 +1754,12 @@ body.no-scroll{overflow:hidden}
 .sq-lgme{align-items:center}
 .sq-lgme canvas.sq-lgb{width:24px;height:24px;flex:none}
 .sq-lgrule{margin:0}
+/* the rankings page: the league is what the page is for, so its list may run longer */
+.sq-ranks .sq-league{max-height:min(72vh,860px)}
+.sq-divs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.sq-divs li{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:12px;align-items:center;font-family:var(--f-data);font-size:19px;line-height:1.05;color:var(--sq-soft)}
+.sq-divs li canvas{grid-row:1 / span 2;width:32px;height:32px}
+.sq-divs li b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff}
 
 /* your matches */
 .sq-mlist{max-height:460px;overflow:auto}
@@ -1853,18 +1862,16 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · weekly leagues (open at launch), guided first match, engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · new header: Practice and Rankings (league preview), engine 12</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
     <ul>
-      <li><a href="#team" data-nav="team">Team</a></li>
-      <li><a href="#arena" data-nav="arena">Arena</a></li>
-      <li><a href="#pair">Coin</a></li>
+      <li><a href="#top" data-nav="">Home</a></li>
+      <li><a href="#sift">About Blub</a></li>
       <li><a href="#tokenomics">Tokenomics</a></li>
-      <li><a href="#roadmap">Roadmap</a></li>
     </ul>
-    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small gold" href="#arena" data-nav="arena">Arena</a><a class="btn small pink" href="#swap">Buy $BLUB</a></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings">Rankings</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a></div>
   </div>
 </nav>
 
@@ -1881,7 +1888,7 @@ body.no-scroll{overflow:hidden}
       <h1 class="blocks" id="headline" aria-label="$BLUB"></h1>
       <p class="lead hero-new">Blub is a small blue block from The Sift<span class="hero-more">, the pink dimension</span>. Build a team<span class="hero-more"> of five</span>, give every Blub a role<span class="hero-more"> and a plan, and fight other wallets in 5v5 squad battles. $BLUB is Blub’s own coin, paired with MSFT</span>.</p>
       <p class="lead hero-back" id="heroBack">Welcome back to The Sift.</p>
-      <a class="btn md gold hero-back" href="#arena"><i data-ic="play" aria-hidden="true"></i>To the arena</a>
+      <a class="btn md gold hero-back" href="#practice"><i data-ic="play" aria-hidden="true"></i>To practice</a>
       <div class="hero-actions hero-new">
         <a class="btn lg gold" href="#team"><i data-ic="play" aria-hidden="true"></i>Build your team</a>
         <button type="button" class="btn lg ghost" data-botshow><span class="hero-more">Watch a bot fight</span><span class="hero-less">Bot fight</span></button>
@@ -2044,13 +2051,17 @@ body.no-scroll{overflow:hidden}
 
 </div>
 
-<!-- the game: the team page (looks, battle builds, the plan) and the arena (duels,
-     practice, the season) -->
+<!-- the game: the team page (looks, battle builds, the plan), practice (bot squads, the
+     guided first match, duels with friends) and the rankings (the weekly league, the
+     duel season) -->
 <main id="team" hidden>
   <section id="teamSec" class="sec duel-sec arena-sec team-sec" aria-labelledby="teamTitle"><div class="wrap" id="teamRoot"></div></section>
 </main>
-<main id="arena" hidden>
+<main id="practice" hidden>
   <section id="duels" class="sec duel-sec arena-sec" aria-labelledby="arenaTitle"><div class="wrap" id="arenaRoot"></div></section>
+</main>
+<main id="rankings" hidden>
+  <section id="ranks" class="sec duel-sec arena-sec" aria-labelledby="rankTitle"><div class="wrap" id="rankRoot"></div></section>
 </main>
 <!-- the old Meadow view, out of sight until the clean-up removes it; the Blub Maker's
      panel (.maker) moves from here into the team page -->
@@ -22722,40 +22733,58 @@ const SquadHall = (() => {
     const hrs = Math.floor(ms / 3600000);
     return hrs >= 48 ? 'ends in ' + Math.floor(hrs / 24) + ' days' : hrs >= 1 ? 'ends in ' + hrs + ' hour' + (hrs === 1 ? '' : 's') : 'ends in minutes';
   }
+  // A group of the league, ranked: the top fifth has a green bar (moving up), the bottom
+  // fifth a red one (moving down). `who` names a member. The list scrolls on its own: to
+  // your row the first time, then it stays where you left it (`was`, `key`).
+  function drawGroup(g, me, who, key, was){
+    const box = R.lg, k = g.m.findIndex(m => m.id === me), x = g.m[k];
+    if (x) R.lgMe.append(divBadge(g.d, 24), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
+    const n = g.m.length, mv = movers(n);
+    g.m.forEach((m, i) => {
+      const w = who(m.id), up = i < mv && g.d < DIVS.length, down = i >= n - mv && i >= mv && g.d > 1;
+      const li = h('li', {class: [m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
+      li.append(h('span', {class: 'rk'}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+        h('b', null, w ? cleanName(w.name) || 'Blub' : m.id.slice(0, 4) + '…' + m.id.slice(-4)), h('span', {class: 'sq-tr', title: 'League points'}, String(m.p), h('small', null, m.w + '–' + m.l)));
+      box.append(li);
+    });
+    if (n < 5) box.append(h('li', {class: 'sq-empty'}, 'Your group fills up as more Blubs play: with 5 or more, the top and bottom fifth move.'));
+    if (st.lgKey === key) box.scrollTop = was;
+    else {
+      st.lgKey = key;
+      const li = box.querySelector('li.me');
+      if (li) requestAnimationFrame(() => { box.scrollTop += li.getBoundingClientRect().top - box.getBoundingClientRect().top - 72; });
+    }
+  }
+  // Before there is a league (the demo, the claude.ai page): an example group of 35 in
+  // Bronze with your captain in it, the same all week, so everyone can see how it works.
+  function previewGroup(){
+    const r = E.rng(9000 + Math.floor(Date.now() / 604800000)), faces = new Map(), m = [];
+    const STY = ['fierce', 'sleepy', 'playful', 'sweet', 'cheeky'];
+    pickNames(r, 34, []).forEach((ni, i) => {
+      const id = 'ex' + i, w = Math.floor(r() * 7), l = Math.floor(r() * 5);
+      faces.set(id, {name: E.RECRUIT_NAMES[ni], look: freeLook(r), style: STY[Math.floor(r() * STY.length)]});
+      m.push({id, p: 3 * w + l, w, l, j: i + 2});
+    });
+    const cap = SquadNet.captain();
+    faces.set('you', {name: cap && cap.name ? cap.name : 'You', look: cap ? cap.look : null, style: cap ? cap.style : 'playful'});
+    m.push({id: 'you', p: 14, w: 4, l: 2, j: 1});
+    m.sort((a, b) => b.p - a.p || b.w - a.w || a.j - b.j);
+    return {g: {d: 1, g: 0, m}, who: id => faces.get(id) || null};
+  }
   function renderLeague(){
     if (!R.lg) return;
     const me = SquadNet.me(), L = st.league, box = R.lg, was = box.scrollTop;
     R.lgWeek.textContent = ''; R.lgMe.textContent = ''; box.textContent = '';
     if (typeof SquadNet.league !== 'function' || !SquadNet.ready()){
-      R.lgWeek.append(h('b', null, 'Five divisions'), h('span', null, DIVS.join(' · ')));
-      box.append(h('li', {class: 'sq-empty'}, SquadNet.demo ? 'Weekly leagues open at launch, with online duels.' : typeof SquadNet.league !== 'function' ? 'Weekly leagues run on the live site.' : SquadNet.offline));
+      R.lgWeek.append(h('b', null, 'Preview'), h('span', null, (SquadNet.demo ? 'opens at launch' : typeof SquadNet.league !== 'function' ? 'runs on the live site' : 'needs the server') + ' · example names and points'));
+      const P = previewGroup();
+      drawGroup(P.g, 'you', P.who, 'preview', was);
       return;
     }
     if (!L){ box.append(h('li', {class: 'sq-empty'}, st.leagueAt ? 'The league did not load. It tries again in a minute.' : 'Loading the league…')); return; }
     R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), h('span', null, endsText(L.ends)));
     const g = groupIn(L, me);
-    if (g){
-      const k = g.m.findIndex(m => m.id === me), x = g.m[k];
-      R.lgMe.append(divBadge(g.d, 24), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
-      const n = g.m.length, mv = movers(n);
-      g.m.forEach((m, i) => {
-        const w = SquadNet.who(m.id), up = i < mv && g.d < DIVS.length, down = i >= n - mv && i >= mv && g.d > 1;
-        const li = h('li', {class: [m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? 'Moves up when the week ends' : down ? 'Moves down when the week ends' : ''});
-        li.append(h('span', {class: 'rk'}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
-          h('b', null, w ? cleanName(w.name) || 'Blub' : m.id.slice(0, 4) + '…' + m.id.slice(-4)), h('span', {class: 'sq-tr', title: 'League points'}, String(m.p), h('small', null, m.w + '–' + m.l)));
-        box.append(li);
-      });
-      if (n < 5) box.append(h('li', {class: 'sq-empty'}, 'Your group fills up as more Blubs play: with 5 or more, the top and bottom fifth move.'));
-      // the list scrolls on its own: to your row the first time, then it stays where you left it
-      const key = L.week + me;
-      if (st.lgKey === key) box.scrollTop = was;
-      else {
-        st.lgKey = key;
-        const li = box.querySelector('li.me');
-        if (li) requestAnimationFrame(() => { box.scrollTop += li.getBoundingClientRect().top - box.getBoundingClientRect().top - 72; });
-      }
-      return;
-    }
+    if (g) return drawGroup(g, me, id => SquadNet.who(id), L.week + me, was);
     // not in this week's league yet
     const last = me ? weekResult(st.lastLeague, me) : null;
     if (last) R.lgMe.append(divBadge(last.next, 24), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
@@ -22935,7 +22964,7 @@ const SquadHall = (() => {
     if (R.modal.hidden) return;
     R.modal.hidden = true; st.modal = null; document.body.classList.remove('no-scroll'); clearInterval(R.mTick);
     if (/^#(duel|squad)=/.test(location.hash)){
-      try { history.replaceState(null, '', '#arena'); } catch {}
+      try { history.replaceState(null, '', '#practice'); } catch {}
       const sec = section(); if (sec && (sec.getBoundingClientRect().bottom < 0 || sec.getBoundingClientRect().top > innerHeight)) sec.scrollIntoView();
     }
     // the list the modal was opened from may have been redrawn: find the same button again
@@ -23394,17 +23423,20 @@ const SquadHall = (() => {
     // the team page has a root of its own for the builder; without one it all goes here
     const troot = document.getElementById('teamRoot') || root;
     R.root = root; R.troot = troot; root.textContent = ''; troot.textContent = '';
+    // the rankings page (the weekly league and the duel season), when the page has one
+    const kroot = document.getElementById('rankRoot');
+    R.kroot = kroot; if (kroot) kroot.textContent = '';
     const snd = h('button', {type: 'button', class: 'btn small snd'}, 'Sound on'); Sfx.bind(snd);
     root.append(h('div', {class: 'sec-head sq-head'},
-      h('div', null, h('span', {class: 'eyebrow'}, 'Duel Hall · 5v5'), h('h2', {id: 'arenaTitle'}, 'Squad Arena')),
-      h('p', null, 'Practice against bot squads, watch two of them fight, or duel other wallets. A new 15x15 arena and a random power-up every round.'),
-      h('div', {class: 'sq-heada'}, h('a', {class: 'btn small', href: '#team', 'data-k': 'toteam'}, 'Edit your team'), snd)));
+      h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'arenaTitle'}, 'Practice')),
+      h('p', null, 'Take the guided first match, practice against bot squads, watch two of them fight, or challenge a friend. A new 15x15 arena and a random power-up every round.'),
+      h('div', {class: 'sq-heada'}, h('a', {class: 'btn small', href: '#team', 'data-k': 'toteam'}, 'Edit your team'), ...(kroot ? [h('a', {class: 'btn small gold', href: '#rankings', 'data-k': 'toranks'}, 'Rankings')] : []), snd)));
     if (troot !== root){
       const snd2 = h('button', {type: 'button', class: 'btn small snd'}, 'Sound on'); Sfx.bind(snd2);
       troot.append(h('div', {class: 'sec-head sq-head'},
         h('div', null, h('span', {class: 'eyebrow'}, 'Your team · 5v5'), h('h2', {id: 'teamTitle'}, 'Team')),
         h('p', null, 'Pick a Blub, then its looks or its battle build. The overview shows the whole team and its plan.'),
-        h('div', {class: 'sq-heada'}, h('a', {class: 'btn small gold', href: '#arena', 'data-k': 'toarena'}, 'To the arena'), snd2)));
+        h('div', {class: 'sq-heada'}, h('a', {class: 'btn small gold', href: '#practice', 'data-k': 'toarena'}, 'To practice'), snd2)));
     }
 
     // 1. the builder, in three zones (see 'the builder' above) and the sticky bar
@@ -23536,8 +23568,13 @@ const SquadHall = (() => {
     R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
     // the weekly league: your group of 35, or how to join one
     R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('p', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
-    R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg,
-      h('p', {class: 'sq-desc sq-lgrule'}, 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.'));
+    const RULE = 'Rated duels count: a win is 3 points, a loss 1. Groups of 35 in five divisions; every Monday 00:00 UTC the top 7 of a group move up and the bottom 7 move down.';
+    R.lgP = panel('sq-lgp', 'sqlTitle', 'Weekly league', R.lgWeek, R.lgMe, R.lg, ...(kroot ? [] : [h('p', {class: 'sq-desc sq-lgrule'}, RULE)]));
+    // the five divisions and how a week works (the rankings page)
+    R.divP = panel('sq-divp', 'sqdTitle', 'Five divisions',
+      h('ol', {class: 'sq-divs'}, ...DIVS.map((n, i) => h('li', null, divBadge(i + 1, 32), h('b', null, n), h('span', null, i === 0 ? 'where everyone starts' : i === DIVS.length - 1 ? 'the top: nowhere higher to go' : 'division ' + (i + 1))))),
+      h('p', {class: 'sq-desc'}, RULE),
+      h('p', {class: 'sq-desc'}, 'A duel is rated between teams that are a day old, at most twice a day for the same pair. Practice against bots and bot shows count for nothing.'));
 
     // 5. your matches
     R.mine = h('ol', {class: 'sq-mlist'});
@@ -23559,7 +23596,13 @@ const SquadHall = (() => {
     R.offP.hidden = true;
 
     troot.append(R.builder);
-    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, R.lgP, R.openP, R.topP, R.mineP)));
+    // practice: duels with friends and the bots; the rankings get a page of their own
+    root.append(h('div', {class: 'sq-grid2'}, h('div', {class: 'sq-col'}, R.chal, R.pracP), h('div', {class: 'sq-col'}, R.offP, ...(kroot ? [] : [R.lgP]), R.openP, ...(kroot ? [] : [R.topP]), R.mineP)));
+    if (kroot) kroot.append(h('div', {class: 'sec-head sq-head'},
+      h('div', null, h('span', {class: 'eyebrow'}, 'Squad Arena · 5v5'), h('h2', {id: 'rankTitle'}, 'Rankings')),
+      h('p', null, 'Every week a league of 35 in five divisions, every month the duel season. Rated duels between wallets count.'),
+      h('div', {class: 'sq-heada'}, h('a', {class: 'btn small mint', href: '#practice', 'data-k': 'toprac'}, 'To practice'))),
+      h('div', {class: 'sq-grid2 sq-ranks'}, h('div', {class: 'sq-col'}, R.lgP), h('div', {class: 'sq-col'}, R.divP, R.topP)));
     buildModal();
     return true;
   }
@@ -23654,8 +23697,8 @@ const SquadHall = (() => {
       toggleRatePop(false);
       if (inBar) try { R.rateBtn.focus({preventScroll: true}); } catch {}
     });
-    // the team page and the arena: on screen when either is
-    const sec = section(), secs = [sec, R.troot.closest('section')].filter((n, i, a) => n && a.indexOf(n) === i), vis = new Map();
+    // the team page, practice and the rankings: on screen when any of them is
+    const sec = section(), secs = [sec, R.troot.closest('section'), R.kroot && R.kroot.closest('section')].filter((n, i, a) => n && a.indexOf(n) === i), vis = new Map();
     if (secs.length){
       const io = new IntersectionObserver(es => {
         es.forEach(e => vis.set(e.target, e.isIntersecting));
@@ -23718,11 +23761,12 @@ const SquadHall = (() => {
     else go2();
   }
   // the page opened one of the hall's views: the team page (on its Looks tab for an old
-  // #make link) or the arena
+  // #make link), practice or the rankings
   function show(view, hash){
     if (view === 'team' && hash === 'make') st.tab = 'looks';
     if (!st.ready) return;
     if (view === 'team') setTab(st.tab);
+    if (view === 'rankings'){ renderLeague(); renderTop(); }
     seen();
   }
   function focus(){
@@ -23756,21 +23800,22 @@ const SquadHall = (() => {
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
-   ROUTING: three views. #team is the team page (looks, battle builds and
-   the plan), #arena the game (duels, practice, the season), anything else
-   the home page. Old links still land: #make on the team page's looks,
-   #meadow, #play and #duels in the arena.
+   ROUTING: four views. #team is the team page (looks, battle builds and
+   the plan), #practice the game against bots and friends (the guided first
+   match, practice, bot shows, duels), #rankings the weekly league and the
+   duel season, anything else the home page. Old links still land: #make on
+   the team page's looks; #arena, #meadow, #play and #duels in practice.
    ===================================================================== */
 const homeEl = $('#home');
-const VIEWS = {team: $('#team'), arena: $('#arena')};
-const ALIAS = {make: 'team', meadow: 'arena', play: 'arena', duels: 'arena'};
+const VIEWS = {team: $('#team'), practice: $('#practice'), rankings: $('#rankings')};
+const ALIAS = {make: 'team', arena: 'practice', meadow: 'practice', play: 'practice', duels: 'practice', ranks: 'rankings', league: 'rankings'};
 const viewOf = h => VIEWS[h] ? h : ALIAS[h] || '';
 function go(id){ if (window.blubFsLeave) window.blubFsLeave(); try { history.pushState(null, '', '#' + id); } catch {} route(id); }
 function route(hh){
   const h = typeof hh === 'string' ? hh : location.hash.slice(1);
-  if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('arena'); if (code) SquadHall.openInvite(code); return; }
-  // a shared match: watched straight away, and the address goes back to the arena
-  if (h.startsWith('watch=')){ route('arena'); SquadHall.watch(h.slice(6)); try { history.replaceState(null, '', '#arena'); } catch {} return; }
+  if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('practice'); if (code) SquadHall.openInvite(code); return; }
+  // a shared match: watched straight away, and the address goes back to practice
+  if (h.startsWith('watch=')){ route('practice'); SquadHall.watch(h.slice(6)); try { history.replaceState(null, '', '#practice'); } catch {} return; }
   const v = viewOf(h);
   const was = Object.values(VIEWS).some(n => !n.hidden);
   homeEl.hidden = !!v;
@@ -23931,7 +23976,7 @@ async function boot(){
   await pullMeadow(true);
   SquadHall.ready();
   // the list is cached at the edge, so this costs (almost) no database commands
-  setInterval(() => { if ((!$('#team').hidden || !$('#arena').hidden) && !document.hidden) pullMeadow(false); }, 120000);
+  setInterval(() => { if ((!$('#team').hidden || !$('#practice').hidden || !$('#rankings').hidden) && !document.hidden) pullMeadow(false); }, 120000);
 }
 refreshCoins(); refreshAll(); route(); boot();
 })();
