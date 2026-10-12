@@ -854,6 +854,18 @@ body.no-scroll{overflow:hidden}
 .sqv-pu.perk.good .sqv-pk{color:#9FE3A8}.sqv-pu.perk.bad .sqv-pk{color:#FF9AA8}
 .sqv-bp{display:flex;gap:14px;font-family:var(--f-data);font-size:19px;line-height:1}
 .sqv-bp .you{color:var(--you-l)}.sqv-bp .rival{color:#FFB08A}
+/* the guided first match: a card just above the controls that tells what goes on,
+   over the intro and the arena alike */
+.sqv-tour{position:absolute;left:50%;bottom:calc(var(--ctl-h,64px) + 10px);z-index:7;transform:translateX(-50%);width:min(330px,calc(100% - 16px));display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  padding:8px 10px 8px;background:#1b1129;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold),4px 4px 0 rgba(0,0,0,.45);line-height:1.2;text-align:left;animation:sqvTour .3s steps(3) both}
+.sqv-tour[hidden]{display:none}
+@keyframes sqvTour{0%{transform:translate(-50%,40%);opacity:0}100%{transform:translate(-50%,0);opacity:1}}
+.sqv.calm .sqv-tour{animation:none}
+.sqv-tt{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.5;color:var(--gold);text-shadow:2px 2px 0 #000;letter-spacing:.04em}
+.sqv-tp{margin:0;font-family:var(--f-data);font-size:18px;line-height:1.05;color:#fff}
+.sqv-tok{align-self:flex-end;font-family:var(--f-display);font-size:8px;line-height:1;padding:6px 9px;color:#1b1129;background:var(--gold);border:2px solid #000;box-shadow:2px 2px 0 #000;cursor:pointer}
+.sqv-tok:hover{filter:brightness(1.1)}
+.sqv-tok:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .sqv-pop{position:absolute;left:50%;top:9%;transform:translateX(-50%);display:none;align-items:center;gap:8px;max-width:calc(100% - 16px);padding:6px 10px;
   background:#1b1129;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold),4px 4px 0 rgba(0,0,0,.4);font-family:var(--f-display);font-size:9px;line-height:1.5;color:var(--gold);white-space:nowrap;pointer-events:none}
 .sqv-pop span{overflow:hidden;text-overflow:ellipsis}
@@ -1832,7 +1844,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">11 Oct 2026 · engine 11: weather, Digger, Builder's cannon, moon rocket, chest, smoke pot, decoy, field hospital</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 12: guided first match, one Boom Pack, balance pass</i> Everything here runs in your browser. Wallet sign-in, the shared Meadow and online duels open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5278,7 +5290,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 11;
+const SQUAD_ENGINE = 12;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5363,7 +5375,7 @@ const RULES = lock({
   decoyHp: 8, // the Decoy Blub falls apart after this much damage
   // the Field Hospital: the first Blub of its squad knocked out is carried in on a
   // stretcher, and hospTurns turns later it is back beside the tent with hospHp HP
-  hospTurns: 6, hospHp: 4,
+  hospTurns: 7, hospHp: 4,
   // ---- the chest (EVENTS, BUFFS, NERFS): one spin a round, before anything moves.
   // How many events fall: whole percents, together 100.
   chestOne: 65, chestTwo: 30, chestThree: 5,
@@ -5389,13 +5401,13 @@ const RULES = lock({
   // the buffs
   airdropHp: 8, airdropFrom: 3, airdropTo: 7,
   sniperDmg: 7,
-  devwalletShare: 50, devwalletTurn: 8,
-  wagmiHp: 2,
+  devwalletShare: 40, devwalletTurn: 8,
+  wagmiHp: 1,
   pumpTurns: 3, pumpDmg: 1,
   // the nerfs
   paperAt: 50, paperTurns: 1,
   gasTurns: 1, gasHp: 2, // Gas Fees: powers charge this much slower, and every one used costs gasHp
-  ngmiMiss: 2, // NGMI: the squad's first attacks that always miss
+  ngmiMiss: 1, // NGMI: the squad's first attacks that always miss
   bagMove: 1,
   rektHp: 5,
   // ---- the trench arsenal
@@ -5407,11 +5419,6 @@ const RULES = lock({
   // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
   // knock-out), or just boomLast once its Blub is down to half or the mist is in
   boomDmg: 22, boomRing: 8, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
-  // Last Stand Pack: a smaller charge (lastDmg beside it, lastRing a tile farther) for a
-  // Blub that fights on: it swings its pack, and only once it is hurt to lastAt% HP or
-  // less does it pull the cord (with a blast worth boomLast beside it); it carries
-  // lastHp less HP
-  lastDmg: 16, lastRing: 6, lastAt: 40, lastHp: 6,
   // ---- the captain's command (COMMANDS): once a round, on the captain's own turn when
   // it fits; it holds till the captain's next turn (with the captain down, till the end
   // of the next turn). Charge! from cmdNear tiles off.
@@ -5446,7 +5453,7 @@ const RULES = lock({
   // its Mine Shaft, where it digs whenever nobody is in its reach and which it keeps
   // going back to); a gem is gemHeal HP and +gemDmg damage for whoever it is carried
   // to; hurt to tunnelAt% HP or less, it tunnels up to tunnelReach tiles away
-  digGem: 45, digStone: 15, digSafe: 2, gemHeal: 10, gemDmg: 2, tunnelAt: 50, tunnelReach: 5,
+  digGem: 40, digStone: 15, digSafe: 2, gemHeal: 8, gemDmg: 2, tunnelAt: 50, tunnelReach: 5,
 });
 
 // ---- catalog: [id, name, description]; numbers below.
@@ -5474,7 +5481,7 @@ const WEAPONS = lock([
   ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
   ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
   ['boom', 'Boom Pack', `One explosive a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
-  ['last', 'Last Stand Pack', `One explosive a squad. Melee: it swings its pack like a club. Hurt to ${RULES.lastAt}% HP or less with an enemy beside it, it pulls the cord: ${RULES.lastDmg} damage to every enemy beside it and ${RULES.lastRing} one tile farther, and its Blub is out of the round. Knocked out next to an enemy, it goes off anyway. A little heavy: ${RULES.lastHp} less HP.`],
+
 ]);
 // range, damage, hands; crit/dodge/whiff/trap in percent
 const WEAPON_STATS = lock({
@@ -5485,12 +5492,11 @@ const WEAPON_STATS = lock({
   bow: { range: 5, dmg: 5, hands: 2, los: 1, close: 1 },
   wand: { range: 3, dmg: 4, hands: 1, sure: 1, trap: 20 },
   // gun: its shots are bullets (cover from bushes and sandbags as from arrows);
-  // cycle: the Scope Rifle's reload, aim, fire; boom: it carries the blast; fuse: it
-  // swings and only goes off when low; one: one of that kind a squad (1: explosives)
+  // cycle: the Scope Rifle's reload, aim, fire; boom: it carries the blast; one: one of
+  // that kind a squad (1: explosives)
   rifle: { range: 4, dmg: 2, hands: 2, hits: 3, los: 1, gun: 1 },
   scope: { range: 7, dmg: RULES.scopeDmg, hands: 2, los: 1, gun: 1, cycle: 1, close: 1 },
   boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
-  last: { range: 1, dmg: 4, hands: 2, boom: 1, fuse: 1, one: 1 },
   // tool: not a pick: what a Builder fights with, whatever weapon it was given
   tool: { range: 1, dmg: RULES.toolDmg, hands: 1, tool: 1 },
 });
@@ -5653,9 +5659,9 @@ const NERFS = lock([
   ['paper', 'Paper Hands', `The first own Blub under ${RULES.paperAt}% HP runs back for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
   ['gas', 'Gas Fees', `Every power costs gas: ${RULES.gasHp} HP from the Blub that uses it, and they charge ${RULES.gasTurns} turn${RULES.gasTurns === 1 ? '' : 's'} slower.`],
   ['bagholder', 'Bagholder', `The Blub that opens the crate loses ${RULES.bagMove} move.`],
-  ['jeet', 'Jeet', `The captain loses its +${RULES.captainHp} HP.`],
+  ['jeet', 'Jeet', `The captain jeets: it loses its +${RULES.captainHp} HP and calls no command this round.`],
   ['rekt', 'Rekt', `The Blub that opens the crate starts ${RULES.rektHp} HP down.`],
-  ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss} attacks always miss.`],
+  ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss === 1 ? 'attack always misses' : RULES.ngmiMiss + ' attacks always miss'}.`],
 ]);
 const CHEST_SALT = 4; // the chest's random stream
 // What the chest's own effects need to roll (which Blub gets Rekt, and so on) comes
@@ -5732,7 +5738,9 @@ function cleanSquad(raw) {
   const units = [];
   for (const u of list) {
     if (!u || typeof u !== 'object') return null;
-    const { cls, wpn, gear, pow, tac } = u;
+    const { cls, gear, pow, tac } = u;
+    // a Last Stand Pack (engines 5 to 11) is a Boom Pack now
+    const wpn = u.wpn === 'last' ? 'boom' : u.wpn;
     if (!has(PLAYSTYLES, cls) || !has(WEAPONS, wpn) || !has(GEAR, gear) || !has(POWERS, pow) || !has(TACTICS, tac)) return null;
     if (gear === 'shield' && WEAPON_STATS[wpn].hands !== 1) return null;
     // a squad carries one explosive at most
@@ -5820,10 +5828,10 @@ function unitStats(u, captain, engineer) {
   const S = STYLE_STATS[u.cls];
   const W = WEAPON_STATS[(engineer === undefined ? u.pow === 'builder' : engineer) ? 'tool' : u.wpn];
   const t = u.trn;
-  // the Boom Pack weighs on whoever carries it, the Last Stand Pack a little
-  const heavy = W.boom && !W.fuse ? 1 : 0;
+  // the Boom Pack weighs on whoever carries it
+  const heavy = W.boom ? 1 : 0;
   return {
-    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp - (W.fuse ? RULES.lastHp : 0) + (u.pow === 'builder' || u.pow === 'miner' || u.pow === 'digger' ? RULES.workHp : 0),
+    max: S.hp + (captain ? CAPTAIN_HP : 0) - heavy * RULES.boomHp + (u.pow === 'builder' || u.pow === 'miner' || u.pow === 'digger' ? RULES.workHp : 0),
     move: Math.max(2, S.move + (u.gear === 'boots' ? 1 : 0) + (t.spd >= 3 ? 1 : 0) - heavy * RULES.boomMove),
     range: W.range,
     dmg: heavy ? RULES.boomDmg : W.dmg,
@@ -6006,10 +6014,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           u.max += RULES.wagmiHp;
           u.hp += RULES.wagmiHp;
         }
-      // Jeet: the captain hands back what the captaincy gave it
+      // Jeet: the captain hands back what the captaincy gave it, and leaves the squad to
+      // it: no command this round
       if (meme[t].nerf === 'jeet' && cap) {
         cap.max = Math.max(1, cap.max - RULES.captainHp);
         cap.hp = Math.min(cap.hp, cap.max);
+        cap.jeet = true;
       }
     }
   // the trench kit: both squads' objects, team B's turned around like its Blubs
@@ -6126,11 +6136,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // arrows and bullets are 'ranged' (cover stops them alike), bubbles 'magic'
   const kindOf = (u) => (u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || W(u).gun ? 'ranged' : 'melee');
   // a Brawler's bonus is for what it swings or stabs with
-  const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && (!WEAPON_STATS[v.wpn].boom || WEAPON_STATS[v.wpn].fuse);
-  // a Last Stand Pack's Blub low enough to pull the cord, and the blast a pack carries
-  // (beside it, a tile farther)
-  const lastStand = (u) => W(u).fuse && u.hp * 100 <= u.max * RULES.lastAt;
-  const blastOf = (u) => (W(u).fuse ? [RULES.lastDmg, RULES.lastRing] : [RULES.boomDmg, RULES.boomRing]);
+  const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && !WEAPON_STATS[v.wpn].boom;
+  // the blast a Boom Pack carries: beside it, and a tile farther
+  const BLAST = [RULES.boomDmg, RULES.boomRing];
   const onShaft = (u) => shaftT[idx(u.x, u.y)] === u.team + 1;
   // What stops a shot is not always what stops a step: a Blub can stand in the
   // nuke's crater, but nothing shoots through it. Walking reads `tiles`, sight reads
@@ -6484,10 +6492,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
       return;
     }
-    // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it;
-    // the Last Stand Pack swings, and pulls the cord once its Blub is low
-    if (W(u).boom && !W(u).fuse) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
-    if (lastStand(u) && blastWorth(u, u.x, u.y) >= RULES.boomLast) return blowUp(u);
+    // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it
+    if (W(u).boom) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
     // the Scope Rifle: a turn to reload, a turn to aim, and then the shot
     if (W(u).cycle) {
       const v = scopeTurn(u, d);
@@ -6725,7 +6731,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
   }
   // how hard a unit hits: weapon damage per attack plus the Brawler's bonus
-  const punch = (v) => (WEAPON_STATS[v.wpn].boom && !WEAPON_STATS[v.wpn].fuse ? RULES.boomDmg : WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (brawly(v) ? RULES.brawlerMelee : 0));
+  const punch = (v) => (WEAPON_STATS[v.wpn].boom ? RULES.boomDmg : WEAPON_STATS[v.wpn].dmg * (WEAPON_STATS[v.wpn].hits || 1) + (brawly(v) ? RULES.brawlerMelee : 0));
   // the enemy this unit wants, by its tactic; ties go to the closest, then the lowest unit
   function chooseTarget(u, list) {
     // Focus fire: the marked enemy first, whatever the tactic
@@ -6760,7 +6766,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const dist = cheb(x, y, v.x, v.y);
       const t = tiles[c];
       // a Boom Pack wants as many of them beside it as it can get
-      const s = W(u).boom && (!W(u).fuse || lastStand(u))
+      const s = W(u).boom
         ? foes(u).filter((e) => cheb(x, y, e.x, e.y) <= 1).length * 20 - dist
         : (ranged ? dist : -dist) * 8 + (t === BUSH ? 2 : 0) + (t === HIGH && u.wpn === 'bow' ? 3 : 0) - (t === WATER ? 5 : 0);
       if (best < 0 || s > bs) {
@@ -7123,7 +7129,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     startOfTurn(u, turn);
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
-    if (cap && cmdOf[u.team] && !called[u.team]) callOrder(u, turn);
+    if (cap && cmdOf[u.team] && !called[u.team] && !u.jeet) callOrder(u, turn);
     // a Miner that was hit tunnels away to safety: its whole turn
     if (u.pow === 'miner' && u.tunnel && burrow(u)) return;
     // Paper Hands: it runs for its own back rows, as far from the enemy as it can
@@ -7176,7 +7182,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // a Blub left standing at the other side's candle with nobody in reach chops at it
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
     // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
-    if (cp && !(W(u).boom && !W(u).fuse) && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
+    if (cp && !W(u).boom && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
     fight(u);
   }
   // What the chest throws in draws the Blubs that can use it. With nobody in reach,
@@ -7250,11 +7256,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function blowUp(u) {
     u.boomed = true;
     u.attacked = true;
-    push({ t: 'blowup', u: u.id, at: [u.x, u.y], ...(W(u).fuse ? { w: u.wpn } : {}) });
+    push({ t: 'blowup', u: u.id, at: [u.x, u.y] });
     for (const v of foes(u).slice()) {
       if (!v.alive) continue;
       const d = cheb(u.x, u.y, v.x, v.y);
-      if (d <= 2) pure(u, v, blastOf(u)[d <= 1 ? 0 : 1], 'blasted');
+      if (d <= 2) pure(u, v, BLAST[d <= 1 ? 0 : 1], 'blasted');
     }
     checkOver();
     u.totem = false;
@@ -7325,7 +7331,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const v of foes(u)) {
       const d = cheb(x, y, v.x, v.y);
       if (d > 2 || v.bubble) continue;
-      let dmg = blastOf(u)[d <= 1 ? 0 : 1];
+      let dmg = BLAST[d <= 1 ? 0 : 1];
       if (copiumOn(v)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
       s += Math.min(dmg, v.hp) + (dmg >= v.hp && !v.totem ? RULES.boomKo : 0);
     }
@@ -7338,11 +7344,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // it gets to this turn, when that is worth it. Not worth it yet but beside an enemy,
   // it edges to the best spot it gets to and waits there (knocked out beside them it
   // goes off anyway); otherwise it closes in like everybody else.
-  // The Last Stand Pack fights like anyone until its Blub is low; then it goes for the
-  // best blast it gets to this turn, and with none worth it, it fights on.
   function boomTurn(u) {
-    if (W(u).fuse && !lastStand(u)) return false;
-    const need = W(u).fuse ? RULES.boomLast : boomNeed(u);
+    const need = boomNeed(u);
     const list = foes(u);
     if (!list.some((v) => cheb(u.x, u.y, v.x, v.y) <= u.move + 2)) return false;
     const here = idx(u.x, u.y);
@@ -7358,13 +7361,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         best = c;
       }
     }
-    if (bs < need && (W(u).fuse || !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1))) return false;
+    if (bs < need && !list.some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) return false;
     if (best !== here) walk(u, route(P, best));
     if (u.alive && over < 0 && blastWorth(u, u.x, u.y) >= need) blowUp(u);
-    else if (W(u).fuse) {
-      // the walk fell short of the blast: it swings at what it reaches
-      if (u.alive && over < 0) hitAround(u);
-    }
     else if (u.alive && over < 0 && !u.armed && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 1)) {
       // beside the enemy, waiting for a better blast (said once a round)
       u.armed = 1;
@@ -8729,10 +8728,6 @@ const SquadView = (() => {
   if (!ARMS_SPR.boom)
     ARMS_SPR.boom = { g: [2, 7], pal: { k: '#2B2B36', K: '#7A7A90', n: '#8C5A2B', y: '#FFD447', Y: '#FF8A3D' }, rows: [
       '..y..', '.yYy.', '..n..', '.kkk.', 'kKkkk', 'kKkkk', 'kkkkk', '.kkk.'] };
-  // the Last Stand Pack: a smaller charge with a red pull ring, swung like a club
-  if (!ARMS_SPR.last)
-    ARMS_SPR.last = { g: [2, 7], pal: { k: '#2B2B36', K: '#7A7A90', r: '#E2566E', R: '#FF8FA3' }, rows: [
-      '.rR..', 'r..r.', '.rr..', '..r..', '.kkk.', 'kKkkk', 'rrrrr', '.kkk.'] };
   // tools, not weapons: the Miner's pickaxe and the Builder's mallet
   if (!ARMS_SPR.pick)
     ARMS_SPR.pick = { g: [2, 9], swing: true, pal: { s: '#6E6E80', S: '#C9C9D6', n: '#8C5A2B', N: '#D9A05B' }, rows: [
@@ -8868,9 +8863,6 @@ const SquadView = (() => {
       // Boom Pack: a round bomb, its fuse fizzing
       boom: ['.......y.y..', '........Y...', '.......yky..', '........kn..', '....kkkkkn..',
         '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..kxxxxxxxk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
-      // Last Stand Pack: a bomb with a red band and a pull ring on its cord
-      last: ['.......rrr..', '......r...r.', '.......rrr..', '........r...', '....kkkkkr..',
-        '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..krrrrrrrk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
     },
     gear: {
       shield: ['....kkkk....', '..kkrPrPkk..', '.krPrPrPrPk.', '.kPrPrPrPrk.', 'krPrPrPrPrPk',
@@ -10797,7 +10789,7 @@ const SquadView = (() => {
       case 'arm':
         return u + "'s Boom Pack is armed: it waits beside them for a bigger blast.";
       case 'blowup':
-        return e.w === 'last' ? u + ' pulls the cord: BOOM!' : 'BOOM! ' + u + "'s Boom Pack goes off.";
+        return 'BOOM! ' + u + "'s Boom Pack goes off.";
       case 'blasted':
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : d + ' is caught in the blast: -' + e.dmg + '.';
       case 'build':
@@ -15436,6 +15428,16 @@ const SquadView = (() => {
   function beginBeat(b, T) {
     const S = P.S;
     P.beat = b;
+    // the guided first match: what this beat shows for the first time
+    if (P.tour && !P.seeking) {
+      if (b.kind === 'rintro') {
+        tourSay('arena');
+        if (P.objs && P.objs.length) tourSay('kit');
+      } else if (b.kind === 'attack') tourSay('roles');
+      else if (['power', 'order', 'craft', 'pitdig', 'build', 'dig'].includes(b.kind)) tourSay('powers');
+      else if (b.kind === 'ko' || b.kind === 'pitfall' || b.kind === 'rocket') tourSay('ko');
+      else if (b.kind === 'end') tourSay('end');
+    }
     if (b.actors && b.actors.length) P.actors = b.actors.slice();
     else if (b.kind !== 'attack' && b.kind !== 'heal' && b.kind !== 'power') P.actors = [];
     if (P.seeking) return;
@@ -17994,7 +17996,12 @@ const SquadView = (() => {
     colR.append(them.box);
     const colL = el('div', 'sqv-col sqv-colL');
     colL.append(you.box, opts);
-    root.append(bar, colR, wrap, colL, ctl, logBox, over, live);
+    // the guided first match: a card that tells what is going on (match.tour), over
+    // the intro and the arena alike, just above the controls
+    const tour = el('div', 'sqv-tour');
+    tour.hidden = true;
+    tour.setAttribute('role', 'status');
+    root.append(bar, colR, wrap, colL, ctl, logBox, over, tour, live);
     document.body.append(root);
     try {
       Sfx.bind(bSnd);
@@ -18002,7 +18009,7 @@ const SquadView = (() => {
       /* sound is optional */
     }
 
-    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bShare, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
+    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bShare, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, tour, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
 
     close.onclick = () => finish();
     bShare.onclick = () => openShare();
@@ -18151,9 +18158,66 @@ const SquadView = (() => {
     D.bTempo.setAttribute('aria-pressed', String(!!P.autoTempo));
     D.root.classList.toggle('calm', !!P.calm);
   }
+  // ---- the guided first match (match.tour): a card over the board at the moments that
+  // teach the game, each once; the fight holds still while one is up (a tap on Got it,
+  // or a while of reading). One that comes while another is up waits its turn.
+  const TOUR = {
+    intro: ['Squad Arena', 'Two squads of five Blubs, built beforehand, fight it out on their own. There is nothing to click in the fight: it all comes down to how a squad is built.'],
+    chest: ['The chest', 'Before every round it throws in 1 to 3 events: the counter says how many, then each one spins. Some stand on the arena, some strike later, and traps stay hidden.'],
+    arena: ['The arena', 'A new one every round. Rock stops Blubs and shots, a bush hides whoever stands in it, the rainbow water heals a Blub that rests in it, and a terrace gives a bow more reach.'],
+    kit: ['The trench kit', 'Each squad digs in up to two objects before the fight: sandbags, barbed wire, mines, a mortar, a watchtower, a smoke pot, a decoy, a field hospital and more.'],
+    roles: ['Roles', 'Brawlers charge in, Guardians hold the line and take arrows for a friend, Skirmishers shoot from afar, Medics heal, and Tricksters slip round to the back line.'],
+    powers: ['Powers and commands', 'Every Blub has a power: a freeze, a storm, a cannon to build, pits to dig, a shield... and once a round the captain calls a command to the whole squad.'],
+    ko: ['Out!', 'A squad wins the round once the other has nobody left standing, or with more of its HP left when turn ' + SE.TURNS + ' is over. A best of 3 brings a second and third arena.'],
+    end: ['Your turn', 'Build your own five on the Team page: role, weapon, gear, power, tactic and training for each, the formation and the trench kit. Then take them into the Arena.'],
+  };
+  function tourSay(key) {
+    if (!P || !P.tour || P.tour.seen[key] || P.seeking || !TOUR[key]) return;
+    P.tour.seen[key] = 1;
+    if (!D.tour.hidden) {
+      P.tour.q.push(key);
+      return;
+    }
+    tourShow(key);
+  }
+  function tourShow(key) {
+    const [title, text] = TOUR[key];
+    const box = D.tour;
+    box.textContent = '';
+    const ok = el('button', 'sqv-tok', key === 'end' ? 'Close' : 'Got it');
+    ok.type = 'button';
+    ok.onclick = () => tourDone();
+    box.append(el('b', 'sqv-tt', title), el('p', 'sqv-tp', text), ok);
+    // at the foot of the arena, wherever the layout put it (over the intro too)
+    const r = D.stage.getBoundingClientRect();
+    box.style.bottom = r.height ? Math.max(8, Math.round(innerHeight - r.bottom + 8)) + 'px' : '';
+    box.hidden = false;
+    P.tourHeld = (P.phase === 'round' || P.phase === 'intro') && !P.paused;
+    if (P.tourHeld) {
+      P.paused = true;
+      paintPlay();
+    }
+    clearTimeout(P.tourT);
+    P.tourT = setTimeout(tourDone, 10000);
+    say(title + '. ' + text, true);
+  }
+  function tourDone() {
+    if (!P || !D.tour || D.tour.hidden) return;
+    clearTimeout(P.tourT);
+    D.tour.hidden = true;
+    if (P.tourHeld && P.paused) {
+      P.paused = false;
+      paintPlay();
+    }
+    P.tourHeld = false;
+    const next = P.tour && P.tour.q.shift();
+    if (next) P.tourT = setTimeout(() => P && tourShow(next), 250);
+  }
   function togglePause() {
     if (!P || P.phase === 'outro') return;
     P.paused = !P.paused;
+    // the pause is the viewer's now: a guided card that closes leaves it be
+    P.tourHeld = false;
     paintPlay();
     // a clip being recorded holds with the fight
     const rec = P.clip && P.clip.rec;
@@ -18583,6 +18647,9 @@ const SquadView = (() => {
       prevFocus: document.activeElement, raf: 0, last: 0,
     };
     P.calm = P.rm || P.userCalm;
+    // the guided first match: what it has told already, and what waits its turn
+    P.tour = match.tour ? { seen: {}, q: [] } : null;
+    D.tour.hidden = true;
     P.onMQ = () => {
       if (!P) return;
       P.rm = !!P.mq.matches;
@@ -18641,6 +18708,7 @@ const SquadView = (() => {
     P.phase = 'intro';
     P.ic = 0;
     buildIntro();
+    tourSay('intro');
     D.root.focus();
     P.raf = requestAnimationFrame(frame);
   }
@@ -18654,6 +18722,8 @@ const SquadView = (() => {
     cancelAnimationFrame(p.raf);
     clearTimeout(p.popTimer);
     clearTimeout(p.cardTimer);
+    clearTimeout(p.tourT);
+    D.tour.hidden = true;
     if (p.mq && p.mq.removeEventListener) p.mq.removeEventListener('change', p.onMQ);
     P = null;
     if (D) {
@@ -19519,9 +19589,9 @@ const SquadView = (() => {
         paper: `The first Blub under ${R.paperAt}% runs away for ${s(R.paperTurns, 'turn')}.`,
         gas: `Every power costs its Blub ${R.gasHp} HP, and comes a turn later.`,
         bagholder: `The slowest Blub loses ${s(R.bagMove, 'step')}.`,
-        jeet: `The captain loses its +${R.captainHp} HP.`,
+        jeet: `The captain loses its +${R.captainHp} HP and calls no command.`,
         rekt: `One Blub starts ${R.rektHp} HP down.`,
-        ngmi: `The first ${R.ngmiMiss} attacks always miss.`,
+        ngmi: R.ngmiMiss === 1 ? 'The first attack always misses.' : `The first ${R.ngmiMiss} attacks always miss.`,
       },
     };
     return (T[kind] && T[kind][id]) || descOf(kind, id);
@@ -19637,6 +19707,8 @@ const SquadView = (() => {
   function updateChest(t) {
     const C = P.chestEls;
     if (!C) return;
+    // the guided first match: once the chest takes the stage
+    if (t >= 0) tourSay('chest');
     const still = P.calm;
     const T = C.T;
     const ring = (key, when, name) => {
@@ -20832,8 +20904,9 @@ const SquadHall = (() => {
     const units = [];
     for (const v of raw.units){
       if (!v || typeof v !== 'object' || !CLS[v.cls]) return null;
-      const P = ROLE[v.cls], t = v.trn && typeof v.trn === 'object' ? v.trn : {}, u = {cls: v.cls,
-        wpn: WPN[v.wpn] ? v.wpn : P.wpn, gear: GEAR[v.gear] ? v.gear : P.gear, pow: POW[v.pow] ? v.pow : P.pow, tac: TAC[v.tac] ? v.tac : P.tac, trn: {}, x: v.x, y: v.y, auto: v.auto === true};
+      // (a Last Stand Pack, engines 5 to 11, is a Boom Pack now, as in E.cleanSquad)
+      const P = ROLE[v.cls], t = v.trn && typeof v.trn === 'object' ? v.trn : {}, w = v.wpn === 'last' ? 'boom' : v.wpn, u = {cls: v.cls,
+        wpn: WPN[w] ? w : P.wpn, gear: GEAR[v.gear] ? v.gear : P.gear, pow: POW[v.pow] ? v.pow : P.pow, tac: TAC[v.tac] ? v.tac : P.tac, trn: {}, x: v.x, y: v.y, auto: v.auto === true};
       let left = E.TRAIN_POINTS;
       E.TRAINING.forEach(([k]) => { const n = Math.min(E.TRAIN_MAX, Math.max(0, Math.floor(+t[k]) || 0), left); u.trn[k] = n; left -= n; });
       units.push(u);
@@ -23112,6 +23185,16 @@ const SquadHall = (() => {
       actions: [{label: 'Another bot show', fn: () => { closeTheater(); setTimeout(botShow, 30); }}]});
   }
 
+  // the guided first match: two bot squads, one round, with cards that tell what goes on
+  // as it happens (the view's match.tour); free like every bot show
+  function guidedShow(){
+    if (!hasView('play') && !st.ready) return;
+    ensureBots();
+    const pool = st.bots.slice(), a = pool.splice(Math.floor(Math.random() * pool.length), 1)[0], b = pool[Math.floor(Math.random() * pool.length)];
+    theater({kind: 'show', title: 'Guided first match', teams: [botTeam(a), botTeam(b)], viewer: -1, seed: newSeed(), bo: 1, tour: true,
+      actions: [{label: 'Build your team', fn: () => { closeTheater(); location.hash = '#team'; }}, {label: 'Watch a bot show', fn: () => { closeTheater(); setTimeout(botShow, 30); }}]});
+  }
+
   /* ---------------------------------------------------------------
      the result card: a 600x315 picture of a match to share
      --------------------------------------------------------------- */
@@ -23335,12 +23418,12 @@ const SquadHall = (() => {
     R.pracP = panel('sq-pracp', 'sqpTitle', ['Practice and bot shows ', R.botRec],
       h('p', {class: 'sq-desc'}, 'Five bot squads with random looks. Free: nothing is saved on the server and it does not count for the season.'),
       h('div', {class: 'sq-field'}, h('span', {class: 'sq-lbl', id: 'sqpBoL'}, 'Format'), R.pBo, R.pBoHint = h('p', {class: 'sq-desc sq-bohint', hidden: true})), R.bots,
-      h('div', {class: 'sq-bacts'}, button('Watch two bot squads', 'gold', botShow, {'data-k': 'show'}), button('New bots', '', () => { st.botSeed = newSeed(); st.bots = makeBots(st.botSeed); renderBots(); }, {'data-k': 'newbots'})), R.pMsg);
+      h('div', {class: 'sq-bacts'}, button('Guided first match', 'gold', guidedShow, {'data-k': 'guided'}), button('Watch two bot squads', '', botShow, {'data-k': 'show'}), button('New bots', '', () => { st.botSeed = newSeed(); st.bots = makeBots(st.botSeed); renderBots(); }, {'data-k': 'newbots'})), R.pMsg);
 
     // without SquadNet (the demo, no server): what works now and what opens later
     R.offMsg = h('p', {class: 'sq-msg', 'aria-live': 'polite'});
     R.offP = panel('sq-offp', 'sqfTitle', 'Online duels', h('p', {class: 'sq-desc'}, SquadNet.offline),
-      h('ul', {class: 'sq-offl'}, h('li', null, 'Build your squad on the team page: it stays in this browser.'), h('li', null, 'Practice against a bot squad, as often as you like.'), h('li', null, 'Watch two bot squads fight.')),
+      h('ul', {class: 'sq-offl'}, h('li', null, 'Build your squad on the team page: it stays in this browser.'), h('li', null, 'New here? Watch the guided first match: it tells what goes on as it happens.'), h('li', null, 'Practice against a bot squad, as often as you like.'), h('li', null, 'Watch two bot squads fight.')),
       R.offMsg);
     R.offP.hidden = true;
 
