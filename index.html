@@ -2,7 +2,7 @@
 <html lang="en" data-mode="demo">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.dexscreener.com; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="$BLUB: a pixel game and Solana memecoin. Build a team of five Blubs, take the crown in the Meadow and play Blub Jump.">
 <meta name="theme-color" content="#5ED6CB">
@@ -266,30 +266,35 @@ section{position:relative}
 .swap-field .inp:focus-within{outline:4px solid var(--gold)}
 .swap-field .unit{font-family:var(--f-display);font-size:11px;display:flex;align-items:center;padding:0 12px;background:var(--pink-2);border-left:4px solid var(--ink)}
 .swap .note{grid-column:1/-1;font-size:15px;color:var(--muted)}
+.swap #swapGo{white-space:nowrap}
+.bigprice sub{font-size:.5em;vertical-align:-.1em}
+.stat strong sub{font-size:.6em}
+/* the contract address and the live source under the price (owner, 13 Oct 2026) */
+.ca{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ca-l{font-family:var(--f-display);font-size:10px;color:var(--muted)}
+.ca code{font-family:var(--f-data);font-size:22px;line-height:1;padding:4px 8px;background:#fff;border:3px solid var(--ink);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.pair-links{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pair-link{font-family:var(--f-display);font-size:10px;color:var(--ink);text-decoration:underline;text-underline-offset:4px}
+.badge.live{background:var(--up);color:var(--ink)}
+.badge.off{background:var(--pink-2);color:var(--ink)}
 #flip{align-self:end;margin-bottom:0;min-width:52px;min-height:50px;justify-content:center;padding:0 10px;font-family:var(--f-data);font-size:30px;line-height:1}
 
 
-/* tokenomics */
+/* tokenomics: how $BLUB came to be (the community take-over) and the live numbers */
 #tokenomics{background:var(--pink)}
 #tokenomics .eyebrow{color:var(--ink)}
-.supply{font-family:var(--f-data);font-size:clamp(28px,4vw,40px);line-height:1}
-.token-grid{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(24px,5vw,64px);align-items:start}
+.token-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(24px,5vw,64px);align-items:start}
 @media (max-width:860px){.token-grid{grid-template-columns:minmax(0,1fr)}}
-.chest{padding:16px;background:var(--slot);border:4px solid #000;box-shadow:inset 4px 4px 0 var(--slot-hi),inset -4px -4px 0 var(--slot-lo),var(--shadow-day);justify-self:start;max-width:100%}
-.waffle{display:grid;grid-template-columns:repeat(10,var(--w));gap:3px;--w:clamp(22px,4.2vw,34px)}
-.waffle i{width:var(--w);height:var(--w);background:var(--c);box-shadow:inset 3px 3px 0 rgba(255,255,255,.45),inset -3px -3px 0 rgba(0,0,0,.25);transition:opacity .2s,transform .2s}
-.waffle.go i{animation:stack .4s cubic-bezier(.3,1.6,.6,1) both;animation-delay:var(--d)}
-.waffle.dim i:not(.on){opacity:.25}
-@keyframes stack{0%{transform:translateY(-260px)}70%{transform:translateY(0)}85%{transform:translateY(-5px)}100%{transform:translateY(0)}}
-.hotbar{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.hotbar li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 14px 10px 10px;background:var(--paper);border:4px solid var(--ink);cursor:default;transition:background-color .12s steps(2)}
-.hotbar li.on{background:#FFF3B0}
-.hotbar strong i{display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-1px;background:var(--c);border:2px solid var(--ink);box-shadow:inset 2px 2px 0 rgba(255,255,255,.45)}
-.hotbar .ic{width:48px;height:48px;background:var(--slot);box-shadow:inset 3px 3px 0 var(--slot-lo),inset -3px -3px 0 var(--slot-hi);display:grid;place-items:center}
-.hotbar .ic canvas{width:32px;height:32px}
-.hotbar strong{font-family:var(--f-display);font-size:11px;display:block;margin-bottom:4px;line-height:1.5}
-.hotbar small{font-size:15px;color:var(--muted);display:block}
-.hotbar .pct{font-family:var(--f-data);font-size:34px;line-height:1;color:var(--ink)}
+.cto{list-style:none;margin:0;padding:0;display:grid;gap:14px;position:relative}
+.cto::before{content:"";position:absolute;left:30px;top:30px;bottom:30px;width:4px;background:repeating-linear-gradient(var(--ink) 0 8px,transparent 8px 14px)}
+.cto li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:10px 14px 10px 10px;background:var(--paper);border:4px solid var(--ink);position:relative}
+.cto li.cto-key{background:#FFF3B0;box-shadow:inset 0 0 0 4px var(--gold)}
+.cto .ic{width:48px;height:48px;background:var(--slot);box-shadow:inset 3px 3px 0 var(--slot-lo),inset -3px -3px 0 var(--slot-hi);display:grid;place-items:center;flex:none}
+.cto .ic canvas{width:32px;height:32px}
+.cto strong{font-family:var(--f-display);font-weight:400;font-size:11px;display:block;margin-bottom:6px;line-height:1.5}
+.cto p{font-size:16px;line-height:1.35;color:var(--ink)}
+.chest-live{padding:22px;display:flex;flex-direction:column;gap:16px}
+.chest-live h3{font-size:13px}
 
 /* route */
 #roadmap{background:var(--ink);color:var(--pink-3)}
@@ -301,18 +306,42 @@ section{position:relative}
 .xpbar{width:min(560px,100%);height:20px;border:3px solid #000;background:#1b1129;display:grid;grid-template-columns:repeat(20,1fr);gap:2px;padding:2px}
 .xpbar i{background:#2f2345}
 .xpbar i.f{background:var(--blub);box-shadow:inset 0 3px 0 var(--blub-2)}
-.adv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;list-style:none;margin:0;padding:0}
-@media (max-width:980px){.adv{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.adv{grid-template-columns:minmax(0,1fr)}}
-.adv li{background:#21162f;border:4px solid #000;box-shadow:inset 4px 4px 0 var(--ink-2);padding:18px;display:flex;flex-direction:column;gap:12px;position:relative;transition:transform .15s steps(3)}
-.adv li:hover{transform:translateY(-6px)}
-.adv .frame{width:64px;height:64px;display:grid;place-items:center;background:var(--ink-2);clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%)}
-.adv li.done .frame,.adv li.now .frame{background:var(--gold)}
-.adv .frame canvas{width:36px;height:36px}
-.adv li.locked .frame canvas{filter:grayscale(1) brightness(.5)}
-.adv h3{font-size:12px;color:#fff}
-.adv p{font-size:16px;color:var(--ink-soft)}
-.state{font-family:var(--f-data);font-size:20px;line-height:1;align-self:flex-start;padding:3px 8px;border:2px solid currentColor}
+/* the road through The Sift (owner, 13 Oct 2026): achievements on a dashed pink path,
+   left and right of it on wide screens and down its left side on phones, with Blub
+   walking it up to where we are */
+.road-wrap{position:relative;max-width:940px;margin:0 auto}
+.road{list-style:none;margin:0;padding:0;position:relative;display:grid;gap:22px}
+.road::before{content:"";position:absolute;left:50%;top:8px;bottom:8px;width:8px;margin-left:-4px;background:repeating-linear-gradient(var(--pink) 0 10px,transparent 10px 18px)}
+.road > li{position:relative;width:calc(50% - 44px);background:#21162f;border:4px solid #000;box-shadow:inset 4px 4px 0 var(--ink-2);padding:16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;align-items:center}
+.road > li:nth-child(odd){justify-self:start}
+.road > li:nth-child(even){justify-self:end}
+.road > li::after{content:"";position:absolute;top:30px;width:20px;height:20px;background:var(--ink-2);border:4px solid #000;box-sizing:border-box}
+.road > li:nth-child(odd)::after{right:-56px}
+.road > li:nth-child(even)::after{left:-56px}
+.road > li.done::after{background:var(--gold)}
+.road > li.now::after{background:var(--blub)}
+.road .frame{width:56px;height:56px;display:grid;place-items:center;background:var(--ink-2);clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%);grid-row:span 2}
+.road li.done .frame,.road li.now .frame{background:var(--gold)}
+.road .frame canvas{width:32px;height:32px}
+.road li.locked .frame canvas{filter:grayscale(1) brightness(.5)}
+.road h3{font-size:12px;color:#fff;line-height:1.5}
+.road p{font-size:16px;color:var(--ink-soft);grid-column:2}
+.road .state{grid-column:1/-1}
+/* the last one: the dimension update, black and nameless */
+.road li.dim{background:#000;box-shadow:inset 0 0 0 3px #1B1129}
+.road li.dim .frame{background:#000;box-shadow:inset 0 0 0 3px #2D2440;clip-path:none;width:96px;height:96px}
+.road li.dim .frame canvas{width:80px;height:80px}
+.road li.dim h3{color:#EDE9F5;letter-spacing:.06em}
+.road li.dim .dim-year{font-family:var(--f-display);font-size:18px;color:#fff}
+.road-blub{position:absolute;left:50%;top:0;width:32px;height:30px;margin-left:-16px;z-index:2;image-rendering:pixelated;transition:top .5s steps(6);pointer-events:none}
+@media (max-width:760px){
+  .road::before{left:22px}
+  .road > li{width:auto;margin-left:58px;justify-self:stretch!important}
+  .road > li::after{left:-48px!important;right:auto!important}
+  .road-blub{left:22px}
+}
+.state{font-family:var(--f-data);font-size:20px;line-height:1;align-self:flex-start;justify-self:start;padding:3px 8px;border:2px solid currentColor}
+.state.done{color:var(--up)}
 .state.now{color:var(--gold);animation:blink 1s steps(2) infinite}
 .state.locked{color:var(--text-mid);border-style:dashed}
 @keyframes blink{50%{opacity:.4}}
@@ -356,7 +385,31 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 
 /* ---------- the sift ---------- */
 /* ---------- how to play: the way in for a new player (owner, 12 Oct 2026) ---------- */
-#how{background:var(--pink-3)}
+#game{background:var(--pink-3)}
+#game + #pair{padding-top:clamp(16px,3vw,32px)}
+/* the game, step by step (owner, 13 Oct 2026): each step a band with a picture from the
+   game on one side, the words on the other (sides take turns); the parts in a grid */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:clamp(28px,5vw,48px)}
+.step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(18px,4vw,40px);align-items:center}
+.step.flip .step-art{order:2}
+.step-how,.step-parts{grid-template-columns:minmax(0,1fr)}
+.step-art{background:#21494B;border:4px solid #000;box-shadow:inset 4px 4px 0 #2F5E60,inset -4px -4px 0 #173A40,8px 8px 0 rgba(43,29,63,.18);min-height:180px;display:grid;place-items:center;padding:16px;overflow:hidden}
+.step-art canvas{image-rendering:pixelated;max-width:100%;height:auto}
+.step-txt{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.step-txt p{font-size:17px;line-height:1.45;max-width:58ch}
+.step-n{font-family:var(--f-display);font-size:10px;color:var(--coral-deep)}
+.step-txt h3{font-size:clamp(14px,2.2vw,18px);line-height:1.4}
+.ranks-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
+.ranks-row i{font-style:normal;font-family:var(--f-display);font-size:12px;color:#9FE3D6}
+.parts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+@media (max-width:980px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:599px){.parts{grid-template-columns:minmax(0,1fr)}}
+.parts > li{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
+.parts h4{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.5}
+.parts p{font-size:16px;line-height:1.4;flex:1}
+.part-art{align-self:stretch;height:92px;background:#21494B;border:3px solid #000;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px;overflow:hidden}
+.part-art canvas{image-rendering:pixelated}
+@media (max-width:760px){.step{grid-template-columns:minmax(0,1fr)}.step.flip .step-art{order:0}}
 .how-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
 .how-steps li{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
 .how-steps li > span:not(.how-n){flex:1;font-size:16px;line-height:1.4}
@@ -383,6 +436,18 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .tt .kind{font-family:var(--f-data);font-size:18px;color:#9A8BC8;line-height:1}
 .tt p{font-size:16px;color:#DCD5EA}
 .tt ul{list-style:none;margin:0;padding:0;font-family:var(--f-data);font-size:19px;color:#8FE3FF;line-height:1.2}
+/* why fans built a game (owner, 13 Oct 2026) */
+.fan{margin-top:clamp(28px,5vw,48px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(16px,3vw,32px);align-items:center;background:#140A1E;border:3px solid #000;box-shadow:inset 0 0 0 3px #2D0F5E,8px 8px 0 rgba(0,0,0,.25);padding:clamp(16px,3vw,28px)}
+.fan-blub{width:96px;height:90px;image-rendering:pixelated;animation:fanhop 1.6s steps(4) infinite}
+@keyframes fanhop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.fan-copy{display:flex;flex-direction:column;gap:12px;min-width:0}
+.fan-copy h3{color:#fff;font-size:14px;line-height:1.5}
+.fan-copy p{font-size:17px;line-height:1.5;color:#DCD5EA;max-width:70ch}
+.fan-points{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.fan-points li{display:flex;flex-direction:column;gap:2px;padding:8px 12px;background:#21494B;border:3px solid #000}
+.fan-points b{font-family:var(--f-display);font-weight:400;font-size:10px;color:#9FE3D6;line-height:1.5}
+.fan-points span{font-size:15px;color:#EAF6F4}
+@media (max-width:599px){.fan{grid-template-columns:minmax(0,1fr)}.fan-blub{width:64px;height:60px}}
 .cmds-row #fsBtn{margin-left:auto}
 .field:fullscreen{width:100%;height:100%;border:0;box-shadow:none}
 
@@ -2071,7 +2136,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · engine 15: barbed wire tangles, Boom Packs hunt defences, cannons break and get repaired</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · new home page: Blub  The Sift, the game step by step, the coin live from DexScreener</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2093,114 +2158,175 @@ body.no-scroll{overflow:hidden}
   </div>
   <div class="wrap hero-in">
     <div class="hero-copy">
-      <span class="eyebrow hero-new">Pixel game · Solana memecoin</span>
+      <span class="eyebrow hero-new">Fan-made pixel game · $BLUB on Solana</span>
       <h1 class="blocks" id="headline" aria-label="$BLUB"></h1>
-      <p class="lead hero-new">Blub is a small blue block from The Sift<span class="hero-more">, the pink dimension</span>. Build a team<span class="hero-more"> of five</span>, give every Blub a role<span class="hero-more"> and a plan, and fight other wallets in 5v5 squad battles. $BLUB is Blub’s own coin, paired with MSFT</span>.</p>
+      <p class="lead hero-new">Blub is a small blue block from The Sift<span class="hero-more">, the pink dimension</span>. We built this game as fans: build a team<span class="hero-more"> of five</span>, give every Blub a role<span class="hero-more"> and a plan, and battle other fans in 5v5 squad fights. $BLUB is the community’s own coin</span>.</p>
       <p class="lead hero-back" id="heroBack">Welcome back to The Sift.</p>
       <a class="btn md gold hero-back" href="#practice"><i data-ic="play" aria-hidden="true"></i>To practice</a>
       <div class="hero-actions hero-new">
         <a class="btn lg gold" href="#team"><i data-ic="play" aria-hidden="true"></i>Build your team</a>
         <button type="button" class="btn lg ghost" data-botshow><span class="hero-more">Watch a bot fight</span><span class="hero-less">Bot fight</span></button>
       </div>
-      <a class="hero-link hero-new" href="#pair">What is $BLUB? See the coin</a>
+      <a class="hero-link hero-new" href="#sift">New here? Meet Blub and The Sift</a>
     </div>
   </div>
 </header>
 
-<div class="ticker" aria-label="Price ticker (simulated)">
+<div class="ticker" aria-label="Price ticker, live from DexScreener">
   <canvas class="walker" id="walker" width="16" height="15" aria-hidden="true"></canvas>
   <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
-<section id="how" class="sec" aria-labelledby="howTitle">
+<!-- the home page (owner, 13 Oct 2026): first Blub and The Sift and why fans built a
+     game, then the game step by step, then the coin (live from DexScreener), how $BLUB
+     came to be (the community take-over) and the roadmap as achievements -->
+<section id="sift" class="sec" aria-labelledby="siftTitle">
   <div class="wrap">
     <div class="sec-head">
-      <div><span class="eyebrow">How to play</span><h2 id="howTitle">Your first duel in four steps</h2></div>
-      <p>Squad Arena is 5v5: you build the squad and its plan, then the fight plays itself. Practice is free and needs no wallet.</p>
+      <div>
+        <span class="eyebrow">Meet Blub</span>
+        <h2 id="siftTitle">Blub &amp; The Sift</h2>
+      </div>
+      <p>Blub is a small, blue, always-hopping creature from The Sift: a brand-new pink dimension where the ground steps down in rose terraces, deep-teal mushroom forests line the horizon and slabs of solid cloud drift overhead.</p>
     </div>
+    <ul class="guide" id="guide" aria-label="Field guide to The Sift"></ul>
+    <div class="fan">
+      <canvas class="fan-blub" id="fanBlub" width="16" height="15" aria-hidden="true"></canvas>
+      <div class="fan-copy">
+        <h3>Why we built a fan game</h3>
+        <p>We fell for Blub the moment it hopped into view. The Sift is still a mystery and the update that opens it is a while away, so we built a place for the fans in the meantime: a free community game where your Blubs train, team up and battle, a coin the community runs itself, and a corner of the internet to share the hype.</p>
+        <ul class="fan-points">
+          <li><b>Made by fans</b><span>for everyone who loves Blub</span></li>
+          <li><b>Free to play</b><span>no wallet needed to start</span></li>
+          <li><b>Built together</b><span>by the community, in the open</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="edge" data-top="#21494B" data-bot="#FFE9EE"></div>
+
+<section id="game" class="sec" aria-labelledby="gameTitle">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><span class="eyebrow">The game</span><h2 id="gameTitle">Squad Arena, step by step</h2></div>
+      <p>A pixel strategy game about Blub: you make the plan, the fight plays itself. Here is all of it, one step at a time.</p>
+    </div>
+    <ol class="steps">
+      <li class="step">
+        <div class="step-art" data-art="arena" aria-hidden="true"></div>
+        <div class="step-txt">
+          <span class="step-n">Step 1 · What it is</span>
+          <h3>Five Blubs against five</h3>
+          <p>Squad Arena is a 5v5 battle game. You build a team of five Blubs, give each one a role, a weapon and a plan, and send them into the arena. Then you watch: the fight plays itself, turn by turn, on a fresh arena every round.</p>
+          <button type="button" class="btn small" data-botshow>Watch a bot fight</button>
+        </div>
+      </li>
+      <li class="step step-how" id="how">
+        <div class="step-txt">
+          <span class="step-n">Step 2 · How to start</span>
+          <h3 id="howTitle">Your first duel in four moves</h3>
+          <p>Practice is free and needs no wallet. A wallet only comes in for duels against other fans.</p>
+        </div>
     <ol class="how-steps">
       <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Five Blubs: their looks, their skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
       <li><span class="how-n" aria-hidden="true">2</span><b>Play your first match</b><span>Free against bots, no wallet needed. Cards explain what happens.</span><a class="btn small mint" href="#practice">Practice</a></li>
       <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transaction, no fees, and your coins stay put.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
       <li><span class="how-n" aria-hidden="true">4</span><b>Climb the weekly league</b><span>Duel real players: a win is 3 points, and the top 7 of your group move up.</span><a class="btn small" href="#rankings">Rankings</a></li>
     </ol>
+      </li>
+      <li class="step flip">
+        <div class="step-art" data-art="ranks" aria-hidden="true"></div>
+        <div class="step-txt">
+          <span class="step-n">Step 3 · The goal</span>
+          <h3>Climb from Shrimp to Whale</h3>
+          <p>Win duels against other fans. Every week you play in a group of 35: a win is 3 points and a loss still 1. The top of your group moves up and the bottom moves down, through 18 ranks from Bronze Shrimp to Gold Whale. Practice against bots is always free and never counts.</p>
+        </div>
+      </li>
+      <li class="step step-parts">
+        <div class="step-txt">
+          <span class="step-n">Step 4 · Every part of the game</span>
+          <h3>What you will find, and how it works</h3>
+        </div>
+        <ul class="parts">
+          <li><div class="part-art" data-art="looks" aria-hidden="true"></div><h4>Team · Looks</h4><p>Dress your five in the Blub Maker: colours, hats, eyes and more. Looks are just for fun and stay the same in every strategy.</p><a class="btn small" href="#team">Team</a></li>
+          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><h4>Team · Skills</h4><p>Give every Blub a role (Brawler, Guardian, Skirmisher, Medic or Trickster), a weapon, gear, a power and a tactic, and spend its training points.</p><a class="btn small" href="#team">Team</a></li>
+          <li><div class="part-art" data-art="plan" aria-hidden="true"></div><h4>Team · Strategy</h4><p>Place your five on your rows, dig in two objects of the trench kit and pick the captain’s command. You keep three strategies and switch with a tap.</p><a class="btn small" href="#team">Team</a></li>
+          <li><div class="part-art" data-art="fight" aria-hidden="true"></div><h4>The arena</h4><p>Every round brings a new arena, weather and a chest of surprises. Smoke makes shots blind, Diggers hide pits, Builders raise cannons and barbed wire tangles whoever crosses it.</p><button type="button" class="btn small" data-botshow>Watch a fight</button></li>
+          <li><div class="part-art" data-art="practice" aria-hidden="true"></div><h4>Practice</h4><p>Play bot squads as often as you like, watch two bot squads fight, or take the guided first match that explains everything as it happens. Free, no wallet.</p><a class="btn small mint" href="#practice">Practice</a></li>
+          <li><div class="part-art" data-art="league" aria-hidden="true"></div><h4>Rankings</h4><p>The weekly league with its 18 ranks, friend leagues for your own crew, and the duel season. Every rank may duel every other.</p><a class="btn small" href="#rankings">Rankings</a></li>
+        </ul>
+      </li>
+    </ol>
   </div>
 </section>
-<div class="edge" data-top="#FFE9EE" data-bot="#21494B"></div>
 
-<section id="sift" class="sec">
+<section id="pair" class="sec" aria-labelledby="pairTitle">
   <div class="wrap">
     <div class="sec-head">
       <div>
-        <span class="eyebrow">Blub’s world</span>
-        <h2>Welcome to The Sift</h2>
+        <span class="eyebrow">The coin</span>
+        <h2 id="pairTitle">BLUB ⇄ MSFTx</h2>
       </div>
-      <p>Blub comes from The Sift, the new pink dimension. The ground steps down in rose terraces, deep-teal mushroom forests line the horizon, and slabs of solid cloud drift overhead.</p>
-    </div>
-    <ul class="guide" id="guide" aria-label="Field guide to The Sift"></ul>
-  </div>
-</section>
-<div class="edge" data-top="#21494B" data-bot="#FFE9EE"></div>
-
-<section id="pair" class="sec">
-  <div class="wrap">
-    <div class="sec-head">
-      <div>
-        <span class="eyebrow">The pair</span>
-        <h2>BLUB ⇄ MSFT</h2>
-      </div>
-      <p>$BLUB lives on Solana and is priced in tokenized MSFT: one pool, with $BLUB on one side and tokenized MSFT on the other. When MSFT moves, you see it in Blub right away.</p>
+      <p>$BLUB lives on Solana. Its pool on Raydium pairs it with MSFTx, tokenized MSFT, so when MSFT moves you see it in Blub. Every number here comes live from DexScreener.</p>
     </div>
 
     <div class="pair-grid">
       <div class="panel price-card">
         <div class="pairname"><canvas id="pairIcon" width="16" height="15" aria-hidden="true"></canvas>1 BLUB =</div>
-        <div class="bigprice" id="bigPrice">0,00008421 <small>MSFT</small></div>
+        <div class="bigprice" id="bigPrice">… <small>MSFTx</small></div>
         <div class="stats">
           <div class="stat"><span>In dollars</span><strong id="sUsd">–</strong></div>
           <div class="stat"><span>24h change</span><strong id="sChg">–</strong></div>
-          <div class="stat"><span>1 MSFT buys</span><strong id="sPer">–</strong></div>
           <div class="stat"><span>Market cap</span><strong id="sCap">–</strong></div>
           <div class="stat"><span>Pool liquidity</span><strong id="sLiq">–</strong></div>
-          <div class="stat"><span>Holders</span><strong id="sHold">–</strong></div>
+          <div class="stat"><span>24h volume</span><strong id="sVol">–</strong></div>
+          <div class="stat"><span>24h trades</span><strong id="sTx">–</strong></div>
         </div>
-        <span class="badge">DEMO · simulated price</span>
+        <div class="ca">
+          <span class="ca-l">Contract</span>
+          <code id="caText">5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi</code>
+          <button type="button" class="btn small" id="caCopy" aria-label="Copy the contract address">Copy</button>
+        </div>
+        <div class="pair-links">
+          <span class="badge" id="liveBadge">Connecting to DexScreener…</span>
+          <a class="pair-link" id="dexLink" href="https://dexscreener.com/solana/3x7tLbTjGFakK6MiTEeyUiRhqLejsDJoaUz1kYvrnj45" target="_blank" rel="noopener noreferrer">DexScreener ↗</a>
+        </div>
       </div>
 
       <div class="chart-card" style="border:4px solid #000">
         <div class="chart-top">
-          <span class="lbl">BLUB / MSFT</span>
+          <span class="lbl" id="chartLbl">BLUB / MSFTx · per 1M BLUB</span>
           <div class="tf" role="group" aria-label="Time range">
-            <button type="button" data-tf="1U" aria-pressed="true">1H</button>
-            <button type="button" data-tf="24U" aria-pressed="false">24H</button>
-            <button type="button" data-tf="7D" aria-pressed="false">7D</button>
+            <button type="button" data-tf="1H" aria-pressed="false">1H</button>
+            <button type="button" data-tf="24H" aria-pressed="true">24H</button>
           </div>
         </div>
         <div class="chart-box" id="chartBox">
-          <canvas id="chart" aria-label="Price chart of BLUB in MSFT"></canvas>
+          <canvas id="chart" aria-label="Price chart of BLUB in MSFTx"></canvas>
           <div class="tip" id="tip" hidden></div>
         </div>
-        <p class="demo-note">Every rise above 1.5% makes Blub jump. Look up.</p>
+        <p class="demo-note">The line runs through DexScreener’s price now and 5 minutes, an hour, 6 and 24 hours ago, plus every update while you watch. A rise of more than 1.5% makes Blub jump.</p>
       </div>
     </div>
 
     <form class="panel swap" id="swap" autocomplete="off">
       <div class="swap-field">
         <label for="inA">You pay</label>
-        <div class="inp"><input id="inA" inputmode="decimal" value="1"><span class="unit" id="unitA">MSFT</span></div>
+        <div class="inp"><input id="inA" inputmode="decimal" value="0.1"><span class="unit" id="unitA">MSFTx</span></div>
       </div>
       <button type="button" class="btn small" id="flip" aria-label="Swap direction">⇄</button>
       <div class="swap-field">
         <label for="inB">You get about</label>
         <div class="inp"><input id="inB" inputmode="decimal" readonly><span class="unit" id="unitB">BLUB</span></div>
       </div>
-      <button type="submit" class="btn pink">Swap</button>
-      <p class="note" id="swapNote">Estimate based on the demo price. Real trading opens at launch.</p>
+      <a class="btn pink" id="swapGo" href="https://jup.ag/swap/XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX-5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi" target="_blank" rel="noopener noreferrer">Swap on Jupiter ↗</a>
+      <p class="note" id="swapNote">Worked out from the pool’s live reserves on DexScreener, before the pool fee. You swap on Jupiter, in your own wallet: this site never sends a transaction.</p>
     </form>
   </div>
 </section>
 
-<div class="edge" data-top="#FFE9EE" data-bot="#DDF1FC"></div>
+<div class="edge" data-top="#FFE9EE" data-bot="#F59AB0"></div>
 <section id="use" class="sec" hidden>
   <span id="recipe"></span>
   <div class="wrap">
@@ -2241,36 +2367,52 @@ body.no-scroll{overflow:hidden}
     </div>
   </div>
 </section>
-<div class="edge" data-top="#DDF1FC" data-bot="#F59AB0"></div>
-<section id="tokenomics" class="sec">
+<section id="tokenomics" class="sec" aria-labelledby="tokTitle">
   <div class="wrap">
     <div class="sec-head">
       <div>
         <span class="eyebrow">Tokenomics</span>
-        <h2>Blub’s Chest</h2>
+        <h2 id="tokTitle">From launch to community take-over</h2>
       </div>
-      <div class="supply">69,420,000,000 BLUB<br><span style="font-size:max(18px,.6em)">total supply · each block is 1%</span></div>
+      <p>$BLUB belongs to its community. This is how it got here, and what it looks like today.</p>
     </div>
     <div class="token-grid">
-      <div class="chest"><div class="waffle" id="waffle" role="img" aria-label="Allocation in 100 blocks: 50 pool, 20 community, 15 treasury, 10 team, 5 marketing"></div></div>
-      <ul class="hotbar" id="hotbar"></ul>
+      <ol class="cto" id="cto">
+        <li><div class="ic" data-spr="rocket"></div><div><strong>Launch</strong><p>$BLUB launched on Solana: a memecoin built around Blub.</p></div></li>
+        <li><div class="ic" data-spr="people"></div><div><strong>The first wave</strong><p>The first holders found Blub, and each other.</p></div></li>
+        <li class="cto-key"><div class="ic" data-spr="chest"></div><div><strong>Community take-over</strong><p>Those first-wave holders joined forces and took the project over as a community: a CTO.</p></div></li>
+        <li><div class="ic" data-spr="heart"></div><div><strong>The revival</strong><p>Everyone pitches in their own way: art, memes, raids, code, and this game.</p></div></li>
+      </ol>
+      <div class="panel chest-live">
+        <h3>Today, live</h3>
+        <div class="stats">
+          <div class="stat"><span>Total supply</span><strong id="tSupply">–</strong></div>
+          <div class="stat"><span>Market cap</span><strong id="tCap">–</strong></div>
+          <div class="stat"><span>Pool liquidity</span><strong id="tLiq">–</strong></div>
+          <div class="stat"><span>Pool opened</span><strong id="tOpen">–</strong></div>
+        </div>
+        <p class="note">Total supply is the market cap divided by the price, both from DexScreener. The pool pairs BLUB with MSFTx on Raydium.</p>
+      </div>
     </div>
   </div>
 </section>
 
 <div class="edge" data-top="#F59AB0" data-bot="#2B1D3F"></div>
-<section id="roadmap" class="sec">
+<section id="roadmap" class="sec" aria-labelledby="roadTitle">
   <canvas id="stars" aria-hidden="true"></canvas>
   <div class="wrap">
     <div class="sec-head">
       <div>
         <span class="eyebrow">Roadmap</span>
-        <h2 style="color:#fff">Achievements to unlock</h2>
+        <h2 id="roadTitle" style="color:#fff">Achievements to unlock</h2>
       </div>
-      <p style="color:var(--ink-soft)">This is how Blub grows from spawn point to a world of its own. Every phase is an achievement, just like in the game.</p>
+      <p style="color:var(--ink-soft)">Blub’s road through The Sift. Every step is an achievement, just like in a game: unlocked, in progress, or still locked.</p>
     </div>
-    <div class="xp"><span class="lvl" id="lvl">Level 1 · Spawn Point · 60%</span><div class="xpbar" id="xpbar" aria-label="Progress, phase 1: 60 percent"></div></div>
-    <ol class="adv" id="adv"></ol>
+    <div class="xp"><span class="lvl" id="lvl">Level 1</span><div class="xpbar" id="xpbar" aria-hidden="true"></div></div>
+    <div class="road-wrap">
+      <canvas class="road-blub" id="roadBlub" width="16" height="15" aria-hidden="true"></canvas>
+      <ol class="road" id="adv"></ol>
+    </div>
   </div>
 </section>
 
@@ -2483,7 +2625,7 @@ body.no-scroll{overflow:hidden}
   <canvas id="ground" aria-hidden="true"></canvas>
   <div class="wrap foot">
     <a class="logo" href="#top"><canvas id="logoBlub2" width="16" height="15" aria-hidden="true"></canvas>$BLUB</a>
-    <p>$BLUB is a memecoin built around the character Blub. Prices and figures on this page are simulated and serve as examples. Not financial advice. Not affiliated with Microsoft, Mojang or Minecraft. Tokenized stocks are not available in every country.</p>
+    <p>$BLUB is a community memecoin with no intrinsic value: it is not an investment, and nothing on this site is financial advice. This fan game exists to grow the fanbase and the hype around the update. We are fans, in no way linked to, endorsed by or connected with the project Blub comes from or the companies that develop it. Prices come live from DexScreener; tokenized stocks are not available in every country.</p>
   </div>
 </footer>
 
@@ -2556,7 +2698,7 @@ function drawBlub(ctx, st={}){
   if(blink||sleep){ctx.fillRect(3+look,9,2,1);ctx.fillRect(11+look,9,2,1);}
   else{ctx.fillRect(3+look,8,2,2);ctx.fillRect(11+look,8,2,2);}
 }
-['logoBlub','logoBlub2','pairIcon','walker'].forEach(id=>{const c=document.getElementById(id);drawBlub(c.getContext('2d'),{});});
+['logoBlub','logoBlub2','pairIcon','walker','fanBlub','roadBlub'].forEach(id=>{const c=document.getElementById(id);if(c)drawBlub(c.getContext('2d'),{});});
 // every other blue logo Blub (fixed palette: never a player's own Blub) and the sprite icons in the markup
 document.querySelectorAll('canvas.logo-blub').forEach(c=>{const x=c.getContext('2d');if(x)drawBlub(x,{});});
 document.querySelectorAll('[data-ic]').forEach(e=>{if(SPR[e.dataset.ic]&&!e.firstChild)e.append(icon(e.dataset.ic));});
@@ -2636,87 +2778,166 @@ head.addEventListener('click',e=>{
   setTimeout(()=>{b.classList.remove('broken');void b.offsetWidth;b.classList.add('respawn');},2200);
 });
 
-/* ================= market sim ================= */
-const mk={msft:512.4, p:0.00008421, open:0.00008210, supply:69.42e9, holders:4269, r:rng(42)};
+/* ================= the coin, live from DexScreener (owner, 13 Oct 2026) ================= */
+// One pool: BLUB/MSFTx on Raydium. The page asks DexScreener's public API (no key, open to
+// the browser) once a minute while it is in view; nothing here is simulated any more. The
+// chart runs through the price now and what DexScreener says it was 5 minutes, an hour, 6
+// and 24 hours ago, plus every answer this browser has had (kept for a week).
+const CA='5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi';
+const DEX_URL='https://api.dexscreener.com/latest/dex/tokens/'+CA;
+const mk={ok:false,failed:false,at:0,p:0,usd:0,chg:{},cap:0,liq:0,vol:0,buys:0,sells:0,rb:0,rq:0,open:0,qs:'MSFTx',
+  qm:'XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX',url:'https://dexscreener.com/solana/3x7tLbTjGFakK6MiTEeyUiRhqLejsDJoaUz1kYvrnj45'};
 const listeners=[];
-function tick(){
-  if(mk.live==='live')return;
-  const old=mk.p;
-  if(!mk.live)mk.msft*=1+gauss(mk.r)*0.0015;
-  mk.p*=1+gauss(mk.r)*0.009+0.0012;
-  if(mk.r()<.08)mk.p*=1+0.016+mk.r()*0.02; // occasional pump
-  if(mk.r()<.3)mk.holders+=1+Math.floor(mk.r()*3);
-  listeners.forEach(f=>f(mk.p/old-1));
+const HIST='blub-dex-v1', WEEK=7*864e5;
+let hist=[];
+try{const h=JSON.parse(localStorage.getItem(HIST)||'[]');if(Array.isArray(h))hist=h.filter(e=>Array.isArray(e)&&e.length===2&&Number.isFinite(e[0])&&Number.isFinite(e[1])&&e[1]>0&&Date.now()-e[0]<WEEK).slice(-600);}catch{}
+const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
+async function pullMarket(){
+  let j=null;
+  try{const r=await fetch(DEX_URL,{headers:{Accept:'application/json'}});if(r.ok)j=await r.json();}catch{}
+  const ps=j&&Array.isArray(j.pairs)?j.pairs.filter(p=>p&&p.chainId==='solana'&&p.baseToken&&p.baseToken.address===CA&&num(p.priceNative)>0):[];
+  if(!ps.length){if(!mk.ok){mk.failed=true;renderStats();drawChart();}return false;}
+  // the deepest pool is the price
+  const p=ps.sort((a,b)=>num(b.liquidity&&b.liquidity.usd)-num(a.liquidity&&a.liquidity.usd))[0];
+  const old=mk.ok?mk.p:0, pc=p.priceChange||{}, tx=p.txns||{}, lq=p.liquidity||{}, q=p.quoteToken||{};
+  Object.assign(mk,{ok:true,failed:false,at:Date.now(),p:num(p.priceNative),usd:num(p.priceUsd),cap:num(p.marketCap)||num(p.fdv),liq:num(lq.usd),
+    vol:num(p.volume&&p.volume.h24),buys:num(tx.h24&&tx.h24.buys),sells:num(tx.h24&&tx.h24.sells),rb:num(lq.base),rq:num(lq.quote),open:num(p.pairCreatedAt)});
+  // a window without trades has no change in DexScreener's answer: the price stood still
+  mk.chg={};
+  for(const k of ['m5','h1','h6','h24']){const v=pc[k],t=tx[k];mk.chg[k]=typeof v==='number'&&Number.isFinite(v)?v:t&&num(t.buys)+num(t.sells)===0?0:null;}
+  if(/^[A-Za-z0-9.]{1,12}$/.test(q.symbol||''))mk.qs=q.symbol;
+  if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q.address||''))mk.qm=q.address;
+  if(typeof p.url==='string'&&/^https:\/\/dexscreener\.com\/solana\/[A-Za-z0-9]+$/.test(p.url))mk.url=p.url;
+  const last=hist[hist.length-1];
+  if(!last||last[1]!==mk.p||mk.at-last[0]>=3e5){
+    hist.push([mk.at,mk.p]);hist=hist.filter(e=>mk.at-e[0]<WEEK).slice(-600);
+    try{localStorage.setItem(HIST,JSON.stringify(hist));}catch{}
+  }
+  listeners.forEach(f=>f(old?mk.p/old-1:0));
+  return true;
 }
-const fmtP=v=>nf(8)(v);
+// tiny prices the way DexScreener writes them: 0.0₇104 is 0.0000000104 (seven zeros)
+const sigF=new Intl.NumberFormat('en-US',{maximumSignificantDigits:4});
+const sig=v=>sigF.format(v);
+function tiny(v,html){
+  if(!(v>0))return '–';
+  if(v>=1e-4)return sig(v);
+  const m=/^0\.(0+)(\d{1,4})/.exec(v.toFixed(20));
+  if(!m)return sig(v);
+  const z=m[1].length, d=m[2].replace(/0+$/,'')||'0';
+  return '0.0'+(html?'<sub>'+z+'</sub>':String(z).split('').map(c=>'₀₁₂₃₄₅₆₇₈₉'[+c]).join(''))+d;
+}
+const usd=v=>!(v>0)?'–':v>=1e9?'$'+nf(2)(v/1e9)+'B':v>=1e6?'$'+nf(2)(v/1e6)+'M':v>=1e3?'$'+nf(1)(v/1e3)+'K':'$'+nf(2)(v);
 const short=v=>v>=1e9?nf(2)(v/1e9)+' B':v>=1e6?nf(2)(v/1e6)+' M':nf(0)(v);
+const chgTxt=c=>c==null?'–':(c>=0?'▲ +':'▼ ')+nf(2)(c)+'%';
 function renderStats(d=0){
-  const bp=$('#bigPrice'); bp.innerHTML=`${fmtP(mk.p)} <small>MSFT</small>`;
+  const bp=$('#bigPrice'), badge=$('#liveBadge');
+  if(!mk.ok){
+    bp.innerHTML='… <small>'+mk.qs+'</small>';
+    if(badge){badge.textContent=mk.failed?'Price unavailable right now':'Connecting to DexScreener…';badge.className='badge off';}
+    renderTicker();calc();return;
+  }
+  bp.innerHTML=tiny(mk.p,true)+' <small>'+mk.qs+'</small>';
   if(d){bp.classList.remove('flash-up','flash-down');void bp.offsetWidth;bp.classList.add(d>0?'flash-up':'flash-down');setTimeout(()=>bp.classList.remove('flash-up','flash-down'),500);}
-  const usd=mk.p*mk.msft, chg=mk.p/mk.open-1;
-  $('#sUsd').textContent='$'+nf(4)(usd);
-  const sc=$('#sChg');
-  if(mk.live==='live'){sc.textContent='24h n/a';sc.title='no 24h history yet';sc.className='';sc.style.color='';}
-  else{sc.textContent=(chg>=0?'▲ +':'▼ ')+nf(2)(chg*100)+'%';sc.title='';sc.className=chg>=0?'up':'down';
-    sc.style.color=chg>=0?'var(--up-ink)':'var(--down-ink)';}
-  $('#sPer').textContent=nf(0)(1/mk.p)+' BLUB';
-  $('#sCap').textContent='$'+short(usd*mk.supply);
-  $('#sLiq').textContent=mk.live==='live'?'—':nf(0)(usd*mk.supply*0.5/mk.msft)+' MSFT';
-  $('#sHold').textContent=mk.live==='live'?'—':nf(0)(mk.holders);
-  renderTicker(); calc();
+  $('#sUsd').innerHTML='$'+tiny(mk.usd,true);
+  const sc=$('#sChg'),c=mk.chg.h24;
+  sc.textContent=chgTxt(c);sc.style.color=c==null?'':c>=0?'var(--up-ink)':'var(--down-ink)';
+  $('#sCap').textContent=usd(mk.cap);$('#sLiq').textContent=usd(mk.liq);$('#sVol').textContent=usd(mk.vol);
+  $('#sTx').textContent=nf(0)(mk.buys)+' buys · '+nf(0)(mk.sells)+' sells';
+  if(badge){badge.textContent='LIVE · DexScreener · '+new Date(mk.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});badge.className='badge live';}
+  const dl=$('#dexLink');if(dl)dl.href=mk.url;
+  // tokenomics, today: the supply is the market cap over the price
+  const sup=mk.usd>0?mk.cap/mk.usd:0;
+  $('#tSupply').textContent=sup?'≈ '+short(sup):'–';$('#tCap').textContent=usd(mk.cap);$('#tLiq').textContent=usd(mk.liq);
+  $('#tOpen').textContent=mk.open?new Date(mk.open).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'–';
+  renderTicker();calc();
 }
 /* ticker */
 function renderTicker(){
-  const chg=mk.p/mk.open-1, up=chg>=0;
-  const items=[
-    `<b>BLUB/MSFT</b> ${fmtP(mk.p)} `+(mk.live==='live'?'<em title="no 24h history yet">24h n/a</em>':`<em class="${up?'up':'down'}">${up?'▲':'▼'} ${nf(2)(Math.abs(chg*100))}%</em>`),
-    `<b>MSFT</b> $${nf(2)(mk.msft)}`,
-    `<b>BLUB/USD</b> $${nf(4)(mk.p*mk.msft)}`,
-    `<b>HOLDERS</b> ${mk.live==='live'?'—':nf(0)(mk.holders)}`,
+  const c=mk.chg.h24;
+  const items=mk.ok?[
+    `<b>BLUB/${mk.qs}</b> ${tiny(mk.p)} `+(c==null?'':`<em class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${nf(2)(Math.abs(c))}%</em>`),
+    `<b>BLUB/USD</b> $${tiny(mk.usd)}`,
+    `<b>MARKET CAP</b> ${usd(mk.cap)}`,
+    `<b>LIQUIDITY</b> ${usd(mk.liq)}`,
+    `<b>24H VOLUME</b> ${usd(mk.vol)}`,
     `<b>BLUB PETS</b> ${nf(0)(pets)}×`,
     `<b>THE SIFT</b> sunny, 21°C`,
-    (mk.live?'<b>LIVE</b> '+(mk.live==='live'?'BLUB/MSFT on Solana':'MSFT price · BLUB simulated'):'<b>DEMO</b> simulated prices')
-  ].map(t=>`<span>${t}</span>`).join('');
-  $('#tickerTrack').innerHTML=items+items;
+    '<b>LIVE</b> DexScreener'
+  ]:[
+    '<b>$BLUB</b> on Solana',
+    `<b>BLUB PETS</b> ${nf(0)(pets)}×`,
+    `<b>THE SIFT</b> sunny, 21°C`,
+    mk.failed?'<b>PRICE</b> unavailable right now':'<b>PRICE</b> connecting to DexScreener…'
+  ];
+  const html=items.map(t=>`<span>${t}</span>`).join('');
+  $('#tickerTrack').innerHTML=html+html;
 }
 
-/* ================= swap calc ================= */
-let dir='msft2blub';
+/* ================= swap: the pool's own sums, then Jupiter ================= */
+// The estimate is the constant-product sum on the pool's live reserves (before its fee);
+// the button opens Jupiter with the right two tokens. This page never sends a transaction.
+let dir='q2b'; // pay MSFTx, get BLUB
 function parse(v){return parseFloat(String(v).replace(/,/g,''))||0}
 function calc(){
-  const a=parse($('#inA').value); const out=dir==='msft2blub'?a/mk.p*0.997:a*mk.p*0.997;
-  $('#inB').value=dir==='msft2blub'?nf(0)(out):nf(8,2)(out);
+  const a=parse($('#inA').value);
+  let out=0;
+  if(mk.ok&&a>0&&mk.rb>0&&mk.rq>0){const rin=dir==='q2b'?mk.rq:mk.rb,rout=dir==='q2b'?mk.rb:mk.rq;out=rout*a/(rin+a);}
+  $('#inB').value=out>0?(dir==='q2b'?nf(0)(out):sig(out)):'';
+  $('#unitA').textContent=dir==='q2b'?mk.qs:'BLUB';$('#unitB').textContent=dir==='q2b'?'BLUB':mk.qs;
+  $('#swapGo').href='https://jup.ag/swap/'+(dir==='q2b'?mk.qm+'-'+CA:CA+'-'+mk.qm);
 }
 $('#inA').addEventListener('input',calc);
-$('#flip').addEventListener('click',()=>{
-  dir=dir==='msft2blub'?'blub2msft':'msft2blub';
-  $('#unitA').textContent=dir==='msft2blub'?'MSFT':'BLUB'; $('#unitB').textContent=dir==='msft2blub'?'BLUB':'MSFT';
-  $('#inA').value=dir==='msft2blub'?'1':'100,000'; calc();
+$('#flip').addEventListener('click',()=>{dir=dir==='q2b'?'b2q':'q2b';$('#inA').value=dir==='q2b'?'0.1':'1,000,000';calc();});
+$('#swap').addEventListener('submit',e=>e.preventDefault());
+$('#swapGo').addEventListener('click',()=>achieve('swap','Achievement unlocked!','Early Bird','coin'));
+$('#caCopy').addEventListener('click',async()=>{
+  const b=$('#caCopy');
+  try{await navigator.clipboard.writeText(CA);b.textContent='Copied!';}
+  catch{b.textContent='Selected';const r=document.createRange();r.selectNodeContents($('#caText'));const s=getSelection();s.removeAllRanges();s.addRange(r);}
+  setTimeout(()=>{b.textContent='Copy';},1600);
 });
-$('#swap').addEventListener('submit',e=>{e.preventDefault();$('#swapNote').textContent='Hang on: swapping opens at launch. This calculator includes a 0.3% pool fee.';achieve('swap','Achievement unlocked!','Early Bird','coin');});
 
-/* ================= chart ================= */
-const TF={'1U':{n:60,vol:.006,seed:1,lbl:['−60 min','now']},'24U':{n:96,vol:.012,seed:2,lbl:['−24 h','now']},'7D':{n:84,vol:.03,seed:3,lbl:['−7 d','now']}};
-let tf='1U', series={};
-function gen(key){const t=TF[key],r=rng(t.seed*1000+7);const a=[mk.p];for(let i=1;i<t.n;i++)a.unshift(a[0]/(1+gauss(r)*t.vol+t.vol*.15));return a;}
-Object.keys(TF).forEach(k=>series[k]=gen(k));
-const cv=$('#chart'), cx=cv.getContext('2d'); let hoverCol=-1, blinkOn=true;
+/* ================= chart: DexScreener's points, joined up ================= */
+const TF={'1H':{span:36e5,lbl:['−60 min','now']},'24H':{span:864e5,lbl:['−24 h','now']}};
+let tf='24H';
+const COLS=120;
+// the points: the price now, the anchors DexScreener gives, and this browser's own record
+function pricePoints(){
+  const now=mk.at, pts=[[now,mk.p]];
+  for(const [k,ms] of [['m5',3e5],['h1',36e5],['h6',216e5],['h24',864e5]]){const c=mk.chg[k];if(c!=null&&c>-100)pts.push([now-ms,mk.p/(1+c/100)]);}
+  for(const e of hist)if(e[0]<now)pts.push(e);
+  return pts.sort((a,b)=>a[0]-b[0]);
+}
+function chartSeries(){
+  if(!mk.ok)return null;
+  const pts=pricePoints(), span=TF[tf].span, from=mk.at-span, out=[];
+  const at=t=>{let i=0;while(i<pts.length&&pts[i][0]<t)i++;if(i===0)return pts[0][1];if(i===pts.length)return pts[pts.length-1][1];const [t0,v0]=pts[i-1],[t1,v1]=pts[i];return t1===t0?v1:v0+(v1-v0)*(t-t0)/(t1-t0);};
+  for(let c=0;c<COLS;c++)out.push(at(from+span*c/(COLS-1)));
+  return out;
+}
+// the chart counts in MSFTx for a million BLUB
+const fmtC=v=>sig(v*1e6);
+const cv=$('#chart'), cx=cv.getContext('2d'); let hoverCol=-1, blinkOn=true, chartGeom=null;
 function drawChart(){
   const W=cv.clientWidth,H=cv.clientHeight,dpr=Math.min(devicePixelRatio||1,2);
   if(!W)return;
   if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
   cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
+  const lb=$('#chartLbl'); if(lb)lb.textContent='BLUB / '+mk.qs+' · per 1M BLUB';
+  const d=chartSeries();
+  cx.font='20px VT323, monospace'; cx.textBaseline='middle';
+  if(!d){cx.fillStyle='#B9A9D6';const m=mk.failed?'Price unavailable right now':'Connecting to DexScreener…';cx.fillText(m,Math.max(8,(W-cx.measureText(m).width)/2),H/2);chartGeom=null;return;}
   // T: 8 px of room above the top row, so its price label is not clipped
   const T=8; cx.translate(0,T);
-  const B=6, pw=W-96, ph=H-28-T, cols=Math.floor(pw/B), rows=Math.floor(ph/B), d=series[tf], N=d.length;
+  const B=6, pw=W-96, ph=H-28-T, cols=Math.floor(pw/B), rows=Math.floor(ph/B), N=d.length;
   let mn=Math.min(...d),mx=Math.max(...d); const pad=(mx-mn)*.12||mx*.01; mn-=pad; mx+=pad;
   const yr=v=>Math.round((mx-v)/(mx-mn)*(rows-1));
   const val=c=>d[Math.round(c/(cols-1)*(N-1))];
   // grid + labels
-  cx.font='20px VT323, monospace'; cx.textBaseline='middle';
   for(let k=0;k<=4;k++){const r=Math.round(k*(rows-1)/4);
     cx.fillStyle='rgba(185,169,214,.18)'; for(let c=0;c<cols;c+=2)cx.fillRect(c*B+2,r*B+2,2,2);
-    cx.fillStyle='#B9A9D6'; cx.fillText(fmtP(mx-(mx-mn)*r/(rows-1)),pw+8,r*B+B/2);}
+    cx.fillStyle='#B9A9D6'; cx.fillText(fmtC(mx-(mx-mn)*r/(rows-1)),pw+8,r*B+B/2);}
   cx.fillText(TF[tf].lbl[0],0,H-10-T); const e=TF[tf].lbl[1]; cx.fillText(e,pw-cx.measureText(e).width,H-10-T);
   if(hoverCol>=0){cx.fillStyle='rgba(255,255,255,.07)';cx.fillRect(hoverCol*B,0,B,rows*B);}
   // dithered area
@@ -2731,16 +2952,16 @@ function drawChart(){
   // endpoint
   const ly=yr(d[N-1]), lx=(cols-1)*B;
   if(blinkOn){cx.fillStyle='#F59AB0';cx.fillRect(lx-B/2,ly*B-B/2,B*2,B*2);}
-  cx.fillStyle='#FFD447'; cx.fillRect(pw+4,ly*B-11,92,22); cx.fillStyle='#2B1D3F'; cx.fillText(fmtP(d[N-1]),pw+8,ly*B);
+  cx.fillStyle='#FFD447'; cx.fillRect(pw+4,ly*B-11,92,22); cx.fillStyle='#2B1D3F'; cx.fillText(fmtC(d[N-1]),pw+8,ly*B);
   chartGeom={B,T,cols,pw,rows,yr,val};
 }
-let chartGeom=null;
 const box=$('#chartBox'), tip=$('#tip');
 box.addEventListener('pointermove',e=>{
   if(!chartGeom)return; const r=cv.getBoundingClientRect(), x=e.clientX-r.left;
   if(x>chartGeom.pw){hoverCol=-1;tip.hidden=true;drawChart();return;}
   hoverCol=Math.max(0,Math.min(chartGeom.cols-1,Math.floor(x/chartGeom.B)));
-  const v=chartGeom.val(hoverCol); tip.hidden=false; tip.textContent=fmtP(v)+' MSFT';
+  const v=chartGeom.val(hoverCol), ago=Math.round((1-hoverCol/(chartGeom.cols-1))*TF[tf].span/6e4);
+  tip.hidden=false; tip.textContent=fmtC(v)+' '+mk.qs+' · '+(ago<=0?'now':ago<90?'−'+ago+' min':'−'+Math.round(ago/60)+' h');
   tip.style.left=Math.min(Math.max(hoverCol*chartGeom.B,70),chartGeom.pw-70)+'px'; tip.style.top=chartGeom.T+chartGeom.yr(v)*chartGeom.B+'px'; drawChart();
 });
 box.addEventListener('pointerleave',()=>{hoverCol=-1;tip.hidden=true;drawChart();});
@@ -2749,8 +2970,6 @@ document.querySelectorAll('.tf button').forEach(b=>b.addEventListener('click',()
 addEventListener('resize',()=>drawChart());
 
 listeners.push(d=>{
-  series['1U'].push(mk.p);series['1U'].shift();
-  series['24U'][series['24U'].length-1]=mk.p; series['7D'][series['7D'].length-1]=mk.p;
   renderStats(d); drawChart();
   if(d>0.015) scene.hype();
 });
@@ -3052,51 +3271,61 @@ let pets=0;
 })();
 
 
-/* ================= tokenomics ================= */
-const alloc=[
-  {n:'BLUB/MSFT pool',d:'Liquidity against MSFT, locked forever',p:50,c:'#86CBF3',i:'bucket'},
-  {n:'Community',d:'Airdrops, contests and builders',p:20,c:'#FFD3DD',i:'people'},
-  {n:'Blub’s Treasury',d:'Server, skins and growth',p:15,c:'#FFD447',i:'chest'},
-  {n:'Team',d:'Locked for 12 months',p:10,c:'#B8324A',i:'lock'},
-  {n:'Marketing',d:'Campaigns and partnerships',p:5,c:'#C9A7F5',i:'rocket'},
-];
-const waffle=$('#waffle'), cells=[]; let ai=0,cnt=0;
-const owner=[];alloc.forEach((a,k)=>{for(let i=0;i<a.p;i++)owner.push(k);});
-for(let row=0;row<10;row++)for(let col=0;col<10;col++){
-  const idx=(9-row)*10+(row%2?9-col:col); // snake stack from bottom
-  const k=owner[idx], i=document.createElement('i'); i.style.setProperty('--c',alloc[k].c); i.style.setProperty('--d',(idx*.018).toFixed(3)+'s'); i.dataset.k=k;
-  waffle.append(i); cells.push(i);
-}
-const hb=$('#hotbar');
-alloc.forEach((a,k)=>{const li=document.createElement('li');li.style.setProperty('--c',a.c);li.dataset.k=k;
-  const ic=document.createElement('div');ic.className='ic';ic.append(icon(a.i));
-  const tx=document.createElement('div');tx.innerHTML=`<strong><i aria-hidden="true"></i>${a.n}</strong><small>${a.d}</small>`;
-  const pc=document.createElement('span');pc.className='pct';pc.textContent=a.p+'%';
-  li.append(ic,tx,pc);hb.append(li);});
-let sel=-1,auto=true;
-function select(k){sel=k;hb.querySelectorAll('li').forEach(l=>l.classList.toggle('on',+l.dataset.k===k));
-  waffle.classList.toggle('dim',k>=0);cells.forEach(c=>c.classList.toggle('on',+c.dataset.k===k));}
-hb.addEventListener('pointerover',e=>{const l=e.target.closest('li');if(l){auto=false;select(+l.dataset.k);}});
-hb.addEventListener('pointerleave',()=>{auto=true;select(-1);});
-if(!RM){new IntersectionObserver(es=>{if(es[0].isIntersecting)waffle.classList.add('go');},{threshold:.3}).observe(waffle);
-  setInterval(()=>{if(auto&&waffle.classList.contains('go'))select((sel+1)%alloc.length);},1800);}
+/* ================= tokenomics: the community take-over, step by step ================= */
+document.querySelectorAll('#cto .ic[data-spr]').forEach(el=>{if(SPR[el.dataset.spr])el.append(icon(el.dataset.spr));});
 
-/* ================= route ================= */
+/* ================= the road through The Sift (owner, 13 Oct 2026) ================= */
+// Achievements to unlock: done, in progress, locked, and at the end the dimension update,
+// black and nameless. Blub walks the path up to where we are when it comes into view.
 const adv=[
-  {t:'Spawn Point',d:'Blub designed, website and Meadow live, sign in with a Solana wallet.',s:'now',i:'blub8'},
-  {t:'The Pink Dimension',d:'$BLUB launches on Solana and the BLUB/MSFT pool opens.',s:'locked',i:'bucket'},
-  {t:'Stacking Blocks',d:'10,000 holders, the weekly Blub Jump pot paid out on-chain, more skins.',s:'locked',i:'diamond'},
-  {t:'Own Server',d:'The Blub server opens with weekly build contests.',s:'locked',i:'chest'},
+  {t:'Spawn Point',d:'$BLUB launches on Solana.',s:'done',i:'rocket'},
+  {t:'Community Take-Over',d:'The first-wave holders take the project over together: the CTO.',s:'done',i:'people'},
+  {t:'Welcome to The Sift',d:'A home for the fans: Blub’s world, the Blub Maker and this site.',s:'done',i:'chest'},
+  {t:'Squad Arena',d:'Game development: 5v5 squad battles, bot practice and bot shows. Playable now.',s:'done',i:'star'},
+  {t:'Ranks & Leagues',d:'18 ranks from Shrimp to Whale, weekly leagues and friend leagues: built, going live with online duels.',s:'now',i:'diamond'},
+  {t:'Blub Goes Social',d:'Social media: the community on X, shareable matches and clips, raids and contests.',s:'now',i:'heart'},
+  {t:'Launch Day',d:'Online duels between real wallets, and the weekly league goes live.',s:'locked',i:'coin'},
+  {t:'Seasons & Rewards',d:'Cosmetic rewards, seasons and community tournaments.',s:'locked',i:'bucket'},
+  {t:'The Dimension Update',s:'dim'},
 ];
+const STATE={done:'UNLOCKED',now:'IN PROGRESS',locked:'LOCKED',dim:'???'};
+// the dimension update's picture: black, three question marks and nothing else to go on
+function mystery(){
+  const c=document.createElement('canvas');c.width=16;c.height=16;const x=c.getContext('2d');
+  x.fillStyle='#000';x.fillRect(0,0,16,16);
+  const Q=['.##.','#..#','..#.','.#..','....','.#..'];
+  [[1,6],[6,3],[11,7]].forEach(([ox,oy],k)=>Q.forEach((r,y)=>[...r].forEach((v,xx)=>{if(v==='#'){x.fillStyle=k===1?'#FFFFFF':'#6D5D86';x.fillRect(ox+xx,oy+y,1,1);}})));
+  c.className='spr';return c;
+}
 const ol=$('#adv');
-adv.forEach(a=>{const li=document.createElement('li');li.className=a.s;
-  const f=document.createElement('div');f.className='frame';f.append(icon(a.i));
-  li.append(f);li.insertAdjacentHTML('beforeend',`<h3>${a.t}</h3><p>${a.d}</p><span class="state ${a.s}">${a.s==='now'?'IN PROGRESS · 60%':'LOCKED'}</span>`);
-  ol.append(li);});
+adv.forEach(a=>{
+  const li=document.createElement('li');li.className=a.s;
+  const f=document.createElement('div');f.className='frame';f.append(a.i?icon(a.i):mystery());
+  const h=document.createElement('h3');h.textContent=a.t;
+  li.append(f,h);
+  if(a.s==='dim'){const y=document.createElement('p');y.className='dim-year';y.textContent='2027';li.append(y);}
+  else{const p=document.createElement('p');p.textContent=a.d;li.append(p);}
+  const st=document.createElement('span');st.className='state '+(a.s==='dim'?'locked':a.s);st.textContent=STATE[a.s];li.append(st);
+  ol.append(li);
+});
+const doneN=adv.filter(a=>a.s==='done').length, cur=Math.max(0,adv.findIndex(a=>a.s!=='done'));
+$('#lvl').textContent='Level '+(cur+1)+' · '+adv[cur].t;
 const xp=$('#xpbar');for(let i=0;i<20;i++){const c=document.createElement('i');xp.append(c);}
-function fillXp(){[...xp.children].forEach((c,i)=>setTimeout(()=>c.classList.toggle('f',i<12),RM?0:i*60));}
-new IntersectionObserver(es=>{if(es[0].isIntersecting)fillXp();},{threshold:.5}).observe(xp);
-fillXp();
+const xpTo=Math.round(20*(doneN+.5)/adv.length);
+function fillXp(){[...xp.children].forEach((c,i)=>setTimeout(()=>c.classList.toggle('f',i<xpTo),RM?0:i*60));}
+const roadBlub=$('#roadBlub');
+function blubTo(k){const li=ol.children[k];if(li)roadBlub.style.top=(li.offsetTop+12)+'px';}
+let walked=false;
+function walkRoad(){
+  if(walked)return;walked=true;fillXp();
+  if(RM){blubTo(cur);return;}
+  let k=0;blubTo(0);
+  const step=()=>{if(k>=cur)return;k++;blubTo(k);setTimeout(step,650);};
+  setTimeout(step,700);
+}
+new IntersectionObserver(es=>{if(es[0].isIntersecting)walkRoad();},{threshold:.15}).observe(ol);
+addEventListener('resize',()=>blubTo(walked?cur:0));
+blubTo(0);
 // stars
 (function stars(){const c=$('#stars'),x=c.getContext('2d'),r=rng(77);let st=[];
   function size(){const R=c.parentElement.getBoundingClientRect();c.width=Math.ceil(R.width/4);c.height=Math.ceil(R.height/4);
@@ -3123,30 +3352,11 @@ fillXp();
 
 /* ================= go ================= */
 renderStats(); drawChart();
-if(!RM){setInterval(tick,1600);setInterval(()=>{blinkOn=!blinkOn;drawChart();},500);}
-/* ================= live market: real prices when the API has them ================= */
-(async function liveMarket(){
-  async function pull(){
-    let m=null;
-    if(document.documentElement.dataset.mode==='demo')return null;
-    try{const r=await fetch('/api/market',{headers:{Accept:'application/json'}});if(!r.ok)return null;m=await r.json();}catch{return null;}
-    if(!m||(m.source!=='live'&&m.source!=='partial'))return null;
-    mk.live=m.source;
-    mk.asOf=m.asOf||Date.now(); mk.msftChg=typeof m.msftChangePct==='number'?m.msftChangePct:null; mk.msftSrc=m.msftSource||null;
-    if(m.msftUsd>0)mk.msft=m.msftUsd;
-    if(m.source==='live'&&m.pair>0)mk.p=m.pair;
-    return m;
-  }
-  const m=await pull(); if(!m)return;
-  // a live pair: the charts end at the real price (their history stays simulated)
-  const pin=()=>Object.keys(series).forEach(k=>{series[k][series[k].length-1]=mk.p;});
-  if(mk.live==='live')pin();
-  // the chart history stays simulated until the API has a (cached) history route
-  const badge=document.querySelector('#pair .badge');
-  if(badge)badge.textContent=m.source==='live'?'LIVE · BLUB/MSFT on Solana':'LIVE MSFT · BLUB simulated until launch';
-  renderStats();drawChart();
-  setInterval(async()=>{const before=mk.p;if(!(await pull()))return;if(mk.live==='live'){series['1U'].push(mk.p);series['1U'].shift();pin();}renderStats(mk.p/before-1);drawChart();},60000);
-})();
+// live from DexScreener: now, then once a minute while the page is in view
+pullMarket();
+setInterval(()=>{if(!document.hidden)pullMarket();},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-mk.at>60000)pullMarket();});
+if(!RM)setInterval(()=>{blinkOn=!blinkOn;if(mk.ok)drawChart();},500);
 window.BLUB={SPR,paint,icon,achieve,toast,rng,nf,siftTree,siftSlab,siftGround,SIFT_FAR,SIFT_MID,SIFT_SKY};
 })();
 </script>
@@ -25193,7 +25403,9 @@ const SquadHall = (() => {
   }
   // a friend league's invite link (#friends=<code>), from the page's router
   const friends = openFriends;
-  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace, friends};
+  // the home page draws rank badges too (owner, 13 Oct 2026)
+  const rankBadge = divBadge;
+  return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace, friends, rankBadge};
 })();
 /* ==== end squad arena ==== */
 /* =====================================================================
@@ -25440,6 +25652,62 @@ async function boot(){
   // the list is cached at the edge, so this costs (almost) no database commands
   setInterval(() => { if ((!$('#team').hidden || !$('#practice').hidden || !$('#rankings').hidden) && !document.hidden) pullMeadow(false); }, 120000);
 }
+/* ---------------------------------------------------------------
+   THE HOME PAGE'S PICTURES FROM THE GAME (owner, 13 Oct 2026): the steps
+   and parts of "Squad Arena, step by step" show the game's own sprites,
+   icons and rank badges, drawn once that section comes near the screen
+   --------------------------------------------------------------- */
+function homeArt(){
+  const LOOKS = [
+    {tint: 'blauw', eyes: 'blij', hat: 'pet'}, {tint: 'mint', eyes: 'rond', hat: 'bloem', acc: 'sjaal'},
+    {tint: 'lavendel', eyes: 'sterren', ears: 'antenne'}, {tint: 'roze', eyes: 'hart', hat: 'kroon'},
+    {tint: 'blauw', eyes: 'boos', hat: 'helm', pattern: 'strepen'}, {tint: 'nacht', eyes: 'rood', ears: 'puntig'},
+    {tint: 'roze', eyes: 'slaperig', hat: 'muts'}, {tint: 'mint', eyes: 'blij', acc: 'bril'},
+    {tint: 'goud', eyes: 'rond', hat: 'kroon'}, {tint: 'lavendel', eyes: 'boos', acc: 'snor'},
+  ].map(cleanLook);
+  const ic = (kind, id, px) => { try { return SquadView.icon(kind, id, px); } catch { return null; } };
+  const unit = (i, wpn, cls, face) => { try { return SquadView.unitCanvas(LOOKS[i], wpn, {cls, face, px: 1, team: face > 0 ? 'you' : 'rival'}); } catch { return null; } };
+  const badge = d => { try { return SquadHall.rankBadge(d, 40); } catch { return null; } };
+  const put = (el, list) => list.filter(Boolean).forEach(c => el.append(c));
+  const draw = {
+    // five against five on a strip of The Sift
+    arena(el){
+      const W = 132, H = 54, c = document.createElement('canvas'); c.width = W; c.height = H;
+      const x = c.getContext('2d'), sky = window.BLUB.SIFT_SKY || ['#FFE3EA'];
+      sky.forEach((col, i) => { x.fillStyle = col; x.fillRect(0, Math.floor(i * 30 / sky.length), W, 31); });
+      siftGround(x, W, H, 30, rng(41), {bands: [0, .5]});
+      const A = [['fierce', 'sword'], ['sleepy', 'spear'], ['cheeky', 'daggers'], ['playful', 'bow'], ['sweet', 'wand']];
+      const B = [['fierce', 'hammer'], ['sleepy', 'sword'], ['cheeky', 'daggers'], ['playful', 'rifle'], ['sweet', 'wand']];
+      const at = [[34, 8], [36, 26], [16, 18], [2, 6], [2, 28]];
+      A.forEach(([cls, wpn], i) => { const u = unit(i, wpn, cls, 1); if (u) x.drawImage(u, at[i][0], at[i][1]); });
+      B.forEach(([cls, wpn], i) => { const u = unit(5 + i, wpn, cls, -1); if (u) x.drawImage(u, W - 24 - at[i][0], at[i][1]); });
+      c.className = 'spr'; c.style.width = W * 3 + 'px'; c.setAttribute('aria-hidden', 'true');
+      el.append(c);
+    },
+    // from Bronze Shrimp to Gold Whale
+    ranks(el){
+      const row = document.createElement('div'); row.className = 'ranks-row';
+      [1, 4, 7, 10, 13, 18].forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d)]); });
+      el.append(row);
+    },
+    looks(el){ LOOKS.slice(0, 4).forEach(L => { const c = lookCanvas(L, {}); c.style.width = '48px'; c.style.height = '60px'; c.setAttribute('aria-hidden', 'true'); el.append(c); }); },
+    skills(el){ put(el, SquadEngine.PLAYSTYLES.map(([id]) => ic('cls', id, 30)).concat([ic('wpn', 'bow', 30), ic('pow', 'freeze', 30)])); },
+    plan(el){ put(el, ['sandbags', 'wire', 'tower', 'smoke', 'hospital'].map(id => ic('obj', id, 30))); },
+    fight(el){ put(el, [ic('pow', 'digger', 30), ic('pow', 'builder', 30), ic('gear', 'goggles', 30), ic('ev', 'whale', 30), ic('ev', 'rocket', 30)]); },
+    practice(el){ [unit(0, 'sword', 'fierce', 1), unit(6, 'hammer', 'fierce', -1)].forEach(u => { if (u) { u.style.width = '72px'; u.style.height = '78px'; el.append(u); } }); },
+    league(el){ put(el, [badge(16), badge(17), badge(18)]); },
+  };
+  let drawn = false;
+  const go = () => {
+    if (drawn) return; drawn = true;
+    document.querySelectorAll('#game [data-art]').forEach(el => { const f = draw[el.dataset.art]; if (f && !el.childElementCount) try { f(el); } catch {} });
+  };
+  const sec = document.getElementById('game');
+  if (!sec) return;
+  if ('IntersectionObserver' in window) new IntersectionObserver((es, ob) => { if (es.some(e => e.isIntersecting)) { ob.disconnect(); go(); } }, {rootMargin: '600px 0px'}).observe(sec);
+  else go();
+}
+homeArt();
 refreshCoins(); refreshAll(); route(); boot();
 })();
 </script>
