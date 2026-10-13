@@ -1869,6 +1869,41 @@ body.no-scroll{overflow:hidden}
 .lg-tag.bot{background:#24364A;color:#BFE3FF;padding-left:3px}
 .lg-tag.bot canvas{width:12px;height:12px}
 .lg-tag.you{background:var(--gold);color:var(--ink)}
+/* rewards (cosmetic only): a duel season's trophy next to a name, a rank's frame round a Blub */
+.lg-tag.troph{background:#3A2A08;color:#FFE08A;padding-left:3px}
+.lg-tag.troph.p2{background:#26313C;color:#E8EEF4}
+.lg-tag.troph.p3{background:#3A2412;color:#F3B98A}
+.lg-tag.troph small{font-family:var(--f-display);font-size:6px;opacity:.85}
+.lg-tag.troph canvas{width:12px;height:12px}
+.sq-rf{position:relative;display:inline-block;line-height:0;--rf-m:#C77B30;--rf-h:#F0A860;--rf-s:#7A4518}
+.sq-rf.rf-t1{--rf-m:#B9C4D2;--rf-h:#FFFFFF;--rf-s:#6F7988}
+.sq-rf.rf-t2{--rf-m:#FFD447;--rf-h:#FFF3B0;--rf-s:#B07A0E}
+.sq-rf::before{content:'';position:absolute;inset:-4px;border:2px solid var(--rf-m);border-top-color:var(--rf-h);border-left-color:var(--rf-h);border-bottom-color:var(--rf-s);border-right-color:var(--rf-s);box-shadow:0 0 0 2px #000,inset 0 0 0 2px #000;pointer-events:none}
+.sq-rfo{position:absolute;z-index:1;pointer-events:none}
+.sq-rf.rf-a1 .sq-rfo{left:-6px;bottom:-10px}
+.sq-rf.rf-a3 .sq-rfo{left:-6px;bottom:-8px}
+.sq-rf.rf-a2 .sq-rfo,.sq-rf.rf-a4 .sq-rfo,.sq-rf.rf-a5 .sq-rfo{left:50%;top:-12px;transform:translateX(-50%)}
+.sq-rf.rf-t2::after{content:'';position:absolute;z-index:2;right:-6px;top:-6px;width:2px;height:2px;background:#fff;box-shadow:2px 0 #fff,-2px 0 #fff,0 2px #fff,0 -2px #fff;opacity:0;animation:rfGlint 3.2s steps(1,end) infinite;pointer-events:none}
+@keyframes rfGlint{0%,72%{opacity:0}76%,92%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.sq-rf.rf-t2::after{animation:none}}
+.sq-top li.lg-row{padding-top:10px;padding-bottom:8px}
+.sq-pftr{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+.sq-pftr[hidden]{display:none}
+.sq-pftrc{display:inline-flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;background:#0B1F23;border:3px solid #000}
+.sq-pftrc canvas{width:20px;height:20px;flex:none}
+.sq-pftrc > span{display:flex;flex-direction:column;gap:3px}
+.sq-pftrc b{font-family:var(--f-display);font-weight:400;font-size:8px;color:#FFE08A}
+.sq-pftrc.p2 b{color:#E8EEF4}
+.sq-pftrc.p3 b{color:#F3B98A}
+.sq-pftrc small{font-family:var(--f-data);font-size:16px;line-height:1;color:var(--sq-soft)}
+.sq-podium{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0;padding:8px 10px;background:linear-gradient(90deg,rgba(255,212,71,.12),rgba(255,212,71,.02));border:3px solid #000;font-family:var(--f-data);font-size:18px;line-height:1;color:var(--sq-soft)}
+.sq-podium[hidden]{display:none}
+.sq-podl{flex-basis:100%;font-family:var(--f-display);font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.sq-podi{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.sq-podi canvas{width:16px;height:16px;flex:none}
+.sq-podi b{font-weight:400;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14ch}
+.sq-momfr{display:flex;align-items:center;justify-content:center;gap:16px;margin:4px 0 0}
+.sq-momfr .sq-rf{margin:8px}
 .lg-copy{flex:none;position:relative;width:20px;height:20px;padding:0;border:2px solid #000;background:#0B1F23;color:#7FB9B2;cursor:pointer}
 .lg-copy::before,.lg-copy::after{content:'';position:absolute;width:6px;height:7px;border:2px solid currentColor;background:#0B1F23}
 .lg-copy::before{left:2px;top:2px}
@@ -2147,7 +2182,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">95f4270 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">2681cf1 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -23997,6 +24032,7 @@ const SquadHall = (() => {
     const me = SquadNet.me(), top = topList(), box = R.top;
     R.season.textContent = '';
     R.season.append(h('b', null, 'Season ' + (seasonName(st.board.season || thisSeason()) || '')), h('span', null, seasonLine()));
+    renderPodium();
     box.textContent = ''; R.myRank.textContent = '';
     const k = me ? top.findIndex(x => x.id === me) : -1;
     if (k >= 0) R.myRank.append(h('span', null, 'You are'), h('b', null, '#' + (k + 1)), h('span', null, top[k].r + ' · ' + top[k].w + ' won · ' + top[k].l + ' lost'));
@@ -24005,7 +24041,7 @@ const SquadHall = (() => {
     top.forEach((r, i) => {
       const w = SquadNet.who(r.id), li = h('li', {class: 'lg-row' + (r.id === me ? ' me' : '')});
       const sc = h('span', {class: 'lg-pts', title: 'Season rating · ' + r.w + ' won, ' + r.l + ' lost'}, h('b', null, String(r.r)), h('small', null, r.w + '–' + r.l));
-      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? framed(face(w.look, w.style, 2), rankOf(r.id)) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
         whoBlock(r.id, w, {me: r.id === me, rank: true}), sc);
       box.append(li);
     });
@@ -24028,7 +24064,14 @@ const SquadHall = (() => {
       d: clamp(Math.floor(+g.d) || 1, 1, DIVS.length), g: num(g.g, 99999),
       m: (Array.isArray(g.m) ? g.m : []).slice(0, 35).filter(x => Array.isArray(x) && typeof x[0] === 'string' && (ID_OK.test(x[0]) || BOT_RE.test(x[0]))).map(x => ({id: x[0], p: num(x[1], 1e6), w: num(x[2], 1e6), l: num(x[3], 1e6)})),
     } : null)).filter(g => g && g.m.length);
-    return {week: d.week, ends: isoOr(d.ends) || '', final: d.final === true, paused: d.paused === true, prev: typeof d.prev === 'string' && WEEK_OK.test(d.prev) ? d.prev : '', groups};
+    // the duel seasons' trophies: wallet -> [{s: season, p: place}]
+    const trophies = {};
+    for (const [id, list] of Object.entries(d.trophies && typeof d.trophies === 'object' ? d.trophies : {}).slice(0, 3000)){
+      if (!ID_OK.test(id) || !Array.isArray(list)) continue;
+      const ok = list.slice(-24).filter(x => Array.isArray(x) && /^\d{4}-\d{2}$/.test(String(x[0])) && [1, 2, 3].includes(x[1])).map(x => ({s: x[0], p: x[1]}));
+      if (ok.length) trophies[id] = ok;
+    }
+    return {week: d.week, ends: isoOr(d.ends) || '', final: d.final === true, paused: d.paused === true, prev: typeof d.prev === 'string' && WEEK_OK.test(d.prev) ? d.prev : '', groups, trophies};
   }
   // A bot a moderator put in a league (bot:<n>, lib/admin.mjs): its name and looks come
   // from its number, the same on every page and in the admin panel; it carries the bot tag.
@@ -24078,8 +24121,9 @@ const SquadHall = (() => {
     lsPatch({sqWeekSeen: prev});
     const up = res.next > res.d, down = res.next < res.d, two = res.next - res.d >= 2;
     modalHead('Week ' + Number(prev.slice(5)) + ' is over', up ? (two ? 'Group winner! Up two, to ' : 'Promoted to ') + DIVS[res.next - 1] + '!' : down ? 'Down to ' + DIVS[res.next - 1] : 'You stay a ' + DIVS[res.next - 1]);
-    const big = divBadge(res.next, 96);
+    const big = divBadge(res.next, 96), cap = SquadNet.captain();
     R.mBody.append(h('div', {class: 'sq-moment' + (up ? ' up' : down ? ' down' : '')}, ...(up ? [h('span', {class: 'sq-confetti', 'aria-hidden': 'true'})] : []), big),
+      ...(cap && res.next !== res.d ? [h('p', {class: 'sq-desc sq-momfr'}, framed(face(cap.look, cap.style, 2), res.next), h('span', null, 'Your Blub wears the ' + DIVS[res.next - 1] + ' frame now.'))] : []),
       h('p', {class: 'sq-desc sq-momtx'}, 'You finished #' + res.rank + ' of ' + res.n + ' in ' + DIVS[res.d - 1] + '. ' +
         (up ? (two ? 'Winning the group moves you up two steps.' : 'The top fifth of a group moves up a step.') : down ? 'The bottom fifth moves down a step: sharpen your strategy and you climb back.' : 'Finish in the top fifth this week to move up.')));
     act('Your strategy', 'gold', () => { closeModal(); location.hash = 'team'; });
@@ -24113,6 +24157,58 @@ const SquadHall = (() => {
     {k: '#1A1030', B: '#3E6FC9', b: '#9CC4F2', W: '#FFFFFF', w: '#9FE3FF'},
   ];
   const METAL = [{M: '#C77B30', H: '#F0A860', S: '#7A4518'}, {M: '#B9C4D2', H: '#FFFFFF', S: '#6F7988'}, {M: '#FFD447', H: '#FFF3B0', S: '#B07A0E'}];
+  /* ---- rewards, cosmetic only (the owner, 12 Oct 2026): every rank dresses your Blub in
+     its frame in the rankings, and the top 3 of each month's duel season win a trophy
+     and a title next to their name (the league job gives them out, lib/leagueday.mjs) */
+  // pixel rows at a whole scale (2: every pixel 2 by 2)
+  function pixArt(rows, pal, scale, cls){
+    const c = pixRows(rows, pal, 0, cls);
+    c.style.width = c.width * scale + 'px'; c.style.height = c.height * scale + 'px';
+    return c;
+  }
+  // a trophy: a cup in gold, silver or bronze
+  const CUP_ROWS = ['.kkkkkkkkkk.', 'kkHHMMMMMSkk', 'kMkHMMMMSkMk', 'kMkHMMMMSkMk', '.kkHMMMMSkk.', '..kMMMMMSk..', '...kMMMSk...', '....kMSk....', '....kMSk....', '...kkkkkk...', '..kHMMMMSk..', '..kkkkkkkk..'];
+  const cupIcon = (place, px) => pixRows(CUP_ROWS, {k: '#000', ...METAL[3 - place]}, px, 'lg-cup');
+  const PLACE_T = ['', 'Champion', 'Runner-up', 'Third place'];
+  // the frame's mark of its sea creature, from Crab up (Shrimp wears the plain frame), in
+  // the creature's colours like its badge: two red claws, a blue tail diving in, a wave,
+  // a shark's fin; the Whale's crown in the frame's metal, with a ruby and a sapphire
+  const RF_ORN = [null,
+    {rows: ['kk.kk............kk.kk', 'kRkkRk..........kRkkRk', 'kRRRRk..........kRRRRk', '.krRRk..........kRRrk.', '..kkk............kkk..'],
+      pal: {R: '#F05A4F', r: '#B8324A'}},
+    {rows: ['k.....k', 'kBk.kBk', 'kBBkBBk', '.kBBBk.', '..kbk..'], pal: {B: '#5EC8F2', b: '#2E86C1'}},
+    {rows: ['.WW..', 'WGGW.', 'GGGGW', 'ggggg'].map(p => p.repeat(5).slice(0, 22)), pal: {G: '#8FB8D8', g: '#4F7FA8', W: '#FFFFFF'}},
+    {rows: ['.......k....', '......kgk...', '.....kgGk...', '....kgGGk...', '..kkGGGGGkk.'], pal: {G: '#7D8FA3', g: '#E8EEF4'}},
+    {rows: ['.k....k....k.', 'kHk..kHk..kHk', 'kMMkkMMMkkMMk', 'kMRMMMBMMMRMk', 'kkkkkkkkkkkkk'], pal: {R: '#E2566E', B: '#5EC8F2'}}];
+  // a Blub (its face canvas) in the frame of rank d; d 0 leaves it as it is
+  function framed(el, d){
+    if (!(d >= 1 && d <= DIVS.length)) return el;
+    const a = Math.floor((d - 1) / 3), t = (d - 1) % 3;
+    const box = h('span', {class: 'sq-rf rf-t' + t + ' rf-a' + a, title: DIVS[d - 1] + ' frame'}, el);
+    if (RF_ORN[a]) box.append(pixArt(RF_ORN[a].rows, {k: '#000', ...METAL[t], ...RF_ORN[a].pal}, 2, 'sq-rfo'));
+    return box;
+  }
+  // the trophies of a wallet ([{s: season, p: place}], oldest first) and the best of them
+  const trophiesOf = id => (st.league && st.league.trophies && st.league.trophies[id]) || [];
+  const bestTrophy = tr => tr.slice().sort((a, b) => a.p - b.p || (a.s < b.s ? 1 : -1))[0];
+  const seasonTitle = x => (seasonName(x.s) || x.s) + ' ' + PLACE_T[x.p].toLowerCase();
+  function trophyTag(tr){
+    const b = bestTrophy(tr);
+    return h('span', {class: 'lg-tag troph p' + b.p, title: 'Duel season trophies: ' + tr.slice().reverse().map(seasonTitle).join(', ')},
+      cupIcon(b.p, 12), b.p === 1 ? 'Champ' : b.p === 2 ? '2nd' : '3rd', ...(tr.length > 1 ? [h('small', null, '×' + tr.length)] : []));
+  }
+  // the duel season before this one ('2026-09' all through October)
+  function prevSeason(){ const d = new Date(); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - 1).toISOString().slice(0, 7); }
+  // the season panel: last season's top 3, with their cups
+  function renderPodium(){
+    if (!R.podium) return;
+    const prev = prevSeason(), T = st.league && st.league.trophies ? st.league.trophies : {}, list = [];
+    for (const [id, tr] of Object.entries(T)) for (const x of tr) if (x.s === prev) list.push({id, p: x.p});
+    list.sort((a, b) => a.p - b.p);
+    R.podium.textContent = ''; R.podium.hidden = !list.length;
+    if (list.length) R.podium.append(h('span', {class: 'sq-podl'}, 'Last season · ' + (seasonName(prev) || prev)),
+      ...list.slice(0, 3).map(x => h('span', {class: 'sq-podi p' + x.p, title: PLACE_T[x.p]}, cupIcon(x.p, 16), h('b', null, frWho(x.id)))));
+  }
   // rank d (1 Bronze Shrimp ... 18 Gold Whale), frame f, on a 16x16 canvas
   function paintRank(c, d, f){
     const x = c.getContext('2d'), a = Math.floor((d - 1) / 3), t = (d - 1) % 3, T = METAL[t], pal = RANK_PAL[a];
@@ -24209,6 +24305,9 @@ const SquadHall = (() => {
     // in a table of mixed ranks (the season, a friend league): each player's rank this week
     const rk = o && o.rank ? rankOf(id) : 0;
     if (rk) top.append(h('span', {class: 'lg-rk', title: DIVS[rk - 1]}, divBadge(rk, 16)));
+    // a duel season's top 3: a cup and the title, the best one
+    const tr = wallet ? trophiesOf(id) : [];
+    if (tr.length) top.append(trophyTag(tr));
     if (me) top.append(h('span', {class: 'lg-tag you'}, 'You'));
     if (bot) sub.push(h('span', null, 'Not a real player'));
     else if (wallet){
@@ -24238,7 +24337,7 @@ const SquadHall = (() => {
       if (i === downFrom && mv) box.append(h('li', {class: 'lg-zone down', 'aria-hidden': 'true'}, 'Demotion zone'));
       const w = who(m.id), up = i < upTo, down = i >= downFrom;
       const li = h('li', {class: ['lg-row', m.id === me ? 'me' : '', up ? 'up' : down ? 'down' : ''].join(' ').trim(), title: up ? (i ? 'Moves up a step when the week ends' : 'Wins the group: moves up two steps when the week ends') : down ? 'Moves down a step when the week ends' : ''});
-      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+      li.append(h('span', {class: 'rk' + (i < 3 ? ' r' + (i + 1) : '')}, String(i + 1)), w ? framed(face(w.look, w.style, 2), g.d) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
         whoBlock(m.id, w, {me: m.id === me, example}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l)));
       box.append(li);
       if (i === upTo - 1) box.append(h('li', {class: 'lg-zone up', 'aria-hidden': 'true'}, 'Promotion zone · the winner moves up two'));
@@ -24484,7 +24583,7 @@ const SquadHall = (() => {
   }
   // the league is an add-on: whatever goes wrong drawing it, the rest of the hall carries on
   function renderLeague(){
-    try { drawLeague(); renderRanks(); tellRank(); renderProfile(); } catch (e) { console.error(e); }
+    try { drawLeague(); renderRanks(); tellRank(); renderProfile(); renderPodium(); } catch (e) { console.error(e); }
   }
   // your rank now: your group this week, else where last week sent you (0: not known);
   // where there is no server, the rank of the league played out in this browser
@@ -24563,7 +24662,7 @@ const SquadHall = (() => {
     if (!R.profP) return;
     const p = SquadNet.profile(), cap = SquadNet.captain();
     R.profWho.textContent = '';
-    R.profWho.append(cap ? face(cap.look, cap.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+    R.profWho.append(cap ? framed(face(cap.look, cap.style, 2), p && p.addr ? myRank() : 0) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
       h('div', {class: 'lg-who'}, h('span', {class: 'lg-name'}, h('b', null, p && p.player ? p.player : cap ? cleanName(cap.name) || 'Your Blub' : 'No team yet')),
         p && p.addr ? h('span', {class: 'lg-sub'}, h('span', {class: 'lg-addr', title: p.addr}, shortId(p.addr)), copyBtn(p.addr))
           : h('span', {class: 'lg-sub'}, p ? 'Test phase: kept in this browser' : 'Not signed in')));
@@ -24572,6 +24671,12 @@ const SquadHall = (() => {
     R.profRank.textContent = ''; R.profRank.hidden = !rk;
     if (rk) R.profRank.append(divBadge(rk, 32), h('span', {class: 'sq-pfrk'}, h('b', null, DIVS[rk - 1]),
       h('small', null, g ? 'Group ' + (g.g + 1) + ' · #' + (g.m.findIndex(m => m.id === p.addr) + 1) + ' this week' : 'Joins the league next Monday')));
+    // your trophies, newest first
+    if (R.profTr){
+      const tr = p && p.addr ? trophiesOf(p.addr) : [];
+      R.profTr.textContent = ''; R.profTr.hidden = !tr.length;
+      tr.slice().reverse().forEach(x => R.profTr.append(h('span', {class: 'sq-pftrc p' + x.p}, cupIcon(x.p, 20), h('span', null, h('b', null, PLACE_T[x.p]), h('small', null, (seasonName(x.s) || x.s) + ' duel season')))));
+    }
     R.profIn.disabled = !p;
     R.profGo.textContent = p ? 'Save' : SquadNet.signInLabel || 'Sign in';
     if (R.profSafe) R.profSafe.hidden = !!p;
@@ -24684,7 +24789,7 @@ const SquadHall = (() => {
     rows.forEach((m, i) => {
       const w = SquadNet.who(m.id);
       ol.append(h('li', {class: 'lg-row' + (m.id === me ? ' me' : '')},
-        h('span', {class: 'rk' + (i < 3 && m.p ? ' r' + (i + 1) : '')}, String(i + 1)), w ? face(w.look, w.style, 2) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
+        h('span', {class: 'rk' + (i < 3 && m.p ? ' r' + (i + 1) : '')}, String(i + 1)), w ? framed(face(w.look, w.style, 2), rankOf(m.id)) : h('span', {class: 'sq-noface', 'aria-hidden': 'true'}),
         whoBlock(m.id, w, {me: m.id === me, rank: true}), h('span', {class: 'lg-pts', title: m.w + ' won, ' + m.l + ' lost'}, h('b', null, String(m.p)), h('small', null, m.w + '–' + m.l))));
     });
     return ol;
@@ -25610,7 +25715,8 @@ const SquadHall = (() => {
 
     // 4. the season
     R.season = h('p', {class: 'sq-season'}); R.myRank = h('p', {class: 'sq-myrank'}); R.top = h('ol', {class: 'sq-top'});
-    R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.myRank, R.top);
+    R.podium = h('p', {class: 'sq-podium', hidden: true});
+    R.topP = panel('sq-topp', 'sqtTitle', 'Duel season', R.season, R.podium, R.myRank, R.top);
     // the weekly league: your group of 35, or how to join one
     R.lgWeek = h('p', {class: 'sq-season'}); R.lgMe = h('div', {class: 'sq-myrank sq-lgme'}); R.lg = h('ol', {class: 'sq-top sq-league'});
     const RULE = 'Every day your squad plays ' + E.LEAGUE_DAY + ' matches in your group, with your strategy as it stands that morning (00:00 UTC): a win is 3 points, a loss 1, and by Sunday you have met all ' + (E.LEAGUE_GROUP - 1) + ' others. Groups of ' + E.LEAGUE_GROUP + ' at every rank, filled up with bots; every Monday 00:00 UTC the top 7 of a group move up a step (the winner two) and the bottom 7 down a step. Everyone starts as a Bronze Shrimp. Duels between wallets count for the duel season.';
@@ -25618,12 +25724,12 @@ const SquadHall = (() => {
     // the ranks and how a week works (the rankings page)
     // your profile name: the rankings show it above your wallet address
     if (kroot && typeof SquadNet.profile === 'function'){
-      R.profWho = h('div', {class: 'sq-pfwho'}); R.profRank = h('div', {class: 'sq-pfrank', hidden: true});
+      R.profWho = h('div', {class: 'sq-pfwho'}); R.profRank = h('div', {class: 'sq-pfrank', hidden: true}); R.profTr = h('div', {class: 'sq-pftr', hidden: true});
       R.profIn = h('input', {class: 'sq-pfin', id: 'sqProfIn', maxlength: '14', placeholder: 'Your name in the rankings', autocomplete: 'nickname', spellcheck: 'false', enterkeyhint: 'done', 'aria-describedby': 'sqProfMsg'});
       R.profIn.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); saveProfile(); } });
       R.profGo = button('Save', 'gold', saveProfile, {'data-k': 'profsave'});
       R.profMsg = h('p', {class: 'sq-msg', id: 'sqProfMsg', 'aria-live': 'polite'});
-      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, R.profRank, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
+      R.profP = panel('sq-profp', 'sqpfTitle', 'Your profile', R.profWho, R.profRank, R.profTr, h('label', {class: 'sq-lbl', for: 'sqProfIn'}, 'Profile name'), h('div', {class: 'sq-pfrow'}, R.profIn, R.profGo), R.profMsg, R.profSafe = safeNote(),
         h('p', {class: 'sq-desc'}, 'Shown in the rankings above your wallet address: 2 to 14 letters, digits or spaces. Leave it empty to show just the address.'));
     }
     // friend leagues (the rankings page): yours, the one open, make one, join one
@@ -25636,6 +25742,7 @@ const SquadHall = (() => {
     R.rankL = h('ol', {class: 'sq-rankl'});
     R.divP = panel('sq-divp', 'sqdTitle', 'The ranks', R.rankL,
       h('p', {class: 'sq-desc'}, RULE),
+      h('p', {class: 'sq-desc'}, 'Every rank dresses your Blub in its own frame in the rankings: bronze, silver or gold, a mark of its sea creature from Crab up, and a crown for the Whales. The top 3 of each month’s duel season win a trophy and a title next to their name.'),
       h('p', {class: 'sq-desc'}, 'A duel is rated between teams that are a day old, at most twice a day for the same pair. Practice against bots and bot shows count for nothing.'));
 
     // 5. your matches
