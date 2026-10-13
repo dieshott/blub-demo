@@ -2147,7 +2147,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · the weekly league: 5 matches a day, ranks move week to week</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · engine 17: the weekly league plays itself, 5 matches a day</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5838,7 +5838,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 16;
+const SQUAD_ENGINE = 17;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -7523,7 +7523,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       attack(u, target);
       return true;
     }
-    let P = search(u, u.move, (x, y) => inZone(u, y) && canHit(u, x, y, target));
+    // one search over its reach: a tile of its ground to hit the target from (the best,
+    // the way attackGoal ranks them), else to hit anyone from
+    let P = search(u, u.move);
+    const ground = seen(P).filter((c) => inZone(u, (c - (c % SIZE)) / SIZE));
+    P.found = ground.filter((c) => canHit(u, c % SIZE, (c - (c % SIZE)) / SIZE, target));
     const goal = attackGoal(u, P, target);
     if (goal >= 0) {
       walk(u, route(P, goal));
@@ -7537,9 +7541,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         return true;
       }
     }
-    P = search(u, u.move, (x, y) => inZone(u, y) && foes(u).some((v) => canHit(u, x, y, v)));
-    if (P.found.length) {
-      walk(u, route(P, P.found[0]));
+    const list = foes(u);
+    const other = ground.find((c) => list.some((v) => canHit(u, c % SIZE, (c - (c % SIZE)) / SIZE, v)));
+    if (other !== undefined) {
+      walk(u, route(P, other));
       hitAround(u);
       return true;
     }
@@ -24260,19 +24265,22 @@ const SquadHall = (() => {
     return bots;
   }
   // a week's days as kept, each checked: the day's results and your squad that morning
+  // (results fought under other rules are dropped: the day is fought again with the
+  // squad of that morning, so watching a match always shows what the table counted)
   function llDays(raw){
     const N = E.LEAGUE_GROUP, out = {};
     for (let d = 0; d < 7; d++){
       const v = raw && raw.days && raw.days[d], sq = v && E.cleanSquad(v.sq);
-      if (!sq || !Array.isArray(v.res)) continue;
-      out[d] = {sq, res: v.res.filter(x => Array.isArray(x) && x.length === 4 && x.every(Number.isInteger) && x[1] >= 0 && x[1] < N && x[2] >= 0 && x[2] < N && (x[3] === 0 || x[3] === 1))};
+      if (!sq) continue;
+      const res = v.se === E.SQUAD_ENGINE && Array.isArray(v.res) ? v.res.filter(x => Array.isArray(x) && x.length === 4 && x.every(Number.isInteger) && x[1] >= 0 && x[1] < N && x[2] >= 0 && x[2] < N && (x[3] === 0 || x[3] === 1)) : null;
+      out[d] = {sq, res, se: E.SQUAD_ENGINE};
     }
     return out;
   }
   // your place in a week's table (you are 0 in the schedule)
   function llRank(days){
     const pts = Array.from({length: E.LEAGUE_GROUP}, (_, i) => ({i, p: 0, w: 0}));
-    for (const v of Object.values(days)) for (const [, a, b, w] of v.res){ const win = w ? b : a, lose = w ? a : b; pts[win].p += 3; pts[win].w++; pts[lose].p += 1; }
+    for (const v of Object.values(days)) for (const [, a, b, w] of v.res || []){ const win = w ? b : a, lose = w ? a : b; pts[win].p += 3; pts[win].w++; pts[lose].p += 1; }
     return pts.sort((x, y) => y.p - x.p || y.w - x.w || x.i - y.i).findIndex(x => x.i === 0) + 1;
   }
   // What this browser keeps of the league: the week, your rank in it, each day's
@@ -24296,22 +24304,25 @@ const SquadHall = (() => {
     if (llBusy) return;
     const now = Date.now(), week = E.leagueWeek(now), today = E.leagueDay(now);
     const S = llState(week);
-    let todo = 0; for (let d = 0; d <= today; d++) if (!S.days[d]) todo++;
+    let todo = 0, fresh = 0; for (let d = 0; d <= today; d++) if (!S.days[d] || !S.days[d].res){ todo++; if (!S.days[d]) fresh++; }
     if (!todo) return;
-    const mine = E.cleanSquad(squadOf(st.draft));
-    if (!mine || readyCount(st.draft) < 5){ st.llWait = true; return; }
+    // a new day plays with your squad as it stands now (that morning); a day fought under
+    // older rules again with the squad it had
+    const mine = fresh ? E.cleanSquad(squadOf(st.draft)) : null;
+    if (fresh && (!mine || readyCount(st.draft) < 5)){ st.llWait = true; return; }
     llBusy = true; st.llWait = false; renderLeague();
     try {
-      const bots = llBots(week, S.d), sq = i => (i ? bots[i - 1].squad : mine);
+      const bots = llBots(week, S.d);
       let t0 = performance.now();
       for (let d = 0; d <= today; d++){
-        if (S.days[d]) continue;
+        if (S.days[d] && S.days[d].res) continue;
+        const ours = S.days[d] ? S.days[d].sq : mine, sq = i => (i ? bots[i - 1].squad : ours);
         const res = [];
         for (const k of E.dayRounds(d)) for (const [a, b] of E.roundPairs(E.LEAGUE_GROUP, k)){
           res.push([k, a, b, E.simulateRound(sq(a), sq(b), E.leagueSeed(week, 0, k, a, b), 0, true).winner]);
           if (performance.now() - t0 > 12){ await new Promise(r => setTimeout(r, 0)); t0 = performance.now(); }
         }
-        S.days[d] = {sq: mine, res};
+        S.days[d] = {sq: ours, res, se: E.SQUAD_ENGINE};
         lsPatch({sqLeague: S});
         tellRank();
       }
@@ -24326,7 +24337,7 @@ const SquadHall = (() => {
     const mine = [];
     for (let d = 0; d < 7; d++){
       const day = S.days[d];
-      if (!day) continue;
+      if (!day || !day.res) continue;
       for (const [k, a, b, w] of day.res){
         const win = w === 0 ? a : b, lose = w === 0 ? b : a;
         pts[win].p += 3; pts[win].w++; pts[lose].p += 1; pts[lose].l++;
