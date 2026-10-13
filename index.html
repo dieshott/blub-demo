@@ -2071,7 +2071,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">12 Oct 2026 · engine 14: smoke makes shots blind, the Digger's smoke grenade, max 1-2 of a perk</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · engine 15: barbed wire tangles, Boom Packs hunt defences, cannons break and get repaired</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5617,7 +5617,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 14;
+const SQUAD_ENGINE = 15;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5689,8 +5689,11 @@ const RULES = lock({
   sandSoak: 2, // Blubs of its squad next to the sandbags take this much less from every hit
   towerRange: 2, towerDmg: 3, towerDodge: 30,
   towerHold: 2, // a shooter on a watchtower holds it while enemies are this many tiles beyond its reach
-  wireDmg: 3,
-  wireAvoid: 6, // wire lies out in the open: the other side plans its way as if crossing it took this many steps more
+  // Barbed wire lies out in the open: the other side plans its way as if crossing it
+  // took wireAvoid steps more. One that does cross gets tangled (engine 15): it stops
+  // there and loses wireDmg, and till the end of its next turn it cannot move, cannot
+  // dodge and takes wireTake% more from every hit.
+  wireDmg: 3, wireAvoid: 2, wireTake: 25,
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
   // the Pop Mine (engine 13: one strong mine instead of three small ones): mineDmg on
@@ -5753,6 +5756,10 @@ const RULES = lock({
   // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
   // knock-out), or just boomLast once its Blub is down to half or the mist is in
   boomDmg: 22, boomRing: 8, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
+  // ...and it goes for those that dig in and hold first (engine 15): a Builder, Digger
+  // or Miner, a Scope Rifle or a Blub on a watchtower caught in the blast is worth
+  // boomDef more, and so is the other side's cannon (what the blast takes off it)
+  boomDef: 8,
   // ---- the captain's command (COMMANDS): once a round, on the captain's own turn when
   // it fits; it holds till the captain's next turn (with the captain down, till the end
   // of the next turn). Charge! from cmdNear tiles off.
@@ -5774,6 +5781,11 @@ const RULES = lock({
   // Hammer (toolDmg), whatever weapon it was given; another Builder of the squad keeps
   // its weapon and puts up barricades.
   cannonBuild: 3, cannonStart: 3, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10,
+  // Engine 15: the finished cannon has cannonHp. Blasts and the blows of the other
+  // side's fighters (from right beside it) knock it about; at 0 it is out of action
+  // till its Builder has patched it up, cannonFix a turn (it goes to it with nobody in
+  // its reach as soon as it is down that much).
+  cannonHp: 24, cannonFix: 12,
   // Digger (engine 10): it digs a pit beside it where the enemy will come and hides it
   // under leaves, its whole turn, pitMax times a round. Its own squad never steps on
   // one; an enemy that does falls in and is out of the round. Within shaftNear tiles of
@@ -5829,7 +5841,7 @@ const WEAPONS = lock([
   ['wand', 'Bubble Wand', 'Range 3 over walls. Bubbles always hit, pass Shell Shields and sometimes trap the target for a turn.'],
   ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
   ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
-  ['boom', 'Boom Pack', `One explosive a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
+  ['boom', 'Boom Pack', `One explosive a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). It goes for those that dig in first: Builders, Diggers, Miners, Scope Rifles, watchtowers and the other side's cannon. Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
 
 ]);
 // range, damage, hands; crit/dodge/whiff/trap in percent
@@ -5867,7 +5879,7 @@ const POWERS = lock(capped([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
-  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Any Builder puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn for the squad, up to ${RULES.buildMax} a round each). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
   ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs pits beside it, ${RULES.pitSmoke} at a time, and covers them with leaves, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round; when the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]));
@@ -5912,7 +5924,7 @@ const POWERUP_TURN = 3;
 const OBJECTS = lock([
   ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit, and one right behind it dodges arrows ${RULES.sandCover}% more.`],
   ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
-  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that has to cross gets stuck for the rest of its move and loses ${RULES.wireDmg} HP.`],
+  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
   ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
@@ -6752,10 +6764,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // in the smoke (engine 14) the shot goes blind: it hits blindHit% of the time, and
     // neither cover nor dodging comes into it
     const blind = blindFrom(u, u.x, u.y, d) ? 1 : 0;
+    // tangled in barbed wire (engine 15) it cannot dodge
+    const tg = d.tangled >= now ? 1 : 0;
     if (w.whiff && r() * 100 < w.whiff) res = 'whiff';
     else if (blind) {
       if (r() * 100 >= RULES.blindHit) res = 'miss';
-    } else if (!w.sure) {
+    } else if (!w.sure && !tg) {
       // cover from a bush (1), sandbags (2), a foxhole (3) or a watchtower (4).
       // A bush hides a Blub from everything that can miss; the rest only stop arrows.
       // (Smoke Goggles see through the leaves.)
@@ -6842,13 +6856,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // just landed off the catapult, or building: wide open
     const exp = d.exposed === now ? 1 : 0;
     if (exp) dmg += Math.ceil((dmg * (d.exposedPct || RULES.sendTake)) / 100);
+    // ...and takes wireTake% more
+    if (tg) dmg += Math.ceil((dmg * RULES.wireTake) / 100);
     dmg = Math.min(d.hp, dmg);
     d.hp -= dmg;
     d.hurt = true;
     stats[u.id].dmg += dmg;
     stats[d.id].taken += dmg;
     u.dealt += dmg;
-    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}), ...bl });
+    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}), ...(tg ? { tg } : {}), ...bl });
     if (!d.hp) {
       knockOut(d, u);
       return res;
@@ -7069,6 +7085,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (!u.alive || over >= 0) return;
     if (wireT[c] >= 0 && wireT[c] !== u.team) {
       hurt(u, RULES.wireDmg, 'snag', objs.find((o) => o.k === 'wire' && o.cells.includes(c)));
+      // tangled (engine 15): stuck there, and wide open, till the end of its next turn
+      if (u.alive) u.tangled = now + 1;
     }
     const m = mineT[c];
     if (m >= 0 && OB[m].team !== u.team) {
@@ -7695,18 +7713,21 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
     if (cap && cmdOf[u.team] && !called[u.team] && !u.jeet) callOrder(u, turn);
+    // tangled in barbed wire (engine 15): it goes nowhere, not even down a tunnel
+    const tangled = u.tangled >= turn;
     // a Miner that was hit tunnels away to safety: its whole turn
-    if (u.pow === 'miner' && u.tunnel && burrow(u)) return;
+    if (u.pow === 'miner' && u.tunnel && !tangled && burrow(u)) return;
     // Paper Hands: it runs for its own back rows, as far from the enemy as it can
-    // get, and does nothing else until it has its nerve back (held by a Guardian,
-    // it just stands there shaking)
+    // get, and does nothing else until it has its nerve back (held by a Guardian or
+    // tangled, it just stands there shaking)
     if (u.paper >= turn) {
-      if (!foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) runBack(u);
+      if (!tangled && !foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) runBack(u);
       return;
     }
-    // held by an enemy Guardian next to it: no moving at all (not even to the
-    // power-up); it hits what it reaches (a medic heals whom it reaches)
-    if (foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) {
+    // held by an enemy Guardian next to it, or tangled in barbed wire (engine 15): no
+    // moving at all (not even to the power-up); it hits what it reaches (a medic heals
+    // whom it reaches)
+    if (tangled || foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) {
       if (u.cls === 'sweet' && medic(u, true, turn)) return;
       return hitAround(u);
     }
@@ -7750,6 +7771,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
     // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
     if (cp && !W(u).boom && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
+    // the other side's cannon in its way (engine 15)
+    if (cannonTurn(u)) return;
     fight(u);
   }
   // What the chest throws in draws the Blubs that can use it. With nobody in reach,
@@ -7829,6 +7852,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const d = cheb(u.x, u.y, v.x, v.y);
       if (d <= 2) pure(u, v, BLAST[d <= 1 ? 0 : 1], 'blasted');
     }
+    // and the other side's cannon (engine 15)
+    for (const w of works) {
+      const d = w.team !== u.team && w.hp ? gunGap(w, u.x, u.y) : 99;
+      if (d <= 2 && over < 0) hitCannon(w, u, BLAST[d <= 1 ? 0 : 1], 'blast');
+    }
     checkOver();
     u.totem = false;
     u.hp = 0;
@@ -7900,9 +7928,51 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (d > 2 || v.bubble) continue;
       let dmg = BLAST[d <= 1 ? 0 : 1];
       if (copiumOn(v)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
-      s += Math.min(dmg, v.hp) + (dmg >= v.hp && !v.totem ? RULES.boomKo : 0);
+      s += Math.min(dmg, v.hp) + (dmg >= v.hp && !v.totem ? RULES.boomKo : 0) + (digsIn(v) ? RULES.boomDef : 0);
+    }
+    // the other side's cannon: what the blast takes off it, and more to put it out
+    for (const w of works) {
+      const d = w.team !== u.team && w.hp ? gunGap(w, x, y) : 99;
+      if (d > 2) continue;
+      const dmg = BLAST[d <= 1 ? 0 : 1];
+      s += Math.min(dmg, w.hp) + RULES.boomDef + (dmg >= w.hp ? RULES.boomKo : 0);
     }
     return s;
+  }
+  // those that dig in and hold (engine 15), the Boom Pack's first pick
+  const digsIn = (v) => v.pow === 'builder' || v.pow === 'digger' || v.pow === 'miner' || v.wpn === 'scope' || onTower(v, v.x, v.y);
+  // how near (x, y) is to a cannon
+  const gunGap = (w, x, y) => Math.min(...w.cells.map((c) => cheb(x, y, c % SIZE, (c - (c % SIZE)) / SIZE)));
+  // The other side's cannon knocked about (engine 15): at 0 HP it is out of action
+  // till its Builder has patched it up
+  function hitCannon(w, by, dmg, src) {
+    const d = Math.min(w.hp, dmg);
+    w.hp -= d;
+    const down = !w.hp && !w.broken;
+    if (down) w.broken = true;
+    push({ t: 'cannonhit', u: by.id, w: w.id, dmg: d, hp: w.hp, src, ...(down ? { down: 1 } : {}) });
+  }
+  // a fighter (reach 2 or less) with nobody in its reach and the other side's working
+  // cannon within its move goes to it and hits it, its weapon's damage
+  function cannonTurn(u) {
+    if (W(u).range > 2 || W(u).boom || W(u).cycle || inReach(u).length) return false;
+    const w = works.find((v) => v.team !== u.team && v.hp > 0);
+    if (!w) return false;
+    const near = (x, y) => gunGap(w, x, y) <= W(u).range;
+    if (!near(u.x, u.y)) {
+      const P = search(u, u.move, near);
+      if (!P.found.length) return false;
+      walk(u, route(P, P.found[0]));
+      if (!u.alive || over >= 0) return true;
+      if (inReach(u).length) {
+        hitAround(u);
+        return true;
+      }
+      if (!near(u.x, u.y)) return true;
+    }
+    u.attacked = true;
+    hitCannon(w, u, punch(u), 'blow');
+    return true;
   }
   // what a blast has to be worth: boomWorth, or just boomLast once its Blub is down to
   // half or the mist is in
@@ -7914,7 +7984,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function boomTurn(u) {
     const need = boomNeed(u);
     const list = foes(u);
-    if (!list.some((v) => cheb(u.x, u.y, v.x, v.y) <= u.move + 2)) return false;
+    if (!list.some((v) => cheb(u.x, u.y, v.x, v.y) <= u.move + 2) && !works.some((w) => w.team !== u.team && w.hp && gunGap(w, u.x, u.y) <= u.move + 2)) return false;
     const here = idx(u.x, u.y);
     const P = search(u, u.move);
     let best = here;
@@ -8084,6 +8154,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   function engineer(u) {
     let w = works.find((v) => v.team === u.team);
+    // its cannon knocked about (engine 15): with nobody in its reach it patches it up
+    if (w && w.hp != null && w.hp <= RULES.cannonHp - RULES.cannonFix && !inReach(u).length) return mend(u, w);
     if (w && w.stage >= RULES.cannonBuild && w.wall >= w.front.length) return false;
     if (inReach(u).length) return false;
     if (!w) {
@@ -8101,7 +8173,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (w.stage < RULES.cannonBuild) {
       w.stage++;
-      if (w.stage === RULES.cannonBuild) w.next = now + 1;
+      if (w.stage === RULES.cannonBuild) {
+        w.next = now + 1;
+        w.hp = RULES.cannonHp;
+      }
       craftStep(u, 'cannon', w, w.stage, RULES.cannonBuild, w.cells);
       return true;
     }
@@ -8116,12 +8191,30 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     craftStep(u, 'wall', w, w.wall, w.front.length, [c]);
     return true;
   }
+  // The Builder goes to its cannon (when not beside it already: its turn) and patches it
+  // up, cannonFix a turn; one out of action is back in action as soon as it has HP.
+  function mend(u, w) {
+    const by = (x, y) => gunGap(w, x, y) <= 1;
+    if (!by(u.x, u.y)) {
+      const P = search(u, u.move, by);
+      if (!P.found.length) return false;
+      walk(u, route(P, P.found[0]));
+      return true;
+    }
+    w.hp = Math.min(RULES.cannonHp, w.hp + RULES.cannonFix);
+    if (w.broken) {
+      w.broken = false;
+      w.next = Math.max(w.next, now + 1);
+    }
+    craftStep(u, 'repair', w, w.hp, RULES.cannonHp, w.cells);
+    return true;
+  }
   // a finished cannon fires by itself: at the nearest enemy (then the most hurt) it can
   // see from its front within cannonRange, every cannonReload turns. Smoke throws it off
   // (engine 13): under a cloud, at an enemy in one or behind one, it fires blind and hits
   // blindHit% of the time; a miss lands on a tile beside that enemy.
   function fireCannon(w, turn) {
-    if (w.stage < RULES.cannonBuild || turn < w.next) return;
+    if (w.stage < RULES.cannonBuild || w.broken || turn < w.next) return;
     const cannonReach = RULES.cannonRange;
     let best = null;
     let bd = 99;
@@ -11376,6 +11469,7 @@ const SquadView = (() => {
         if (e.res === 'block') return d + ' blocks ' + u + "'s hit: only " + e.dmg + ' damage.' + sneak;
         if (e.res === 'crit') return u + ' lands a critical hit on ' + d + ' for ' + e.dmg + '!' + sneak;
         if (e.dug) return describe({ ...e, dug: 0 }, names, labels).replace(/\.(?= Sneak attack!$|$)/, ' (dug in).');
+        if (e.tg) return describe({ ...e, tg: 0 }, names, labels).replace(/\.(?= Sneak attack!$|$)/, ' (tangled in the wire).');
         return u + ' hits ' + d + ' with the ' + wn(e.w) + ' for ' + e.dmg + '.' + sneak;
       }
       // the chest's pill: damage first, the phone ticker is one short line
@@ -11428,7 +11522,11 @@ const SquadView = (() => {
       // a Builder's works (engine 9)
       case 'craft':
         if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
+        if (e.what === 'repair') return u + ' patches up the cannon (' + e.stage + '/' + e.of + ' HP).';
         return e.stage === 1 ? u + ' starts building a cannon.' : e.stage >= e.of ? u + ' finishes the cannon: it is ready to fire!' : u + ' works on the cannon.';
+      // engine 15: the cannon knocked about, by a blast or a fighter's blows
+      case 'cannonhit':
+        return (e.src === 'blast' ? 'The blast knocks the cannon about' : u + ' hits the cannon') + ': -' + e.dmg + (e.down ? '. It is out of action!' : ' (' + e.hp + ' HP left).');
       case 'cannon':
         // engine 13: smoke throws it off, and it fires blind
         if (e.miss) return 'BOOM! ' + u + "'s cannon fires blind through the smoke and misses " + d + '.';
@@ -11510,7 +11608,7 @@ const SquadView = (() => {
       case 'shell':
         return e.res === 'absorb' ? 'A mortar shell pops ' + d + "'s bubble." : 'Mortar shell! ' + d + ' loses ' + e.dmg + '.';
       case 'snag':
-        return e.res === 'absorb' ? d + "'s bubble pops on the barbed wire." : d + ' is caught in the barbed wire (-' + e.dmg + ').';
+        return e.res === 'absorb' ? d + "'s bubble pops on the barbed wire." : d + ' is caught in the barbed wire (-' + e.dmg + ')' + (e.hp > 0 ? ': tangled, stuck and wide open till its next turn is over.' : '.');
       case 'boom':
         return 'A hidden pop mine goes off!';
       case 'mine':
@@ -12504,7 +12602,7 @@ const SquadView = (() => {
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
     perks: 4000, perksHit: 1300,
-    claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120,
+    claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120, gunhit: 560, gunhitHit: 260,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
@@ -12681,7 +12779,7 @@ const SquadView = (() => {
             return;
           }
           // the Boom Pack's blast lands on everybody round it at once; a gem heals as it is handed over
-          if ((t === 'blasted' && p.kind === 'blowup') || (t === 'heal' && p.kind === 'deliver' && e.src === 'gem') || (t === 'cannonball' && p.kind === 'cannon')) {
+          if ((t === 'blasted' && p.kind === 'blowup') || (t === 'cannonhit' && p.kind === 'blowup') || (t === 'heal' && p.kind === 'deliver' && e.src === 'gem') || (t === 'cannonball' && p.kind === 'cannon')) {
             attachTo(p, i);
             return;
           }
@@ -12752,6 +12850,11 @@ const SquadView = (() => {
         }
         if (t === 'claim' || t === 'grow' || t === 'prophit' || t === 'propdown') {
           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'] || 0, list: [{ ei: i, off: MS[t + 'Hit'] || 0 }], e });
+          return;
+        }
+        // a fighter's blow at the other side's cannon (engine 15), like a swing at a prop
+        if (t === 'cannonhit') {
+          parent = add({ kind: 'gunhit', dur: MS.gunhit, contact: MS.gunhitHit, list: [{ ei: i, off: MS.gunhitHit }], e, actors: [e.u] });
           return;
         }
         if (t === 'airdrop' || t === 'snipe' || t === 'devwallet' || t === 'paper') {
@@ -13007,6 +13110,8 @@ const SquadView = (() => {
         S.turn = e.n;
         e.at.forEach((p, i) => {
           const u = U[i];
+          // out of the wire once its next turn is over (engine 15)
+          if (u.st && u.st.tangled && u.st.tangled < e.n) delete u.st.tangled;
           if (p) {
             u.x = p[0];
             u.y = p[1];
@@ -13075,7 +13180,18 @@ const SquadView = (() => {
       case 'cannonball':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
+        // tangled in the wire (engine 15) till its next turn is over
+        if (e.t === 'snag' && e.res === 'hit' && e.hp > 0) U[e.d].st.tangled = (S.turn || 0) + 1;
         break;
+      // the cannon knocked about (engine 15)
+      case 'cannonhit': {
+        const w = S.works[e.w];
+        if (w) {
+          w.hp = e.hp;
+          if (e.down) w.broken = true;
+        }
+        break;
+      }
       // a Digger's pit, hidden under leaves; and a Blub that falls into one
       case 'pit':
         for (const [x0, y0] of e.at) S.pits.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM), open: false });
@@ -13092,8 +13208,15 @@ const SquadView = (() => {
       }
       // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
       case 'craft':
-        if (e.what === 'cannon') S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face };
-        else for (const [x0, y0] of e.cells) S.walls.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM) });
+        if (e.what === 'cannon') S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face, ...(e.stage >= e.of ? { hp: SE.RULES.cannonHp } : {}) };
+        else if (e.what === 'repair') {
+          // patched up (engine 15): back in action as soon as it has HP
+          const w = S.works[e.w];
+          if (w) {
+            w.hp = e.stage;
+            w.broken = false;
+          }
+        } else for (const [x0, y0] of e.cells) S.walls.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM) });
         break;
       // the trench arsenal
       case 'scope':
@@ -13816,6 +13939,17 @@ const SquadView = (() => {
       x.fillRect(ox + 16, oy + 1, 3, 3);
       x.fillStyle = '#C9C9D6';
       x.fillRect(ox + 19, oy + 3, 2, 1);
+    }
+    // tangled in barbed wire (engine 15): loops of it round its middle, barbs and all
+    if (u.st.tangled) {
+      x.fillStyle = '#6E6E80';
+      for (let i = 0; i < 16; i += 2) x.fillRect(ox + i, oy + 9 + ((i >> 1) & 1), 2, 1);
+      for (let i = 1; i < 16; i += 3) x.fillRect(ox + i, oy + 12 - ((i >> 1) & 1), 2, 1);
+      x.fillStyle = '#EEEEF5';
+      for (const bx of [2, 7, 12]) {
+        x.fillRect(ox + bx, oy + 8, 1, 1);
+        x.fillRect(ox + bx + 1, oy + 13, 1, 1);
+      }
     }
     // stuck in the Honeypot: honey over its head and running down it, two bees
     // round it that will not leave it alone
@@ -14757,6 +14891,22 @@ const SquadView = (() => {
     const { px, py, up } = cannonBox(wk);
     const stage = clamp(wk.stage, 1, 3);
     const ov = P.ov['cannon' + wk.id];
+    // knocked about (engine 15): its HP over it once it has lost some; out of action it
+    // sits dark and smoking
+    if (wk.hp != null && wk.hp < SE.RULES.cannonHp) {
+      const bw = 20;
+      const fill = Math.round((bw * wk.hp) / SE.RULES.cannonHp);
+      x.fillStyle = INK;
+      x.fillRect(px + 5, py - 4, bw + 2, 4);
+      x.fillStyle = '#3E2C58';
+      x.fillRect(px + 6, py - 3, bw, 2);
+      x.fillStyle = wk.hp * 2 > SE.RULES.cannonHp ? '#FFD447' : '#FF5C77';
+      x.fillRect(px + 6, py - 3, fill, 2);
+    }
+    if (wk.broken) {
+      ditherRect(x, px + 3, py + 6, 26, 20, '#1B1229', 0.45);
+      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + 8 + j * 8, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
+    }
     const fe = ov && ov.fireT != null && !P.calm ? t - ov.fireT : -1;
     const kick = fe >= 0 && fe < 160 ? (fe < 60 ? 2 : 1) * (up ? 1 : -1) : 0;
     blob(x, px + 16, py + 29, 15, 3, '#1B1229', 0.3);
@@ -14801,6 +14951,8 @@ const SquadView = (() => {
         addParts(4, cx, cy, e.what === 'wall' ? [OC.skL, OC.sk] : [OC.wdL, OC.wd, '#FFD447'], 0.05, 0.0003, 300 * k, h, true, [Math.PI, Math.PI * 2]);
         atClock(h, () => sfx('thud'));
       }
+      // patched up (engine 15)
+      if (e.what === 'repair') label(T + b.contact, 'REPAIRED', '#4BE08F', cx, Math.round(cy - 26), true);
       if (e.what === 'cannon')
         addFx(T, b.dur, (x, kk, el) => {
           const done = el >= b.contact ? e.stage : e.stage - 1;
@@ -16140,6 +16292,26 @@ const SquadView = (() => {
       });
       return;
     }
+    // a blow at the other side's cannon (engine 15): a swing at its middle
+    if (b.kind === 'gunhit') {
+      const e = b.e;
+      const u = S.u[e.u];
+      const wk = S.works[e.w];
+      if (!u || !wk) return;
+      P.actors = [e.u];
+      const [ux, uy] = centreOf(u);
+      let dx = 0;
+      let dy = 0;
+      for (const [x0, y0] of wk.cells) {
+        const [px, py] = tileC(x0, y0);
+        dx += px / wk.cells.length;
+        dy += py / wk.cells.length;
+      }
+      faceTo(u, dx);
+      const len = Math.hypot(dx - ux, dy - uy) || 1;
+      u.atk = { t0: T, dur: b.dur, contact: b.contact, kind: 'melee', w: u.wpn, nx: (dx - ux) / len, ny: (dy - uy) / len, dir: dir8(dx - ux, dy - uy) };
+      return;
+    }
     // a swing at one of the contested props looks like any other swing
     if (b.kind === 'prophit') {
       const e = b.e;
@@ -17465,6 +17637,21 @@ const SquadView = (() => {
         sfx('thud');
         return;
       }
+      // the cannon knocked about (engine 15): the damage over it, sparks, and when it is
+      // out of action a burst of smoke and the words
+      case 'cannonhit': {
+        const wk = S.works[e.w];
+        if (!wk) return;
+        const { px, py } = cannonBox(wk);
+        label(T, '-' + e.dmg, '#FFFFFF', px + 16, py - 6, false);
+        addParts(7, px + 16, py + 12, ['#FFF3B0', '#FFD447', '#C9C9D6'], 0.08, 0.0003, 300 * k, T, true);
+        sfx(e.src === 'blast' ? 'thud' : 'block');
+        if (e.down) {
+          label(T + 160 * k, 'OUT OF ACTION', '#FF5C77', px + 16, py - 16, true);
+          for (let j = 0; j < 4; j++) addFx(T + j * 60 * k, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), px + 4 + j * 6, Math.round(py + 4 - kk * 10)));
+        }
+        return;
+      }
       // the cloud has lifted: the Digger heads home ('FALL BACK' over it)
       case 'fallback': {
         const u = U[e.u];
@@ -18248,6 +18435,7 @@ const SquadView = (() => {
           // the wire twangs where it caught the Blub, sparks fly, the Blub jerks to a stop
           const o = objById(e.o);
           if (o) ovOf(o.id).wob = { t0: T, x: dx };
+          if (e.res === 'hit' && e.hp > 0) label(T + 140 * k, 'TANGLED!', '#EEEEF5', dx, top - 9, true);
           const fy = d._b ? d._b.fy : dy + 6;
           addParts(9, dx, fy - 5, ['#FFFFFF', '#FFF3B0', OC.wr], 0.085, 0.0003, 320 * k, T, true);
           const m = d.mv;
@@ -18957,7 +19145,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback']);
+  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
