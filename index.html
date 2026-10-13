@@ -400,6 +400,7 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .step-n{font-family:var(--f-display);font-size:10px;color:var(--coral-deep)}
 .step-txt h3{font-size:clamp(14px,2.2vw,18px);line-height:1.4}
 .ranks-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
+.ranks-row + .ranks-row{margin-top:14px}
 .ranks-row i{font-style:normal;font-family:var(--f-display);font-size:12px;color:#9FE3D6}
 .parts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 @media (max-width:980px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -1949,7 +1950,7 @@ body.no-scroll{overflow:hidden}
 .sq-lgme{align-items:center}
 /* a league the moderators paused */
 .lg-paused{font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.1em;text-transform:uppercase;padding:4px 6px;border:2px solid #000;background:#E2566E;color:#fff;align-self:center}
-.sq-lgme canvas.sq-lgb{width:32px;height:32px;flex:none}
+.sq-lgme canvas.sq-lgb{width:48px;height:48px;flex:none;margin:-6px 0}
 .sq-lgrule{margin:0}
 /* the rankings page: the league is what the page is for, so its list may run longer */
 .sq-ranks .sq-league{max-height:min(72vh,860px)}
@@ -1977,7 +1978,7 @@ body.no-scroll{overflow:hidden}
 .lg-rk canvas.sq-lgb{width:16px;height:16px}
 .sq-pfrank{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0B1F23;border:3px solid #000}
 .sq-pfrank[hidden]{display:none}
-.sq-pfrank canvas.sq-lgb{width:32px;height:32px;flex:none}
+.sq-pfrank canvas.sq-lgb{width:48px;height:48px;flex:none;margin:-6px 0}
 .sq-pfrk{display:flex;flex-direction:column;gap:3px}
 .sq-pfrk b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:var(--gold)}
 .sq-pfrk small{font-family:var(--f-data);font-size:16px;color:var(--sq-soft)}
@@ -1998,15 +1999,16 @@ body.no-scroll{overflow:hidden}
 /* the challenger's rank this week, on the open board (any rank may duel any other) */
 .sq-orank{display:inline-flex;align-items:center;gap:6px}
 .sq-orank canvas.sq-lgb{width:16px;height:16px;flex:none}
-/* the ranks: a row per sea creature (Whale at the top), its bronze, silver and gold badges; yours ringed */
-.sq-rankl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
-.sq-rankl li{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:10px}
+/* the ranks: a row per sea creature (Whale at the top), its bronze, silver and gold medals
+   at twice their size (smaller only where the panel is narrower); yours glowing */
+.sq-rankl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.sq-rankl li{display:flex;flex-direction:column;gap:6px}
 .sq-rankl li > b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.4;color:#fff}
-.sq-rankg{display:flex;gap:14px}
-.sq-rankb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:44px;font-family:var(--f-data);font-size:15px;line-height:1;color:var(--sq-soft)}
-.sq-rankb canvas{width:32px;height:32px}
+.sq-rankg{display:grid;grid-template-columns:repeat(3,minmax(0,96px));gap:8px;justify-content:space-between}
+.sq-rankb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;font-family:var(--f-data);font-size:15px;line-height:1;color:var(--sq-soft)}
+.sq-rankb canvas{width:min(96px,100%)!important;height:auto!important;aspect-ratio:1}
 .sq-rankb.me small{color:var(--gold)}
-.sq-rankb.me canvas{outline:2px solid var(--gold);outline-offset:2px}
+.sq-rankb.me canvas{filter:drop-shadow(0 0 6px rgba(255,212,71,.85))}
 /* your profile on the rankings page */
 .sq-pfwho{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0B1F23;border:3px solid #000}
 .sq-pfwho canvas{width:32px;height:40px;flex:none}
@@ -2182,7 +2184,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">2681cf1 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">52a82e2 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2278,7 +2280,7 @@ body.no-scroll{overflow:hidden}
       <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Five Blubs: their looks, their skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
       <li><span class="how-n" aria-hidden="true">2</span><b>Play your first match</b><span>Free against bots, no wallet needed. Cards explain what happens.</span><a class="btn small mint" href="#practice">Practice</a></li>
       <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transaction, no fees, and your coins stay put.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
-      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the weekly league</b><span>Duel real players: a win is 3 points, and the top 7 of your group move up.</span><a class="btn small" href="#rankings">Rankings</a></li>
+      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the weekly league</b><span>Your strategy plays your group every day: a win is 3 points, and the top 7 move up each Monday.</span><a class="btn small" href="#rankings">Rankings</a></li>
     </ol>
       </li>
       <li class="step flip">
@@ -2286,7 +2288,7 @@ body.no-scroll{overflow:hidden}
         <div class="step-txt">
           <span class="step-n">Step 3 · The goal</span>
           <h3>Climb from Shrimp to Whale</h3>
-          <p>Win duels against other fans. Every week you play in a group of 35: a win is 3 points and a loss still 1. The top of your group moves up and the bottom moves down, through 18 ranks from Bronze Shrimp to Gold Whale. Practice against bots is always free and never counts.</p>
+          <p>Set your strategy, and every day your five play the others in your group of 35: a win is 3 points and a loss still 1. Each Monday the top of your group moves up and the bottom moves down, through 18 ranks from Bronze Shrimp to Gold Whale, each with its own medal in bronze, silver or gold. Practice against bots is always free and never counts.</p>
         </div>
       </li>
       <li class="step step-parts">
@@ -2300,7 +2302,7 @@ body.no-scroll{overflow:hidden}
           <li><div class="part-art" data-art="plan" aria-hidden="true"></div><h4>Team · Strategy</h4><p>Place your five on your rows, dig in two objects of the trench kit and pick the captain’s command. You keep three strategies and switch with a tap.</p><a class="btn small" href="#team">Team</a></li>
           <li><div class="part-art" data-art="fight" aria-hidden="true"></div><h4>The arena</h4><p>Every round brings a new arena, weather and a chest of surprises. Smoke makes shots blind, Diggers hide pits, Builders raise cannons and barbed wire tangles whoever crosses it.</p><button type="button" class="btn small" data-botshow>Watch a fight</button></li>
           <li><div class="part-art" data-art="practice" aria-hidden="true"></div><h4>Practice</h4><p>Play bot squads as often as you like, watch two bot squads fight, or take the guided first match that explains everything as it happens. Free, no wallet.</p><a class="btn small mint" href="#practice">Practice</a></li>
-          <li><div class="part-art" data-art="league" aria-hidden="true"></div><h4>Rankings</h4><p>The weekly league with its 18 ranks, friend leagues for your own crew, and the duel season. Every rank may duel every other.</p><a class="btn small" href="#rankings">Rankings</a></li>
+          <li><div class="part-art" data-art="league" aria-hidden="true"></div><h4>Rankings</h4><p>The weekly league with its 18 ranks, friend leagues for your own crew, and the duel season, where the month’s top 3 win a trophy. Every rank may duel every other.</p><a class="btn small" href="#rankings">Rankings</a></li>
         </ul>
       </li>
     </ol>
@@ -24131,9 +24133,9 @@ const SquadHall = (() => {
     st.modal = 'week'; openModal();
     Sfx.play(up ? 'win' : 'bell');
   }
-  // a rank's badge: its sea creature on a dark tile framed in its grade's metal, with one,
-  // two or three pips on the foot (bronze, silver, gold). Two frames each: the shrimp
-  // flicks, the crab snaps, the fish swims, the dolphin jumps, the shark bites, the whale spouts.
+  // the small badges' sea creatures (12x12): two frames each, the shrimp flicks, the crab
+  // snaps, the fish swims, the dolphin jumps, the shark bites, the whale spouts. The big
+  // rank medal (Emblem, below) draws its creatures from shapes.
   const RANK_SPR = [
     [['k.k.........', '.k.k........', '..kkkkk.....', '.kWkPPPkk...', '.kPPPPPPPk..', '..kkkPwPPPk.', '.....kPwPPk.', '.....kPPwPk.', '....kPPwPk..', '..kkPPPPk...', '.kppkkkk....', 'kppk........'],
       ['.k.k........', 'k.k.........', '..kkkkk.....', '.kWkPPPkk...', '.kPPPPPPPk..', '..kkkPwPPPk.', '.....kPwPPk.', '.....kPPwPk.', '....kPPwPk..', '..kkPPPPk...', '..kppkkk....', '.kppk.......']],
@@ -24209,30 +24211,389 @@ const SquadHall = (() => {
     if (list.length) R.podium.append(h('span', {class: 'sq-podl'}, 'Last season · ' + (seasonName(prev) || prev)),
       ...list.slice(0, 3).map(x => h('span', {class: 'sq-podi p' + x.p, title: PLACE_T[x.p]}, cupIcon(x.p, 16), h('b', null, frWho(x.id)))));
   }
-  // rank d (1 Bronze Shrimp ... 18 Gold Whale), frame f, on a 16x16 canvas
+  // the ranks' metals, seven tones each from the outline to a glint: bronze, silver, gold
+  const RANK_METAL = [
+    {o: '#2B1408', d: '#5A2C10', s: '#86451C', b: '#B0652C', l: '#D58A4A', h: '#F2B57C', w: '#FFE6CC'},
+    {o: '#1C222C', d: '#4A5466', s: '#717E92', b: '#A3AFBF', l: '#C8D2DE', h: '#E9EFF6', w: '#FFFFFF'},
+    {o: '#3A2102', d: '#7A4806', s: '#B0760C', b: '#DDA11A', l: '#F7C93E', h: '#FFE992', w: '#FFFFFF'},
+  ];
+  const RANK_BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const RANK_SEA = ['#2A7A90', '#1E5F75', '#15485C'];
+  // the small badge (16x16, next to names and on the wallet button): rank d (1 Bronze
+  // Shrimp ... 18 Gold Whale), frame f. A tile of the grade's metal lit from the top left
+  // round a window on the sea with the creature in it; a sapphire (silver) or a ruby
+  // (gold) on top, a pip for each grade below, and now and then a gold glint
   function paintRank(c, d, f){
-    const x = c.getContext('2d'), a = Math.floor((d - 1) / 3), t = (d - 1) % 3, T = METAL[t], pal = RANK_PAL[a];
+    const x = c.getContext('2d'), a = Math.floor((d - 1) / 3), t = (d - 1) % 3, M = RANK_METAL[t], pal = RANK_PAL[a];
     x.clearRect(0, 0, 16, 16);
-    x.fillStyle = '#1A1030'; x.fillRect(1, 0, 14, 16); x.fillRect(0, 1, 16, 14);
-    x.fillStyle = T.M; x.fillRect(1, 1, 14, 14);
-    x.fillStyle = T.H; x.fillRect(1, 1, 14, 1); x.fillRect(1, 1, 1, 14);
-    x.fillStyle = T.S; x.fillRect(1, 14, 14, 1); x.fillRect(14, 2, 1, 13);
-    x.fillStyle = '#132E33'; x.fillRect(2, 2, 12, 12);
-    RANK_SPR[a][f].forEach((row, y) => { for (let i = 0; i < 12; i++){ const col = pal[row[i]]; if (col){ x.fillStyle = col; x.fillRect(i + 2, y + 2, 1, 1); } } });
-    x.fillStyle = '#FFFFFF';
-    for (let i = 0; i <= t; i++) x.fillRect(7 - t + i * 2, 15, 1, 1);
-    // gold glints now and then
-    if (t === 2 && f){ x.fillRect(12, 1, 3, 1); x.fillRect(13, 0, 1, 3); }
+    const cut = (X, Y) => Math.min(X, 15 - X) + Math.min(Y, 15 - Y) < 2;
+    const put = (X, Y, col) => { x.fillStyle = col; x.fillRect(X, Y, 1, 1); };
+    for (let Y = 0; Y < 16; Y++) for (let X = 0; X < 16; X++){
+      if (cut(X, Y)) continue;
+      if (cut(X - 1, Y) || cut(X + 1, Y) || cut(X, Y - 1) || cut(X, Y + 1) || X === 0 || Y === 0 || X === 15 || Y === 15){ put(X, Y, M.o); continue; }
+      if (X === 1 || Y === 1 || X === 14 || Y === 14){
+        const lit = (X === 1 ? 1 : 0) + (Y === 1 ? 1 : 0) - (X === 14 ? 1 : 0) - (Y === 14 ? 1 : 0);
+        put(X, Y, lit >= 2 ? M.w : lit === 1 ? M.h : lit === 0 ? M.b : lit === -1 ? M.s : M.d);
+        continue;
+      }
+      put(X, Y, RANK_SEA[clamp(Math.round((Y - 2) / 11 * 2 + (RANK_BAYER[Y % 4][X % 4] / 16 - 0.5) * 0.8), 0, 2)]);
+    }
+    RANK_SPR[a][f].forEach((row, Y) => { for (let i = 0; i < 12; i++){ const col = pal[row[i]]; if (col) put(i + 2, Y + 2, col); } });
+    if (t === 1){ put(7, 1, '#7FB2FF'); put(8, 1, '#2F6FD8'); }
+    if (t === 2){ put(7, 1, '#FF8FA8'); put(8, 1, '#E2264E'); put(7, 0, M.h); put(8, 0, M.l); }
+    for (let i = 0; i <= t; i++) put(7 - t + i * 2, 14, M.w);
+    if (t === 2 && f){ put(13, 0, M.w); put(14, 1, M.w); put(12, 1, M.w); put(13, 2, M.w); }
   }
-  // badges on the page move together, every half second, while on screen (still when calm)
+  /* ---- the rank emblem (the owner, 13 Oct 2026: much more detailed, the gold, silver and
+     bronze worked in much more beautifully): a 48x48 medal drawn in code, shown at 48 or
+     96 px. Its sea creature decides the medal's outline (round for the Shrimp, a shell for
+     the Crab, a shield for the Fish and the Dolphin, eight points for the Shark, a crown
+     of points for the Whale) and the ribbon's colour; its grade the metal (seven tones,
+     lit from the top left, a raised ring with a glint) and the trimmings: rivets, a boss
+     and one star (bronze); an engraved line, half a laurel, a sapphire and two stars
+     (silver); a row of pearls, the whole laurel, a star with a ruby and three stars
+     (gold). In the window on the sea the creature is drawn from shapes (ellipses,
+     polygons, lines, dots) with light and an outline; it moves every half second,
+     bubbles rise and a glint runs over the metal. ---- */
+  const Emblem = (() => {
+    const EM = 48, CX = 24, CY = 21, CW = 28, CH = 24, INK = '#14102A';
+    const TONES = ['d', 's', 'b', 'l', 'h', 'w'];
+    const toneOf = v => (v > 0.72 ? 'h' : v > 0.3 ? 'l' : v > -0.12 ? 'b' : v > -0.52 ? 's' : 'd');
+    const LX = -0.55, LY = -0.835, L3 = [-0.5, -0.66, 0.56].map((v, i, a) => v / Math.hypot(...a));
+    const RIBBON = ['#D9506A', '#C83A3A', '#2F7FD0', '#26A2A6', '#5A6B82', '#5B4BD1'];
+    const SEA = ['#3E9BB0', '#2F8199', '#22667E', '#184F66', '#103B4F'];
+    const mix = (hex, to, f) => {
+      const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16), ch = s => Math.round(((a >> s) & 255) * (1 - f) + ((b >> s) & 255) * f);
+      return '#' + ((1 << 24) + (ch(16) << 16) + (ch(8) << 8) + ch(0)).toString(16).slice(1);
+    };
+    // a colour lit at brightness v: five tones of it, or of the palette given (dark to light)
+    function lit(c, v, pal){
+      const i = v > 0.78 ? 4 : v > 0.48 ? 3 : v > 0.12 ? 2 : v > -0.25 ? 1 : 0;
+      return pal ? pal[i] : [mix(c, '#000000', 0.42), mix(c, '#000000', 0.22), c, mix(c, '#FFFFFF', 0.26), mix(c, '#FFFFFF', 0.55)][i];
+    }
+    function inPoly(pts, px, py){
+      let inside = false;
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++){
+        const [xi, yi] = pts[i], [xj, yj] = pts[j];
+        if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+      return inside;
+    }
+    // a part's brightness at a point, or null outside it: an ellipse is lit like a dome, a
+    // polygon gets lighter towards its top left
+    function partAt(p, px, py){
+      if (p.k === 'ell'){
+        const th = (p.rot || 0) * Math.PI / 180, cs = Math.cos(th), sn = Math.sin(th), dx = px - p.x, dy = py - p.y;
+        const u = (dx * cs + dy * sn) / p.rx, v = (-dx * sn + dy * cs) / p.ry, q = u * u + v * v;
+        if (q > 1) return null;
+        if (p.flat) return p.flat;
+        return (u * cs - v * sn) * L3[0] + (u * sn + v * cs) * L3[1] + Math.sqrt(1 - q) * L3[2] + (p.lift || 0);
+      }
+      if (!inPoly(p.pts, px, py)) return null;
+      if (p.flat) return p.flat;
+      const xs = p.pts.map(q => q[0]), ys = p.pts.map(q => q[1]), x0 = Math.min(...xs), y0 = Math.min(...ys);
+      return 0.62 - (px - x0) / Math.max(1, Math.max(...xs) - x0) * 0.35 - (py - y0) / Math.max(1, Math.max(...ys) - y0) * 0.55 + (p.lift || 0);
+    }
+    function linePixels(pts){
+      const out = [];
+      for (let i = 0; i + 1 < pts.length; i++){
+        let [x0, y0] = pts[i].map(Math.round);
+        const [x1, y1] = pts[i + 1].map(Math.round), dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        let err = dx + dy;
+        for (;;){ out.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy){ err += dy; x0 += sx; } if (e2 <= dx){ err += dx; y0 += sy; } }
+      }
+      return out;
+    }
+    // shapes to pixels, in order: each part lit, an outline where a part lies over an earlier
+    // one, a cut clears a hole, a clip paints only over the part(s) named; then the outline
+    // round it all. Returns a colour (or null) per pixel.
+    function drawParts(parts, W, H){
+      const col = new Array(W * H).fill(null), id = new Int16Array(W * H).fill(-1);
+      const ok = (p, j) => p.clip === undefined || [].concat(p.clip).includes(id[j]);
+      parts.forEach((p, i) => {
+        if (p.k === 'line' || p.k === 'dot'){
+          for (const [x, y] of p.k === 'line' ? linePixels(p.pts) : p.pts) if (x >= 0 && y >= 0 && x < W && y < H && ok(p, y * W + x)){ col[y * W + x] = p.c; id[y * W + x] = i; }
+          return;
+        }
+        const mine = [];
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (ok(p, y * W + x) && partAt(p, x + 0.5, y + 0.5) !== null) mine.push(y * W + x);
+        if (p.cut){ for (const j of mine){ col[j] = null; id[j] = -1; } return; }
+        const set = new Set(mine);
+        for (const j of mine){ col[j] = lit(p.c, partAt(p, j % W + 0.5, Math.floor(j / W) + 0.5), p.pal); id[j] = i; }
+        if (p.ol) for (const j of mine) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){
+          const X = j % W + dx, Y = Math.floor(j / W) + dy, k = Y * W + X;
+          if (X >= 0 && Y >= 0 && X < W && Y < H && !set.has(k) && id[k] >= 0 && id[k] < i){ col[k] = p.ink || INK; id[k] = i; }
+        }
+      });
+      const out = col.slice();
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+        if (col[y * W + x]) continue;
+        const by = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => { const X = x + dx, Y = y + dy; return X >= 0 && Y >= 0 && X < W && Y < H && col[Y * W + X] ? parts[id[Y * W + X]] : null; }).find(p => p && !p.soft);
+        if (by) out[y * W + x] = by.ink || INK;
+      }
+      return out;
+    }
+    // the six creatures (28x24), frame f
+    const CREATURES = [
+      // Shrimp: a coral body in segments, a fan of a tail, legs, a long pair of feelers
+      f => [
+        {k: 'poly', pts: [[6, 17], [0.5, 15], [1.5, 21], [6.5, 19]], c: '#E2566E', ol: 1},
+        {k: 'poly', pts: [[6, 18], [2, 22.5], [7.5, 21.5]], c: '#E2566E', ol: 1},
+        {k: 'ell', x: 7.5, y: 16, rx: 2.8, ry: 2.6, c: '#FF8FA3', ol: 1, rot: 40},
+        {k: 'ell', x: 9.5, y: 12.5, rx: 3.4, ry: 3.1, c: '#FF8FA3', ol: 1, rot: 25},
+        {k: 'ell', x: 12.8, y: 10.3, rx: 3.8, ry: 3.6, c: '#FF8FA3', ol: 1, rot: 10},
+        {k: 'ell', x: 16.5, y: 9.8, rx: 3.9, ry: 3.8, c: '#FF8FA3', ol: 1},
+        {k: 'ell', x: 20.5, y: 10.6, rx: 4.6, ry: 4, c: '#FF9AAD', ol: 1, rot: -8},
+        {k: 'poly', pts: [[23.5, 8.8], [27.5, 9.6], [23.8, 11]], c: '#FF8FA3', ol: 1},
+        {k: 'line', pts: [[10, 15.5], [9, 18]], c: '#C23A55'}, {k: 'line', pts: [[13, 14], [12.5, 16.5 + f]], c: '#C23A55'},
+        {k: 'line', pts: [[16, 14], [16, 17 - f]], c: '#C23A55'}, {k: 'line', pts: [[19, 14.5], [19.5, 17 + f]], c: '#C23A55'},
+        {k: 'ell', x: 21.5, y: 7.6, rx: 1.7, ry: 1.7, c: '#2A1B3D', ol: 1, flat: 0.2},
+        {k: 'dot', pts: [[21, 7]], c: '#FFFFFF'},
+        {k: 'line', pts: [[23, 7], [20, 3], [14, 1 + f], [8, 2 + f], [4, 5]], c: '#C23A55'},
+        {k: 'line', pts: [[23.5, 8], [22, 4.5], [17, 3], [12, 4.5 - f]], c: '#E2566E'},
+      ],
+      // Crab: a red shell, two big claws (open, then snapping), eyes on stalks, legs
+      f => [
+        {k: 'line', pts: [[6, 15], [2.5, 17], [1.5, 20]], c: '#B8324A'}, {k: 'line', pts: [[6.5, 17], [3.5, 20], [3, 22]], c: '#B8324A'},
+        {k: 'line', pts: [[21.5, 15], [25, 17], [26, 20]], c: '#B8324A'}, {k: 'line', pts: [[21, 17], [24, 20], [24.5, 22]], c: '#B8324A'},
+        {k: 'ell', x: 6, y: 11, rx: 2, ry: 3, c: '#E04848', ol: 1, rot: 30},
+        {k: 'ell', x: 22, y: 11, rx: 2, ry: 3, c: '#E04848', ol: 1, rot: -30},
+        {k: 'ell', x: 4.5, y: 6.5 - f, rx: 3.9, ry: 3.4, c: '#F05A4F', ol: 1, rot: -20},
+        {k: 'ell', x: 23.5, y: 6.5 - f, rx: 3.9, ry: 3.4, c: '#F05A4F', ol: 1, rot: 20},
+        {k: 'poly', pts: f ? [[4.5, 5.5], [2.5, 1.8], [6.4, 2.6]] : [[4.4, 6], [1.2, 0.5], [7.4, 1.6]], cut: 1},
+        {k: 'poly', pts: f ? [[23.5, 5.5], [25.5, 1.8], [21.6, 2.6]] : [[23.6, 6], [26.8, 0.5], [20.6, 1.6]], cut: 1},
+        {k: 'ell', x: 14, y: 14.5, rx: 9.5, ry: 6.3, c: '#F05A4F', ol: 1},
+        {k: 'ell', x: 14, y: 17.2, rx: 7, ry: 2.6, c: '#C23A3A', clip: 10},
+        {k: 'dot', pts: [[10, 12], [11, 11], [17, 11], [18, 12], [14, 10]], c: '#FF9A8A'},
+        {k: 'line', pts: [[11, 9], [10.5, 5.5]], c: '#B8324A'}, {k: 'line', pts: [[17, 9], [17.5, 5.5]], c: '#B8324A'},
+        {k: 'ell', x: 10.5, y: 4.5, rx: 1.8, ry: 1.8, c: '#FFFFFF', ol: 1, flat: 0.5}, {k: 'ell', x: 17.5, y: 4.5, rx: 1.8, ry: 1.8, c: '#FFFFFF', ol: 1, flat: 0.5},
+        {k: 'dot', pts: [[11, 5], [18, 5]], c: INK},
+        {k: 'line', pts: [[12, 17], [13, 18], [15, 18], [16, 17]], c: '#7A1F2E'},
+      ],
+      // Fish: a round blue body with stripes and scales, a yellow fin on top, a swishing tail
+      f => [
+        {k: 'poly', pts: f ? [[8, 12.5], [1, 6], [3.5, 12.5], [1.5, 18]] : [[8, 12.5], [1.5, 7], [3.5, 12.5], [1, 19]], c: '#2E86C1', ol: 1},
+        {k: 'poly', pts: [[11, 7], [18.5, 6.5], [12.5, 1.5]], c: '#FFD447', ol: 1},
+        {k: 'ell', x: 15, y: 12.5, rx: 9.2, ry: 6.8, c: '#5EC8F2', ol: 1},
+        {k: 'ell', x: 11, y: 12.5, rx: 1.4, ry: 7, c: '#2E86C1', clip: 2},
+        {k: 'ell', x: 15.5, y: 12.5, rx: 1.4, ry: 7, c: '#2E86C1', clip: 2},
+        {k: 'ell', x: 15, y: 17.5, rx: 8, ry: 2.8, c: '#C8EEFF', clip: 2, lift: 0.2},
+        {k: 'dot', pts: [[8, 11], [9, 13], [13, 10], [13, 14], [17, 9], [18, 12], [17, 15]], c: '#A8E4FF', clip: 2},
+        {k: 'poly', pts: [[14, 15], [18.5, 14.5], [13, 19.5]], c: '#FFD447', ol: 1},
+        {k: 'ell', x: 20, y: 10, rx: 2.4, ry: 2.4, c: '#FFFFFF', ol: 1, flat: 0.5},
+        {k: 'dot', pts: [[20, 10], [21, 10], [20, 11], [21, 11]], c: INK}, {k: 'dot', pts: [[20, 9]], c: '#FFFFFF'},
+        {k: 'line', pts: [[23, 13], [24, 13]], c: '#1B5F8F'},
+        {k: 'ell', x: 26, y: f ? 8 : 10, rx: 1.3, ry: 1.3, c: '#BFEFFF', flat: 0.6, soft: 1},
+      ],
+      // Dolphin: a grey-blue leap with a pale belly, a beak and a smile, splashes below
+      f => [
+        {k: 'poly', pts: [[4, 15], [0.5, 10.5 + f], [2.5, 15.5], [0.5, 20 - f]], c: '#6F9CC0', ol: 1},
+        {k: 'poly', pts: [[11, 7], [16, 6.5], [11.5, 1.5]], c: '#7FA9CC', ol: 1},
+        {k: 'ell', x: 13, y: 12, rx: 10, ry: 5.6, c: '#8FB8D8', ol: 1, rot: -14},
+        {k: 'ell', x: 14, y: 14.6, rx: 8, ry: 2.6, c: '#E4F0F8', clip: 2, rot: -14, lift: 0.15},
+        {k: 'ell', x: 23.8, y: 7.4, rx: 3.2, ry: 1.7, c: '#8FB8D8', ol: 1, rot: -14},
+        {k: 'poly', pts: [[11, 14], [15, 14.5], [10, 19]], c: '#6F9CC0', ol: 1},
+        {k: 'ell', x: 19.6, y: 8.6, rx: 1.3, ry: 1.3, c: INK, flat: 0.1}, {k: 'dot', pts: [[19, 8]], c: '#FFFFFF'},
+        {k: 'line', pts: [[21, 10.5], [23, 10], [25.5, 8.6]], c: '#4F7FA8'},
+        {k: 'dot', pts: f ? [[3, 21], [6, 22], [9, 20], [22, 21], [25, 22]] : [[4, 22], [7, 20], [21, 22], [24, 20], [26, 22]], c: '#BFEFFF'},
+      ],
+      // Shark: a long grey body, a white belly, a big fin, gills, teeth (biting, then open)
+      f => [
+        {k: 'poly', pts: [[5, 12], [0.5, 4], [2.5, 12], [0.5, 19]], c: '#62758C', ol: 1},
+        {k: 'poly', pts: [[10, 7], [17, 7], [11, 0.5]], c: '#6E8299', ol: 1},
+        {k: 'ell', x: 14, y: 12, rx: 11.5, ry: 5.8, c: '#7D8FA3', ol: 1},
+        {k: 'ell', x: 15, y: 15.5, rx: 10, ry: 3.4, c: '#E8EEF4', clip: 2, lift: 0.1},
+        {k: 'poly', pts: [[12, 15], [17, 15.5], [11, 21]], c: '#62758C', ol: 1},
+        {k: 'poly', pts: f ? [[19.5, 15], [26, 12.5], [25.5, 17.5]] : [[20, 14.8], [26, 13.6], [25.5, 15.8]], c: '#5A1020', clip: [2, 3], flat: 0.2},
+        {k: 'dot', pts: f ? [[21, 14], [23, 13], [25, 13], [22, 16], [24, 16]] : [[21, 14], [23, 14], [25, 14]], c: '#FFFFFF', clip: [5]},
+        {k: 'line', pts: [[13, 10], [13, 12]], c: '#4F5F73'}, {k: 'line', pts: [[15, 10], [15, 12]], c: '#4F5F73'}, {k: 'line', pts: [[17, 10], [17, 12]], c: '#4F5F73'},
+        {k: 'ell', x: 21, y: 9.6, rx: 1.3, ry: 1.3, c: INK, flat: 0.1}, {k: 'dot', pts: [[21, 9]], c: '#FFFFFF'},
+        {k: 'line', pts: [[19.5, 7.8], [22.5, 8.6]], c: '#3E4C5E'},
+      ],
+      // Whale: a big royal-blue body with spots, a striped pale belly, its tail up, a spout
+      f => [
+        {k: 'poly', pts: [[5, 13], [0.5, 6], [3, 8.5], [5.5, 4.5], [7, 11]], c: '#2F5BB0', ol: 1},
+        {k: 'ell', x: 14.5, y: 14, rx: 11, ry: 7.5, c: '#3E6FC9', ol: 1},
+        {k: 'ell', x: 16, y: 19, rx: 9, ry: 3.6, c: '#9CC4F2', clip: 1, lift: 0.2},
+        {k: 'line', pts: [[10, 18], [22, 18]], c: '#6E98D8', clip: 2}, {k: 'line', pts: [[11, 20], [21, 20]], c: '#6E98D8', clip: 2},
+        {k: 'dot', pts: [[11, 9], [14, 8], [9, 12], [13, 11]], c: '#6E98E0', clip: 1},
+        {k: 'poly', pts: [[13, 18], [17, 18.5], [12, 22.5]], c: '#2F5BB0', ol: 1},
+        {k: 'ell', x: 20, y: 12.5, rx: 1.9, ry: 1.9, c: '#FFFFFF', ol: 1, flat: 0.5},
+        {k: 'dot', pts: [[20, 12], [21, 12], [20, 13], [21, 13]], c: INK}, {k: 'dot', pts: [[20, 12]], c: '#FFFFFF'},
+        {k: 'line', pts: [[22, 16], [24, 15.5]], c: '#1E3F82'},
+        {k: 'dot', pts: f ? [[18, 5], [17, 3], [19, 3], [16, 1], [20, 1], [18, 2]] : [[18, 5], [18, 4], [17, 3], [19, 3], [18, 2]], c: '#BFEFFF'},
+        {k: 'dot', pts: f ? [[15, 0], [21, 0], [18, 0]] : [[16, 1], [20, 1]], c: '#FFFFFF'},
+      ],
+    ];
+    const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h || w; return c; };
+    const creatures = new Map();
+    function creature(a, f){
+      const key = a * 2 + f;
+      if (!creatures.has(key)){
+        const c = canvas(CW, CH), x = c.getContext('2d');
+        drawParts(CREATURES[a](f), CW, CH).forEach((col, j) => { if (col){ x.fillStyle = col; x.fillRect(j % CW, Math.floor(j / CW), 1, 1); } });
+        creatures.set(key, c);
+      }
+      return creatures.get(key);
+    }
+    // the medallion's outline: its sea creature decides it
+    function shapeIn(a, px, py){
+      const dx = px - CX, dy = py - CY, r = Math.hypot(dx, dy), th = Math.atan2(dy, dx), up = Math.max(0, -dy / (r || 1));
+      if (a === 0) return r <= 18.6;
+      if (a === 1) return r <= 17 + 2.4 * Math.pow(0.5 + 0.5 * Math.cos(10 * th), 2);
+      if (a === 2 || a === 3){
+        if (py < 2.5 || py > 42) return false;
+        const hw = py <= 21 ? 18.5 : 18.5 * Math.sqrt(Math.max(0, 1 - Math.pow((py - 21) / 21, 2)));
+        if (Math.abs(dx) > hw) return false;
+        return py >= 7 || Math.abs(dx) <= 14 || Math.hypot(Math.abs(dx) - 14, py - 7) <= 4.5;
+      }
+      if (a === 4) return r <= 16.2 + 4.6 * Math.pow(Math.max(0, Math.cos(8 * (th + Math.PI / 2))), 8);
+      return r <= 17.4 + 5 * Math.pow(Math.max(0, Math.cos(12 * (th + Math.PI / 2))), 6) * Math.pow(up, 3);
+    }
+    // per pixel: how deep inside the medallion it lies (to the nearest pixel outside, 8 at most)
+    const shapes = new Map();
+    function shapeOf(a){
+      if (shapes.has(a)) return shapes.get(a);
+      const ins = new Uint8Array(EM * EM), dist = new Float32Array(EM * EM);
+      for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++) ins[y * EM + x] = shapeIn(a, x + 0.5, y + 0.5) ? 1 : 0;
+      for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++){
+        if (!ins[y * EM + x]) continue;
+        let best = 64;
+        for (let yy = y - 8; yy <= y + 8; yy++) for (let xx = x - 8; xx <= x + 8; xx++){
+          if (xx >= 0 && yy >= 0 && xx < EM && yy < EM && ins[yy * EM + xx]) continue;
+          const dd = (xx - x) * (xx - x) + (yy - y) * (yy - y);
+          if (dd < best) best = dd;
+        }
+        dist[y * EM + x] = Math.sqrt(best);
+      }
+      const S = {dist, D: (x, y) => (x < 0 || y < 0 || x >= EM || y >= EM ? 0 : dist[y * EM + x]), top: EM, bottom: 0};
+      for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++) if (dist[y * EM + x] >= 6.2){ S.top = Math.min(S.top, y); S.bottom = Math.max(S.bottom, y); }
+      shapes.set(a, S);
+      return S;
+    }
+    // a filled shape from a test, shaded, with an outline round it
+    function blob(test, shade, outline, put){
+      const inside = (x, y) => x >= 0 && y >= 0 && x < EM && y < EM && test(x + 0.5, y + 0.5);
+      for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++){
+        if (inside(x, y)) put(x, y, shade(x + 0.5, y + 0.5));
+        else if (outline && (inside(x - 1, y) || inside(x + 1, y) || inside(x, y - 1) || inside(x, y + 1))) put(x, y, outline);
+      }
+    }
+    // a five-point star round (cx, cy)
+    function starTest(cx, cy, R, r){
+      const pts = [];
+      for (let i = 0; i < 10; i++){ const ang = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r : R; pts.push([cx + rr * Math.cos(ang), cy + rr * Math.sin(ang)]); }
+      return (px, py) => inPoly(pts, px, py);
+    }
+    // the parts of rank d that never move: behind the creature, and the ribbon and crest in front
+    const layers = new Map();
+    function layersOf(d){
+      if (layers.has(d)) return layers.get(d);
+      const a = Math.floor((d - 1) / 3), t = (d - 1) % 3, M = RANK_METAL[t], S = shapeOf(a);
+      const back = canvas(EM), front = canvas(EM), bx = back.getContext('2d'), fx = front.getContext('2d'), rim = [];
+      const px = (x, X, Y, col) => { x.fillStyle = col; x.fillRect(X, Y, 1, 1); };
+      // behind it a laurel in the grade's metal: half a wreath for silver, the whole one for gold
+      if (t){
+        const pal = [M.d, M.s, M.b, M.l, M.h], parts = [];
+        for (const s of [-1, 1]) for (let k = 0; k < (t === 2 ? 7 : 4); k++){
+          const al = (104 + k * 19.5) * Math.PI / 180, R = 20.4 + (k % 2 ? -0.6 : 0.8), tang = Math.atan2(Math.cos(al), -Math.sin(al)) * 180 / Math.PI;
+          parts.push({k: 'ell', x: CX - s * Math.cos(al) * R, y: CY + Math.sin(al) * R, rx: t === 2 ? 3.3 : 3, ry: t === 2 ? 1.7 : 1.6, rot: s > 0 ? 180 - tang + 28 : tang - 28, c: M.b, pal, ink: M.o, ol: 1, lift: 0.12});
+        }
+        drawParts(parts, EM, EM).forEach((c2, j) => { if (c2) px(bx, j % EM, Math.floor(j / EM), c2); });
+      }
+      // the medallion: a raised ring of metal round a window on the sea
+      for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++){
+        const e = S.dist[y * EM + x];
+        if (!e) continue;
+        if (e >= 6.2){
+          const v = (y - S.top) / Math.max(1, S.bottom - S.top);
+          let i = v * 4 + (RANK_BAYER[y % 4][x % 4] / 16 - 0.5) * 0.9;
+          if ((x + 2 * y) % 13 < 2 && v < 0.55) i -= 1;
+          if (e < 7.4) i += 1;
+          px(bx, x, y, SEA[clamp(Math.round(i), 0, 4)]);
+          continue;
+        }
+        if (e < 1.5 || e >= 5.2){ px(bx, x, y, e < 1.5 ? M.o : M.d); continue; }
+        const gx = S.D(x + 1, y) - S.D(x - 1, y), gy = S.D(x, y + 1) - S.D(x, y - 1), gl = Math.hypot(gx, gy) || 1, n = (gx / gl) * LX + (gy / gl) * LY;
+        const b = e < 2.6 ? -n : e < 4.2 ? -n * 0.35 + 0.18 : n * 0.9;
+        let tone = e < 2.6 && b > 0.93 ? 'w' : toneOf(b);
+        // the grades' work on the ring: an engraved line (silver), a row of pearls (gold)
+        if (t === 1 && e >= 3.2 && e < 3.75) tone = TONES[Math.max(0, TONES.indexOf(tone) - 2)];
+        if (t === 2 && e >= 2.9 && e < 3.9){
+          const q = (((Math.atan2(y + 0.5 - CY, x + 0.5 - CX) / (2 * Math.PI)) * 30) % 1 + 1) % 1;
+          if (q < 0.34) tone = q < 0.17 ? 'h' : 'l';
+        }
+        px(bx, x, y, M[tone]);
+        rim.push([x, y, TONES.indexOf(tone)]);
+      }
+      // bronze: four rivets on the ring
+      if (t === 0) for (const [rx, ry] of [[CX, 3], [CX, 39], [6, CY], [41, CY]]){
+        let best = null;
+        for (let y = ry - 3; y <= ry + 3; y++) for (let x = rx - 3; x <= rx + 3; x++){
+          const e = x >= 0 && y >= 0 && x < EM && y < EM ? S.dist[y * EM + x] : 0;
+          if (e >= 2.4 && e < 4.6 && (!best || Math.hypot(x - rx, y - ry) < Math.hypot(best[0] - rx, best[1] - ry))) best = [x, y];
+        }
+        if (best){ px(bx, best[0], best[1], M.d); px(bx, best[0] - 1, best[1] - 1, M.h); }
+      }
+      // the ribbon in front, in the creature's colour, with a star for each grade
+      const col = RIBBON[a], cl = mix(col, '#FFFFFF', 0.28), cd = mix(col, '#000000', 0.32), co = mix(col, '#000000', 0.7);
+      const arc = x => Math.round(2.2 * ((x - CX) / 17) ** 2), top = 33, hgt = 7;
+      for (let x = 4; x < 44; x++){
+        const tail = x < 10 || x > 37, y0 = top + arc(x) + (tail ? 3 : 0), end = x < 6 || x > 41, notch = end ? (x === 4 || x === 43 ? 3 : 2) : 0;
+        for (let k = -1; k <= hgt; k++){
+          const y = y0 + k;
+          if (y < 0 || y >= EM || (end && k >= 2 && k <= notch)) continue;
+          px(fx, x, y, k === -1 || k === hgt ? co : tail ? (k === 0 ? col : cd) : k === 0 ? cl : k === hgt - 1 ? cd : col);
+        }
+        if (x === 9 || x === 38) for (let k = 0; k < hgt; k++) px(fx, x, top + arc(x) + k, co);
+      }
+      for (let i = 0; i <= t; i++){
+        const sx = CX + (i - t / 2) * 9, sy = top + 3.5 + arc(sx);
+        blob(starTest(sx, sy, 3.9, 1.7), (x, y) => M[toneOf(((sx - x) * 0.6 + (sy - y) * 0.9) / 3 + 0.25)], M.o, (x, y, c2) => px(fx, x, y, c2));
+      }
+      // on top: a boss (bronze), a sapphire (silver), a star with a ruby (gold)
+      if (t === 0) blob((x, y) => Math.hypot(x - CX, y - 3.5) <= 2.7, (x, y) => M[toneOf(((CX - x) * 0.55 + (3.5 - y) * 0.85) / 2.4 + 0.1)], M.o, (x, y, c2) => px(fx, x, y, c2));
+      if (t === 1) blob((x, y) => Math.abs(x - CX) + Math.abs(y - 4) <= 3.9, (x, y) => ['#1B3F8F', '#2F6FD8', '#7FB2FF', '#DDEBFF'][clamp(Math.round(((CX - x) * 0.6 + (4 - y) * 0.9) / 2 + 1.4), 0, 3)], M.o, (x, y, c2) => px(fx, x, y, c2));
+      if (t === 2){
+        blob(starTest(CX, 5, 6.2, 2.7), (x, y) => M[toneOf(((CX - x) * 0.6 + (5 - y) * 0.9) / 4 + 0.25)], M.o, (x, y, c2) => px(fx, x, y, c2));
+        for (const [x, y, c2] of [[23, 5, '#B0123A'], [24, 5, '#E2264E'], [23, 6, '#E2264E'], [24, 6, '#7A0A26'], [23, 4, '#FF8FA8']]) px(fx, x, y, c2);
+      }
+      const L = {back, front, rim, S, a, t};
+      layers.set(d, L);
+      return L;
+    }
+    // rank d at tick (eight a second): the creature moves every half second, bubbles rise,
+    // a glint runs over the metal every eight seconds
+    function paint(c, d, tick){
+      const L = layersOf(d), x = c.getContext('2d'), S = L.S;
+      x.clearRect(0, 0, EM, EM);
+      x.drawImage(L.back, 0, 0);
+      for (const [bx, s] of [[15, 0], [32, 7], [20, 13]]){
+        const y = S.bottom - 2 - ((Math.floor(tick / 2) + s) % (S.bottom - S.top - 4));
+        if (y > 0 && S.dist[y * EM + bx] >= 7){ x.fillStyle = '#A8E8F5'; x.fillRect(bx, y, 1, 1); if (S.dist[(y - 1) * EM + bx] >= 7){ x.fillStyle = '#5FB7C9'; x.fillRect(bx, y - 1, 1, 1); } }
+      }
+      x.drawImage(creature(L.a, Math.floor(tick / 4) % 2), CX - CW / 2, 8);
+      x.drawImage(L.front, 0, 0);
+      const k = (tick % 64) * 2 - 12;
+      if (tick && k < 100) for (const [gx, gy, ti] of L.rim){
+        const off = Math.abs(gx + gy - k);
+        if (off > 2) continue;
+        x.fillStyle = RANK_METAL[L.t][TONES[Math.min(5, ti + (L.t ? 2 : 1) + (off ? 0 : 1))]]; x.fillRect(gx, gy, 1, 1);
+      }
+    }
+    return {paint};
+  })();
+  // badges on the page move together while on screen (still when calm): the medals eight
+  // times a second (bubbles, the glint), the creatures and the small badges every half second
   const rankLive = new Set();
-  let rankT = 0, rankF = 0;
+  let rankT = 0, rankTick = 0;
   function stepRanks(){
-    rankF ^= 1;
+    rankTick++;
     for (const c of rankLive){
       if (!c.isConnected){ rankLive.delete(c); continue; }
       if (document.hidden || calm() || !c.offsetParent) continue;
-      paintRank(c, +c.dataset.rank, rankF);
+      if (c.width === 48) Emblem.paint(c, +c.dataset.rank, rankTick);
+      else if (rankTick % 4 === 0) paintRank(c, +c.dataset.rank, (rankTick >> 2) & 1);
     }
     if (!rankLive.size){ clearInterval(rankT); rankT = 0; }
   }
@@ -24244,13 +24605,15 @@ const SquadHall = (() => {
     c.className = cls + ' spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
     return c;
   }
+  // a rank's badge at px: the medal from 40 px up (shown at 48 or 96), the small badge below
   function divBadge(d, px){
-    const c = document.createElement('canvas'); c.width = c.height = 16;
-    c.className = 'sq-lgb spr'; c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
+    const big = px >= 40, c = document.createElement('canvas'); c.width = c.height = big ? 48 : 16;
+    c.className = 'sq-lgb spr' + (big ? ' sq-lgbig' : ''); c.style.width = c.style.height = px + 'px'; c.setAttribute('aria-hidden', 'true');
     c.dataset.rank = String(clamp(Math.floor(d) || 1, 1, DIVS.length));
-    paintRank(c, +c.dataset.rank, calm() ? 0 : rankF);
+    if (big) Emblem.paint(c, +c.dataset.rank, calm() ? 0 : rankTick);
+    else paintRank(c, +c.dataset.rank, calm() ? 0 : (rankTick >> 2) & 1);
     rankLive.add(c);
-    if (!rankT) rankT = setInterval(stepRanks, 500);
+    if (!rankT) rankT = setInterval(stepRanks, 125);
     return c;
   }
   // the ranks panel: a row per creature (Whale at the top), its three grades, yours marked
@@ -24264,7 +24627,7 @@ const SquadHall = (() => {
     ANIMALS.map((an, a) => [an, a]).reverse().forEach(([an, a]) => R.rankL.append(h('li', null, h('b', null, an),
       h('span', {class: 'sq-rankg'}, ...TIERS.map((t, k) => {
         const d = a * 3 + k + 1;
-        return h('span', {class: 'sq-rankb' + (d === mine ? ' me' : ''), title: DIVS[d - 1] + (d === 1 ? ': where everyone starts' : d === DIVS.length ? ': the top' : '')}, divBadge(d, 32), h('small', null, d === mine ? 'You' : t));
+        return h('span', {class: 'sq-rankb' + (d === mine ? ' me' : ''), title: DIVS[d - 1] + (d === 1 ? ': where everyone starts' : d === DIVS.length ? ': the top' : '')}, divBadge(d, 96), h('small', null, d === mine ? 'You' : t));
       })))));
   }
   // a bot's mark in the rankings: a small robot head
@@ -24329,7 +24692,7 @@ const SquadHall = (() => {
   // your row the first time, then it stays where you left it (`was`, `key`).
   function drawGroup(g, me, who, key, was, example){
     const box = R.lg, k = g.m.findIndex(m => m.id === me), x = g.m[k];
-    if (x) R.lgMe.append(divBadge(g.d, 32), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
+    if (x) R.lgMe.append(divBadge(g.d, 48), h('span', null, DIVS[g.d - 1] + ' · group ' + (g.g + 1)), h('b', null, '#' + (k + 1)), h('span', null, x.p + ' points · ' + x.w + '–' + x.l));
     const n = g.m.length, mv = movers(n), upTo = g.d < DIVS.length ? mv : 0, downFrom = g.d > 1 ? n - mv : n;
     // a head that stays put while the list scrolls, then the rows with the zones between
     box.append(h('li', {class: 'lg-head', 'aria-hidden': 'true'}, h('span', null, '#'), h('span'), h('span', null, 'Player'), h('span', null, 'Points')));
@@ -24648,7 +25011,7 @@ const SquadHall = (() => {
     }
     // not in this week's league
     const last = me ? weekResult(st.lastLeague, me) : null;
-    if (last) R.lgMe.append(divBadge(last.next, 32), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
+    if (last) R.lgMe.append(divBadge(last.next, 48), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
     else if (me) R.lgMe.append(h('span', null, 'Not in this week’s league: it is drawn every Monday from the teams saved in the last 14 days. Save your team and you play from next Monday.'));
     // signed out: how to join, and what signing in does
     else R.lgMe.append(h('div', {class: 'sq-join'}, h('span', null, 'Connect your wallet and save your team to join the weekly league: from the next Monday your squad plays ' + E.LEAGUE_DAY + ' rounds every day, a win 3 points and a loss 1.'),
@@ -24669,7 +25032,7 @@ const SquadHall = (() => {
     // your rank: your group this week, else where last week sent you
     const rk = p && p.addr ? myRank() : 0, g = rk ? groupIn(st.league, p.addr) : null;
     R.profRank.textContent = ''; R.profRank.hidden = !rk;
-    if (rk) R.profRank.append(divBadge(rk, 32), h('span', {class: 'sq-pfrk'}, h('b', null, DIVS[rk - 1]),
+    if (rk) R.profRank.append(divBadge(rk, 48), h('span', {class: 'sq-pfrk'}, h('b', null, DIVS[rk - 1]),
       h('small', null, g ? 'Group ' + (g.g + 1) + ' · #' + (g.m.findIndex(m => m.id === p.addr) + 1) + ' this week' : 'Joins the league next Monday')));
     // your trophies, newest first
     if (R.profTr){
@@ -26253,7 +26616,7 @@ function homeArt(){
   ].map(cleanLook);
   const ic = (kind, id, px) => { try { return SquadView.icon(kind, id, px); } catch { return null; } };
   const unit = (i, wpn, cls, face) => { try { return SquadView.unitCanvas(LOOKS[i], wpn, {cls, face, px: 1, team: face > 0 ? 'you' : 'rival'}); } catch { return null; } };
-  const badge = d => { try { return SquadHall.rankBadge(d, 40); } catch { return null; } };
+  const badge = (d, px = 48) => { try { return SquadHall.rankBadge(d, px); } catch { return null; } };
   const put = (el, list) => list.filter(Boolean).forEach(c => el.append(c));
   const draw = {
     // five against five on a strip of The Sift
@@ -26272,9 +26635,12 @@ function homeArt(){
     },
     // from Bronze Shrimp to Gold Whale
     ranks(el){
-      const row = document.createElement('div'); row.className = 'ranks-row';
-      [1, 4, 7, 10, 13, 18].forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d)]); });
-      el.append(row);
+      // in two rows of three: Shrimp, Crab, Fish, then Dolphin, Shark and the Gold Whale
+      [[1, 4, 7], [10, 13, 18]].forEach(ds => {
+        const row = document.createElement('div'); row.className = 'ranks-row';
+        ds.forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d)]); });
+        el.append(row);
+      });
     },
     looks(el){ LOOKS.slice(0, 4).forEach(L => { const c = lookCanvas(L, {}); c.style.width = '48px'; c.style.height = '60px'; c.setAttribute('aria-hidden', 'true'); el.append(c); }); },
     skills(el){ put(el, SquadEngine.PLAYSTYLES.map(([id]) => ic('cls', id, 30)).concat([ic('wpn', 'bow', 30), ic('pow', 'freeze', 30)])); },
