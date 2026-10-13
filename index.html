@@ -2190,7 +2190,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">141c17a · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">b65c7e6 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5797,7 +5797,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 17;
+const SQUAD_ENGINE = 18;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5967,19 +5967,21 @@ const RULES = lock({
   // its reach as soon as it is down that much).
   cannonHp: 24, cannonFix: 12,
   // Digger (engine 10): it digs a pit beside it where the enemy will come and hides it
-  // under leaves, its whole turn, pitMax times a round. Its own squad never steps on
-  // one; an enemy that does falls in and is out of the round. Within shaftNear tiles of
-  // its squad's Mine Shaft it digs round the shaft instead, pitShaft at a time.
+  // under leaves, its whole turn. Engine 18 (the owner: it was far too strong, up to
+  // four holes a round): one pit a dig, at most pitMax a round, and never two in one
+  // turn. Its own squad never steps on one; an enemy that does falls in and is out of
+  // the round. Within shaftNear tiles of its squad's Mine Shaft it digs round the shaft
+  // instead.
   // Engine 14: it carries dsmoke smoke grenades a round. With the enemy coming (within
   // sneakNear) it runs out ahead, at least to sneakRow rows from its own back row (the
   // middle is 7) and never nearer an enemy than sneakGap, and throws one at its feet: a
   // cloud over it and the tiles round it for the rest of that turn and dsmokeTurns more.
-  // Hidden in a cloud a Digger digs (unless an enemy is right next to it), pitSmoke
-  // pits at once, first creeping through the cloud to where the enemy will walk; when
-  // its cloud lifts it falls back to its squad. Out of a cloud it digs only with no
-  // enemy within pitSafe tiles but one coming (within pitNear).
-  pitSafe: 3, pitNear: 7, pitMax: 2, pitShaft: 2, shaftNear: 3,
-  dsmoke: 1, dsmokeTurns: 2, sneakNear: 9, sneakRow: 6, sneakGap: 3, pitSmoke: 2,
+  // Hidden in a cloud a Digger digs (unless an enemy is right next to it), first
+  // creeping through the cloud to where the enemy will walk; when its cloud lifts it
+  // falls back to its squad. Out of a cloud it digs only with no enemy within pitSafe
+  // tiles but one coming (within pitNear).
+  pitSafe: 3, pitNear: 7, pitMax: 2, shaftNear: 3,
+  dsmoke: 1, dsmokeTurns: 2, sneakNear: 9, sneakRow: 6, sneakGap: 3,
   // the weather (engine 11, WEATHER): rainPct% of rounds it rains (bows and guns reach
   // rainRange less, wands rainRange more); the rest are clear. Engine 13 took the fog
   // out: its pale veil hid the arena.
@@ -6067,7 +6069,7 @@ const POWERS = lock(capped([
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
   ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
-  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs pits beside it, ${RULES.pitSmoke} at a time, and covers them with leaves, its whole turn, ${RULES.pitMax === 1 ? 'once' : RULES.pitMax === 2 ? 'twice' : RULES.pitMax + ' times'} a round; when the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it, ${RULES.pitShaft} at a time.`],
+  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs a pit beside it, covered with leaves: its whole turn, at most ${RULES.pitMax === 1 ? 'one pit' : RULES.pitMax + ' pits'} a round${RULES.pitMax > 1 ? ', never two in one turn' : ''}. When the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]));
 const TACTICS = lock([
@@ -7602,11 +7604,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // board turned round). Out in the open only with no enemy within pitSafe tiles but
   // one coming (within pitNear); hidden in a cloud whenever no enemy stands right next
   // to it (engine 14). Within shaftNear tiles of its squad's Mine Shaft it digs round
-  // the shaft instead, pitShaft at a time. Its own squad plans round its pits; an enemy
-  // that steps on one falls in and is out of the round (not knocked out: no totem, tent
-  // or last blast), and the hole stays open where that leaves the arena in one piece.
+  // the shaft instead. One pit a dig, at most pitMax a round, never two in one turn
+  // (engine 18: not even with a Trickster's second action). Its own squad plans round
+  // its pits; an enemy that steps on one falls in and is out of the round (not knocked
+  // out: no totem, tent or last blast), and the hole stays open where that leaves the
+  // arena in one piece.
   function digPit(u) {
-    if ((u.pits || 0) >= RULES.pitMax) return false;
+    if ((u.pits || 0) >= RULES.pitMax || u.pitTurn === now) return false;
     const near = foeGap(u, u.x, u.y);
     const hid = smokeT[idx(u.x, u.y)] > 0;
     if (hid ? near <= 1 : inReach(u).length || near <= RULES.pitSafe || near > RULES.pitNear) return false;
@@ -7635,13 +7639,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     cand.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
     // best of all: where the most of them will walk soonest
     if (ways) cand.sort((p, q) => (ways.get(q[2]) || 0) - (ways.get(p[2]) || 0) || p[0] - q[0] || p[1] - q[1]);
-    // hidden in a cloud it digs two at once
-    const cells = cand.slice(0, shaft ? RULES.pitShaft : smokeT[idx(u.x, u.y)] ? RULES.pitSmoke : 1).map((q) => q[2]);
+    const cells = cand.slice(0, 1).map((q) => q[2]);
     for (const c of cells) {
       pitT[c] = u.team;
       pitBy[c] = u.id;
     }
     u.pits = (u.pits || 0) + 1;
+    u.pitTurn = now;
     u.attacked = true;
     push({ t: 'pit', u: u.id, at: cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]), ...(shaft ? { shaft: 1 } : {}) });
     return true;
