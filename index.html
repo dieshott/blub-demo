@@ -2190,7 +2190,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">f6ac574 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">66c51ba · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5797,7 +5797,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 19;
+const SQUAD_ENGINE = 20;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5911,7 +5911,10 @@ const RULES = lock({
   // crash singes every other Blub beside it for lamboBang; hitting nobody, the driver
   // takes lamboCrash. By lamboAt a Blub gets the keys.
   lamboBang: 3, lamboCrash: 3, lamboAt: 4,
-  sendHop: 4, sendSplash: 3, sendTake: 25, sendAt: 4, // Send It: tiles flown, damage beside the landing, extra damage taken that turn; by sendAt it flings a Blub
+  // Send It (engine 20, the owner: a stunt cannon): the first Blub in it is fired over
+  // the arena at the other side's rearmost Blub, sendDmg to it, and lands beside it.
+  // By sendAt it fires a Blub of its own choosing.
+  sendDmg: 6, sendAt: 4,
   // Green Candle (engine 19, the owner: a Blub rides it): the claimer's Blub beside it
   // climbs on, and the candle pumps a block a turn up to candleMax, lifting it; its rider
   // hits +candleDmg harder for every block. The turn after the top it goes to the moon:
@@ -6189,7 +6192,7 @@ const EVENTS = lock([
   ['whale', 'Whale', `Turn ${RULES.whaleTurn}: a wave shoves every Blub ${RULES.whalePush} tiles back towards its own side.`],
   ['rocket', 'Moon Rocket', `Lifts off in turn ${RULES.rocketTurn}, swoops down for a Blub of its own choosing, anywhere on the arena, and takes it to the moon. That Blub never comes back.`],
   ['lambo', 'Wen Lambo', `The first Blub to climb in floors it straight ahead. A Blub it hits is knocked out on the spot, and the crash singes everyone beside it for ${RULES.lamboBang}. Hitting nobody, the driver takes ${RULES.lamboCrash}. The wreck stays behind as a wall.`],
-  ['sendit', 'Send It', `A catapult tile in each half, mirrored. The first Blub on it flies ${RULES.sendHop} tiles ahead, deals ${RULES.sendSplash} to everything beside the landing, and takes ${RULES.sendTake}% more damage that turn.`],
+  ['sendit', 'Send It', `A stunt cannon in each half, mirrored. The first Blub to climb in is fired over the arena straight at the other side's rearmost Blub: ${RULES.sendDmg} damage to it, and it lands right beside it.`],
   ['candle', 'Green Candle', `The first Blub beside it climbs on and the candle pumps, a block a turn up to ${RULES.candleMax}: its rider hits +${RULES.candleDmg} harder for every block. At the top it goes TO THE MOON: a leap of up to ${RULES.candleLeap} tiles onto the enemy, ${RULES.candleSlam} damage to every enemy beside where it lands. Knock the rider out and the candle dumps.`],
   ['diamond', 'Diamond Hands', `The owner's Blubs within ${RULES.diamondRange} tiles cannot be moved, frozen or pushed back.`],
   ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and +${RULES.laserDmg} damage, but dodges only ${RULES.laserDodge}% as well.`],
@@ -7066,7 +7069,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (copiumOn(d)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
     // just landed off the catapult, or building: wide open
     const exp = d.exposed === now ? 1 : 0;
-    if (exp) dmg += Math.ceil((dmg * (d.exposedPct || RULES.sendTake)) / 100);
+    if (exp) dmg += Math.ceil((dmg * d.exposedPct) / 100);
     // ...and takes wireTake% more
     if (tg) dmg += Math.ceil((dmg * RULES.wireTake) / 100);
     dmg = Math.min(d.hp, dmg);
@@ -9128,12 +9131,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
   }
 
-  // ---- Send It. A catapult in each half, mirrored, ready from the start; either
-  // side may use either. The first Blub to land on one is flung sendHop tiles on
-  // towards the other side (straight ahead, else a tile to either side, else not
-  // so far), comes down with a thud that costs everyone beside it sendSplash, and
-  // for the rest of that turn takes sendTake% more from every blow. Both are laid
-  // or neither, so the two halves stay a mirror.
+  // ---- Send It (engine 20, the owner: a stunt cannon). A cannon in each half,
+  // mirrored, loaded from the start; either side may use either. The first Blub to
+  // step into one is fired over the arena straight at the other side's rearmost Blub
+  // (the one nearest its own back edge; a tie: the one on the left as that side sees
+  // it, then the lower unit) that has free floor beside it, crashes into it for
+  // sendDmg and lands on that floor (the tile beside it nearest the cannon). With
+  // nobody to land beside, the fuse fizzles. Both are laid or neither, so the two
+  // halves stay a mirror.
   const sendEv = live.find((e) => e.id === 'sendit');
   const cats = [];
   if (sendEv) {
@@ -9143,26 +9148,46 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   function sendIt(u, c) {
     cats.splice(cats.indexOf(c), 1);
-    const dy = u.team === 0 ? -1 : 1;
     const from = [u.x, u.y];
+    const cx = c % SIZE;
+    const cy = (c - cx) / SIZE;
+    // the other side's Blubs, rearmost first, as that side sees its own board
+    const back = (v) => (v.team === 0 ? SIZE - 1 - v.y : v.y);
+    const left = (v) => (v.team === 0 ? v.x : SIZE - 1 - v.x);
+    const them = foes(u).slice().sort((a, b) => back(a) - back(b) || left(a) - left(b) || a.id - b.id);
+    let d = null;
     let to = null;
-    const sides = u.team === 0 ? [0, -1, 1] : [0, 1, -1];
-    for (let h = RULES.sendHop; h >= 1 && !to; h--)
-      for (const dx of sides)
-        if (putDown(u.x + dx, u.y + dy * h)) {
-          to = [u.x + dx, u.y + dy * h];
-          break;
+    for (const v of them) {
+      let best = -1;
+      let bk = 1e9;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          const x = v.x + dx;
+          const y = v.y + dy;
+          if (!putDown(x, y) || !freeFloor(idx(x, y))) continue;
+          // nearest the cannon, then the straight neighbour, then a fixed order that
+          // the board turned round reads the same for the other side
+          const k = cheb(x, y, cx, cy) * 1000 + (dx && dy ? 100 : 0) + (u.team ? 8 - (dy + 1) * 3 - (dx + 1) : (dy + 1) * 3 + (dx + 1));
+          if (k < bk) {
+            best = idx(x, y);
+            bk = k;
+          }
         }
-    // nowhere to come down: the arm snaps and nothing happens
-    push({ t: 'sendit', u: u.id, from, to, cat: [c % SIZE, (c - (c % SIZE)) / SIZE] });
+      if (best >= 0) {
+        d = v;
+        to = [best % SIZE, (best - (best % SIZE)) / SIZE];
+        break;
+      }
+    }
+    // nobody to land beside: the fuse fizzles and nothing happens
+    push({ t: 'sendit', u: u.id, from, to, cat: [cx, cy], ...(d ? { d: d.id } : {}) });
     if (!to) return;
     occ[idx(u.x, u.y)] = -1;
     u.x = to[0];
     u.y = to[1];
     occ[idx(u.x, u.y)] = u.id;
-    u.exposed = now;
-    u.exposedPct = RULES.sendTake;
-    for (const v of U) if (v !== u && v.alive && over < 0 && cheb(v.x, v.y, u.x, u.y) <= 1) hurt(v, RULES.sendSplash, 'thud', null);
+    if (d.alive && over < 0) pure(u, d, RULES.sendDmg, 'stunt');
     checkOver();
   }
 
@@ -10242,15 +10267,7 @@ const SquadView = (() => {
         'FFyyywwzzwzyyyyyyoooowzSSzSoowww', 'FFyywzzzSSSSyyyooooowSSSSSSSooAk', 'kYyywzSxxSSsoooooooozSSxxSsxooAk', 'kyowSSxxxxSSSAAAAAAwSSxxxxsssAAk',
         '.kkSSSxxxxSSxkkkkkkSSsxxxxssxkk.', '...kzSSxxSSsk......kSssxxssxk...', '...kSSSSSSSxk......ksssssssxk...', '....kSsSSsxk........ksxssxxk....',
         '.....kkSxkk..........kksxkk.....', '.......kk..............kk.......', '................................', '................................'],
-      // Send It: the arm already swung, and whoever stood on it up in the air
-      sendit: ['......................kwwYyk....', '.....................kwyyyyok...', '.....................kYyyyoAkkk.', '.....................kyyyooAaaak',
-        '......................kyAAAaaaaa', '.......................kkkaaaaaa', '.......................kkkaaaaaa', '......................kYYWaaaaaa',
-        '.....................kkYYNaaaaaa', '....................kWiNNNNaaaak', '..................kkYYNNNnakkkk.', '................kkWiYYNnakk.....',
-        '...............kWiNNNNakk.......', '.............kkWNYYNnak.........', '...........kkWiNNYYakk..........', '..........kWiNNNNnkk............',
-        '.........kWNNNNNNnk.............', '........kWNNNnNNNnk.............', '........kiNNnkiNNnk.............', '.......kWNNNakiNNnk.............',
-        '......kWNNNnkkiNNnk.............', '......kiNNNakkiNNnk.............', '.....kWNNNakkWNNNak.............', '..kkkWNNNnkkkiNNnnnk............',
-        '.kWiiNNNNNiiiNNnnnnnk...........', '.kiNNNNNNNNNNNnnnnnak...........', '.kNNNNNNnnnnannnnnnak...........', '..kiNNNnkkkkkNnnnnak............',
-        '.kWNNNNak...kNnnnnak............', 'kinnnnak....knaaaaak............', '.kkkkkk......kkkkkk.............', '................................'],
+      // (Send It's icon is its stunt cannon going off, from the effect forge below)
       // Green Candle: one candle and both its wicks
       candle: ['.............kqqqqk.............', '.............kqqqqk.............', '.............kqqqqk.............', '.............kqqqqk.............',
         '.............kqqqqk.............', '.............kqqqqk.............', '.......kkkkkkkqqqqkkkkkkk.......', '......khhhhhhhhhhhhhhhhhhk......',
@@ -11071,44 +11088,102 @@ const SquadView = (() => {
       FG.line(g, 15, 3 + tip, 20, -1 + tip, 1.2, 'n');
       return FG.outline(g);
     }],
-    // The Send It catapult, from where the camera stands: a wheeled wooden base, an
-    // A-frame with the stop bar across its top, a twisted rope at the pivot and the
-    // arm with its spoon. Throwing up the screen it is loaded with the spoon down by
-    // you and throws it up against the bar; throwing down the screen it is the other
-    // way round. 0-2 up (loaded, swinging, thrown), 3-5 down. A thrown one stays so.
-    catapult: [6, 24, (i) => {
-      let g = FG.grid(24);
-      // where the spoon is: 0 down by you, 1 straight up, 2 up against the bar
-      const pos = i < 3 ? i : [2, 1, 0][i - 3];
-      // the wheels, dark, under everything
-      for (const [x, y, r] of [[5, 12.5, 1.8], [18, 12.5, 1.8], [4, 20.5, 2.6], [19, 20.5, 2.6]]) FG.disc(g, x, y, r, '3');
-      g = FG.volume(g, '3', 'grey');
-      for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) g[y][x] = { w: 'S', z: 's', S: 'x', s: 'x' }[g[y][x]] || g[y][x];
-      // the base: its top, then its front face
-      FG.poly(g, [[5, 12], [18, 12], [20, 19], [3, 19]], '1');
-      g = FG.volume(g, '1', 'gold');
-      for (let y = 19; y <= 21; y++) for (let x = 3; x <= 19; x++) FG.put(g, x, y, y === 19 ? 'o' : 'A');
-      // the planks of its top
-      for (const y of [14, 16]) for (let x = 5; x <= 18; x++) if (g[y][x] !== '.') g[y][x] = 'o';
-      // the A-frame and its stop bar, standing at the back of the base
-      FG.line(g, 7, 13, 8.5, 3.5, 1.6, '2');
-      FG.line(g, 16, 13, 14.5, 3.5, 1.6, '2');
-      FG.line(g, 8, 4, 15, 4, 1.6, '2');
-      g = FG.volume(g, '2', 'gold');
-      // the arm and its spoon
-      const piv = [11.5, 15];
-      const tip = [[11.5, 22.5], [11.5, 8], [11.5, 2.5]][pos];
-      FG.line(g, piv[0], piv[1], tip[0], tip[1], 1.8, '4');
-      const big = pos === 0 ? 3.2 : pos === 1 ? 2.2 : 2.6;
-      FG.disc(g, tip[0], tip[1] + (pos === 0 ? 0 : -0.5), big, '4');
+
+    // Send It's stunt cannon (engine 20, the owner): a circus cannon, seen from the
+    // side, its barrel cocked steeply up into the sky: red, with gold bands, a gold
+    // mouth and white stars, on a wooden wagon with two spoked wheels; the fuse curls
+    // out of the back. 0-2 aimed up to the right, 3-5 the same aimed up to the left;
+    // in each three: loaded, the fuse lit, and fired (kicked back, smoke at the mouth).
+    stunt: [6, 32, (i) => {
+      let g = FG.grid(32);
+      const flip = i >= 3;
+      const f = i % 3;
+      const X = (x) => (flip ? 32 - x : x);
+      // the barrel's axis: from the breech up to the mouth, and across it
+      const kick = f === 2 ? 1.6 : 0;
+      const B = [12 - kick * 0.6, 20 + kick * 0.8];
+      const M = [24.5 - kick * 0.6, 4.5 + kick * 0.8];
+      const len = Math.hypot(M[0] - B[0], M[1] - B[1]);
+      const ax = (M[0] - B[0]) / len;
+      const ay = (M[1] - B[1]) / len;
+      const at = (s, o) => [B[0] + ax * s - ay * o, B[1] + ay * s + ax * o];
+      // the wagon: a box of planks with a gold rail, on the ground
+      FG.poly(g, [[X(5), 19.5], [X(27), 19.5], [X(27), 25.5], [X(5), 25.5]], '1');
+      g = FG.volume(g, '1', 'wood');
+      for (let x = 5; x < 27; x++) {
+        FG.put(g, X(x) - (flip ? 1 : 0), 19, x % 2 ? 'y' : 'Y');
+        FG.put(g, X(x) - (flip ? 1 : 0), 22, 'n');
+      }
+      // the barrel: a fat tube, round at the breech, with a lip at the mouth
+      const tube = [at(0, -4.2), at(len, -3.6), at(len, 3.6), at(0, 4.2)].map(([x, y]) => [X(x), y]);
+      FG.poly(g, tube, '2');
+      FG.disc(g, X(B[0]), B[1], 4.2, '2');
+      g = FG.volume(g, '2', 'red');
+      // gold bands round it, and the lip
+      for (const s of [3.6, 15.4]) {
+        const [p0x, p0y] = at(s, -4.4);
+        const [p1x, p1y] = at(s, 4.4);
+        FG.line(g, X(p0x), p0y, X(p1x), p1y, 1.7, '3');
+      }
+      {
+        const [p0x, p0y] = at(len - 0.6, -4.6);
+        const [p1x, p1y] = at(len - 0.6, 4.6);
+        FG.line(g, X(p0x), p0y, X(p1x), p1y, 2.6, '3');
+      }
+      // the knob at the very back
+      {
+        const [kx, ky] = at(-4.2, 0);
+        FG.disc(g, X(kx), ky, 1.7, '3');
+      }
+      g = FG.volume(g, '3', 'gold');
+      // the dark of its mouth, a sliver past the lip (it glows just after it fires)
+      {
+        const [p0x, p0y] = at(len + 0.9, -2.6);
+        const [p1x, p1y] = at(len + 0.9, 2.6);
+        FG.line(g, X(p0x), p0y, X(p1x), p1y, 1.3, f === 2 ? 'f' : 'K');
+      }
+      // a big white star in the middle of it
+      {
+        const [sx, sy] = at(9.5, 0.2);
+        const px = Math.round(X(sx)) - 2;
+        const py = Math.round(sy) - 2;
+        ['..w..', 'wwwww', '.wWw.', '.w.w.'].forEach((row, dy) => [...row].forEach((c, dx) => c !== '.' && FG.put(g, px + dx, py + dy, c)));
+      }
+      // the wheels, in front of the wagon: a gold rim, red inside, thin gold spokes
+      // (turned an eighth once it has fired) and a hub
+      for (const wx of [9.5, 22.5]) FG.ring(g, X(wx), 25, 4.6, 1.5, '4');
       g = FG.volume(g, '4', 'gold');
-      if (pos !== 1) FG.disc(g, tip[0], tip[1] + (pos === 0 ? -0.5 : -0.8), big - 1.3, 'A');
-      // the rope wound round the pivot, and iron at the corners
-      for (let x = 8; x <= 15; x++) FG.put(g, x, 15, x % 2 ? 'W' : 'e');
-      for (const [x, y] of [[4, 19], [19, 19], [8, 4], [15, 4]]) FG.put(g, x, y, 'S');
-      // brown wood, not gold
-      for (let y = 0; y < 24; y++) for (let x = 0; x < 24; x++) g[y][x] = { w: 'N', Y: 'N', y: 'n', o: 'n', A: 'k' }[g[y][x]] || g[y][x];
-      return FG.outline(g);
+      for (const wx of [9.5, 22.5]) FG.disc(g, X(wx), 25, 3.2, '5');
+      g = FG.volume(g, '5', 'red');
+      for (const wx of [9.5, 22.5]) {
+        const hx = Math.floor(X(wx));
+        for (let q = -3; q <= 3; q++) {
+          if (!q) continue;
+          if (f !== 2) {
+            FG.put(g, hx + q, 25, 'o');
+            FG.put(g, hx, 25 + q, 'o');
+          } else if (Math.abs(q) <= 2) {
+            FG.put(g, hx + q, 25 + q, 'o');
+            FG.put(g, hx + q, 25 - q, 'o');
+          }
+        }
+        FG.put(g, hx, 25, 'Y');
+      }
+      // the fuse out of the back, and lit: a spark at its tip
+      const fz = [at(1.5, -4.6), at(0.6, -7.2), at(-1.6, -8.4)].map(([x, y]) => [X(x), y]);
+      for (let q = 0; q < fz.length - 1; q++) FG.line(g, fz[q][0], fz[q][1], fz[q + 1][0], fz[q + 1][1], 1.1, 'a');
+      if (f === 1) {
+        const [tx, ty] = fz[fz.length - 1].map(Math.floor);
+        for (const [dx, dy, c] of [[0, 0, 'w'], [1, 0, 'Y'], [-1, 0, 'Y'], [0, -1, 'Y'], [0, 1, 'y'], [1, -1, 'f'], [-1, 1, 'f']]) FG.put(g, tx + dx, ty + dy, c);
+      }
+      g = FG.outline(g);
+      // fired: smoke rolling out of the mouth (over the outline)
+      if (f === 2) {
+        const [sx, sy] = at(len + 3.2, 0);
+        FG.billow(g, X(sx), sy, 2.8, FG.RAMP.white);
+        FG.billow(g, X(sx) + (flip ? 2 : -2), sy - 2.4, 2.2, FG.RAMP.white);
+      }
+      return g;
     }],
     // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
     // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
@@ -11803,6 +11878,9 @@ const SquadView = (() => {
     }],
   };
   const fxCache = new Map();
+  // the chest's Send It icon is the stunt cannon itself, going off (engine 20); drawn
+  // when it is first asked for, since the forge needs the helpers further down
+  Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
   // frame `i` of an effect, painted once and kept
   function fxFrame(id, i) {
     const key = id + ':' + i;
@@ -11909,7 +11987,7 @@ const SquadView = (() => {
   const KO_BY = {
     shell: 'The mortar shell knocks out ', mine: 'A pop mine knocks out ', snag: 'The barbed wire knocks out ',
     nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ', singed: 'The Lambo’s crash finishes off ',
-    thud: 'A Blub off the catapult lands right on ',
+
     sniped: 'The Sniper Bot takes out ',
     crashed: 'The Lambo crash finishes off ',
     gas: 'Gas fees finish off ',
@@ -11996,7 +12074,7 @@ const SquadView = (() => {
       case 'slam':
         return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : u + ' slams down on ' + d + ': -' + e.dmg + '.';
       case 'goal':
-        return u + ' runs for the ' + (e.id === 'sendit' ? 'catapult' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
+        return u + ' runs for the ' + (e.id === 'sendit' ? 'stunt cannon' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
       // the Digger's smoke grenade (engine 14), and its way back once the cloud lifts
       case 'grenade':
         return u + ' throws a smoke grenade at its feet and hides in the cloud.';
@@ -12082,9 +12160,9 @@ const SquadView = (() => {
       case 'paper':
         return 'PAPER HANDS! ' + u + ' loses its nerve and runs for the back.';
       case 'sendit':
-        return e.to ? 'SEND IT! The catapult flings ' + u + ' across the arena.' : "The catapult's arm snaps: there is nowhere for " + u + ' to land.';
-      case 'thud':
-        return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : 'Landed on: ' + d + ' takes ' + e.dmg + '.';
+        return e.to ? 'SEND IT! The stunt cannon fires ' + u + ' over the arena at ' + d + '!' : "The stunt cannon's fuse fizzles: there is nobody for " + u + ' to land beside.';
+      case 'stunt':
+        return e.res === 'absorb' ? u + ' crashes into ' + d + "'s bubble: it pops." : u + ' crashes into ' + d + ': -' + e.dmg + '.';
       case 'rammed':
         return e.res === 'absorb' ? "The Lambo pops " + d + "'s bubble." : e.hp === 0 ? 'The Lambo flattens ' + d + '!' : 'The Lambo hits ' + d + ': -' + e.dmg + '.';
       case 'rug':
@@ -13096,7 +13174,10 @@ const SquadView = (() => {
     // the Honeypot showing what it is, and a stuck Blub's swing coming to nothing
     honey: 1400, sticky: 560,
     // Send It: the arm swings, the Blub flies, and lands at sendHit
-    sendit: 1350, sendHit: 900, sendSnap: 700,
+    // Send It's stunt cannon (engine 20): the Blub in its mouth at sendIn, BOOM at
+    // sendFire, then up in the air for sendFly (longer the farther it goes), a bounce
+    // off the Blub it crashes into, and the dust settling; a fizzle is sendSnap
+    sendIn: 420, sendFire: 820, sendBounce: 300, sendAfter: 600, sendSnap: 900,
     // the memepowers in the fight
     // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
     pick: 1500, pickHit: 1150,
@@ -13119,6 +13200,8 @@ const SquadView = (() => {
     // and the sign drops in at sinkSign
     sink: 3300, sinkHit: 1150, sinkHang: 340, sinkEach: 110, sinkSign: 2150,
   };
+  // how long a Blub out of the stunt cannon is up in the air, by the tiles it crosses
+  const sendFly = (d) => clamp(380 + 34 * d, 480, 860);
   // The chest reveal, in milliseconds from the moment the squads step aside. The
   // spin itself was settled long before this: everything here is only the telling.
   const CM = {
@@ -13256,7 +13339,7 @@ const SquadView = (() => {
             return;
           }
           // the chest: what the pill and its crater cost rides on the blast itself
-          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || ((t === 'rammed' || t === 'crashed' || t === 'singed') && p.kind === 'lambo') || (t === 'thud' && p.kind === 'sendit') || (t === 'slam' && p.kind === 'moon')) {
+          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || ((t === 'rammed' || t === 'crashed' || t === 'singed') && p.kind === 'lambo') || (t === 'stunt' && p.kind === 'sendit') || (t === 'slam' && p.kind === 'moon')) {
             attachTo(p, i);
             return;
           }
@@ -13490,7 +13573,9 @@ const SquadView = (() => {
           return;
         }
         if (t === 'sendit') {
-          parent = add({ kind: 'sendit', dur: e.to ? MS.sendit : MS.sendSnap, contact: e.to ? MS.sendHit : 0, list: [{ ei: i, off: 0 }], e });
+          // (how long it is up in the air depends on how far it goes)
+          const hit = e.to ? MS.sendFire + sendFly(cheb(e.cat, pos[e.d])) : 0;
+          parent = add({ kind: 'sendit', dur: e.to ? hit + MS.sendBounce + MS.sendAfter : MS.sendSnap, contact: hit, list: [{ ei: i, off: 0 }], e });
           if (e.to) pos[e.u] = e.to.slice();
           return;
         }
@@ -13689,7 +13774,7 @@ const SquadView = (() => {
       case 'nuked':
       case 'fume':
       case 'rammed':
-      case 'thud':
+      case 'stunt':
       case 'sniped':
       case 'crashed':
       case 'gas':
@@ -13831,20 +13916,20 @@ const SquadView = (() => {
       }
       // Send It: the two catapults, and one of them going off
       case 'catapults':
-        S.cats = e.cells.map(([x, y]) => ({ x, y, fired: false, dir: 0 }));
+        S.cats = e.cells.map(([x, y]) => ({ x, y, fired: false, flip: null }));
         break;
       case 'sendit': {
         const cc = e.cat || e.from;
         const c = S.cats.find((v) => v.x === cc[0] && v.y === cc[1]);
         if (c) {
           c.fired = true;
-          c.dir = e.to ? (scr(e.to[0], e.to[1])[1] < scr(e.from[0], e.from[1])[1] ? -1 : 1) : 0;
+          // it swings round to face the Blub it fires at
+          if (e.d != null) c.flip = scr(U[e.d].x, U[e.d].y)[0] < scr(cc[0], cc[1])[0];
         }
         if (e.to) {
           U[e.u].x = e.to[0];
           U[e.u].y = e.to[1];
           U[e.u].dug = false;
-          U[e.u].openTurn = S.turn;
         }
         break;
       }
@@ -14447,21 +14532,7 @@ const SquadView = (() => {
       x.fillRect(ox + 1, oy + 8, 1, 12);
       x.fillRect(ox + 14, oy + 8, 1, 12);
     }
-    // flung off a catapult this turn: wide open, and the arena marks it with red
-    // sights that close in on it
-    if (u.openTurn != null && u.openTurn === P.S.turn && !airborne(u, t)) {
-      const on = P.calm || Math.floor(now / 180) % 2 === 0;
-      if (on) {
-        const g = P.calm ? 0 : Math.floor(now / 360) % 2;
-        x.fillStyle = '#FF5C77';
-        for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-          const bx = ox + 8 + sx * (10 - g);
-          const by = oy + 11 + sy * (11 - g);
-          x.fillRect(sx < 0 ? bx : bx - 3, by, 4, 1);
-          x.fillRect(bx, sy < 0 ? by : by - 3, 1, 4);
-        }
-      }
-    }
+
     // the contested props working on the Blubs they serve
     const owns = (id) => P.S.props.find((p) => p.id === id && p.team === u.team && !p.down);
     // Laser Eyes: red eyes, and now and then a beam off each
@@ -15921,16 +15992,16 @@ const SquadView = (() => {
       x.drawImage(fxFrame('puff', Math.floor(ph * 6)), Math.round(cx - 14 + k * 6 + Math.sin(ph * 6 + k) * 2), Math.round(cy - 20 - ph * 24));
     }
   }
-  // A Send It catapult on its tile, its arm thrown towards the side it faces. Which
-  // way that is: the far side of the arena from the half it stands in. Once it has
-  // gone off it stays thrown, the way it actually threw.
+  // A Send It stunt cannon on its tile (engine 20), cocked up into the sky towards the
+  // middle of the arena; once fired it faces the Blub it fired at. Its fuse burns
+  // while a Blub sits in it, and it kicks back as it goes off.
   function drawCatapult(x, c, t) {
     const [cx, cy] = tileC(c.x, c.y);
-    const up = c.fired && c.dir ? c.dir < 0 : scr(c.x, c.y)[1] >= N / 2;
-    const swing = c.fired && c.t0 != null && t - c.t0 >= 0 && t - c.t0 < 90;
-    const f = !c.fired ? 0 : swing ? 1 : 2;
-    blob(x, cx, cy + 6, 10, 2, '#1B1229', 0.3);
-    x.drawImage(fxFrame('catapult', (up ? 0 : 3) + f), cx - 12, cy - 16);
+    const flip = c.flip != null ? c.flip : scr(c.x, c.y)[0] >= N / 2;
+    const el = c.fired && c.t0 != null ? (t - c.t0) / (c.k || 1) : -1;
+    const f = el >= MS.sendIn && el < MS.sendFire ? 1 : el >= MS.sendFire && el < MS.sendFire + 140 ? 2 : 0;
+    blob(x, cx, cy + 6, 13, 2, '#1B1229', 0.3);
+    x.drawImage(fxFrame('stunt', (flip ? 3 : 0) + f), cx - 16, cy - 24);
   }
   // One of the contested five on the centre line. Unclaimed, a grey ring pulses under
   // it (somebody come and take it); claimed, it stands on a ring in its squad's
@@ -17220,7 +17291,7 @@ const SquadView = (() => {
     if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
     if (e.t === 'blowup') P.cause[e.u] = 'blowup';
     // a Miner tunnelling: it stays where it was while it digs down, is gone under the
     // floor, and comes up at the other end with a hop
@@ -18571,81 +18642,140 @@ const SquadView = (() => {
         addParts(6, cx, cy - 10, ['#FFFFFF', '#E9E9F2'], 0.05, 0.0002, 600 * k, T, true, [-Math.PI, 0]);
         return;
       }
-      // SEND IT. The arm comes over and the Blub goes up off the spoon, tumbling and
-      // yelling, high over the arena with its shadow racing along the floor under it,
-      // and comes down like a sack of bricks: dust out in a ring, a crack in the floor
-      // and everyone beside it knocked. For the rest of the turn it is wide open, and
-      // the arena marks it so.
+      // SEND IT (engine 20, the owner: a stunt cannon). The Blub hops up into the mouth
+      // of the circus cannon (from wherever it was, when the cannon picked it), its ears
+      // peek out while the fuse fizzes, then BOOM: a flash, smoke and confetti, and up it
+      // goes in a long high arc over the arena, tumbling, smoke trailing behind it,
+      // while red sights close in on the Blub it is coming for. It crashes into that one
+      // (its `stunt` hit rides on the crash), bounces off and lands beside it.
       case 'sendit': {
         const u = U[e.u];
         const cc = e.cat || e.from;
         const cat = S.cats.find((v) => v.x === cc[0] && v.y === cc[1]);
-        if (cat) cat.t0 = T;
+        if (cat) {
+          cat.t0 = T;
+          cat.k = k;
+        }
+        const [cx, cy] = tileC(cc[0], cc[1]);
         const [fx0, fy0] = tileC(e.from[0], e.from[1]);
+        const flip = !!(cat && cat.flip);
+        // the cannon's mouth and the end of its fuse, where the sprite has them
+        const mx = cx + (flip ? -8 : 8);
+        const my = cy - 20;
+        const fzx = cx + (flip ? 11 : -11);
         sfx('power');
         if (!e.to) {
-          // the arm snaps: a crack, splinters, and it stays where it is
-          addParts(10, fx0, fy0 - 8, ['#8C5A2B', '#D9A05B', '#1B1229'], 0.07, 0.0004, 500 * k, T, true);
-          label(T, 'SNAP', '#D9A05B', fx0, fy0 - 22, true);
+          // nobody to land beside: the fuse fizzles out in a puff, and that is all
+          addParts(8, fzx, cy - 9, ['#FFF3B0', '#FFD447', '#FF8A3D'], 0.04, 0.0002, 360 * k, T, false);
+          addFx(T + 300 * k, 600 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8), Math.round(my - 8 - kk * 8)));
+          label(T + 300 * k, 'FIZZLE', '#C9C9D6', cx, cy - 32, true);
           return;
         }
-        const [tx, ty] = tileC(e.to[0], e.to[1]);
-        const GO = 110 * k; // the arm comes over
-        const FLY = (MS.sendHit - 110) * k;
-        const H = 46 + Math.abs(ty - fy0) * 0.3;
-        u.air = [T, T + GO + FLY];
-        const at = (kk) => [lerp(fx0, tx, kk), lerp(fy0, ty, kk) - Math.sin(Math.PI * kk) * H];
-        // the shadow along the floor, and the Blub up in the air over it
-        addFx(T + GO, FLY, (x, kk) => blob(x, Math.round(lerp(fx0, tx, kk)), Math.round(lerp(fy0, ty, kk)) + 6, Math.round(6 - Math.sin(Math.PI * kk) * 3), 1, '#1B1229', 0.3), true);
-        addFx(T + GO, FLY, (x, kk, el) => {
-          const [px, py] = at(kk);
-          const face = Math.floor(el / (85 * k)) % 2 ? 1 : -1;
-          const img = P.spr[u.id].get(P.calm ? u.face || 1 : face, 'o');
-          // a few streaks behind it
-          x.fillStyle = '#FFFFFF';
-          for (let n = 1; n <= 3; n++) {
-            const [qx, qy] = at(Math.max(0, kk - n * 0.05));
-            x.fillRect(Math.round(qx) - 1, Math.round(qy) - 4, 2, 1);
+        const IN = MS.sendIn * k;
+        const FIRE = MS.sendFire * k;
+        const HIT = (b && b.contact ? b.contact : MS.sendFire + sendFly(6)) * k;
+        const BOUNCE = MS.sendBounce * k;
+        const d = U[e.d];
+        const [tx, ty] = centreOf(d);
+        const [lx, ly] = tileC(e.to[0], e.to[1]);
+        const far = e.from[0] !== cc[0] || e.from[1] !== cc[1];
+        const face = flip ? -1 : 1;
+        u.air = [T, T + HIT + BOUNCE];
+        // what sticks out of the mouth: everything above it
+        const clipTop = (x, draw) => {
+          x.save();
+          x.beginPath();
+          x.rect(0, 0, CW, my + 1);
+          x.clip();
+          draw();
+          x.restore();
+        };
+        // in it goes: a hop up into the mouth, from wherever it was
+        addFx(T, IN, (x, kk) => {
+          const q = kk * kk * (3 - 2 * kk);
+          const sx = lerp(fx0, mx, q);
+          const sy = lerp(fy0 + 6, my + 7, q) - Math.sin(Math.PI * kk) * (far ? 44 : 20);
+          clipTop(x, () => x.drawImage(P.spr[u.id].get(face, 'h'), Math.round(sx - 8), Math.round(sy - 19)));
+        });
+        // its ears out of the mouth while the fuse fizzes, sparks running off the fuse
+        addFx(T + IN, FIRE - IN, (x, kk, el) => {
+          const wig = P.calm ? 0 : Math.floor(el / (90 * k)) % 2;
+          clipTop(x, () => x.drawImage(P.spr[u.id].get(face, 'o'), Math.round(mx - 8), Math.round(my - 7 + wig)));
+        });
+        for (let n = 0; n < 3; n++) addParts(6, fzx, cy - 9, ['#FFF3B0', '#FFD447', '#FF8A3D'], 0.05, 0.0002, 320 * k, T + IN + n * 130 * k, false);
+        label(T + IN, 'SEND IT!', '#FFD447', cx, cy - 36, true, 2);
+        atClock(T + IN, () => sfx('fuse'));
+        // BOOM: a flash at the mouth, smoke rolling out of it, confetti everywhere
+        const F = T + FIRE;
+        atClock(F, () => {
+          hold(60);
+          sfx('boom');
+        });
+        shake(F);
+        playFx(F, 'bang', mx, my - 2, 260 * k);
+        // smoke rolling out round the mouth in a fan, drifting up and away
+        for (let n = 0; n < 6; n++) {
+          const a = -Math.PI / 2 + face * (0.5 + (n - 2.5) * 0.45);
+          addFx(F + (n % 3) * 30 * k, 520 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8 + Math.cos(a) * (4 + (el * 0.02) / k)), Math.round(my - 10 + Math.sin(a) * (3 + (el * 0.014) / k) - (el * 0.006) / k)));
+        }
+        addParts(26, mx, my - 2, ['#FF5C77', '#FFD447', '#4BE08F', '#86CBF3', '#B8A4EC', '#FFFFFF'], 0.13, 0.0004, 900 * k, F, true, flip ? [Math.PI * 1.05, Math.PI * 1.6] : [Math.PI * 1.4, Math.PI * 1.95]);
+        // up and over: a long high arc, tumbling, smoke trailing behind it
+        const FLY = HIT - FIRE;
+        const span = Math.hypot(tx - mx, ty - my);
+        const H = clamp(34 + span * 0.35, 40, 96);
+        const arc = (kk) => [lerp(mx, tx, kk), lerp(my, ty - 4, kk) - Math.sin(Math.PI * kk) * H];
+        addFx(F, FLY, (x, kk) => blob(x, Math.round(lerp(cx, tx, kk)), Math.round(lerp(cy, ty, kk)) + 6, Math.round(6 - Math.sin(Math.PI * kk) * 3), 1, '#1B1229', 0.3), true);
+        addFx(F, FLY, (x, kk, el) => {
+          const [px, py] = arc(kk);
+          for (let n = 1; n <= 4; n++) {
+            const [qx, qy] = arc(Math.max(0, kk - n * 0.045));
+            ditherRect(x, Math.round(qx) - 1, Math.round(qy) - 6, 3, 3, '#FFFFFF', 0.75 - n * 0.15);
           }
-          x.drawImage(img, Math.round(px - 8), Math.round(py - 13));
+          const tumble = P.calm ? face : Math.floor(el / (80 * k)) % 2 ? 1 : -1;
+          x.drawImage(P.spr[u.id].get(tumble, 'o'), Math.round(px - 8), Math.round(py - 13));
         });
-        // the yell, up there with it
-        const word = pxText('SEND IT', '#FFD447', 2);
-        const ink = pxText('SEND IT', '#1B1229', 2);
-        addFx(T + GO, FLY * 0.7, (x, kk) => {
-          const [px, py] = at(kk);
-          const wx = clamp(Math.round(px - word.width / 2), 2, CW - word.width - 2);
-          const wy = clamp(Math.round(py - 34), TOP + 2, CH - word.height - 2);
-          const a = kk < 0.75 ? 1 : 1 - (kk - 0.75) / 0.25;
-          x.drawImage(ghostOf(ink, 'sendInk', a), wx + 2, wy + 2);
-          x.drawImage(ghostOf(word, 'sendWord', a), wx, wy);
+        // red sights closing in on the Blub it is coming for
+        addFx(F, FLY, (x, kk, el) => {
+          if (P.calm || Math.floor(el / (110 * k)) % 2 === 0) reticle(x, tx, ty + 2, Math.round(4 * (1 - kk)) + 1, '#FF5C77');
         });
-        // the landing
-        const L = T + GO + FLY;
-        closeUp(L - 260 * k, 700 * k, tx, ty - 10, { slow: [L - 170 * k, L + 30 * k] });
-        atClock(L, () => {
-          hold(70);
-          shake(L);
+        // the crash
+        const I = T + HIT;
+        closeUp(I - 300 * k, 900 * k, tx, ty - 8, { slow: [I - 150 * k, I + 60 * k] });
+        atClock(I, () => {
+          hold(90);
           sfx('crit');
         });
-        u.hop = { kind: 'toss', t0: L, dur: 240 * k, h: 5 };
-        for (let n = 0; n < 8; n++) {
-          const a = (n / 8) * Math.PI * 2;
-          addFx(L + (n % 2) * 30 * k, 560 * k, (x, kk, el) => {
-            x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(tx - 8 + Math.cos(a) * (6 + (el * 0.03) / k)), Math.round(ty - 6 + Math.sin(a) * (3 + (el * 0.012) / k)));
-          });
-        }
-        // a crack in the floor where it came down, mending as the dust settles
-        addFx(L, 1400 * k, (x, kk) => {
-          const a = kk < 0.6 ? 1 : 1 - (kk - 0.6) / 0.4;
-          for (const [dx, dy, l, sx, sy] of [[-2, 4, 5, -1, 0], [2, 5, 4, 1, 0], [0, 6, 3, 0, 1], [-5, 4, 3, -1, 1], [5, 5, 3, 1, 1]])
-            for (let q = 0; q < l; q++) ditherRect(x, tx + dx + sx * q, ty + dy + sy * Math.floor(q / 2), 1, 1, '#1B1229', a);
-        }, true);
-        addParts(10, tx, ty + 4, ['#D9A05B', '#FFFFFF', '#8C5A2B'], 0.08, 0.0005, 500 * k, L, true, [-Math.PI, 0]);
+        shake(I);
+        playFx(I, 'bang', tx, ty - 6, 320 * k);
+        ringFx(I, tx, ty + 4, 420 * k, '#FFD447', 3, 20, true, 0.45);
+        addParts(14, tx, ty - 6, ['#FFD447', '#FF5C77', '#4BE08F', '#86CBF3', '#FFFFFF'], 0.1, 0.0005, 700 * k, I, true);
+        // stars going round the head of the one it hit
+        addFx(I + 60 * k, 1100 * k, (x, kk, el) => {
+          if (d.hp <= 0) return;
+          const [sx0, sy0] = centreOf(d);
+          for (let s = 0; s < 3; s++) {
+            const a = el / (130 * k) + (s * Math.PI * 2) / 3;
+            const sx = Math.round(sx0 + Math.cos(a) * 7);
+            const sy = Math.round(sy0 - 16 + Math.sin(a) * 2);
+            x.fillStyle = s ? '#FFD447' : '#FFFFFF';
+            x.fillRect(sx - 1, sy, 3, 1);
+            x.fillRect(sx, sy - 1, 1, 3);
+          }
+        });
+        // and it bounces off onto the floor beside it
+        const back = lx >= tx ? 1 : -1;
+        addFx(I, BOUNCE, (x, kk) => {
+          const sx = lerp(tx, lx, kk);
+          const sy = lerp(ty + 2, ly + 6, kk) - Math.sin(Math.PI * kk) * 14;
+          x.drawImage(P.spr[u.id].get(back, 'o'), Math.round(sx - 8), Math.round(sy - 19));
+        });
+        u.face = back;
+        u.hop = { kind: 'toss', t0: I + BOUNCE, dur: 200 * k, h: 3 };
+        addParts(6, lx, ly + 4, ['#FFE3EA', '#E9A2B6'], 0.04, 0.0002, 360 * k, I + BOUNCE, false, [Math.PI, Math.PI * 2]);
         return;
       }
-      // what the landing costs whoever was beside it
-      case 'thud': {
+      // what the crash does to the Blub it was fired at
+      case 'stunt': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
         if (e.res === 'absorb') {
@@ -19919,7 +20049,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -21212,7 +21342,7 @@ const SquadView = (() => {
         whale: `Turn ${R.whaleTurn}: a wave shoves every Blub ${R.whalePush} tiles back.`,
         rocket: `Turn ${R.rocketTurn}: takes a Blub to the moon. It never comes back.`,
         lambo: `The first Blub in floors it: whoever it hits is knocked out, and the crash singes those beside for ${R.lamboBang}.`,
-        sendit: `A catapult each side: ${R.sendHop} tiles through the air, ${R.sendSplash} damage on landing.`,
+        sendit: `A stunt cannon each side: it fires its Blub at the enemy in the back, ${R.sendDmg} damage.`,
         candle: `A Blub rides it up: +${R.candleDmg} damage a block. At the top, TO THE MOON: ${R.candleSlam} damage where it lands.`,
         diamond: `Claim it: your Blubs near it can't be frozen, knocked or shoved.`,
         laser: `Claim it: your nearest Blub gets +${R.laserRange} reach and +${R.laserDmg} damage.`,
@@ -22007,23 +22137,62 @@ const SquadView = (() => {
       }
       if (t > 600 && t < 1460) cxText(x, 'WEN LAMBO', '#FFD447', 36, 60);
     },
+    // engine 20: a Blub hops into the stunt cannon, the fuse fizzes, BOOM, and it flies
+    // over in a high arc into the enemy at the back, and bounces off beside it
     sendit(x, t) {
-      const fired = t >= 600;
-      x.drawImage(fxFrame('catapult', !fired ? 0 : t < 690 ? 1 : 2), 36 - 12, 62 - 16);
-      if (t < 600) cxBlub(x, 36, 58, 1, 'h', 2);
-      else if (t < 1400) {
-        const k = ease(t, 600, 1400);
-        blob(x, 36, Math.round(lerp(58, 20, k)) + 6, 4, 1, INK, 0.3);
-        x.drawImage(codexBlub().get(Math.floor(t / 85) % 2 ? 1 : -1, 'o'), 36 - 8, Math.round(lerp(58, 20, k) - Math.sin(Math.PI * k) * 26) - 13);
-      } else {
-        cxBlub(x, 36, 20, 1, 'o', 0);
-        const k = ease(t, 1400, 1900);
-        for (let n = 0; n < 6 && k < 1; n++) {
-          const a = (n / 6) * Math.PI * 2;
-          x.drawImage(fxFrame('puff', Math.min(5, Math.floor(k * 6))), Math.round(36 - 8 + Math.cos(a) * (6 + k * 12)), Math.round(18 + Math.sin(a) * (2 + k * 4)));
+      const ox = 18;
+      const oy = 60;
+      const mx = ox + 8;
+      const my = oy - 20;
+      const tx = 56;
+      const ty = 20;
+      const HIT = 1450;
+      const B = codexBlub();
+      const lit = t >= 420 && t < 820;
+      const kick = t >= 820 && t < 960;
+      blob(x, ox, oy + 6, 13, 2, INK, 0.3);
+      x.drawImage(fxFrame('stunt', kick ? 2 : lit ? 1 : 0), ox - 16, oy - 24);
+      // the enemy at the back, and stars round its head once it has been hit
+      cxBlub(x, tx, ty, -1, t > HIT && t < 2300 ? 'o' : 'n', t > HIT && t < HIT + 120 ? 3 : 0);
+      if (t > HIT && t < 2400) {
+        for (let s = 0; s < 3; s++) {
+          const a = t / 130 + (s * Math.PI * 2) / 3;
+          x.fillStyle = s ? '#FFD447' : '#FFFFFF';
+          x.fillRect(Math.round(tx + Math.cos(a) * 7) - 1, Math.round(ty - 16 + Math.sin(a) * 2), 3, 1);
         }
       }
-      if (t > 650 && t < 1700) cxText(x, 'SEND IT', '#FFD447', 36, 4);
+      const clip = (draw) => {
+        x.save();
+        x.beginPath();
+        x.rect(0, 0, CX, my + 1);
+        x.clip();
+        draw();
+        x.restore();
+      };
+      if (t < 420) {
+        const k = ease(t, 0, 420);
+        clip(() => x.drawImage(B.get(1, 'h'), Math.round(lerp(40, mx, k) - 8), Math.round(lerp(66, my + 7, k) - Math.sin(Math.PI * k) * 18 - 19)));
+      } else if (t < 820) {
+        clip(() => x.drawImage(B.get(1, 'o'), mx - 8, my - 7 + (Math.floor(t / 90) % 2)));
+        x.fillStyle = Math.floor(t / 60) % 2 ? '#FFD447' : '#FFF3B0';
+        x.fillRect(ox - 12 + (Math.floor(t / 45) % 3), oy - 10 - (Math.floor(t / 70) % 2), 1, 1);
+      } else if (t < HIT) {
+        const k = ease(t, 820, HIT);
+        const at = (q) => [lerp(mx, tx, q), lerp(my, ty - 4, q) - Math.sin(Math.PI * q) * 26];
+        for (let n = 1; n <= 3; n++) {
+          const [qx, qy] = at(Math.max(0, k - n * 0.06));
+          ditherRect(x, Math.round(qx) - 1, Math.round(qy) - 6, 3, 3, '#FFFFFF', 0.7 - n * 0.18);
+        }
+        const [px, py] = at(k);
+        x.drawImage(B.get(Math.floor(t / 80) % 2 ? 1 : -1, 'o'), Math.round(px - 8), Math.round(py - 13));
+        if (t < 1000) x.drawImage(frameOf('bang', ease(t, 820, 1000)), mx - 16, my - 18);
+      } else if (t < HIT + 300) {
+        const k = ease(t, HIT, HIT + 300);
+        if (t < HIT + 200) x.drawImage(frameOf('bang', ease(t, HIT, HIT + 200)), tx - 16, ty - 22);
+        x.drawImage(B.get(-1, 'o'), Math.round(lerp(tx, 42, k) - 8), Math.round(lerp(ty + 2, 32, k) - Math.sin(Math.PI * k) * 10 - 19));
+      } else cxBlub(x, 42, 26, 1, 'h', 0);
+      if (t > 420 && t < 1300) cxText(x, 'SEND IT', '#FFD447', 36, 2);
+      if (t > HIT && t < 2400) cxText(x, '-' + SE.RULES.sendDmg, '#FFD447', 56, 2);
     },
     // engine 19: a Blub hops onto the candle and rides it up, a block at a time, then
     // leaps off TO THE MOON and slams down beside an enemy
