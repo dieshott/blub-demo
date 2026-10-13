@@ -2147,7 +2147,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · the weekly league: 5 simulated matches a day in a group of 35</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · the weekly league: 5 matches a day, ranks move week to week</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -24130,7 +24130,7 @@ const SquadHall = (() => {
     if (!R.rankL) return;
     // yours: your group's rank, or in the preview (no league yet) the example's Bronze Shrimp
     const preview = typeof SquadNet.league !== 'function' || !SquadNet.ready();
-    const me = SquadNet.me(), g = st.league && me ? groupIn(st.league, me) : null, mine = g ? g.d : preview ? 1 : 0;
+    const me = SquadNet.me(), g = st.league && me ? groupIn(st.league, me) : null, mine = g ? g.d : preview ? myRank() || 1 : 0;
     if (R.rankL.childElementCount && R.rankL.dataset.mine === String(mine)) return;
     R.rankL.dataset.mine = String(mine); R.rankL.textContent = '';
     ANIMALS.map((an, a) => [an, a]).reverse().forEach(([an, a]) => R.rankL.append(h('li', null, h('b', null, an),
@@ -24229,32 +24229,65 @@ const SquadHall = (() => {
      one round of the arena, a win 3 points and a loss 1.
      --------------------------------------------------------------- */
   const llBotCache = new Map();
-  // the 34 bots of a week: a name, a face, five Blubs and a squad each (the same all week)
-  function llBots(week){
-    if (llBotCache.has(week)) return llBotCache.get(week);
-    const r = E.rng(E.leagueSeed(week, 0, 99, 0, 1));
+  // a bot of a higher rank plays better: more often a squad built the careful way (one
+  // role a Blub, the role's own kit, a formation and a kit dug in), the rest random
+  function llBotSquad(r, d){
+    if (r() * (DIVS.length + 3) < d + 1){
+      const units = [0, 1, 2, 3, 4].map(() => roleUnit(FILL[Math.floor(r() * FILL.length)], 7, 12));
+      units.forEach(u => Object.assign(u, {gear: 'potion', tac: 'weakest', trn: E.WEAPON_STATS[u.wpn].range >= 3 ? {pow: 3, grd: 0, spd: 0, lck: 2} : {pow: 0, grd: 0, spd: 3, lck: 2}}));
+      E.capPowers(units);
+      applyForm(units, ['line', 'wedge', 'flanks', 'turtle', 'back'][Math.floor(r() * 5)]);
+      const sq = E.cleanSquad({units, objs: suggestKit(units), cmd: E.COMMANDS[Math.floor(r() * E.COMMANDS.length)][0]});
+      if (sq) return sq;
+    }
+    return E.randomSquad(r);
+  }
+  // the 34 bots of a week at a rank: a name, a face, five Blubs and a squad each (the
+  // same all week)
+  function llBots(week, d){
+    const key = week + ':' + d;
+    if (llBotCache.has(key)) return llBotCache.get(key);
+    const r = E.rng(E.leagueSeed(week, d, 99, 0, 1));
     const STY = ['fierce', 'sleepy', 'playful', 'sweet', 'cheeky'];
     // every bot's captain has a name of its own in the table; its four may share theirs
     const caps = pickNames(r, E.LEAGUE_GROUP - 1, []);
     const bots = caps.map((ci, i) => {
       const names = [ci, ...pickNames(r, 4, [ci])].map(k => E.RECRUIT_NAMES[k]);
       const looks = names.map(() => freeLook(r));
-      return {id: 'lb' + i, name: names[0], names, looks, style: STY[Math.floor(r() * STY.length)], squad: E.randomSquad(r)};
+      return {id: 'lb' + i, name: names[0], names, looks, style: STY[Math.floor(r() * STY.length)], squad: llBotSquad(r, d)};
     });
-    llBotCache.clear(); llBotCache.set(week, bots);
+    llBotCache.clear(); llBotCache.set(key, bots);
     return bots;
   }
-  // what this browser keeps of the week: each day's results and your squad that morning
-  function llState(week){
-    const raw = (lsGet() || {}).sqLeague, S = {week, days: {}};
-    if (!raw || typeof raw !== 'object' || raw.week !== week || !raw.days || typeof raw.days !== 'object') return S;
-    const N = E.LEAGUE_GROUP;
+  // a week's days as kept, each checked: the day's results and your squad that morning
+  function llDays(raw){
+    const N = E.LEAGUE_GROUP, out = {};
     for (let d = 0; d < 7; d++){
-      const v = raw.days[d], sq = v && E.cleanSquad(v.sq);
+      const v = raw && raw.days && raw.days[d], sq = v && E.cleanSquad(v.sq);
       if (!sq || !Array.isArray(v.res)) continue;
-      const res = v.res.filter(x => Array.isArray(x) && x.length === 4 && x.every(Number.isInteger) && x[1] >= 0 && x[1] < N && x[2] >= 0 && x[2] < N && (x[3] === 0 || x[3] === 1));
-      S.days[d] = {sq, res};
+      out[d] = {sq, res: v.res.filter(x => Array.isArray(x) && x.length === 4 && x.every(Number.isInteger) && x[1] >= 0 && x[1] < N && x[2] >= 0 && x[2] < N && (x[3] === 0 || x[3] === 1))};
     }
+    return out;
+  }
+  // your place in a week's table (you are 0 in the schedule)
+  function llRank(days){
+    const pts = Array.from({length: E.LEAGUE_GROUP}, (_, i) => ({i, p: 0, w: 0}));
+    for (const v of Object.values(days)) for (const [, a, b, w] of v.res){ const win = w ? b : a, lose = w ? a : b; pts[win].p += 3; pts[win].w++; pts[lose].p += 1; }
+    return pts.sort((x, y) => y.p - x.p || y.w - x.w || x.i - y.i).findIndex(x => x.i === 0) + 1;
+  }
+  // What this browser keeps of the league: the week, your rank in it, each day's
+  // results. A new week starts from where the last one you played sent you: the top
+  // fifth a step up (the winner two), the bottom fifth a step down, as on the server.
+  function llState(week){
+    const raw = (lsGet() || {}).sqLeague;
+    const d0 = raw && typeof raw === 'object' ? clamp(Math.floor(+raw.d) || 1, 1, DIVS.length) : 1;
+    if (raw && typeof raw === 'object' && raw.week === week) return {week, d: d0, days: llDays(raw), from: raw.from && typeof raw.from === 'object' ? raw.from : null};
+    const was = raw && typeof raw === 'object' && WEEK_OK.test(String(raw.week || '')) ? llDays(raw) : {};
+    if (!Object.keys(was).length) return {week, d: d0, days: {}, from: null};
+    const r = llRank(was), n = E.LEAGUE_GROUP, mv = movers(n);
+    const next = r <= mv && d0 < DIVS.length ? Math.min(DIVS.length, d0 + (r === 1 ? 2 : 1)) : r > n - mv && d0 > 1 ? d0 - 1 : d0;
+    const S = {week, d: next, days: {}, from: {week: raw.week, d: d0, rank: r, next}};
+    lsPatch({sqLeague: S});
     return S;
   }
   let llBusy = false;
@@ -24269,7 +24302,7 @@ const SquadHall = (() => {
     if (!mine || readyCount(st.draft) < 5){ st.llWait = true; return; }
     llBusy = true; st.llWait = false; renderLeague();
     try {
-      const bots = llBots(week), sq = i => (i ? bots[i - 1].squad : mine);
+      const bots = llBots(week, S.d), sq = i => (i ? bots[i - 1].squad : mine);
       let t0 = performance.now();
       for (let d = 0; d <= today; d++){
         if (S.days[d]) continue;
@@ -24280,6 +24313,7 @@ const SquadHall = (() => {
         }
         S.days[d] = {sq: mine, res};
         lsPatch({sqLeague: S});
+        tellRank();
       }
     } catch (e) { console.error(e); }
     finally { llBusy = false; }
@@ -24287,7 +24321,7 @@ const SquadHall = (() => {
   }
   // the week so far: the table, and your matches by day
   function llView(){
-    const now = Date.now(), week = E.leagueWeek(now), S = llState(week), bots = llBots(week);
+    const now = Date.now(), week = E.leagueWeek(now), S = llState(week), bots = llBots(week, S.d);
     const pts = Array.from({length: E.LEAGUE_GROUP}, (_, i) => ({id: i ? bots[i - 1].id : 'you', p: 0, w: 0, l: 0, j: i}));
     const mine = [];
     for (let d = 0; d < 7; d++){
@@ -24303,7 +24337,7 @@ const SquadHall = (() => {
     const cap = SquadNet.captain(), prof = typeof SquadNet.profile === 'function' ? SquadNet.profile() : null;
     faces.set('you', {name: cap && cap.name ? cap.name : '', player: prof && prof.player || '', look: cleanLook(cap ? cap.look : null), style: cap && cap.style ? cap.style : 'playful'});
     const m = pts.slice().sort((a, b) => b.p - a.p || b.w - a.w || a.j - b.j);
-    return {week, today: E.leagueDay(now), played: Object.keys(S.days).length, g: {d: 1, g: 0, m}, who: id => faces.get(id) || null, mine, bots,
+    return {week, today: E.leagueDay(now), played: Object.keys(S.days).length, g: {d: S.d, g: 0, m}, who: id => faces.get(id) || null, mine, bots, from: S.from,
       ends: new Date(E.leagueWeekStart(now) + 7 * 86400000).toISOString()};
   }
   // one of your league matches, again in the arena: the same round, the same seed
@@ -24321,8 +24355,10 @@ const SquadHall = (() => {
   function renderLeague(){
     try { drawLeague(); renderRanks(); tellRank(); renderProfile(); } catch (e) { console.error(e); }
   }
-  // your rank now: your group this week, else where last week sent you (0: not known)
+  // your rank now: your group this week, else where last week sent you (0: not known);
+  // where there is no server, the rank of the league played out in this browser
   function myRank(){
+    if (typeof SquadNet.league !== 'function') return llState(E.leagueWeek(Date.now())).d;
     const me = SquadNet.me(), g = me ? groupIn(st.league, me) : null;
     if (g) return g.d;
     const last = me && st.lastLeague ? weekResult(st.lastLeague, me) : null;
@@ -24347,6 +24383,9 @@ const SquadHall = (() => {
       R.lgWeek.append(h('b', null, 'Week ' + Number(V.week.slice(5))), h('span', null, 'played in this browser · ' + endsText(V.ends)));
       drawGroup(V.g, 'you', V.who, 'local' + V.week, was, false);
       const box = h('div', {class: 'lg-days'});
+      // how the last week you played ended
+      const F = V.from;
+      if (F && DIVS[F.d - 1] && DIVS[F.next - 1]) box.append(h('p', {class: 'sq-desc'}, 'Last week: #' + F.rank + ' of ' + E.LEAGUE_GROUP + ' in ' + DIVS[F.d - 1] + (F.next > F.d ? '. Up to ' : F.next < F.d ? '. Down to ' : '. Staying in ') + DIVS[F.next - 1] + '.'));
       if (llBusy) box.append(h('p', {class: 'sq-desc'}, 'Playing today’s matches…'));
       else if (st.llWait) box.append(h('p', {class: 'sq-desc'}, 'Your squad is not ready yet: finish it in the builder, and today’s matches play with it.'));
       const today = V.mine.filter(x => x.d === V.today);
