@@ -2,7 +2,7 @@
 <html lang="en" data-mode="demo">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.dexscreener.com; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.dexscreener.com https://api.geckoterminal.com; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="$BLUB: a pixel game and Solana memecoin. Build a team of five Blubs, take the crown in the Meadow and play Blub Jump.">
 <meta name="theme-color" content="#5ED6CB">
@@ -269,6 +269,7 @@ section{position:relative}
 .swap #swapGo{white-space:nowrap}
 .bigprice sub{font-size:.5em;vertical-align:-.1em}
 .stat strong sub{font-size:.6em}
+.stat small{font-family:var(--f-data);font-size:17px;line-height:1;color:var(--muted)}
 /* the contract address and the live source under the price (owner, 13 Oct 2026) */
 .ca{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ca-l{font-family:var(--f-display);font-size:10px;color:var(--muted)}
@@ -2184,7 +2185,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">52a82e2 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">fb0fadf · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2314,22 +2315,22 @@ body.no-scroll{overflow:hidden}
     <div class="sec-head">
       <div>
         <span class="eyebrow">The coin</span>
-        <h2 id="pairTitle">BLUB ⇄ MSFTx</h2>
+        <h2 id="pairTitle">$BLUB, live</h2>
       </div>
-      <p>$BLUB lives on Solana. Its pool on Raydium pairs it with MSFTx, tokenized MSFT, so when MSFT moves you see it in Blub. Every number here comes live from DexScreener.</p>
+      <p>$BLUB lives on Solana, in a pool on Raydium. Its market cap, price, liquidity and trades come live from DexScreener, in US dollars.</p>
     </div>
 
     <div class="pair-grid">
       <div class="panel price-card">
-        <div class="pairname"><canvas id="pairIcon" width="16" height="15" aria-hidden="true"></canvas>1 BLUB =</div>
-        <div class="bigprice" id="bigPrice">… <small>MSFTx</small></div>
+        <div class="pairname"><canvas id="pairIcon" width="16" height="15" aria-hidden="true"></canvas>Market cap</div>
+        <div class="bigprice" id="bigPrice">…</div>
         <div class="stats">
-          <div class="stat"><span>In dollars</span><strong id="sUsd">–</strong></div>
-          <div class="stat"><span>24h change</span><strong id="sChg">–</strong></div>
-          <div class="stat"><span>Market cap</span><strong id="sCap">–</strong></div>
+          <div class="stat"><span>Price per BLUB</span><strong id="sUsd">–</strong></div>
           <div class="stat"><span>Pool liquidity</span><strong id="sLiq">–</strong></div>
-          <div class="stat"><span>24h volume</span><strong id="sVol">–</strong></div>
-          <div class="stat"><span>24h trades</span><strong id="sTx">–</strong></div>
+          <div class="stat"><span>1h change</span><strong id="sChg1">–</strong></div>
+          <div class="stat"><span>24h change</span><strong id="sChg">–</strong></div>
+          <div class="stat"><span>7d change</span><strong id="sChg7">–</strong></div>
+          <div class="stat"><span>24h volume</span><strong id="sVol">–</strong><small id="sTx">–</small></div>
         </div>
         <div class="ca">
           <span class="ca-l">Contract</span>
@@ -2344,32 +2345,33 @@ body.no-scroll{overflow:hidden}
 
       <div class="chart-card" style="border:4px solid #000">
         <div class="chart-top">
-          <span class="lbl" id="chartLbl">BLUB / MSFTx · per 1M BLUB</span>
+          <span class="lbl" id="chartLbl">Market cap · USD</span>
           <div class="tf" role="group" aria-label="Time range">
             <button type="button" data-tf="1H" aria-pressed="false">1H</button>
             <button type="button" data-tf="24H" aria-pressed="true">24H</button>
+            <button type="button" data-tf="7D" aria-pressed="false">7D</button>
           </div>
         </div>
         <div class="chart-box" id="chartBox">
-          <canvas id="chart" aria-label="Price chart of BLUB in MSFTx"></canvas>
+          <canvas id="chart" aria-label="Chart of BLUB's market cap in US dollars"></canvas>
           <div class="tip" id="tip" hidden></div>
         </div>
-        <p class="demo-note">The line runs through DexScreener’s price now and 5 minutes, an hour, 6 and 24 hours ago, plus every update while you watch. A rise of more than 1.5% makes Blub jump.</p>
+        <p class="demo-note">The line runs through DexScreener’s market cap now and 5 minutes, an hour, 6 and 24 hours ago, plus every update while you watch; the week comes from GeckoTerminal’s 4-hour candles. A rise of more than 1.5% makes Blub jump.</p>
       </div>
     </div>
 
     <form class="panel swap" id="swap" autocomplete="off">
       <div class="swap-field">
         <label for="inA">You pay</label>
-        <div class="inp"><input id="inA" inputmode="decimal" value="0.1"><span class="unit" id="unitA">MSFTx</span></div>
+        <div class="inp"><input id="inA" inputmode="decimal" value="10"><span class="unit" id="unitA">USD</span></div>
       </div>
       <button type="button" class="btn small" id="flip" aria-label="Swap direction">⇄</button>
       <div class="swap-field">
         <label for="inB">You get about</label>
         <div class="inp"><input id="inB" inputmode="decimal" readonly><span class="unit" id="unitB">BLUB</span></div>
       </div>
-      <a class="btn pink" id="swapGo" href="https://jup.ag/swap/XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX-5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi" target="_blank" rel="noopener noreferrer">Swap on Jupiter ↗</a>
-      <p class="note" id="swapNote">Worked out from the pool’s live reserves on DexScreener, before the pool fee. You swap on Jupiter, in your own wallet: this site never sends a transaction.</p>
+      <a class="btn pink" id="swapGo" href="https://jup.ag/swap/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v-5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi" target="_blank" rel="noopener noreferrer">Swap on Jupiter ↗</a>
+      <p class="note" id="swapNote">Worked out in dollars from the pool’s live reserves on DexScreener, before fees. Jupiter opens with USDC (pick another token there if you like) and you swap in your own wallet: this site never sends a transaction.</p>
     </form>
   </div>
 </section>
@@ -2439,7 +2441,7 @@ body.no-scroll{overflow:hidden}
           <div class="stat"><span>Pool liquidity</span><strong id="tLiq">–</strong></div>
           <div class="stat"><span>Pool opened</span><strong id="tOpen">–</strong></div>
         </div>
-        <p class="note">Total supply is the market cap divided by the price, both from DexScreener. The pool pairs BLUB with MSFTx on Raydium.</p>
+        <p class="note">Total supply is the market cap divided by the price, both from DexScreener.</p>
       </div>
     </div>
   </div>
@@ -2827,14 +2829,35 @@ head.addEventListener('click',e=>{
 });
 
 /* ================= the coin, live from DexScreener (owner, 13 Oct 2026) ================= */
-// One pool: BLUB/MSFTx on Raydium. The page asks DexScreener's public API (no key, open to
-// the browser) once a minute while it is in view; nothing here is simulated any more. The
-// chart runs through the price now and what DexScreener says it was 5 minutes, an hour, 6
-// and 24 hours ago, plus every answer this browser has had (kept for a week).
-const CA='5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi';
+// One pool on Raydium. The page asks DexScreener's public API (no key, open to the
+// browser) once a minute while it is in view; nothing here is simulated. Everything is
+// shown in US dollars (the owner, 13 Oct 2026: the market cap in K's, not in the pool's
+// quote token): the market cap first, then the price per BLUB. The chart runs through the
+// market cap now and what DexScreener says it was 5 minutes, an hour, 6 and 24 hours ago,
+// plus every answer this browser has had (kept for a week).
+const CA='5HpB4gU9M7xtHC2fLK1FXP7UuDQUvJTRD6guwPKPJUGi', USDC='EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const DEX_URL='https://api.dexscreener.com/latest/dex/tokens/'+CA;
-const mk={ok:false,failed:false,at:0,p:0,usd:0,chg:{},cap:0,liq:0,vol:0,buys:0,sells:0,rb:0,rq:0,open:0,qs:'MSFTx',
-  qm:'XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX',url:'https://dexscreener.com/solana/3x7tLbTjGFakK6MiTEeyUiRhqLejsDJoaUz1kYvrnj45'};
+// The week (the owner, 13 Oct 2026: a 7D chart and change): DexScreener's API has no
+// history, so the last 7 days come from GeckoTerminal's public API (no key, open to the
+// browser): 42 candles of 4 hours, in dollars, asked at most every ten minutes.
+const GT_URL='https://api.geckoterminal.com/api/v2/networks/solana/pools/3x7tLbTjGFakK6MiTEeyUiRhqLejsDJoaUz1kYvrnj45/ohlcv/hour?aggregate=4&limit=42&currency=usd';
+// pts: [ms, dollars], oldest first: the oldest candle's open at its start, then every
+// candle's close at its end (a 4-hour candle without trades is left out)
+const wk={at:0,busy:false,pts:[]};
+async function pullWeek(){
+  if(wk.busy||Date.now()-wk.at<6e5)return;
+  wk.busy=true;
+  try{
+    const r=await fetch(GT_URL,{headers:{Accept:'application/json'}}), j=r.ok?await r.json():null;
+    const list=(j&&j.data&&j.data.attributes&&Array.isArray(j.data.attributes.ohlcv_list)?j.data.attributes.ohlcv_list:[])
+      .filter(c=>Array.isArray(c)&&c.length>=5&&num(c[0])>0&&num(c[1])>0&&num(c[4])>0).sort((a,b)=>num(a[0])-num(b[0]));
+    if(list.length)wk.pts=[[num(list[0][0])*1e3,num(list[0][1])]].concat(list.map(c=>[Math.min(num(c[0])*1e3+144e5,Date.now()),num(c[4])]));
+  }catch{}
+  wk.busy=false;wk.at=Date.now();
+  renderStats();drawChart();
+}
+const mk={ok:false,failed:false,at:0,p:0,usd:0,chg:{},cap:0,liq:0,vol:0,buys:0,sells:0,rb:0,rq:0,open:0,
+  url:'https://dexscreener.com/solana/3x7tLbTjGFakK6MiTEeyUiRhqLejsDJoaUz1kYvrnj45'};
 const listeners=[];
 const HIST='blub-dex-v1', WEEK=7*864e5;
 let hist=[];
@@ -2847,14 +2870,12 @@ async function pullMarket(){
   if(!ps.length){if(!mk.ok){mk.failed=true;renderStats();drawChart();}return false;}
   // the deepest pool is the price
   const p=ps.sort((a,b)=>num(b.liquidity&&b.liquidity.usd)-num(a.liquidity&&a.liquidity.usd))[0];
-  const old=mk.ok?mk.p:0, pc=p.priceChange||{}, tx=p.txns||{}, lq=p.liquidity||{}, q=p.quoteToken||{};
+  const old=mk.ok?mk.p:0, pc=p.priceChange||{}, tx=p.txns||{}, lq=p.liquidity||{};
   Object.assign(mk,{ok:true,failed:false,at:Date.now(),p:num(p.priceNative),usd:num(p.priceUsd),cap:num(p.marketCap)||num(p.fdv),liq:num(lq.usd),
     vol:num(p.volume&&p.volume.h24),buys:num(tx.h24&&tx.h24.buys),sells:num(tx.h24&&tx.h24.sells),rb:num(lq.base),rq:num(lq.quote),open:num(p.pairCreatedAt)});
   // a window without trades has no change in DexScreener's answer: the price stood still
   mk.chg={};
   for(const k of ['m5','h1','h6','h24']){const v=pc[k],t=tx[k];mk.chg[k]=typeof v==='number'&&Number.isFinite(v)?v:t&&num(t.buys)+num(t.sells)===0?0:null;}
-  if(/^[A-Za-z0-9.]{1,12}$/.test(q.symbol||''))mk.qs=q.symbol;
-  if(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q.address||''))mk.qm=q.address;
   if(typeof p.url==='string'&&/^https:\/\/dexscreener\.com\/solana\/[A-Za-z0-9]+$/.test(p.url))mk.url=p.url;
   const last=hist[hist.length-1];
   if(!last||last[1]!==mk.p||mk.at-last[0]>=3e5){
@@ -2876,21 +2897,28 @@ function tiny(v,html){
   return '0.0'+(html?'<sub>'+z+'</sub>':String(z).split('').map(c=>'₀₁₂₃₄₅₆₇₈₉'[+c]).join(''))+d;
 }
 const usd=v=>!(v>0)?'–':v>=1e9?'$'+nf(2)(v/1e9)+'B':v>=1e6?'$'+nf(2)(v/1e6)+'M':v>=1e3?'$'+nf(1)(v/1e3)+'K':'$'+nf(2)(v);
+// a market cap with three figures in K's (or M's): $5.72K, $57.2K, $572K, $5.72M
+const capTxt=v=>{
+  if(!(v>0))return '–';
+  const [d,s]=v>=1e9?[1e9,'B']:v>=1e6?[1e6,'M']:v>=1e3?[1e3,'K']:[1,''], n=v/d;
+  return '$'+nf(n>=100?0:n>=10?1:2)(n)+s;
+};
 const short=v=>v>=1e9?nf(2)(v/1e9)+' B':v>=1e6?nf(2)(v/1e6)+' M':nf(0)(v);
 const chgTxt=c=>c==null?'–':(c>=0?'▲ +':'▼ ')+nf(2)(c)+'%';
 function renderStats(d=0){
   const bp=$('#bigPrice'), badge=$('#liveBadge');
   if(!mk.ok){
-    bp.innerHTML='… <small>'+mk.qs+'</small>';
+    bp.textContent='…';
     if(badge){badge.textContent=mk.failed?'Price unavailable right now':'Connecting to DexScreener…';badge.className='badge off';}
     renderTicker();calc();return;
   }
-  bp.innerHTML=tiny(mk.p,true)+' <small>'+mk.qs+'</small>';
+  bp.textContent=capTxt(mk.cap);
   if(d){bp.classList.remove('flash-up','flash-down');void bp.offsetWidth;bp.classList.add(d>0?'flash-up':'flash-down');setTimeout(()=>bp.classList.remove('flash-up','flash-down'),500);}
   $('#sUsd').innerHTML='$'+tiny(mk.usd,true);
-  const sc=$('#sChg'),c=mk.chg.h24;
-  sc.textContent=chgTxt(c);sc.style.color=c==null?'':c>=0?'var(--up-ink)':'var(--down-ink)';
-  $('#sCap').textContent=usd(mk.cap);$('#sLiq').textContent=usd(mk.liq);$('#sVol').textContent=usd(mk.vol);
+  // the week's change: today's price against the price 7 days ago, read off the candles
+  const ago=weekAgo(), d7=ago>0&&mk.usd>0?(mk.usd/ago-1)*100:null;
+  for(const [id,c] of [['#sChg',mk.chg.h24],['#sChg1',mk.chg.h1],['#sChg7',d7]]){const el=$(id);el.textContent=chgTxt(c);el.style.color=c==null?'':c>=0?'var(--up-ink)':'var(--down-ink)';}
+  $('#sLiq').textContent=usd(mk.liq);$('#sVol').textContent=usd(mk.vol);
   $('#sTx').textContent=nf(0)(mk.buys)+' buys · '+nf(0)(mk.sells)+' sells';
   if(badge){badge.textContent='LIVE · DexScreener · '+new Date(mk.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});badge.className='badge live';}
   const dl=$('#dexLink');if(dl)dl.href=mk.url;
@@ -2904,9 +2932,8 @@ function renderStats(d=0){
 function renderTicker(){
   const c=mk.chg.h24;
   const items=mk.ok?[
-    `<b>BLUB/${mk.qs}</b> ${tiny(mk.p)} `+(c==null?'':`<em class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${nf(2)(Math.abs(c))}%</em>`),
+    `<b>MARKET CAP</b> ${capTxt(mk.cap)} `+(c==null?'':`<em class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${nf(2)(Math.abs(c))}%</em>`),
     `<b>BLUB/USD</b> $${tiny(mk.usd)}`,
-    `<b>MARKET CAP</b> ${usd(mk.cap)}`,
     `<b>LIQUIDITY</b> ${usd(mk.liq)}`,
     `<b>24H VOLUME</b> ${usd(mk.vol)}`,
     `<b>BLUB PETS</b> ${nf(0)(pets)}×`,
@@ -2923,20 +2950,24 @@ function renderTicker(){
 }
 
 /* ================= swap: the pool's own sums, then Jupiter ================= */
-// The estimate is the constant-product sum on the pool's live reserves (before its fee);
-// the button opens Jupiter with the right two tokens. This page never sends a transaction.
-let dir='q2b'; // pay MSFTx, get BLUB
+// The estimate is in dollars: the pool's quote token is worth priceUsd / priceNative, and
+// the constant-product sum on the pool's live reserves (before fees) gives the other side.
+// The button opens Jupiter from USDC (or back to it). This page never sends a transaction.
+let dir='q2b'; // pay dollars, get BLUB
 function parse(v){return parseFloat(String(v).replace(/,/g,''))||0}
 function calc(){
-  const a=parse($('#inA').value);
+  const a=parse($('#inA').value), qUsd=mk.p>0?mk.usd/mk.p:0;
   let out=0;
-  if(mk.ok&&a>0&&mk.rb>0&&mk.rq>0){const rin=dir==='q2b'?mk.rq:mk.rb,rout=dir==='q2b'?mk.rb:mk.rq;out=rout*a/(rin+a);}
-  $('#inB').value=out>0?(dir==='q2b'?nf(0)(out):sig(out)):'';
-  $('#unitA').textContent=dir==='q2b'?mk.qs:'BLUB';$('#unitB').textContent=dir==='q2b'?'BLUB':mk.qs;
-  $('#swapGo').href='https://jup.ag/swap/'+(dir==='q2b'?mk.qm+'-'+CA:CA+'-'+mk.qm);
+  if(mk.ok&&a>0&&mk.rb>0&&mk.rq>0&&qUsd>0){
+    if(dir==='q2b'){const q=a/qUsd;out=mk.rb*q/(mk.rq+q);}
+    else out=mk.rq*a/(mk.rb+a)*qUsd;
+  }
+  $('#inB').value=out>0?(dir==='q2b'?nf(0)(out):out<1?sig(out):nf(2)(out)):'';
+  $('#unitA').textContent=dir==='q2b'?'USD':'BLUB';$('#unitB').textContent=dir==='q2b'?'BLUB':'USD';
+  $('#swapGo').href='https://jup.ag/swap/'+(dir==='q2b'?USDC+'-'+CA:CA+'-'+USDC);
 }
 $('#inA').addEventListener('input',calc);
-$('#flip').addEventListener('click',()=>{dir=dir==='q2b'?'b2q':'q2b';$('#inA').value=dir==='q2b'?'0.1':'1,000,000';calc();});
+$('#flip').addEventListener('click',()=>{dir=dir==='q2b'?'b2q':'q2b';$('#inA').value=dir==='q2b'?'10':'1,000,000';calc();});
 $('#swap').addEventListener('submit',e=>e.preventDefault());
 $('#swapGo').addEventListener('click',()=>achieve('swap','Achievement unlocked!','Early Bird','coin'));
 $('#caCopy').addEventListener('click',async()=>{
@@ -2947,7 +2978,7 @@ $('#caCopy').addEventListener('click',async()=>{
 });
 
 /* ================= chart: DexScreener's points, joined up ================= */
-const TF={'1H':{span:36e5,lbl:['−60 min','now']},'24H':{span:864e5,lbl:['−24 h','now']}};
+const TF={'1H':{span:36e5,lbl:['−60 min','now']},'24H':{span:864e5,lbl:['−24 h','now']},'7D':{span:6048e5,lbl:['−7 d','now']}};
 let tf='24H';
 const COLS=120;
 // the points: the price now, the anchors DexScreener gives, and this browser's own record
@@ -2957,22 +2988,37 @@ function pricePoints(){
   for(const e of hist)if(e[0]<now)pts.push(e);
   return pts.sort((a,b)=>a[0]-b[0]);
 }
+// the price in dollars 7 days before DexScreener's last answer, between two candles
+function weekAgo(){
+  const t=mk.at-6048e5, P=wk.pts;
+  if(!P.length||t<P[0][0])return 0;
+  for(let i=1;i<P.length;i++)if(P[i][0]>=t){const [t0,v0]=P[i-1],[t1,v1]=P[i];return t1>t0?v0+(v1-v0)*(t-t0)/(t1-t0):v1;}
+  return P[P.length-1][1];
+}
+// the points as market caps: for the week GeckoTerminal's candles (dollars) times the
+// supply, else DexScreener's points scaled to today's market cap
+function capPoints(){
+  const sup=mk.usd>0?mk.cap/mk.usd:0, per=mk.p>0?mk.cap/mk.p:0;
+  if(tf==='7D'&&sup>0&&wk.pts.length)return wk.pts.filter(e=>e[0]<mk.at).map(([t,v])=>[t,v*sup]).concat([[mk.at,mk.cap]]);
+  return per>0?pricePoints().map(([t,v])=>[t,v*per]):[];
+}
 function chartSeries(){
   if(!mk.ok)return null;
-  const pts=pricePoints(), span=TF[tf].span, from=mk.at-span, out=[];
+  const pts=capPoints(), span=TF[tf].span, from=mk.at-span, out=[];
+  if(!pts.length)return null;
   const at=t=>{let i=0;while(i<pts.length&&pts[i][0]<t)i++;if(i===0)return pts[0][1];if(i===pts.length)return pts[pts.length-1][1];const [t0,v0]=pts[i-1],[t1,v1]=pts[i];return t1===t0?v1:v0+(v1-v0)*(t-t0)/(t1-t0);};
   for(let c=0;c<COLS;c++)out.push(at(from+span*c/(COLS-1)));
   return out;
 }
-// the chart counts in MSFTx for a million BLUB
-const fmtC=v=>sig(v*1e6);
+// the chart counts the market cap in dollars (the price series times the supply)
+const fmtC=v=>capTxt(v);
 const cv=$('#chart'), cx=cv.getContext('2d'); let hoverCol=-1, blinkOn=true, chartGeom=null;
 function drawChart(){
   const W=cv.clientWidth,H=cv.clientHeight,dpr=Math.min(devicePixelRatio||1,2);
   if(!W)return;
   if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
   cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,W,H);
-  const lb=$('#chartLbl'); if(lb)lb.textContent='BLUB / '+mk.qs+' · per 1M BLUB';
+  const lb=$('#chartLbl'); if(lb)lb.textContent='Market cap · USD';
   const d=chartSeries();
   cx.font='20px VT323, monospace'; cx.textBaseline='middle';
   if(!d){cx.fillStyle='#B9A9D6';const m=mk.failed?'Price unavailable right now':'Connecting to DexScreener…';cx.fillText(m,Math.max(8,(W-cx.measureText(m).width)/2),H/2);chartGeom=null;return;}
@@ -3009,12 +3055,12 @@ box.addEventListener('pointermove',e=>{
   if(x>chartGeom.pw){hoverCol=-1;tip.hidden=true;drawChart();return;}
   hoverCol=Math.max(0,Math.min(chartGeom.cols-1,Math.floor(x/chartGeom.B)));
   const v=chartGeom.val(hoverCol), ago=Math.round((1-hoverCol/(chartGeom.cols-1))*TF[tf].span/6e4);
-  tip.hidden=false; tip.textContent=fmtC(v)+' '+mk.qs+' · '+(ago<=0?'now':ago<90?'−'+ago+' min':'−'+Math.round(ago/60)+' h');
+  tip.hidden=false; tip.textContent=fmtC(v)+' · '+(ago<=0?'now':ago<90?'−'+ago+' min':ago<2880?'−'+Math.round(ago/60)+' h':'−'+nf(1)(ago/1440)+' d');
   tip.style.left=Math.min(Math.max(hoverCol*chartGeom.B,70),chartGeom.pw-70)+'px'; tip.style.top=chartGeom.T+chartGeom.yr(v)*chartGeom.B+'px'; drawChart();
 });
 box.addEventListener('pointerleave',()=>{hoverCol=-1;tip.hidden=true;drawChart();});
 document.querySelectorAll('.tf button').forEach(b=>b.addEventListener('click',()=>{
-  tf=b.dataset.tf; document.querySelectorAll('.tf button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawChart();}));
+  tf=b.dataset.tf; document.querySelectorAll('.tf button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawChart();if(tf==='7D')pullWeek();}));
 addEventListener('resize',()=>drawChart());
 
 listeners.push(d=>{
@@ -3245,7 +3291,7 @@ const scene=(()=>{
   // (gravity .28 per frame: a start speed of sqrt(2*.28*room)-.14 peaks right at the top of the stage)
   function jump(power=1){if(b.air)return;const room=Math.max(0,b.top-1);b.air=true;b.jy=0;b.jv=-Math.min(3.2*power*(S/3+.4),Math.max(0,Math.sqrt(2*.28*room)-.14));}
   function say(txt){bub.textContent=txt;bub.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>bub.hidden=true,1300);}
-  const lines=['blub!','blub blub','to the moon!','MSFT ⇄ BLUB','more blocks!','hehe','📈 blub'];
+  const lines=['blub!','blub blub','to the moon!','$BLUB!','more blocks!','hehe','📈 blub'];
   function local(e){const R=cvs.getBoundingClientRect();return{x:(e.clientX-R.left)/PX,y:(e.clientY-R.top)/PX};}
   cvs.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')mouse=local(e);});
   cvs.addEventListener('pointerleave',()=>mouse=null);
@@ -3401,8 +3447,8 @@ blubTo(0);
 /* ================= go ================= */
 renderStats(); drawChart();
 // live from DexScreener: now, then once a minute while the page is in view
-pullMarket();
-setInterval(()=>{if(!document.hidden)pullMarket();},60000);
+pullMarket();pullWeek();
+setInterval(()=>{if(!document.hidden){pullMarket();pullWeek();}},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-mk.at>60000)pullMarket();});
 if(!RM)setInterval(()=>{blinkOn=!blinkOn;if(mk.ok)drawChart();},500);
 window.BLUB={SPR,paint,icon,achieve,toast,rng,nf,siftTree,siftSlab,siftGround,SIFT_FAR,SIFT_MID,SIFT_SKY};
