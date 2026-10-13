@@ -2190,7 +2190,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">66c51ba · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">550fee7 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5797,7 +5797,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 20;
+const SQUAD_ENGINE = 21;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5921,7 +5921,12 @@ const RULES = lock({
   // a leap of up to candleLeap tiles onto the enemy, candleSlam on every enemy beside
   // the landing. Its rider knocked out or gone, the candle dumps.
   candleDmg: 1, candleMax: 5, candleLeap: 6, candleSlam: 6,
-  diamondRange: 3, // Diamond Hands: owner's Blubs this close cannot be moved, frozen or pushed back
+  // Diamond Hands (engine 21, the owner: a diamond hand the Blub sits in, and a diamond
+  // tower with a machine gun): the claimer's Blub beside it climbs into the hand, which
+  // builds a tower under it; on each of its turns the gun sprays diamondShots of
+  // diamondDmg at an enemy within diamondRange that it can see, diamondAmmo bursts in
+  // all. Its Blub is never moved, frozen or knocked back; knocked out, the tower shatters.
+  diamondRange: 5, diamondShots: 3, diamondDmg: 2, diamondAmmo: 4,
   laserRange: 2, laserDmg: 1, laserDodge: 50, // Laser Eyes Totem: +laserRange reach, and it keeps only laserDodge% of its dodge
   copiumAt: 50, copiumRange: 2, copiumSoak: 35, // Copium Tank
   apeDmg: 1, // Ape Together Banner: per Blub standing next to a team mate
@@ -6194,7 +6199,7 @@ const EVENTS = lock([
   ['lambo', 'Wen Lambo', `The first Blub to climb in floors it straight ahead. A Blub it hits is knocked out on the spot, and the crash singes everyone beside it for ${RULES.lamboBang}. Hitting nobody, the driver takes ${RULES.lamboCrash}. The wreck stays behind as a wall.`],
   ['sendit', 'Send It', `A stunt cannon in each half, mirrored. The first Blub to climb in is fired over the arena straight at the other side's rearmost Blub: ${RULES.sendDmg} damage to it, and it lands right beside it.`],
   ['candle', 'Green Candle', `The first Blub beside it climbs on and the candle pumps, a block a turn up to ${RULES.candleMax}: its rider hits +${RULES.candleDmg} harder for every block. At the top it goes TO THE MOON: a leap of up to ${RULES.candleLeap} tiles onto the enemy, ${RULES.candleSlam} damage to every enemy beside where it lands. Knock the rider out and the candle dumps.`],
-  ['diamond', 'Diamond Hands', `The owner's Blubs within ${RULES.diamondRange} tiles cannot be moved, frozen or pushed back.`],
+  ['diamond', 'Diamond Hands', `A giant hand of diamond. The first Blub beside it climbs in, and the hand builds a diamond tower under it in a flash, a machine gun on top: on each of that Blub's turns it sprays ${RULES.diamondShots} shots of ${RULES.diamondDmg} at an enemy within ${RULES.diamondRange} tiles, ${RULES.diamondAmmo} bursts in all. Diamond hands: nothing moves, freezes or knocks that Blub back. Knock it out and the tower shatters.`],
   ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and +${RULES.laserDmg} damage, but dodges only ${RULES.laserDodge}% as well.`],
   ['copium', 'Copium Tank', `The owner's Blubs under ${RULES.copiumAt}% HP within ${RULES.copiumRange} tiles take ${RULES.copiumSoak}% less damage.`],
   ['ape', 'Ape Together Banner', `The owner's Blubs deal +${RULES.apeDmg} damage while a team mate stands right beside them.`],
@@ -6867,7 +6872,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // Paper Hands: the first of the squad to fall under paperAt% loses its nerve
     // a Miner hurt to tunnelAt% or less tunnels away on its next turn
     if (d.alive && d.pow === 'miner' && !d.tunneled && d.hp * 100 <= d.max * RULES.tunnelAt) d.tunnel = 1;
-    if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && d.hp * 100 < d.max * RULES.paperAt) {
+    // (never the Blub up in the Diamond Hand: diamond hands, engine 21)
+    if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && !anchored(d) && d.hp * 100 < d.max * RULES.paperAt) {
       meme[d.team].paper = 1;
       d.paper = now + RULES.paperTurns;
       push({ t: 'paper', u: d.id, until: d.paper });
@@ -8019,8 +8025,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (over >= 0 || !u.alive) return;
     if (cap && cmdOf[u.team] && !called[u.team] && !u.jeet) callOrder(u, turn);
     // riding a Green Candle (engine 19): it stays up there and hits what it reaches (a
-    // medic heals whom it reaches)
+    // medic heals whom it reaches); up in the Diamond Hand (engine 21) it works the gun.
+    // (Taken off it somehow, the thing it rode is done for, and it carries on as usual.)
+    if (u.ride && !rideOk(u.ride)) dump(u.ride);
     if (u.ride) {
+      if (u.ride.id === 'diamond') return spray(u);
       if (u.cls === 'sweet' && medic(u, true, turn)) return;
       return hitAround(u);
     }
@@ -9215,11 +9224,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   if (props.length) push({ t: 'props', list: props.map((p) => ({ id: p.id, at: [p.x, p.y], hp: p.hp })) });
   const owned = (id, team) => props.find((p) => p.id === id && p.team === team && !p.down);
-  // Diamond Hands: the owner's Blubs this close cannot be frozen, trapped, knocked
-  // back or shoved
+  // Diamond Hands (engine 21): the Blub up in the hand holds on, whatever comes: it is
+  // never frozen, trapped, knocked back or shoved
   function anchored(d) {
-    const p = owned('diamond', d.team);
-    return !!p && cheb(d.x, d.y, p.x, p.y) <= RULES.diamondRange;
+    return !!d.ride && d.ride.id === 'diamond' && !d.ride.down;
   }
   // Laser Eyes Totem: the owner's Blub nearest to it
   const laserOn = (u) => {
@@ -9235,7 +9243,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function propBonus(u) {
     let b = 0;
     // the Green Candle's rider hits harder for every block it stands on (engine 19)
-    if (u.ride && !u.ride.down) b += u.ride.size * RULES.candleDmg;
+    if (u.ride && u.ride.id === 'candle' && !u.ride.down) b += u.ride.size * RULES.candleDmg;
     if (laserOn(u)) b += RULES.laserDmg;
     // apes together strong: a Blub with a team mate beside it
     if (owned('ape', u.team) && living[u.team].some((w) => w !== u && cheb(u.x, u.y, w.x, w.y) <= 1)) b += RULES.apeDmg;
@@ -9247,6 +9255,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // rider stands on its tile, high up, and stays there hitting what it reaches. It pumps
   // a block a turn up to candleMax, and the turn after the top it goes to the moon.
   const canRide = (v) => v.alive && !v.ride && !W(v).boom;
+  // the props a Blub climbs onto: the Green Candle (engine 19) and the Diamond Hand (21)
+  const rides = (p) => p.id === 'candle' || p.id === 'diamond';
   function riderOf(p, team) {
     const near = living[team].filter((v) => canRide(v) && cheb(v.x, v.y, p.x, p.y) <= 1);
     if (!near.length) return null;
@@ -9265,9 +9275,43 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     occ[p.c] = v.id;
     v.ride = p;
     p.rider = v.id;
-    p.size = 1;
     push({ t: 'ride', u: v.id, id: p.id, from, at: [p.x, p.y] });
-    push({ t: 'grow', id: p.id, size: p.size });
+    // the diamond hand builds its tower and gets its gun (engine 21); the candle pumps
+    if (p.id === 'diamond') p.ammo = RULES.diamondAmmo;
+    else {
+      p.size = 1;
+      push({ t: 'grow', id: p.id, size: p.size });
+    }
+  }
+  // Diamond Hands (engine 21): its Blub, up in the hand on its tower, works the gun on
+  // its turn: diamondShots of diamondDmg at one enemy within diamondRange that it can
+  // see (the one with the least HP left, then the nearest, then the lower unit). With
+  // nobody to shoot at it waits. After diamondAmmo bursts the gun is empty: the tower
+  // crumbles and its Blub stands on that tile like anybody else.
+  function spray(u) {
+    const p = u.ride;
+    const them = foes(u).filter((v) => cheb(u.x, u.y, v.x, v.y) <= RULES.diamondRange && los(u.x, u.y, v.x, v.y) && !hidden(u, u.x, u.y, v) && !veiled(u, v));
+    if (!them.length) return;
+    them.sort((a, b) => a.hp - b.hp || cheb(u.x, u.y, a.x, a.y) - cheb(u.x, u.y, b.x, b.y) || a.id - b.id);
+    const d = them[0];
+    // its paws stuck in the Honeypot: no burst this turn (said once a turn)
+    if (u.sticky >= now) {
+      if (u.stuckSaid !== now) {
+        u.stuckSaid = now;
+        push({ t: 'sticky', u: u.id, d: d.id });
+      }
+      return;
+    }
+    p.ammo--;
+    push({ t: 'spray', u: u.id, id: p.id, d: d.id, n: RULES.diamondShots, left: p.ammo });
+    for (let s = 0; s < RULES.diamondShots && d.alive && over < 0; s++) pure(u, d, RULES.diamondDmg, 'bullet');
+    if (u.alive && p.ammo <= 0 && !p.down) {
+      u.ride = null;
+      p.rider = -1;
+      p.down = true;
+      push({ t: 'propdown', id: p.id, by: -1, empty: 1, u: u.id });
+    }
+    checkOver();
   }
   // its rider still up there
   function rideOk(p) {
@@ -9328,13 +9372,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (p.down) continue;
       if (p.team < 0) {
         let near = [0, 1].filter((t) => living[t].some((v) => cheb(v.x, v.y, p.x, p.y) <= 1));
-        // the candle is claimed by a squad with a Blub that can climb on
-        if (p.id === 'candle') near = near.filter((t) => living[t].some((v) => canRide(v) && cheb(v.x, v.y, p.x, p.y) <= 1));
+        // the candle and the diamond hand are claimed by a squad with a Blub that can
+        // climb on
+        if (rides(p)) near = near.filter((t) => living[t].some((v) => canRide(v) && cheb(v.x, v.y, p.x, p.y) <= 1));
         if (!near.length) continue;
         p.team = near.length === 1 ? near[0] : cr() < 0.5 ? 0 : 1;
         p.since = turn;
         push({ t: 'claim', id: p.id, team: p.team, at: [p.x, p.y] });
-        if (p.id === 'candle') board(p, riderOf(p, p.team));
+        if (rides(p)) board(p, riderOf(p, p.team));
       } else if (p.id === 'candle') {
         if (!rideOk(p)) dump(p);
         else if (p.size >= RULES.candleMax) moon(p);
@@ -9342,7 +9387,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           p.size++;
           push({ t: 'grow', id: p.id, size: p.size });
         }
-      }
+      } else if (p.id === 'diamond' && !rideOk(p)) dump(p);
       if (p.id === 'laser') {
         const near = living[p.team].slice().sort((a, b) => cheb(a.x, a.y, p.x, p.y) - cheb(b.x, b.y, p.x, p.y) || a.id - b.id)[0];
         const h = near ? near.id : -1;
@@ -9457,19 +9502,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (turn >= RULES.sendAt)
       for (const c of cats.slice()) {
         if (over >= 0) break;
-        const v = pickBlub('sendit');
+        // (never the Blub up on the Green Candle or in the Diamond Hand)
+        const v = pickBlub('sendit', (w) => !!w.ride);
         if (v) sendIt(v, c);
       }
     if (turn >= RULES.propAt)
       for (const p of props) {
         if (p.down || p.team >= 0) continue;
-        // the candle picks its rider itself, and lifts it over (engine 19)
-        const v = pickBlub(p.id, p.id === 'candle' ? (w) => !canRide(w) : null);
+        // the candle and the diamond hand pick their Blub themselves, and lift it over
+        const v = pickBlub(p.id, rides(p) ? (w) => !canRide(w) : null);
         if (!v) continue;
         p.team = v.team;
         p.since = turn;
         push({ t: 'claim', id: p.id, team: p.team, at: [p.x, p.y], u: v.id });
-        if (p.id === 'candle') board(p, v);
+        if (rides(p)) board(p, v);
       }
   }
   function runEvents(turn) {
@@ -10277,15 +10323,7 @@ const SquadView = (() => {
         '......kGGGGggggggggggqqqqk......', '......kGGGGggggggggggqqqqk......', '......kGGGGggggggggggqqqqk......', '......kqqqqddddddddddddddk......',
         '......kqqqqddddddddddddddk......', '.......kkkkkkkqqqqkkkkkkk.......', '.............kqqqqk.............', '.............kqqqqk.............',
         '.............kqqqqk.............', '.............kqqqqk.............', '.............kqqqqk.............', '.............kqqqqk.............'],
-      // Diamond Hands: a cut stone, its table and its facets
-      diamond: ['................................', '................................', '................................', '.........kkkkkkkkkkkkkk.........',
-        '........kuuuuullllllllbk........', '.......kuulllbbllbbbbbjjk.......', '......kuuulbbwwwwbbbbbjjjk......', '.....kuuuubbwwllllbbbbjjjjk.....',
-        '....kuuuuuubbbllllbbbjjjjjjk....', '...kuuuuuuubbllllllbbjjjjjjjk...', '..kuuuuuuuubbllllllbbjjjjjjjjk..', '.kuuuuuuuuuulllllllljjjjjjjjjjk.',
-        '.kllbbbbbbbbbbbbbbbbBBBBBBBBBBk.', '..kbbbbbbbbbbbbbbbbbBBBBBBBBBk..', '...kbbbbbbbbbbbbbbbBBBBBBBBBk...', '....kbbbbbbbbbbbbbbBBBBBBBBk....',
-        '.....kbbbbbbbbbbbbbBBBBBBBk.....', '......klbbbbbbbbbbbBBBBBBk......', '......kbbbbbbbbbbbBBBBBBBk......', '.......kbbbbbbbbbbBBBBBBk.......',
-        '........kbbbbbbbbbBBBBBk........', '.........kbbbbbbbbBBBBk.........', '..........klbbbbbbBBBk..........', '..........kbbbBbbBBBBk..........',
-        '...........kbBBbbBBBk...........', '............kBBbbBBk............', '.............kBbbBk.............', '..............kBBk..............',
-        '...............kk...............', '................................', '................................', '................................'],
+      // (Diamond Hands' icon is its hand of diamond, from the effect forge below)
       // Laser Eyes Totem: a carved face with the beams out both sides
       laser: ['................................', '................................', '................................', '.......kkkkkkkkkkkkkkkkkk.......',
         '......kIIIIIIIImmmmmmmmmMk......', '......kImmmmmmMMMMMMMMMMtk......', '......kImmmmmMMMMMMMMMMMtk......', '......kImmmmMMMMMMMMMMMMtk......',
@@ -10560,6 +10598,8 @@ const SquadView = (() => {
       gold: ['A', 'o', 'y', 'Y', 'w'],
       wood: ['a', 'n', 'N', 'i', 'w'],
       iron: ['K', 'x', 's', 'S', 'z'],
+      // clear diamond: white to the palest blue, blue in its shadows
+      ice: ['B', 'l', 'u', 'W', 'w'],
     },
     // Material is laid down in a digit, which no ramp ever writes, and lit after:
     // lighting a letter that an earlier lighting pass already wrote would light it
@@ -11250,23 +11290,109 @@ const SquadView = (() => {
       return g;
     }],
     // Diamond Hands: a cut diamond held up in two diamond hands on a stone plinth.
-    diamond: [2, 32, (i) => {
+    // Diamond Hands (engine 21, the owner): a giant hand of clear cut diamond, white
+    // with pale blue facets (so a blue Blub in it still stands out). 0-1 waiting: rising
+    // out of the floor, palm up, fingers spread, thumb out to the side (a glint in two
+    // places). Once a Blub is in it, it stands on a tower of blue diamond blocks it
+    // builds under itself: 2-5 the hand cupped, its fingers curled up round the sides
+    // and back, on 0-3 blocks (drawn under the Blub); 6-9 the bowl's front rim and the
+    // thumb's tip at the same heights (drawn over the Blub's feet). The floor line is
+    // row 29.
+    diamond: [10, 32, (i) => {
       let g = FG.grid(32);
-      for (let y = 25; y <= 29; y++) for (let x = 10; x <= 21; x++) FG.put(g, x, y, '1');
-      g = FG.volume(g, '1', 'grey');
-      FG.poly(g, [[10.5, 12], [13, 8.5], [19, 8.5], [21.5, 12], [16, 21]], '2');
-      g = FG.volume(g, '2', 'blue');
-      FG.line(g, 10.5, 12, 21.5, 12, 1, 'u');
-      FG.line(g, 13, 9, 16, 20, 1, 'b');
-      FG.line(g, 19, 9, 16, 20, 1, 'B');
-      // the two hands cupped round it, pale and glassy
-      for (const [x0, dir] of [[8, 1], [23, -1]]) {
-        FG.poly(g, [[x0, 14], [x0 + dir * 4, 15], [x0 + dir * 5, 21], [x0 + dir * 2, 24], [x0 - dir, 21]].map(([x, y]) => [x + 0.5, y]), '3');
+      const open = i < 2;
+      const front = i >= 6;
+      const n = open ? 0 : (i - 2) % 4;
+      // the palm's lower edge
+      const P = open ? 26 : 29 - 5 * n;
+      if (!front) {
+        // the tower: n blocks of cut diamond, a pale top face over a faceted front
+        for (let b = 0; b < n; b++) {
+          const y1 = 29 - 5 * b;
+          FG.poly(g, [[9, y1 - 3], [23, y1 - 3], [22, y1 + 1], [10, y1 + 1]], '1');
+        }
+        g = FG.volume(g, '1', 'blue');
+        for (let b = 0; b < n; b++) {
+          const y1 = 29 - 5 * b;
+          for (let x = 10; x <= 21; x++) {
+            FG.put(g, x, y1 - 4, x < 16 ? 'u' : 'l');
+            FG.put(g, x, y1 - 3, x < 13 ? 'l' : 'b');
+          }
+          // the cuts down its front, and a glint
+          for (let y = y1 - 2; y <= y1; y++) {
+            FG.put(g, 13, y, 'j');
+            FG.put(g, 18, y, 'j');
+          }
+          FG.put(g, 11, y1 - 2, 'w');
+          FG.put(g, 20, y1 - 1, 'u');
+        }
+        // the palm and the fingers: spread up when it waits; holding, a wide bowl with
+        // the fingers curled up round its sides and back
+        const fx = open ? [10.5, 14, 17.8, 21.4] : [7.5, 12.5, 19.5, 24.5];
+        if (open) FG.poly(g, [[9, P - 7], [23, P - 7], [24, P - 3], [21, P], [11, P], [8, P - 3]], '2');
+        else FG.poly(g, [[6, P - 6], [26, P - 6], [27, P - 3], [24, P], [8, P], [5, P - 3]], '2');
+        const len = open ? [9, 11, 10, 7] : [8, 9, 9, 8];
+        const spread = open ? [-1.2, -0.4, 0.4, 1.2] : [1, 0, 0, -1];
+        for (let f = 0; f < 4; f++) FG.line(g, fx[f], P - 5, fx[f] + spread[f], P - 5 - len[f], 3.1, '2');
+        // the thumb, out to the side while it waits
+        if (open) FG.line(g, 9, P - 4, 4.5, P - 10, 3.3, '2');
+        // the wrist going down into the floor
+        if (open) FG.line(g, 16, P - 1, 16, 30, 6.5, '2');
+        g = FG.volume(g, '2', 'ice');
+        // facets: pale blue cuts across the palm and down each finger
+        FG.line(g, 10.5, P - 6, 15, P - 1.5, 1, 'l');
+        FG.line(g, 17, P - 6, 21, P - 2, 1, 'b');
+        for (let f = 0; f < 4; f++) {
+          const x0 = Math.floor(fx[f] + spread[f] * 0.5);
+          for (let y = P - 7 - len[f] + 2; y <= P - 7; y++) if (g[y] && g[y][x0 + 1] !== '.' && g[y][x0 + 1] !== 'k') FG.put(g, x0 + 1, y, 'l');
+          FG.put(g, x0 - 1, P - 6 - Math.floor(len[f] / 2), 'u');
+        }
+        // the knuckle lines where the fingers meet the palm
+        if (open) for (let x = 9; x <= 23; x++) if (g[P - 7] && g[P - 7][x] !== '.') FG.put(g, x, P - 7, x % 4 === 0 ? 'j' : g[P - 7][x]);
+        if (open) {
+          // rubble where it came up through the floor
+          for (const [x, y, c] of [[9, 29, 'S'], [10, 30, 's'], [22, 29, 'S'], [23, 30, 's'], [12, 30, 'x'], [20, 30, 'x']]) FG.put(g, x, y, c);
+        }
+      } else {
+        // the bowl's front rim over the Blub's feet, and the thumb's tip curled over it
+        FG.poly(g, [[6, P - 4], [26, P - 4], [25, P - 1], [7, P - 1]], '3');
+        FG.line(g, 7, P - 3, 9.5, P - 8, 3, '3');
+        g = FG.volume(g, '3', 'ice');
+        for (let x = 9; x <= 23; x += 4) FG.put(g, x, P - 3, 'l');
+        FG.put(g, 8, P - 7, 'u');
+        FG.put(g, 20, P - 4, 'w');
       }
-      g = FG.volume(g, '3', 'white');
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (g[y][x] === 's') g[y][x] = 'l';
       g = FG.outline(g);
-      if (i === 1) for (const [x, y] of [[6, 7], [25, 10], [27, 18]]) for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) FG.put(g, x + dx, y + dy, dx || dy ? 'u' : 'w');
+      // a glint on the waiting hand, here or there
+      if (open) {
+        const [sx, sy] = i ? [21, P - 15] : [7, P - 12];
+        for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]) FG.put(g, sx + dx, sy + dy, dx || dy ? (Math.abs(dx) + Math.abs(dy) > 1 ? 'l' : 'u') : 'w');
+      }
+      return g;
+    }],
+    // The Diamond Hand's machine gun (engine 21): a boxy receiver with a carry handle,
+    // a long barrel in a cooling jacket full of holes, a grip, and a belt of rounds
+    // hanging off it. 0 facing right, 1 the same firing (a flash at the muzzle); 2-3
+    // facing left.
+    mgun: [4, 16, (i) => {
+      let g = FG.grid(16);
+      const fire = i % 2 === 1;
+      // the stock, the receiver, the jacket round the barrel, the grip and the handle
+      FG.poly(g, [[0.5, 7.5], [2.5, 6.5], [2.5, 9.5], [0.5, 9.5]], '1');
+      FG.poly(g, [[2.5, 6.5], [7.5, 6.5], [7.5, 9.5], [2.5, 9.5]], '1');
+      FG.poly(g, [[7.5, 7.5], [11.5, 7.5], [11.5, 9.5], [7.5, 9.5]], '1');
+      FG.poly(g, [[4.5, 9.5], [6, 9.5], [5.5, 12.5], [4, 12.5]], '1');
+      FG.line(g, 3.5, 5.5, 6.5, 5.5, 1, '1');
+      g = FG.volume(g, '1', 'iron');
+      // the barrel out of the jacket, holes along the jacket, a sight on it
+      for (let x = 11; x <= 13; x++) FG.put(g, x, 8, x === 13 ? 'x' : 's');
+      for (const x of [8, 10]) FG.put(g, x, 8, 'K');
+      FG.put(g, 10, 7, 'z');
+      // the belt of gold rounds hanging off it
+      for (let q = 0; q < 4; q++) FG.put(g, 3 - (q >> 1), 10 + q, q % 2 ? 'o' : 'y');
+      g = FG.outline(g);
+      if (fire) for (const [x, y, c] of [[14, 8, 'w'], [15, 8, 'Y'], [14, 7, 'Y'], [14, 9, 'Y'], [15, 6, 'y'], [15, 10, 'y']]) FG.put(g, x, y, c);
+      if (i >= 2) g = g.map((r) => r.slice().reverse());
       return g;
     }],
     // Laser Eyes Totem: a carved stone post with a face, its eyes dark (0) or burning
@@ -11881,6 +12007,8 @@ const SquadView = (() => {
   // the chest's Send It icon is the stunt cannon itself, going off (engine 20); drawn
   // when it is first asked for, since the forge needs the helpers further down
   Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
+  // and Diamond Hands' is its hand of diamond, waiting (engine 21)
+  Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
   // frame `i` of an effect, painted once and kept
   function fxFrame(id, i) {
     const key = id + ':' + i;
@@ -12064,9 +12192,13 @@ const SquadView = (() => {
         return e.res === 'absorb' ? 'The crash pops ' + d + "'s bubble." : 'The crash singes ' + d + ': -' + e.dmg + '.';
       case 'claim':
         return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
-      // the Green Candle's rider (engine 19)
+      // the Green Candle's rider (engine 19), and the Diamond Hand's (engine 21)
       case 'ride':
-        return u + ' climbs onto the Green Candle.';
+        return e.id === 'diamond' ? u + ' climbs into the Diamond Hand: up goes a diamond tower, machine gun and all.' : u + ' climbs onto the Green Candle.';
+      case 'spray':
+        return u + "'s machine gun sprays " + d + '! (' + (e.left ? e.left + (e.left === 1 ? ' burst' : ' bursts') + ' left)' : 'its last burst)');
+      case 'bullet':
+        return e.res === 'absorb' ? 'A bullet pops ' + d + "'s bubble." : d + ' takes a bullet: -' + e.dmg + '.';
       case 'grow':
         return 'PUMP! The Green Candle is ' + e.size + (e.size === 1 ? ' block' : ' blocks') + ' high.';
       case 'moon':
@@ -12148,6 +12280,7 @@ const SquadView = (() => {
       case 'prophit':
         return u + ' hits the ' + nameOf('ev', e.id) + ' for ' + e.dmg + '.';
       case 'propdown':
+        if (e.id === 'diamond') return e.empty ? 'Out of ammo: the diamond tower crumbles and ' + u + ' climbs down.' : 'Its gunner is out: the diamond tower shatters.';
         return e.dump ? 'Its rider is out: the Green Candle dumps.' : 'The ' + nameOf('ev', e.id) + ' comes down!';
       case 'airdrop':
         return 'AIRDROP! A crate comes down for ' + lb(e.team) + "'s weakest Blub.";
@@ -13188,6 +13321,9 @@ const SquadView = (() => {
     // the Green Candle's rider (engine 19): the hop up onto it (on top at rideHit), and
     // TO THE MOON: a crouch, off up out of sight, a beat of sky, and down at moonHit
     ride: 1000, rideHit: 620, moon: 2700, moonHit: 1650,
+    // the Diamond Hand (engine 21): into the palm at dhop, a block of the tower every
+    // dblock, the gun after; and a burst of its gun, a round every sprayGap from sprayHit
+    dhop: 500, dblock: 220, dride: 2100, spray: 720, sprayHit: 260, sprayGap: 110,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
@@ -13333,6 +13469,12 @@ const SquadView = (() => {
             attachTo(p, i);
             return;
           }
+          // the Diamond Hand's bullets, one after another in its burst (engine 21)
+          if (t === 'bullet' && p.kind === 'spray') {
+            p.list.push({ ei: i, off: MS.sprayHit + p.nb * MS.sprayGap });
+            p.nb++;
+            return;
+          }
           // the trench kit: shell and mine hits ride on the blast that caused them
           if ((t === 'shell' && p.kind === 'blast') || (t === 'mine' && p.kind === 'boom')) {
             p.list.push({ ei: i, off: p.contact + (t === 'shell' ? MS.shellHit - MS.blastHit : 0) });
@@ -13439,8 +13581,14 @@ const SquadView = (() => {
         // (the event itself at the start: its scene runs from there, the Blub hidden in
         // the air till it lands; the slams ride on the landing)
         if (t === 'ride') {
-          parent = add({ kind: 'ride', dur: MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          parent = add({ kind: 'ride', dur: e.id === 'diamond' ? MS.dride : MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           pos[e.u] = e.at.slice();
+          return;
+        }
+        // the Diamond Hand's gun (engine 21): its bullets ride on the burst, one after
+        // another
+        if (t === 'spray') {
+          parent = add({ kind: 'spray', dur: MS.spray + (e.n - 1) * MS.sprayGap, contact: MS.sprayHit, list: [{ ei: i, off: 0 }], e, actors: [e.u], nb: 0 });
           return;
         }
         if (t === 'moon') {
@@ -13782,6 +13930,7 @@ const SquadView = (() => {
       case 'cannonball':
       case 'slam':
       case 'singed':
+      case 'bullet':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
@@ -14260,12 +14409,40 @@ const SquadView = (() => {
     if (lift < 0) lift = liftAt(rx, ry);
     // up on a Green Candle (engine 19): on top of its body, rising with it
     const cdl = !moving && candleOf(u);
-    if (cdl) lift += candleLift(cdl, t);
+    if (cdl) lift += cdl.id === 'diamond' ? diamondLift(cdl, t) : candleLift(cdl, t);
     const gy = Math.round(TOP + sy * TILE + 14);
     return { sx, sy, rx, ry, moving, x: Math.round(sx * TILE), y: gy - lift, gy, lift, hop: Math.round(hop), sq };
   }
-  // the Green Candle a Blub rides (engine 19), while it stands
+  // the Green Candle a Blub rides (engine 19), or the Diamond Hand it sits in (engine
+  // 21), while it stands
   const candleOf = (u) => (P.S && P.S.props && P.S.props.find((p) => p.rider === u.id && !p.down)) || null;
+  // the Diamond Hand (engine 21): how many blocks of its tower stand by now (it builds
+  // them one after another once its Blub is in), whether it still waits open, and how
+  // high its Blub sits: 3 in the palm, 5 more a block, eased up as each block comes in
+  function diamondBlocks(p, t) {
+    if (P.calm || p.buildT0 == null) return 3;
+    if (t < p.buildT0) return 0;
+    return Math.min(3, 1 + Math.floor((t - p.buildT0) / p.blk));
+  }
+  const handOpen = (p, t) => p.rider < 0 || (!P.calm && p.inT != null && t < p.inT);
+  function diamondLift(p, t) {
+    const n = diamondBlocks(p, t);
+    if (P.calm || p.buildT0 == null || !n) return 3 + 5 * n;
+    const g = clamp((t - p.buildT0 - (n - 1) * p.blk) / (120 * (p.k || 1)), 0, 1);
+    return Math.round(3 + 5 * (n - 1) + 5 * g * g * (3 - 2 * g));
+  }
+  // its thumb across the front of the Blub it holds, and the machine gun in front of
+  // that Blub (dropping in once the tower is up; a flash at the muzzle on each round)
+  function drawHandFront(x, p, ox, oy, t) {
+    const [cx, cy] = tileC(p.x, p.y);
+    x.drawImage(fxFrame('diamond', 6 + diamondBlocks(p, t)), Math.round(cx - 16), cy + 6 - 29);
+    if (!P.calm && p.gunT != null && t < p.gunT) return;
+    const k = p.k || 1;
+    const drop = !P.calm && p.gunT != null && t - p.gunT < 180 * k ? Math.round((1 - (t - p.gunT) / (180 * k)) * 24) : 0;
+    const face = p.gunFace || 1;
+    const fire = !P.calm && (p.fireT || []).some((ft) => t >= ft && t < ft + 50 * k);
+    x.drawImage(fxFrame('mgun', (face < 0 ? 2 : 0) + (fire ? 1 : 0)), Math.round(ox + (face < 0 ? -6 : 6)), Math.round(oy + 9 - drop));
+  }
   // how high its rider stands: on top of the body, 6 + 4 a block plus its foot, eased up
   // over the block's own beat
   function candleLift(p, t) {
@@ -14488,6 +14665,13 @@ const SquadView = (() => {
     // idle bob, staggered per unit
     if (!P.calm && !p.moving && !pose && !extra && u.alive && !u.st.frozen) oy += (Math.floor(now / 520) + u.id) % 4 === 0 ? 1 : 0;
     u._b = { ox, oy, fx: p.x + 8, fy: p.y, rx: p.rx, ry: p.ry, hop: p.hop + extra, lift: p.lift, sink };
+    // up in the Diamond Hand (engine 21): its tower and the hand's back go under it
+    const held = candleOf(u);
+    const inHand = !!held && held.id === 'diamond' && !handOpen(held, t);
+    if (inHand) {
+      const [hcx, hcy] = tileC(held.x, held.y);
+      x.drawImage(fxFrame('diamond', 2 + diamondBlocks(held, t)), Math.round(hcx - 16), hcy + 6 - 29);
+    }
     drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
     const S = P.spr[u.id];
     const spr = S.get(u.face, moodOf(u, t, now));
@@ -14498,7 +14682,10 @@ const SquadView = (() => {
       const sw = Math.round(2 * p.sq);
       x.drawImage(img, off, off, 16, 20, ox - sw, oy + sw * 2 - 0, 16 + sw * 2, 20 - sw * 2);
     } else x.drawImage(img, off, off, 16, 20, ox, oy, 16, 20);
-    drawWeapon(x, u, ox, oy, pose, t);
+    // up in the Diamond Hand: the bowl's rim over its feet, and the gun in its paws
+    // instead of its own weapon
+    if (inHand) drawHandFront(x, held, ox, oy, t);
+    else drawWeapon(x, u, ox, oy, pose, t);
     // lasting looks
     if (u.st.feather) {
       const k = Math.floor(now / 200) & 1;
@@ -14550,15 +14737,7 @@ const SquadView = (() => {
         for (let q = 1; q <= 10; q++) x.fillRect(ox + (d > 0 ? 11 + q : 4 - q), oy + 9 + (q >> 2), 1, 1);
       }
     }
-    // Diamond Hands: a glint on everyone it holds in place
-    const dia = owns('diamond');
-    if (dia && !P.calm && Math.max(Math.abs(u.x - dia.x), Math.abs(u.y - dia.y)) <= SE.RULES.diamondRange && (Math.floor(now / 300) + u.id) % 4 === 0) {
-      x.fillStyle = '#BDE7FF';
-      x.fillRect(ox + 1, oy + 3, 3, 1);
-      x.fillRect(ox + 2, oy + 2, 1, 3);
-      x.fillStyle = '#FFFFFF';
-      x.fillRect(ox + 2, oy + 3, 1, 1);
-    }
+
     // Copium: low on HP near the tank, it breathes the stuff in, green puffs
     const cop = owns('copium');
     if (cop && u.hp * 100 < u.max * SE.RULES.copiumAt && Math.max(Math.abs(u.x - cop.x), Math.abs(u.y - cop.y)) <= SE.RULES.copiumRange) {
@@ -16029,7 +16208,12 @@ const SquadView = (() => {
         }
         x.globalAlpha = 1;
       }
-    } else if (id === 'diamond') fr = blink;
+    } else if (id === 'diamond') {
+      // holding its Blub, the hand and its tower are drawn with that Blub (under it and
+      // over its feet), so the Blub sits in it
+      if (!handOpen(p, t)) return;
+      fr = blink;
+    }
     else if (id === 'laser') fr = p.team >= 0 ? 1 : 0;
     else if (id === 'ape') fr = P.calm ? 0 : Math.floor(now / 260) % 2;
     const sz = FX_ART[id][1];
@@ -18037,6 +18221,46 @@ const SquadView = (() => {
         const face = cx > fx0 ? 1 : cx < fx0 ? -1 : u.face || 1;
         u.face = face;
         const spr = P.spr[u.id].get(face, 'h');
+        // into the Diamond Hand (engine 21): a hop into the open palm (or, when the hand
+        // picked it, lifted over in a column of light), HODL!, its thumb closes round
+        // it, three blocks of diamond slam in under it one after another, lifting it,
+        // and the machine gun drops onto it: LOCKED & LOADED
+        if (e.id === 'diamond') {
+          const p = S.props.find((v) => v.id === 'diamond');
+          const IN = MS.dhop * k;
+          const palm = cy + 6 - 3;
+          u.air = [T, T + IN + 20 * k];
+          if (far) addFx(T, IN + 240 * k, (x, kk) => ditherRect(x, cx - 5, TOP, 11, Math.max(0, palm - TOP), '#BDE7FF', 0.4 * (1 - kk * kk)), true);
+          addFx(T, IN, (x, kk) => {
+            const q = kk * kk * (3 - 2 * kk);
+            x.drawImage(spr, Math.round(lerp(fx0, cx, q) - 8), Math.round(lerp(fy0 + 6, palm, q) - Math.sin(Math.PI * kk) * (far ? 46 : 20) - 19));
+          });
+          const B0 = T + IN + 150 * k;
+          if (p) {
+            p.k = k;
+            p.inT = T + IN;
+            p.buildT0 = B0;
+            p.blk = MS.dblock * k;
+            p.gunT = B0 + 3 * p.blk + 100 * k;
+            p.gunFace = scr(p.x, p.y)[0] < N / 2 ? 1 : -1;
+            p.fireT = [];
+          }
+          atClock(T + IN, () => sfx('gem'));
+          label(T + IN, 'HODL!', '#BDE7FF', cx, cy - 30, true, 2);
+          addParts(12, cx, cy - 4, ['#BDE7FF', '#FFFFFF', '#86CBF3'], 0.07, 0.0003, 520 * k, T + IN, true);
+          u.hop = { kind: 'toss', t0: T + IN, dur: 200 * k, h: 3 };
+          for (let n = 0; n < 3; n++) {
+            const bt = B0 + n * MS.dblock * k;
+            atClock(bt, () => sfx('dig'));
+            addParts(7, cx + (n % 2 ? 9 : -9), cy + 4 - 5 * n, ['#E8F6FF', '#BDE7FF', '#FFFFFF'], 0.06, 0.0002, 340 * k, bt, false);
+            ringFx(bt, cx, cy + 3 - 5 * n, 260 * k, '#BDE7FF', 6, 13, false, 0.4);
+          }
+          const G = B0 + 3 * MS.dblock * k + 100 * k + 180 * k;
+          atClock(G, () => sfx('reload'));
+          shake(G);
+          label(G, 'LOCK N LOAD', '#FFD447', cx, cy - 48, true);
+          return;
+        }
         const top = cy + 6 - 13;
         if (far) addFx(T, H + 240 * k, (x, kk) => ditherRect(x, cx - 5, TOP, 11, Math.max(0, top - TOP), '#9FE3A8', 0.4 * (1 - kk * kk)), true);
         addFx(T, H, (x, kk) => {
@@ -18156,6 +18380,45 @@ const SquadView = (() => {
         u.hop = { kind: 'toss', t0: I, dur: 240 * k, h: 4 };
         return;
       }
+      // the Diamond Hand's machine gun (engine 21): it swings round to the Blub it picked
+      // and lets go a burst, RATATAT, a flash at the muzzle and a tracer for every round
+      // and the spent cases jumping out of it; each bullet's hit rides on its own round
+      case 'spray': {
+        const u = U[e.u];
+        const d = U[e.d];
+        const p = S.props.find((v) => v.id === 'diamond');
+        const [gx, gy] = centreOf(u);
+        const [tx] = centreOf(d);
+        const face = tx < gx ? -1 : 1;
+        if (p) {
+          p.gunFace = face;
+          p.fireT = p.fireT || [];
+        }
+        label(T + 60 * k, 'RATATAT', '#FFD447', gx, gy - 26, false);
+        for (let s = 0; s < e.n; s++) {
+          const st = T + (MS.sprayHit + s * MS.sprayGap) * k;
+          if (p) p.fireT.push(st);
+          atClock(st, () => sfx('shot'));
+          gunShot(st, u, d, [-2, 2, 0][s % 3], [1, -1, 0][s % 3], k, false);
+          addParts(1, gx - face * 3, gy - 2, ['#FFD447'], 0.07, 0.0006, 420 * k, st, false, face > 0 ? [Math.PI * 1.05, Math.PI * 1.35] : [Math.PI * 1.65, Math.PI * 1.95]);
+        }
+        shake(T + MS.sprayHit * k);
+        return;
+      }
+      // a round of it, on the Blub it sprays
+      case 'bullet': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') {
+          label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
+          return;
+        }
+        d.hurt = T;
+        d.flash = T;
+        label(T, String(e.dmg), '#E8F6FF', dx + ((e.hp % 3) - 1) * 5, dy - 14, false);
+        addParts(4, dx, dy - 4, ['#BDE7FF', '#FFFFFF', '#FFD447'], 0.05, 0.0003, 280 * k, T, false);
+        return;
+      }
       // what the landing does to the Blubs beside it
       case 'slam': {
         const d = U[e.d];
@@ -18216,6 +18479,18 @@ const SquadView = (() => {
         } else if (e.id === 'candle') {
           addParts(20, cx, cy - 14, ['#4FB36B', '#2F7D46', '#9FE3A8', '#1B1229'], 0.09, 0.0006, 760 * k, T, true);
           label(T, 'CANDLE DOWN', '#E2566E', cx, cy - 30, true);
+        } else if (e.id === 'diamond') {
+          // the diamond tower (engine 21): its gunner out, it shatters into shards; out of
+          // ammo, the gun clicks and the tower crumbles a block at a time and its Blub
+          // drops to the floor
+          addFx(T, 520 * k, (x, kk) => {
+            const n = Math.max(0, 3 - Math.floor(kk * 4));
+            const jig = P.calm ? 0 : Math.floor(kk * 20) % 2;
+            x.drawImage(fxFrame('diamond', 2 + n), Math.round(cx - 16 + jig), cy + 6 - 29 + Math.round(kk * 3));
+          });
+          addParts(e.empty ? 18 : 30, cx, cy - 12, ['#BDE7FF', '#E8F6FF', '#86CBF3', '#FFFFFF', '#3E86C9'], e.empty ? 0.07 : 0.13, 0.0006, 820 * k, T, true);
+          label(T, e.empty ? 'OUT OF AMMO' : 'SHATTERED', e.empty ? '#C9C9D6' : '#BDE7FF', cx, cy - 34, true, e.empty ? 1 : 2);
+          if (e.empty && e.u != null) U[e.u].hop = { kind: 'fall', t0: T, dur: 380 * k, h: 18 };
         } else {
           addParts(10, cx, cy - 4, ['#D9A05B', '#8C5A2B'], 0.06, 0.0005, 520 * k, T, true);
           label(T, 'IT WAS CARDBOARD', '#D9A05B', cx, cy - 30, true);
@@ -20049,7 +20324,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -21344,7 +21619,7 @@ const SquadView = (() => {
         lambo: `The first Blub in floors it: whoever it hits is knocked out, and the crash singes those beside for ${R.lamboBang}.`,
         sendit: `A stunt cannon each side: it fires its Blub at the enemy in the back, ${R.sendDmg} damage.`,
         candle: `A Blub rides it up: +${R.candleDmg} damage a block. At the top, TO THE MOON: ${R.candleSlam} damage where it lands.`,
-        diamond: `Claim it: your Blubs near it can't be frozen, knocked or shoved.`,
+        diamond: `Your Blub climbs into the diamond hand: a tower with a machine gun, ${R.diamondShots}x${R.diamondDmg} a turn.`,
         laser: `Claim it: your nearest Blub gets +${R.laserRange} reach and +${R.laserDmg} damage.`,
         copium: `Claim it: your hurt Blubs near it take ${R.copiumSoak}% less.`,
         ape: `Claim it: +${R.apeDmg} damage for every Blub beside a team mate.`,
@@ -22226,22 +22501,40 @@ const SquadView = (() => {
         cxText(x, '-' + SE.RULES.candleSlam, '#FFD447', 12, 26);
       }
     },
+    // engine 21: a Blub hops into the hand of diamond, three blocks slam in under it, the
+    // machine gun drops on, and it sprays the enemy across the way
     diamond(x, t) {
-      blob(x, 46, 58, 9, 2, colors.you.fill, 0.6);
-      x.drawImage(fxFrame('diamond', Math.floor(t / 500) % 2), 46 - 16, 58 - 29);
-      cxBlub(x, 18, 52, 1, 'n', 0);
-      // a freeze bolt coming in and glancing off
-      if (t > 900 && t < 1500) {
-        const k = ease(t, 900, 1300);
-        x.fillStyle = '#86CBF3';
-        x.fillRect(Math.round(lerp(-4, 14, k)), 44, 4, 2);
-        if (t > 1300) cxText(x, 'NOPE', '#BDE7FF', 18, 26);
+      const hx = 22;
+      const hy = 64;
+      const B = codexBlub();
+      const n = t < 520 ? 0 : Math.min(3, 1 + Math.floor((t - 520) / 180));
+      blob(x, hx, hy - 2, 11, 2, colors.you.fill, 0.6);
+      if (t < 380) x.drawImage(fxFrame('diamond', Math.floor(t / 190) % 2), hx - 16, hy - 6 - 29 + 6);
+      else x.drawImage(fxFrame('diamond', 2 + n), hx - 16, hy - 29);
+      // the enemy across the way
+      const ex = 58;
+      const ey = 30;
+      const hit = (s) => t >= 1300 + s * 110 && t < 1300 + s * 110 + 90;
+      cxBlub(x, ex, ey, -1, t > 1300 && t < 2000 ? 'o' : 'n', [0, 1, 2].some(hit) ? 1 : 0);
+      if (t < 380) {
+        const k = ease(t, 0, 380);
+        x.drawImage(B.get(1, 'h'), Math.round(lerp(2, hx, k) - 8), Math.round(lerp(hy - 6, hy - 8, k) - Math.sin(Math.PI * k) * 16 - 19));
+        return;
       }
-      if (Math.floor(t / 300) % 4 === 0) {
-        x.fillStyle = '#FFFFFF';
-        x.fillRect(11, 40, 3, 1);
-        x.fillRect(12, 39, 1, 3);
+      const feet = hy - 8 - 5 * n;
+      x.drawImage(B.get(1, t > 1300 && t < 1700 ? 'o' : 'h'), hx - 8, feet - 19);
+      x.drawImage(fxFrame('diamond', 6 + n), hx - 16, hy - 29);
+      if (t > 1100) {
+        const drop = t < 1250 ? Math.round((1 - ease(t, 1100, 1250)) * 18) : 0;
+        x.drawImage(fxFrame('mgun', [0, 1, 2].some(hit) ? 1 : 0), hx - 4, feet - 15 - drop);
       }
+      for (let s = 0; s < 3; s++) {
+        if (!hit(s)) continue;
+        x.fillStyle = '#FFF3B0';
+        for (let q = 0; q < 14; q++) x.fillRect(Math.round(lerp(hx + 12, ex - 4, q / 14)), Math.round(lerp(feet - 7, ey - 2, q / 14)), 1, 1);
+      }
+      if (t < 1000) cxText(x, 'HODL', '#BDE7FF', 36, 2);
+      else if (t > 1300 && t < 2200) cxText(x, '-2 -2 -2', '#E8F6FF', 46, 2);
     },
     laser(x, t) {
       blob(x, 50, 58, 9, 2, colors.you.fill, 0.6);
