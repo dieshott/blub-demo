@@ -2147,7 +2147,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · engine 17: the weekly league plays itself, 5 matches a day</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">95f4270 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -3783,12 +3783,15 @@ const API = (() => {
     // the weekly league: this week (one URL), or one of the five weeks before
     league: () => call('GET', 'league'),
     leagueWeek: week => call('GET', 'league/' + week),
+    // one group's day: its squads and matches ('<division>.<group>.<day>')
+    leagueDay: (week, field) => call('GET', 'league/' + week + '/' + field),
     // friend leagues (lib/friends.mjs): your codes, one league, make, join, leave
     friendsMine: () => call('GET', 'friends'),
     friends: code => call('GET', 'friends/' + code),
     friendsMake: name => call('POST', 'friends', {name}),
     friendsJoin: code => call('POST', 'friends/' + code + '/join', {}),
     friendsLeave: code => call('POST', 'friends/' + code + '/leave', {}),
+    friendsDay: (code, week, day) => call('GET', 'friends/' + code + '/' + week + '.' + day),
   };
 })();
 const LS = 'blub-weiland-v1';
@@ -5720,6 +5723,8 @@ const SquadNet = {
   // the weekly league (lib/league.mjs): null in the demo, which has no server
   league: DEMO ? null : () => API.league(),
   leagueWeek: DEMO ? null : week => API.leagueWeek(week),
+  // a group's day of the league (its squads, teams and matches); null while not played
+  leagueDay: DEMO ? null : (week, field) => notPlayed(API.leagueDay(week, field)),
   // your rank this week (the hall: when it changes): its badge on the header's wallet button
   onRank: (d, badge, name) => Wallet.rank(d, badge, name),
   // friend leagues (lib/friends.mjs): null in the demo, which has no server
@@ -5730,6 +5735,8 @@ const SquadNet = {
     join: code => API.friendsJoin(code),
     leave: code => API.friendsLeave(code),
     link: code => location.origin + location.pathname + '#friends=' + code,
+    // a league's day (its squads, teams and matches); null while not played
+    day: (code, week, day) => notPlayed(API.friendsDay(code, week, day)),
   },
   watch(){},
   get: async id => (await API.duel(id)).duel,
@@ -5754,6 +5761,8 @@ const SquadNet = {
   },
 };
 let renameJob = Promise.resolve(), renameAt = 0, profileJob = Promise.resolve();
+// a league's day that is not played yet answers 404: null
+function notPlayed(p){ return p.catch(e => { if (e && e.status === 404) return null; throw e; }); }
 // the profile name rides along with the team: the same save, the same cooldown
 async function setProfile(name){
   const nm = cleanName(name);
@@ -9576,6 +9585,24 @@ function leagueSeed(week, group, round, a, b) {
   return subSeed(h ^ Math.imul((group | 0) + 1, 0x9e3779b1), round * 64 + Math.min(a, b), 7 + Math.max(a, b));
 }
 
+// a group's number in the seeds of the server's league: its rank and its place in the rank
+const leagueGroup = (d, g) => d * 1000 + g;
+// a friend league's number in the seeds: its code decides it (always past the ranks'
+// groups, which are division * 1000 + group)
+function friendGroup(code) {
+  let h = 0x811c9dc5;
+  for (const ch of String(code)) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193);
+  return 1000000 + ((h >>> 0) % 1000000000);
+}
+
+// a bot of the weekly league plays the same squad all week: its id and the week decide
+// it (the server's daily job and the page's replays work it out alike)
+function leagueBotSquad(week, id) {
+  let h = 0x811c9dc5;
+  for (const ch of String(id)) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193);
+  return randomSquad(rng(leagueSeed(week, 0, 97, 0, 1) ^ h));
+}
+
 // ---- bots: a sensible random squad (front line in front, shooters behind)
 function randomSquad(r) {
   const pick = (list) => list[Math.floor(r() * list.length)][0];
@@ -9747,7 +9774,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -24054,8 +24081,8 @@ const SquadHall = (() => {
     const big = divBadge(res.next, 96);
     R.mBody.append(h('div', {class: 'sq-moment' + (up ? ' up' : down ? ' down' : '')}, ...(up ? [h('span', {class: 'sq-confetti', 'aria-hidden': 'true'})] : []), big),
       h('p', {class: 'sq-desc sq-momtx'}, 'You finished #' + res.rank + ' of ' + res.n + ' in ' + DIVS[res.d - 1] + '. ' +
-        (up ? (two ? 'Winning the group moves you up two steps.' : 'The top fifth of a group moves up a step.') : down ? 'The bottom fifth moves down a step: win a few duels this week and you climb back.' : 'Finish in the top fifth this week to move up.')));
-    act('Play a duel', 'gold', () => { closeModal(); reveal(R.chal || R.root); });
+        (up ? (two ? 'Winning the group moves you up two steps.' : 'The top fifth of a group moves up a step.') : down ? 'The bottom fifth moves down a step: sharpen your strategy and you climb back.' : 'Finish in the top fifth this week to move up.')));
+    act('Your strategy', 'gold', () => { closeModal(); location.hash = 'team'; });
     if (R.kroot) act('See the rankings', '', () => { closeModal(); reveal(R.lgP); });
     st.modal = 'week'; openModal();
     Sfx.play(up ? 'win' : 'bell');
@@ -24362,6 +24389,99 @@ const SquadHall = (() => {
       badges: side ? [null, rk ? divBadge(rk, 24) : null] : [rk ? divBadge(rk, 24) : null, null]});
   }
   const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  /* ---------------------------------------------------------------
+     a day of the server's leagues (lib/leagueday.mjs): one group's or one friend
+     league's places, the squads and teams of that morning, and its matches. Asked once
+     (a played day never changes: the CDN keeps it a day); any match then plays again in
+     the arena view, the same squads and the same seed.
+     --------------------------------------------------------------- */
+  const dayCache = new Map();
+  const STAND_IN = () => ({name: 'Blub', look: {...DEF}, style: 'playful'});
+  function cleanDay(d){
+    if (!d || typeof d !== 'object' || !Array.isArray(d.ids) || !Array.isArray(d.r)) return null;
+    const ids = d.ids.slice(0, E.LEAGUE_GROUP).map(x => (typeof x === 'string' && (ID_OK.test(x) || BOT_RE.test(x)) ? x : ''));
+    const n = ids.length, at = s => { const k = Number(s); return Number.isInteger(k) && k >= 0 && k < n && ids[k] && !BOT_RE.test(ids[k]) ? k : -1; };
+    const sq = {}, t = {};
+    for (const [s, q] of Object.entries(d.sq && typeof d.sq === 'object' ? d.sq : {})){ const k = at(s), c = k >= 0 ? E.cleanSquad(q) : null; if (c) sq[k] = c; }
+    for (const [s, list] of Object.entries(d.t && typeof d.t === 'object' ? d.t : {})){ const k = at(s); if (k >= 0 && Array.isArray(list) && list.length === 5) t[k] = cleanTeam(list, cleanFace(list[0]) || STAND_IN()); }
+    const r = d.r.slice(0, 1200).filter(x => Array.isArray(x) && x.length === 4 && x.every(Number.isInteger) && x[0] >= 0 && x[1] >= 0 && x[1] < n && x[2] >= 0 && x[2] < n && x[1] !== x[2] && (x[3] === 0 || x[3] === 1));
+    return {ids, sq, t, r, e: Number.isInteger(d.e) ? d.e : 0};
+  }
+  // a day's record: undefined while it loads, null while it is not played (then asked
+  // again after two minutes)
+  function dayOf(key, ask){
+    const c = dayCache.get(key);
+    if (c && (c.loading || c.data || Date.now() - c.at < 120000)) return c.loading ? undefined : c.data;
+    const e = {loading: true, data: null, at: 0};
+    dayCache.set(key, e);
+    Promise.resolve().then(ask).then(d => { e.data = cleanDay(d); }, () => { e.data = null; })
+      .finally(() => { e.loading = false; e.at = Date.now(); renderLeague(); renderFriends(); });
+    return undefined;
+  }
+  // a bot's team of five: its face from its number and four team mates, the same every time
+  function leagueBotTeam(id){
+    const f = botFace(id);
+    if (!f) return null;
+    const r = E.rng(7919 * Number(id.slice(4)) + 29), STY = ['fierce', 'sleepy', 'playful', 'sweet', 'cheeky'];
+    return [{name: f.name, look: f.look, style: f.style}, ...pickNames(r, 4, []).map(k => ({name: E.RECRUIT_NAMES[k], look: freeLook(r), style: STY[Math.floor(r() * STY.length)]}))];
+  }
+  // one place of a day as the arena shows it: its name, its team of five and its squad
+  function daySide(D, s, week){
+    const id = D.ids[s], bot = BOT_RE.test(id), w = bot ? null : SquadNet.who(id);
+    const faces = (bot ? leagueBotTeam(id) : D.t[s]) || cleanTeam(null, cleanFace(w) || STAND_IN());
+    return {label: (w && cleanName(w.player)) || faces[0].name, names: faces.map(f => f.name), looks: faces.map(f => f.look), style: faces[0].style,
+      squad: bot ? E.leagueBotSquad(week, id) : D.sq[s] || null};
+  }
+  // your matches of a day, each with how it went and a Watch button (the day's key: the
+  // group's or the friend league's number in the seeds)
+  function dayGames(D, me, week, key, title){
+    const s = me ? D.ids.indexOf(me) : -1;
+    const games = s < 0 ? [] : D.r.filter(x => x[1] === s || x[2] === s);
+    if (!games.length) return null;
+    const ul = h('ul', {class: 'lg-games'});
+    let won = 0;
+    games.forEach(([k, a, b, w]) => {
+      const win = (w === 0 ? a : b) === s, foe = daySide(D, a === s ? b : a, week);
+      if (win) won++;
+      const can = D.e === E.SQUAD_ENGINE && foe.squad && D.sq[s];
+      ul.append(h('li', {class: win ? 'won' : 'lost'}, face(foe.looks[0], foe.style, 1), h('span', null, 'vs ' + foe.label), h('b', null, win ? 'Won · +3' : 'Lost · +1'),
+        can ? button('Watch', '', () => watchDay(D, week, key, [k, a, b], s, title + ' · vs ' + foe.label), {'data-k': 'ldw' + key + '.' + k + '.' + a}) : h('span')));
+    });
+    return {ul, won, n: games.length};
+  }
+  function watchDay(D, week, key, [k, a, b], me, title){
+    const team = s => { const x = daySide(D, s, week); return {label: x.label, names: x.names, looks: x.looks, squad: x.squad}; };
+    const rk = s => (BOT_RE.test(D.ids[s]) ? 0 : rankOf(D.ids[s]));
+    theater({kind: 'league', title, teams: [team(a), team(b)], viewer: me === a ? 0 : 1, seed: E.leagueSeed(week, key, k, a, b), bo: 1,
+      badges: [a, b].map(s => (rk(s) ? divBadge(rk(s), 24) : null))});
+  }
+  // today in your group of the weekly league (below your group's table)
+  function drawToday(L, g, me){
+    if (typeof SquadNet.leagueDay !== 'function' || !me) return;
+    const now = Date.now(), today = E.leagueDay(now), week = L.week, box = h('div', {class: 'lg-days'});
+    if (week === E.leagueWeek(now)){
+      const field = g.d + '.' + g.g + '.' + today;
+      const D = dayOf('lg/' + week + '/' + field, () => SquadNet.leagueDay(week, field));
+      const G = D ? dayGames(D, me, week, E.leagueGroup(g.d, g.g), 'League · ' + DAY_NAMES[today]) : null;
+      if (D === undefined) box.append(h('p', {class: 'sq-desc'}, 'Loading today’s matches…'));
+      else if (!D) box.append(h('p', {class: 'sq-desc'}, L.paused ? 'The league is paused: today’s matches wait until the moderators resume it.' : 'Today’s matches are played just after midnight UTC.'));
+      else if (G) box.append(h('p', {class: 'lg-dayh'}, h('b', null, 'Today, ' + DAY_NAMES[today]), h('span', null, G.won + ' won of ' + G.n)), G.ul);
+    }
+    box.append(h('p', {class: 'sq-desc'}, 'Every day just after midnight UTC your squad plays ' + E.LEAGUE_DAY + ' rounds against the others in your group, with the strategy you have active then; by Sunday you have met all ' + (E.LEAGUE_GROUP - 1) + '.'));
+    R.lgMe.after(box);
+    st.lgDays = box;
+  }
+  // today in a friend league you are in (in its card)
+  function frToday(L){
+    const now = Date.now(), today = E.leagueDay(now), week = E.leagueWeek(now), me = SquadNet.me(), box = h('div', {class: 'lg-days'});
+    if (L.members.length < 2){ box.append(h('p', {class: 'sq-desc'}, 'Invite a friend: the league plays as soon as it has two players.')); return box; }
+    const D = dayOf('fl/' + L.code + '/' + week + '.' + today, () => SquadNet.friends.day(L.code, week, today));
+    const G = D ? dayGames(D, me, week, E.friendGroup(L.code), L.name + ' · ' + DAY_NAMES[today]) : null;
+    if (D === undefined) box.append(h('p', {class: 'sq-desc'}, 'Loading today’s matches…'));
+    else if (G) box.append(h('p', {class: 'lg-dayh'}, h('b', null, 'Today, ' + DAY_NAMES[today]), h('span', null, G.won + ' won of ' + G.n)), G.ul);
+    else box.append(h('p', {class: 'sq-desc'}, D ? 'You joined after today’s matches: you play from tomorrow.' : 'Today’s matches are played just after midnight UTC.'));
+    return box;
+  }
   // the league is an add-on: whatever goes wrong drawing it, the rest of the hall carries on
   function renderLeague(){
     try { drawLeague(); renderRanks(); tellRank(); renderProfile(); } catch (e) { console.error(e); }
@@ -24419,19 +24539,23 @@ const SquadHall = (() => {
     }
     if (!SquadNet.ready()){ box.append(h('li', {class: 'sq-empty'}, 'Loading the league…')); return; }
     if (!L){ box.append(h('li', {class: 'sq-empty'}, st.leagueAt ? 'The league did not load. It tries again in a minute.' : 'Loading the league…')); return; }
-    R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), ...(L.paused ? [h('span', {class: 'lg-paused', title: 'Duels count for the season only until the moderators resume it'}, 'Paused')] : []), h('span', null, endsText(L.ends)));
-    if (L.paused) R.lgMe.append(h('span', null, 'The league is paused by the moderators: duels count for the season only for now.'));
+    R.lgWeek.append(h('b', null, 'Week ' + Number(L.week.slice(5))), ...(L.paused ? [h('span', {class: 'lg-paused', title: 'The daily matches wait until the moderators resume it'}, 'Paused')] : []), h('span', null, endsText(L.ends)));
+    if (L.paused) R.lgMe.append(h('span', null, 'The league is paused by the moderators: the daily matches wait.'));
     const g = groupIn(L, me);
-    if (g) return drawGroup(g, me, id => botFace(id) || SquadNet.who(id), L.week + me, was);
-    // not in this week's league yet
+    if (g){
+      drawGroup(g, me, id => botFace(id) || SquadNet.who(id), L.week + me, was);
+      drawToday(L, g, me);
+      return;
+    }
+    // not in this week's league
     const last = me ? weekResult(st.lastLeague, me) : null;
     if (last) R.lgMe.append(divBadge(last.next, 32), h('span', null, 'Last week: #' + last.rank + ' of ' + last.n + ' in ' + DIVS[last.d - 1] + (last.next > last.d ? '. Up to ' : last.next < last.d ? '. Down to ' : '. Staying in ') + DIVS[last.next - 1] + '.'));
-    else if (me) R.lgMe.append(h('span', null, 'Not in this week’s league yet.'));
+    else if (me) R.lgMe.append(h('span', null, 'Not in this week’s league: it is drawn every Monday from the teams saved in the last 14 days. Save your team and you play from next Monday.'));
     // signed out: how to join, and what signing in does
-    else R.lgMe.append(h('div', {class: 'sq-join'}, h('span', null, 'Connect your wallet to join the weekly league: from the next day on your squad plays ' + E.LEAGUE_DAY + ' matches every day, a win 3 points and a loss 1.'),
+    else R.lgMe.append(h('div', {class: 'sq-join'}, h('span', null, 'Connect your wallet and save your team to join the weekly league: from the next Monday your squad plays ' + E.LEAGUE_DAY + ' rounds every day, a win 3 points and a loss 1.'),
       button(SquadNet.signInLabel || 'Sign in', 'gold', () => SquadNet.signIn(JOIN_WHY), {'data-k': 'lgjoin'}), safeNote()));
     const players = L.groups.reduce((s, x) => s + x.m.length, 0);
-    box.append(h('li', {class: 'sq-empty'}, (me ? 'Your squad joins the league with the next day’s matches. ' : '') + (players ? players + ' Blub' + (players === 1 ? '' : 's') + ' in ' + L.groups.length + ' group' + (L.groups.length === 1 ? '' : 's') + ' this week.' : 'The league starts with the next day’s matches.')));
+    box.append(h('li', {class: 'sq-empty'}, (me && !last ? 'Your squad joins the league next Monday. ' : '') + (players ? players + ' Blub' + (players === 1 ? '' : 's') + ' in ' + L.groups.length + ' group' + (L.groups.length === 1 ? '' : 's') + ' this week.' : 'The groups are drawn every Monday just after midnight UTC.')));
   }
 
   // your profile on the rankings page: your captain, your wallet, the name the rankings show
@@ -24447,7 +24571,7 @@ const SquadHall = (() => {
     const rk = p && p.addr ? myRank() : 0, g = rk ? groupIn(st.league, p.addr) : null;
     R.profRank.textContent = ''; R.profRank.hidden = !rk;
     if (rk) R.profRank.append(divBadge(rk, 32), h('span', {class: 'sq-pfrk'}, h('b', null, DIVS[rk - 1]),
-      h('small', null, g ? 'Group ' + (g.g + 1) + ' · #' + (g.m.findIndex(m => m.id === p.addr) + 1) + ' this week' : 'Joins the league with the next day’s matches')));
+      h('small', null, g ? 'Group ' + (g.g + 1) + ' · #' + (g.m.findIndex(m => m.id === p.addr) + 1) + ' this week' : 'Joins the league next Monday')));
     R.profIn.disabled = !p;
     R.profGo.textContent = p ? 'Save' : SquadNet.signInLabel || 'Sign in';
     if (R.profSafe) R.profSafe.hidden = !!p;
@@ -24456,8 +24580,9 @@ const SquadHall = (() => {
   /* ---------------------------------------------------------------
      friend leagues (lib/friends.mjs; the owner, 12 Oct 2026): a league among friends,
      made by one of them and joined by code or link (#friends=<code>), up to 35 players.
-     Its table counts the rated duels between its members, a new one every Monday; a
-     wallet is in up to 3. SquadNet.friends is null where there is no server.
+     Every day just after midnight UTC its members' squads play 5 rounds against each
+     other (lib/leagueday.mjs), a new table every Monday; a wallet is in up to 3.
+     SquadNet.friends is null where there is no server.
      --------------------------------------------------------------- */
   const FR_ID = /^[a-hjkmnp-z2-9]{8}$/, FR_MAX = 3, FR_PLAYERS = 35;
   const frName = s => String(s || '').normalize('NFC').replace(/[^\p{L}\p{N} _.\-!']/gu, '').replace(/\s+/g, ' ').trim().slice(0, 24);
@@ -24536,7 +24661,7 @@ const SquadHall = (() => {
       const F = frState();
       R.frCode.value = ''; F.open = c;
       await loadFriends(true);
-      say(R.frMsg, 'You are in! Your rated duels with its players count here.', true); Sfx.play('bell');
+      say(R.frMsg, 'You are in! From tomorrow your squad plays its members every day.', true); Sfx.play('bell');
     } catch (e) { say(R.frMsg, (e && e.message) || 'Joining did not work. Try again.'); }
   }
   async function frLeave(code){
@@ -24570,13 +24695,13 @@ const SquadHall = (() => {
     const F = frState(), net = SquadNet.friends, box = R.frBody, me = SquadNet.me();
     box.textContent = '';
     R.frN.textContent = signedIn() && F.codes ? F.codes.length + ' of ' + FR_MAX : '';
-    const RULES = h('p', {class: 'sq-desc'}, 'Up to ' + FR_PLAYERS + ' players. Every rated duel between members counts: 3 points for a win, 1 for a loss, with a new table every Monday. It counts in the weekly league too, and anyone may play anyone, whatever their rank.');
+    const RULES = h('p', {class: 'sq-desc'}, 'Up to ' + FR_PLAYERS + ' players, whatever their rank. Every day just after midnight UTC your squads play ' + E.LEAGUE_DAY + ' rounds against each other, each with the strategy it has active then: 3 points for a win, 1 for a loss, with a new table every Monday.');
     if (!net || !SquadNet.ready()){
       box.append(h('p', {class: 'sq-desc sq-frlead'}, (SquadNet.demo ? 'Opens at launch. ' : !net ? 'This runs on the live site. ' : '') + 'Make a league with your friends: a table of your own, every week.'), RULES);
       return;
     }
     if (!signedIn()){
-      box.append(h('p', {class: 'sq-desc sq-frlead'}, 'Play your friends in a league of your own: send them a link, and your duels with each other fill your own table every week.'),
+      box.append(h('p', {class: 'sq-desc sq-frlead'}, 'Play your friends in a league of your own: send them a link, and every day your squads play each other for a table of your own.'),
         button(SquadNet.signInLabel || 'Sign in', 'gold', () => SquadNet.signIn('Connect your wallet to make or join a friend league.'), {'data-k': 'frsign'}), safeNote(), RULES);
     }
     else {
@@ -24602,6 +24727,7 @@ const SquadHall = (() => {
       const card = h('div', {class: 'sq-frcard'},
         h('div', {class: 'sq-frhead'}, h('b', null, L.name), h('span', null, (L.week ? 'Week ' + Number(L.week.slice(5)) + ' · ' : '') + (L.ends ? endsText(L.ends) : '') + ' · ' + L.members.length + '/' + FR_PLAYERS)),
         frTable(L));
+      if (mine && typeof net.day === 'function') card.append(frToday(L));
       const lw = L.last.table[0];
       if (lw && lw.p) card.append(h('p', {class: 'sq-desc'}, 'Last week: ' + frWho(lw.id) + ' won with ' + lw.p + ' points.'));
       if (mine){
