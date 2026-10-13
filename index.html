@@ -2190,7 +2190,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">b65c7e6 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">f6ac574 · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -5797,7 +5797,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 18;
+const SQUAD_ENGINE = 19;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5896,7 +5896,8 @@ const RULES = lock({
   // ---- the chest (EVENTS, BUFFS, NERFS): one spin a round, before anything moves.
   // How many events fall: whole percents, together 100.
   chestOne: 65, chestTwo: 30, chestThree: 5,
-  // Bonding Curve Nuke: the pill climbs its curve and graduates on `nukeTurn`.
+  // Bonding Curve Nuke: its shadow grows over the crowd while the pill climbs its curve,
+  // and on `nukeTurn` the pill graduates and comes down in it.
   nukeTurn: 5, nukeCore: 15, nukeRing: 6,
   nukeCrater: 2, nukeCraterTurns: 3, nukeRug: 10, // nukeRug% of the time the dev sold and nothing happens
   fudTurn: 3, fudRange: 2, fudMiss: 40, fudTurns: 2,
@@ -5906,9 +5907,17 @@ const RULES = lock({
   // Moon Rocket: lifts off on rocketTurn with a Blub of its own choosing, from
   // anywhere on the arena, and takes it to the moon: out of the round for good
   rocketTurn: 6,
-  lamboDmg: 6, lamboCrash: 3, lamboAt: 4, // Wen Lambo: on whoever it hits, else on the driver; by lamboAt a Blub gets the keys
+  // Wen Lambo (engine 19, the owner): a Blub it hits is knocked out on the spot, and the
+  // crash singes every other Blub beside it for lamboBang; hitting nobody, the driver
+  // takes lamboCrash. By lamboAt a Blub gets the keys.
+  lamboBang: 3, lamboCrash: 3, lamboAt: 4,
   sendHop: 4, sendSplash: 3, sendTake: 25, sendAt: 4, // Send It: tiles flown, damage beside the landing, extra damage taken that turn; by sendAt it flings a Blub
-  candleHp: 12, candleDmg: 1, candleMax: 5, // Green Candle: +candleDmg a block, a block a turn up to candleMax, falls at candleHp damage
+  // Green Candle (engine 19, the owner: a Blub rides it): the claimer's Blub beside it
+  // climbs on, and the candle pumps a block a turn up to candleMax, lifting it; its rider
+  // hits +candleDmg harder for every block. The turn after the top it goes to the moon:
+  // a leap of up to candleLeap tiles onto the enemy, candleSlam on every enemy beside
+  // the landing. Its rider knocked out or gone, the candle dumps.
+  candleDmg: 1, candleMax: 5, candleLeap: 6, candleSlam: 6,
   diamondRange: 3, // Diamond Hands: owner's Blubs this close cannot be moved, frozen or pushed back
   laserRange: 2, laserDmg: 1, laserDodge: 50, // Laser Eyes Totem: +laserRange reach, and it keeps only laserDodge% of its dodge
   copiumAt: 50, copiumRange: 2, copiumSoak: 35, // Copium Tank
@@ -6173,15 +6182,15 @@ const TERRAIN = lock([
 // contested ones wait on the centre line for the first squad to stand beside them.
 // [id, name, description]; the numbers live in RULES, the rest in EVENT_STATS.
 const EVENTS = lock([
-  ['nuke', 'Bonding Curve Nuke', `A pill climbs its bonding curve and graduates in turn ${RULES.nukeTurn}: ${RULES.nukeCore} damage on the 3x3 core and ${RULES.nukeRing} on the ring around it, then ${RULES.nukeCraterTurns} turns of crater that costs ${RULES.nukeCrater} a turn and stops every shot. ${RULES.nukeRug}% of the time the dev sold and nothing happens.`],
+  ['nuke', 'Bonding Curve Nuke', `A shadow grows over the arena, turn by turn, following the crowd. In turn ${RULES.nukeTurn} the pill graduates and comes down in it: ${RULES.nukeCore} damage on the 3x3 core and ${RULES.nukeRing} on the ring around it, then ${RULES.nukeCraterTurns} turns of crater that costs ${RULES.nukeCrater} a turn and stops every shot. ${RULES.nukeRug}% of the time the dev sold and nothing comes down.`],
   ['fud', 'FUD Cloud', `Rolls in on turn ${RULES.fudTurn}: for ${RULES.fudTurns} turns every Blub within ${RULES.fudRange} tiles misses ${RULES.fudMiss}% more often.`],
   ['rug', 'Rug Pull', `The tile drops away under the first Blub that steps on it: ${RULES.rugTurns} turns out of the fight, then back on its start tile. Hidden until it goes off.`],
   ['honeypot', 'Honeypot', `Glitters exactly like a power-up. Whoever grabs it cannot attack for ${RULES.honeyTurns} turn${RULES.honeyTurns === 1 ? '' : 's'}. Hidden until it goes off.`],
   ['whale', 'Whale', `Turn ${RULES.whaleTurn}: a wave shoves every Blub ${RULES.whalePush} tiles back towards its own side.`],
   ['rocket', 'Moon Rocket', `Lifts off in turn ${RULES.rocketTurn}, swoops down for a Blub of its own choosing, anywhere on the arena, and takes it to the moon. That Blub never comes back.`],
-  ['lambo', 'Wen Lambo', `The first Blub to climb in drives straight on until it hits something: ${RULES.lamboDmg} damage, and the wreck stays behind as a wall.`],
+  ['lambo', 'Wen Lambo', `The first Blub to climb in floors it straight ahead. A Blub it hits is knocked out on the spot, and the crash singes everyone beside it for ${RULES.lamboBang}. Hitting nobody, the driver takes ${RULES.lamboCrash}. The wreck stays behind as a wall.`],
   ['sendit', 'Send It', `A catapult tile in each half, mirrored. The first Blub on it flies ${RULES.sendHop} tiles ahead, deals ${RULES.sendSplash} to everything beside the landing, and takes ${RULES.sendTake}% more damage that turn.`],
-  ['candle', 'Green Candle', `Grows a block every turn, up to ${RULES.candleMax}. The owner's Blubs beside it deal +${RULES.candleDmg} for every block. ${RULES.candleHp} HP, and everything it gave falls with it.`],
+  ['candle', 'Green Candle', `The first Blub beside it climbs on and the candle pumps, a block a turn up to ${RULES.candleMax}: its rider hits +${RULES.candleDmg} harder for every block. At the top it goes TO THE MOON: a leap of up to ${RULES.candleLeap} tiles onto the enemy, ${RULES.candleSlam} damage to every enemy beside where it lands. Knock the rider out and the candle dumps.`],
   ['diamond', 'Diamond Hands', `The owner's Blubs within ${RULES.diamondRange} tiles cannot be moved, frozen or pushed back.`],
   ['laser', 'Laser Eyes Totem', `The owner's nearest Blub gets +${RULES.laserRange} reach and +${RULES.laserDmg} damage, but dodges only ${RULES.laserDodge}% as well.`],
   ['copium', 'Copium Tank', `The owner's Blubs under ${RULES.copiumAt}% HP within ${RULES.copiumRange} tiles take ${RULES.copiumSoak}% less damage.`],
@@ -6820,6 +6829,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     occ[idx(d.x, d.y)] = -1;
     if (by) stats[by.id].kills++;
     push({ t: 'ko', u: d.id, by: by ? by.id : -1 });
+    // a Green Candle's rider knocked out: the candle dumps (engine 19)
+    if (d.ride) dump(d.ride);
     lastBoom(d);
     // the Field Hospital's stretcher: the squad's first Blub knocked out (not one that
     // blew itself up) is carried in, and comes back later beside the tent ('gone' till then)
@@ -7139,7 +7150,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // the hammer: splash on the enemies around the target, then knock it back
     for (const v of foes(u).slice()) if (v !== d && v.alive && over < 0 && cheb(v.x, v.y, d.x, d.y) <= 1) pure(u, v, w.splash, 'splash');
     checkOver();
-    if (d.alive && over < 0 && !anchored(d)) {
+    // (a Green Candle's rider holds on: engine 19)
+    if (d.alive && over < 0 && !anchored(d) && !d.ride) {
       const nx = d.x + Math.sign(d.x - u.x);
       const ny = d.y + Math.sign(d.y - u.y);
       const from = [d.x, d.y];
@@ -8003,6 +8015,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
     if (cap && cmdOf[u.team] && !called[u.team] && !u.jeet) callOrder(u, turn);
+    // riding a Green Candle (engine 19): it stays up there and hits what it reaches (a
+    // medic heals whom it reaches)
+    if (u.ride) {
+      if (u.cls === 'sweet' && medic(u, true, turn)) return;
+      return hitAround(u);
+    }
     // tangled in barbed wire (engine 15): it goes nowhere, not even down a tunnel
     const tangled = u.tangled >= turn;
     // a Miner that was hit tunnels away to safety: its whole turn
@@ -8057,10 +8075,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.pow === 'miner' && mineTurn(u)) return;
     if (u.pow === 'builder' && buildTurn(u)) return;
     if (stake(u)) return;
-    // a Blub left standing at the other side's candle with nobody in reach chops at it
-    const cp = props.find((p) => p.id === 'candle' && p.team >= 0 && p.team !== u.team && !p.down);
-    // (not with a Boom Pack, and not with a Scope Rifle: one is not wasted on a candle, the other has to aim)
-    if (cp && !W(u).boom && !W(u).cycle && cheb(u.x, u.y, cp.x, cp.y) <= W(u).range && !inReach(u).length) return hitProp(u, cp);
     // the other side's cannon in its way (engine 15)
     if (cannonTurn(u)) return;
     fight(u);
@@ -8888,7 +8902,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     push({ t: 'whale', at: e.cells[0] });
     for (const team of [0, 1]) {
       const dir = team === 0 ? 1 : -1;
-      const mine = U.filter((u) => u.alive && u.team === team && !anchored(u)).sort((a, b) => (b.y - a.y) * dir || a.id - b.id);
+      const mine = U.filter((u) => u.alive && u.team === team && !anchored(u) && !u.ride).sort((a, b) => (b.y - a.y) * dir || a.id - b.id);
       for (const u of mine) {
         let moved = 0;
         for (let s = 0; s < RULES.whalePush; s++) {
@@ -8926,11 +8940,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // ---- Wen Lambo. It is parked on its tile from the start, and nothing walks through
   // a parked car. The first Blub found standing beside it at the start of a turn
   // climbs in and floors it: straight ahead towards the other side, over wire and
-  // mines and through the crater, until something stops it. Whoever it hits takes
-  // lamboDmg. The car is a wreck that stands there as a wall for the rest of the
-  // round, and the driver is thrown out onto the last tile it rolled over. A wreck
-  // that would cut the arena in two burns out instead, so nobody is ever walled off;
-  // so does a car that would do it standing in its parking space.
+  // mines and through the crater, until something stops it. A Blub it hits is knocked
+  // out on the spot (engine 19: a bubble pops instead, a totem still brings it back),
+  // and the crash goes off with a bang: lamboBang on every other Blub beside it (the
+  // driver is thrown clear). The car is a wreck that stands there as a wall for the
+  // rest of the round, and the driver is thrown out onto the last tile it rolled over.
+  // A wreck that would cut the arena in two burns out instead, so nobody is ever walled
+  // off; so does a car that would do it standing in its parking space. A Green
+  // Candle's rider never drives it.
   let lambo = null; // { at: its tile, under: what that tile was }
   const lamboEv = live.find((e) => e.id === 'lambo');
   if (lamboEv) {
@@ -8953,7 +8970,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (!lambo) return;
     let cx = lambo.at % SIZE;
     let cy = (lambo.at - cx) / SIZE;
-    const near = U.filter((v) => v.alive && cheb(v.x, v.y, cx, cy) <= 1);
+    const near = U.filter((v) => v.alive && !v.ride && cheb(v.x, v.y, cx, cy) <= 1);
     let u = null;
     let given = false;
     if (near.length) {
@@ -8963,7 +8980,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const top = near.filter((v) => key(v) === best);
       u = top[Math.floor(cr() * top.length)];
     } else if (turn >= RULES.lamboAt) {
-      u = pickBlub('lambo');
+      u = pickBlub('lambo', (w) => !!w.ride);
       given = true;
     }
     if (!u) return;
@@ -9014,8 +9031,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.y = out[1];
     occ[idx(u.x, u.y)] = u.id;
     push({ t: 'lambo', u: u.id, from, at: [cx, cy], path, hit: hit ? hit.id : -1, wreck, out, ...(given ? { given: 1 } : {}) });
-    if (hit) hurt(hit, RULES.lamboDmg, 'rammed', null);
+    if (hit) hurt(hit, hit.hp, 'rammed', null);
     else hurt(u, RULES.lamboCrash, 'crashed', null);
+    // the bang: round the Blub it hit, or round the wreck
+    const bx = hit ? hit.x : cx;
+    const by = hit ? hit.y : y;
+    for (const v of U) if (v.alive && v !== u && v !== hit && over < 0 && cheb(v.x, v.y, bx, by) <= 1) hurt(v, RULES.lamboBang, 'singed', null);
     checkOver();
   }
 
@@ -9165,8 +9186,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       continue;
     }
     restep(c);
-    const hp = e.id === 'candle' ? RULES.candleHp : 0;
-    props.push({ id: e.id, c, x, y, was, team: -1, hp, since: 0, size: 0, holder: -1, down: false });
+    props.push({ id: e.id, c, x, y, was, team: -1, hp: 0, since: 0, size: 0, holder: -1, rider: -1, down: false });
   }
   if (props.length) push({ t: 'props', list: props.map((p) => ({ id: p.id, at: [p.x, p.y], hp: p.hp })) });
   const owned = (id, team) => props.find((p) => p.id === id && p.team === team && !p.down);
@@ -9189,25 +9209,114 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // what the candle and the banner add to a swing
   function propBonus(u) {
     let b = 0;
-    const c = owned('candle', u.team);
-    if (c && cheb(u.x, u.y, c.x, c.y) <= 1) b += c.size * RULES.candleDmg;
+    // the Green Candle's rider hits harder for every block it stands on (engine 19)
+    if (u.ride && !u.ride.down) b += u.ride.size * RULES.candleDmg;
     if (laserOn(u)) b += RULES.laserDmg;
     // apes together strong: a Blub with a team mate beside it
     if (owned('ape', u.team) && living[u.team].some((w) => w !== u && cheb(u.x, u.y, w.x, w.y) <= 1)) b += RULES.apeDmg;
     return b;
   }
+  // ---- The Green Candle (engine 19, the owner: Blub rides it). The claimer's Blub
+  // beside it climbs on (a straight neighbour before a diagonal one; the chest's stream
+  // settles a tie; never a Boom Pack carrier); from then on the candle is no wall: its
+  // rider stands on its tile, high up, and stays there hitting what it reaches. It pumps
+  // a block a turn up to candleMax, and the turn after the top it goes to the moon.
+  const canRide = (v) => v.alive && !v.ride && !W(v).boom;
+  function riderOf(p, team) {
+    const near = living[team].filter((v) => canRide(v) && cheb(v.x, v.y, p.x, p.y) <= 1);
+    if (!near.length) return null;
+    const key = (v) => Math.abs(v.x - p.x) + Math.abs(v.y - p.y);
+    const best = Math.min(...near.map(key));
+    const top = near.filter((v) => key(v) === best);
+    return top[Math.floor(cr() * top.length)];
+  }
+  function board(p, v) {
+    const from = [v.x, v.y];
+    tiles[p.c] = p.was;
+    restep(p.c);
+    occ[idx(v.x, v.y)] = -1;
+    v.x = p.x;
+    v.y = p.y;
+    occ[p.c] = v.id;
+    v.ride = p;
+    p.rider = v.id;
+    p.size = 1;
+    push({ t: 'ride', u: v.id, id: p.id, from, at: [p.x, p.y] });
+    push({ t: 'grow', id: p.id, size: p.size });
+  }
+  // its rider still up there
+  function rideOk(p) {
+    const v = p.rider >= 0 ? U[p.rider] : null;
+    return !!v && v.alive && v.ride === p && v.x === p.x && v.y === p.y;
+  }
+  // its rider knocked out or gone: the candle dumps, and whatever it gave goes with it
+  function dump(p) {
+    const v = p.rider >= 0 ? U[p.rider] : null;
+    if (v && v.ride === p) v.ride = null;
+    p.rider = -1;
+    p.down = true;
+    push({ t: 'propdown', id: p.id, by: -1, dump: 1 });
+  }
+  // TO THE MOON: the rider leaps off onto free floor within candleLeap with the most
+  // enemies beside it (then the nearest; with nobody to land on, as near the enemy as it
+  // gets; team B reads ties on the board turned round) and slams down on them
+  function moon(p) {
+    const v = U[p.rider];
+    let best = p.c;
+    let bk = -1e9;
+    let bt = 0;
+    for (let y = 0; y < SIZE; y++)
+      for (let x = 0; x < SIZE; x++) {
+        const c = idx(x, y);
+        const d = cheb(x, y, p.x, p.y);
+        if (!d || d > RULES.candleLeap || occ[c] >= 0 || !freeFloor(c)) continue;
+        let n = 0;
+        let near = 99;
+        for (const w of foes(v)) {
+          const g = cheb(w.x, w.y, x, y);
+          if (g <= 1) n++;
+          near = Math.min(near, g);
+        }
+        const key = n ? n * 100 - d : -near;
+        const tie = v.team ? N - 1 - c : c;
+        if (key > bk || (key === bk && tie < bt)) {
+          best = c;
+          bk = key;
+          bt = tie;
+        }
+      }
+    const to = [best % SIZE, (best - (best % SIZE)) / SIZE];
+    p.down = true;
+    p.rider = -1;
+    v.ride = null;
+    occ[p.c] = -1;
+    v.x = to[0];
+    v.y = to[1];
+    occ[best] = v.id;
+    const hit = foes(v).filter((w) => w.alive && cheb(w.x, w.y, v.x, v.y) <= 1);
+    push({ t: 'moon', u: v.id, id: p.id, from: [p.x, p.y], to, hit: hit.map((w) => w.id) });
+    for (const w of hit) if (w.alive && over < 0) pure(v, w, RULES.candleSlam, 'slam');
+    checkOver();
+  }
   function claimTurn(turn) {
     for (const p of props) {
       if (p.down) continue;
       if (p.team < 0) {
-        const near = [0, 1].filter((t) => living[t].some((v) => cheb(v.x, v.y, p.x, p.y) <= 1));
+        let near = [0, 1].filter((t) => living[t].some((v) => cheb(v.x, v.y, p.x, p.y) <= 1));
+        // the candle is claimed by a squad with a Blub that can climb on
+        if (p.id === 'candle') near = near.filter((t) => living[t].some((v) => canRide(v) && cheb(v.x, v.y, p.x, p.y) <= 1));
         if (!near.length) continue;
         p.team = near.length === 1 ? near[0] : cr() < 0.5 ? 0 : 1;
         p.since = turn;
         push({ t: 'claim', id: p.id, team: p.team, at: [p.x, p.y] });
-      } else if (p.id === 'candle' && p.size < RULES.candleMax) {
-        p.size++;
-        push({ t: 'grow', id: p.id, size: p.size });
+        if (p.id === 'candle') board(p, riderOf(p, p.team));
+      } else if (p.id === 'candle') {
+        if (!rideOk(p)) dump(p);
+        else if (p.size >= RULES.candleMax) moon(p);
+        else {
+          p.size++;
+          push({ t: 'grow', id: p.id, size: p.size });
+        }
       }
       if (p.id === 'laser') {
         const near = living[p.team].slice().sort((a, b) => cheb(a.x, a.y, p.x, p.y) - cheb(b.x, b.y, p.x, p.y) || a.id - b.id)[0];
@@ -9219,19 +9328,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         }
       }
     }
-  }
-  // a Blub of the other side takes a swing at the candle: no dodging a thing that
-  // does not move, the weapon's plain damage
-  function hitProp(u, p) {
-    const dmg = Math.min(p.hp, punch(u));
-    p.hp -= dmg;
-    u.attacked = true;
-    push({ t: 'prophit', u: u.id, id: p.id, dmg, hp: p.hp });
-    if (p.hp > 0) return;
-    p.down = true;
-    tiles[p.c] = p.was;
-    restep(p.c);
-    push({ t: 'propdown', id: p.id, by: u.id });
   }
 
   // ---- Exit Liquidity. In a turn the chest's stream picks (exitFrom to exitTo), with
@@ -9342,11 +9438,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (turn >= RULES.propAt)
       for (const p of props) {
         if (p.down || p.team >= 0) continue;
-        const v = pickBlub(p.id);
+        // the candle picks its rider itself, and lifts it over (engine 19)
+        const v = pickBlub(p.id, p.id === 'candle' ? (w) => !canRide(w) : null);
         if (!v) continue;
         p.team = v.team;
         p.since = turn;
         push({ t: 'claim', id: p.id, team: p.team, at: [p.x, p.y], u: v.id });
+        if (p.id === 'candle') board(p, v);
       }
   }
   function runEvents(turn) {
@@ -11810,7 +11908,7 @@ const SquadView = (() => {
   const COVER_AT = { 1: ' in the bushes.', 2: ' behind the sandbags.', 4: ' up on the watchtower.' };
   const KO_BY = {
     shell: 'The mortar shell knocks out ', mine: 'A pop mine knocks out ', snag: 'The barbed wire knocks out ',
-    nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ',
+    nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ', singed: 'The Lambo’s crash finishes off ',
     thud: 'A Blub off the catapult lands right on ',
     sniped: 'The Sniper Bot takes out ',
     crashed: 'The Lambo crash finishes off ',
@@ -11863,12 +11961,13 @@ const SquadView = (() => {
         if (e.tg) return describe({ ...e, tg: 0 }, names, labels).replace(/\.(?= Sneak attack!$|$)/, ' (tangled in the wire).');
         return u + ' hits ' + d + ' with the ' + wn(e.w) + ' for ' + e.dmg + '.' + sneak;
       }
-      // the chest's pill: damage first, the phone ticker is one short line
+      // the chest's pill: its shadow, a turn at a time (engine 19: the pill itself is
+      // only seen coming down); damage first, the phone ticker is one short line
       case 'curve':
-        if (e.rug) return 'The dev sold. The pill never graduates.';
-        return e.lock ? 'The bonding curve hits ' + e.pct + '%: the pill has picked its tile.' : 'The bonding curve climbs to ' + e.pct + '%.';
+        if (e.rug) return 'The dev sold: the shadow fades away and nothing comes down.';
+        return e.lock ? 'The shadow stops growing: something is coming down right there.' : 'A shadow grows over the arena.';
       case 'nuke':
-        return 'GRADUATED! The pill goes off.';
+        return 'GRADUATED! The pill comes down and goes off.';
       case 'nuked':
         return e.res === 'absorb' ? 'The blast pops ' + d + "'s bubble." : 'The blast catches ' + d + ': -' + e.dmg + '.';
       case 'crater':
@@ -11883,8 +11982,19 @@ const SquadView = (() => {
         return e.u >= 0 ? 'TO THE MOON! The rocket beams ' + u + ' up and takes it to the moon. It is not coming back.' : 'The moon rocket lifts off with nobody on board.';
       case 'lambo':
         return e.hit >= 0 ? u + ' floors the Lambo straight into ' + nm(e.hit) + '!' : u + ' floors the Lambo and wraps it round ' + (e.wreck ? 'a wall' : 'nothing at all') + '.';
+      case 'singed':
+        return e.res === 'absorb' ? 'The crash pops ' + d + "'s bubble." : 'The crash singes ' + d + ': -' + e.dmg + '.';
       case 'claim':
         return e.u != null ? 'Nobody came for the ' + nameOf('ev', e.id) + ', so it picks ' + u + ': ' + lb(e.team) + ' has it.' : lb(e.team) + ' claims the ' + nameOf('ev', e.id) + '.';
+      // the Green Candle's rider (engine 19)
+      case 'ride':
+        return u + ' climbs onto the Green Candle.';
+      case 'grow':
+        return 'PUMP! The Green Candle is ' + e.size + (e.size === 1 ? ' block' : ' blocks') + ' high.';
+      case 'moon':
+        return 'TO THE MOON! ' + u + ' leaps off the Green Candle' + (e.hit && e.hit.length ? ' and comes down on ' + e.hit.map(nm).join(' and ') + '!' : '.');
+      case 'slam':
+        return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : u + ' slams down on ' + d + ': -' + e.dmg + '.';
       case 'goal':
         return u + ' runs for the ' + (e.id === 'sendit' ? 'catapult' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
       // the Digger's smoke grenade (engine 14), and its way back once the cloud lifts
@@ -11960,7 +12070,7 @@ const SquadView = (() => {
       case 'prophit':
         return u + ' hits the ' + nameOf('ev', e.id) + ' for ' + e.dmg + '.';
       case 'propdown':
-        return 'The ' + nameOf('ev', e.id) + ' comes down!';
+        return e.dump ? 'Its rider is out: the Green Candle dumps.' : 'The ' + nameOf('ev', e.id) + ' comes down!';
       case 'airdrop':
         return 'AIRDROP! A crate comes down for ' + lb(e.team) + "'s weakest Blub.";
       case 'snipe':
@@ -11976,7 +12086,7 @@ const SquadView = (() => {
       case 'thud':
         return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : 'Landed on: ' + d + ' takes ' + e.dmg + '.';
       case 'rammed':
-        return e.res === 'absorb' ? "The Lambo pops " + d + "'s bubble." : 'The Lambo hits ' + d + ': -' + e.dmg + '.';
+        return e.res === 'absorb' ? "The Lambo pops " + d + "'s bubble." : e.hp === 0 ? 'The Lambo flattens ' + d + '!' : 'The Lambo hits ' + d + ': -' + e.dmg + '.';
       case 'rug':
         return 'RUGGED! The floor goes out from under ' + u + '.';
       case 'sink':
@@ -12994,6 +13104,9 @@ const SquadView = (() => {
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
     perks: 4000, perksHit: 1300,
     claim: 1000, grow: 380, prophit: 520, prophitHit: 240, propdown: 1000, propdownHit: 120, gunhit: 560, gunhitHit: 260,
+    // the Green Candle's rider (engine 19): the hop up onto it (on top at rideHit), and
+    // TO THE MOON: a crouch, off up out of sight, a beat of sky, and down at moonHit
+    ride: 1000, rideHit: 620, moon: 2700, moonHit: 1650,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
@@ -13037,7 +13150,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade']);
+  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -13143,7 +13256,7 @@ const SquadView = (() => {
             return;
           }
           // the chest: what the pill and its crater cost rides on the blast itself
-          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || ((t === 'rammed' || t === 'crashed') && p.kind === 'lambo') || (t === 'thud' && p.kind === 'sendit')) {
+          if ((t === 'nuked' && p.kind === 'nuke') || (t === 'fume' && p.kind === 'fume') || ((t === 'rammed' || t === 'crashed' || t === 'singed') && p.kind === 'lambo') || (t === 'thud' && p.kind === 'sendit') || (t === 'slam' && p.kind === 'moon')) {
             attachTo(p, i);
             return;
           }
@@ -13237,6 +13350,19 @@ const SquadView = (() => {
         if (t === 'pick') {
           parent = null;
           add({ kind: 'pick', dur: MS.pick, contact: MS.pickHit, list: [{ ei: i, off: 0 }], e });
+          return;
+        }
+        // the Green Candle's rider (engine 19): up onto it, and off it to the moon
+        // (the event itself at the start: its scene runs from there, the Blub hidden in
+        // the air till it lands; the slams ride on the landing)
+        if (t === 'ride') {
+          parent = add({ kind: 'ride', dur: MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          pos[e.u] = e.at.slice();
+          return;
+        }
+        if (t === 'moon') {
+          parent = add({ kind: 'moon', dur: MS.moon, contact: MS.moonHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          pos[e.u] = e.to.slice();
           return;
         }
         if (t === 'claim' || t === 'grow' || t === 'prophit' || t === 'propdown') {
@@ -13569,6 +13695,8 @@ const SquadView = (() => {
       case 'gas':
       case 'blasted':
       case 'cannonball':
+      case 'slam':
+      case 'singed':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
@@ -13633,7 +13761,7 @@ const SquadView = (() => {
       // the round
       // (from: where its last reading put it, so the page can glide it across)
       case 'curve':
-        S.curve = e.rug ? null : { n: e.n, pct: e.pct, at: e.at, lock: !!e.lock, from: S.curve ? S.curve.at : null };
+        S.curve = e.rug ? null : { n: e.n, pct: e.pct, at: e.at, lock: !!e.lock, from: S.curve ? S.curve.at : null, prev: S.curve ? S.curve.pct : 0 };
         break;
       case 'nuke':
         S.curve = null;
@@ -13666,18 +13794,39 @@ const SquadView = (() => {
         break;
       // the contested five: laid, claimed, grown, knocked at and down
       case 'props':
-        S.props = e.list.map((p) => ({ id: p.id, x: p.at[0], y: p.at[1], team: -1, size: 0, hp: p.hp, max: p.hp, down: false }));
+        S.props = e.list.map((p) => ({ id: p.id, x: p.at[0], y: p.at[1], team: -1, size: 0, hp: p.hp, max: p.hp, down: false, rider: -1 }));
         break;
       case 'claim':
       case 'grow':
       case 'prophit':
-      case 'propdown': {
+      case 'propdown':
+      case 'ride':
+      case 'moon': {
         const p = S.props.find((v) => v.id === e.id);
         if (!p) break;
         if (e.t === 'claim') p.team = e.team;
-        if (e.t === 'grow') p.size = e.size;
+        if (e.t === 'grow') {
+          p.prev = p.size;
+          p.size = e.size;
+        }
         if (e.t === 'prophit') p.hp = e.hp;
-        if (e.t === 'propdown') p.down = true;
+        if (e.t === 'propdown' || e.t === 'moon') {
+          p.down = true;
+          p.rider = -1;
+        }
+        // the Green Candle's rider (engine 19): up on its tile, and later off to where it lands
+        if (e.t === 'ride' || e.t === 'moon') {
+          if (e.t === 'ride') {
+            p.rider = e.u;
+            // it climbs onto the first block: no dip before the block's own beat
+            p.size = Math.max(1, p.size);
+            p.prev = p.size;
+          }
+          const to = e.t === 'ride' ? e.at : e.to;
+          U[e.u].x = to[0];
+          U[e.u].y = to[1];
+          U[e.u].dug = false;
+        }
         break;
       }
       // Send It: the two catapults, and one of them going off
@@ -14024,8 +14173,38 @@ const SquadView = (() => {
     const rx = Math.round(sx);
     const ry = Math.round(sy);
     if (lift < 0) lift = liftAt(rx, ry);
+    // up on a Green Candle (engine 19): on top of its body, rising with it
+    const cdl = !moving && candleOf(u);
+    if (cdl) lift += candleLift(cdl, t);
     const gy = Math.round(TOP + sy * TILE + 14);
     return { sx, sy, rx, ry, moving, x: Math.round(sx * TILE), y: gy - lift, gy, lift, hop: Math.round(hop), sq };
+  }
+  // the Green Candle a Blub rides (engine 19), while it stands
+  const candleOf = (u) => (P.S && P.S.props && P.S.props.find((p) => p.rider === u.id && !p.down)) || null;
+  // how high its rider stands: on top of the body, 6 + 4 a block plus its foot, eased up
+  // over the block's own beat
+  function candleLift(p, t) {
+    const h = (s) => 9 + 4 * s;
+    if (p.grewT == null || P.calm || p.prev == null) return h(p.size);
+    const g = clamp((t - p.grewT) / (280 * (p.grewK || 1)), 0, 1);
+    return Math.round(lerp(h(p.prev), h(p.size), g * g * (3 - 2 * g)));
+  }
+  // the candle gone red: its green turned to the chart's red (a dump), drawn once a block
+  const redCache = [];
+  function redCandle(fr) {
+    if (redCache[fr]) return redCache[fr];
+    const src = fxFrame('candle', fr);
+    const c = canvas(src.width, src.height);
+    const x = c.getContext('2d');
+    x.drawImage(src, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height);
+    for (let i = 0; i < d.data.length; i += 4) {
+      const r = d.data[i];
+      d.data[i] = d.data[i + 1];
+      d.data[i + 1] = r;
+    }
+    x.putImageData(d, 0, 0);
+    return (redCache[fr] = c);
   }
   // how high a Blub stands on a screen tile: a terrace, a watchtower
   function liftAt(sx, sy) {
@@ -14793,33 +14972,23 @@ const SquadView = (() => {
     const q = p * p * (3 - 2 * p);
     return [Math.round(fx + (tx - fx) * q), Math.round(fy + (ty - fy) * q)];
   }
-  // How dark and wide its shadow is: nothing on the first reading, then a turn at a
-  // time bigger and blacker, until it covers the core it is going to hit.
-  const shadeOf = (pct) => clamp((pct - 20) / 60, 0, 1);
-  // The pill climbing its bonding curve: it hangs over the thickest crowd, its shadow
-  // on the floor under it, and a bar that fills as the curve runs up.
+  // How dark and wide its shadow is (engine 19: the shadow is all there is to see until
+  // the pill comes down): small and faint on the first reading, then a turn at a time
+  // bigger and blacker, until it covers the core it is going to hit.
+  const shadeOf = (pct) => clamp(pct / 80, 0, 1);
+  // Nothing hangs over the board; only, once it has locked on, grit trickling down out
+  // of the sky into the shadow.
   function drawCurve(x, t, now) {
     const c = P.S && P.S.curve;
-    if (!c) return;
+    if (!c || !c.lock || P.calm) return;
     const [cx, cy] = curvePos(c, t);
-    const bob = P.calm ? 0 : Math.round(Math.sin(now / 420) * 2);
-    const py = pillY(cy) + bob; // the middle of the pill
-    // the pill at its own size: shrinking a sprite by a fraction is what blurs it
-    x.drawImage(fxFrame('pill', 3), Math.round(cx - 24), Math.round(py - 26));
-    // and pump.fun's bonding curve bar above it, filling as the turns go by
-    const bw = 30;
-    const bx = Math.round(cx - bw / 2);
-    const by = Math.round(py - 24);
-    x.fillStyle = '#1B1229';
-    x.fillRect(bx - 1, by - 1, bw + 2, 5);
-    x.fillStyle = '#2F7D46';
-    x.fillRect(bx, by, bw, 3);
-    x.fillStyle = c.lock ? '#D6F5DD' : '#4FB36B';
-    x.fillRect(bx, by, Math.round((bw * clamp(c.pct, 0, 100)) / 100), 3);
-    const lbl = pxText(c.pct + '%', '#D6F5DD', 1);
-    const lx = Math.round(cx - lbl.width / 2);
-    x.drawImage(pxText(c.pct + '%', '#1B1229', 1), lx + 1, by - 7);
-    x.drawImage(lbl, lx, by - 8);
+    x.fillStyle = '#E9DDF2';
+    for (let q = 0; q < 6; q++) {
+      const ph = (now / 900 + q / 6) % 1;
+      x.globalAlpha = 0.2 + 0.5 * (1 - ph);
+      x.fillRect(Math.round(cx + ((q * 7) % 13) - 6), Math.round(TOP + (cy - TOP) * ph), 1, 2);
+    }
+    x.globalAlpha = 1;
   }
   // ---- the trench arsenal on the board
   // a label over a Blub in the top row stays on the board
@@ -15776,8 +15945,20 @@ const SquadView = (() => {
     const blink = P.calm ? 0 : Math.floor(now / 500) % 2;
     let id = p.id;
     let fr = 0;
-    if (id === 'candle') fr = Math.min(5, p.size);
-    else if (id === 'diamond') fr = blink;
+    if (id === 'candle') {
+      fr = Math.min(5, p.size);
+      // ridden: a shimmer of green rising off it
+      if (p.rider >= 0 && !P.calm) {
+        const top = cy + 3 - (6 + 4 * fr);
+        for (let q = 0; q < 3; q++) {
+          const ph = ((now / 700 + q / 3) % 1);
+          x.globalAlpha = 1 - ph;
+          x.fillStyle = q === 1 ? '#FFFFFF' : '#9FE3A8';
+          x.fillRect(Math.round(cx - 6 + q * 6), Math.round(top + (6 + 4 * fr) * (1 - ph)), 1, 2);
+        }
+        x.globalAlpha = 1;
+      }
+    } else if (id === 'diamond') fr = blink;
     else if (id === 'laser') fr = p.team >= 0 ? 1 : 0;
     else if (id === 'ape') fr = P.calm ? 0 : Math.floor(now / 260) % 2;
     const sz = FX_ART[id][1];
@@ -15838,8 +16019,7 @@ const SquadView = (() => {
     ghostCache.set(id, c);
     return c;
   }
-  // how high the pill hangs over the tile it means to land on
-  const pillY = (cy) => Math.max(TOP + 40, cy - 30);
+
   // a pixel ellipse, for shadows on the floor
   function blob(x, cx, cy, hw, hh, col, a) {
     x.globalAlpha = clamp(a, 0, 1);
@@ -15868,10 +16048,26 @@ const SquadView = (() => {
   function drawCurveShadow(x, t, now) {
     const c = P.S && P.S.curve;
     if (!c) return;
-    const s = shadeOf(c.pct);
+    // it grows into its new size while it glides over to its new tile
+    const g = P.curveT > -1e8 ? clamp((t - P.curveT) / (P.curveDur || 1), 0, 1) : 1;
+    const s = lerp(shadeOf(c.prev || 0), shadeOf(c.pct), g * g * (3 - 2 * g));
     if (s <= 0) return;
     const [cx, cy] = curvePos(c, t);
     pillShade(x, cx, cy, s, P.calm ? 0 : Math.sin(now / 320));
+    // rings drawn in towards its middle, quicker as it darkens: something up there
+    // is getting closer
+    if (!P.calm) {
+      const R = 8 + s * 17;
+      x.fillStyle = '#1B1229';
+      for (let q = 0; q < 2; q++) {
+        const ph = (now / (1100 - s * 500) + q / 2) % 1;
+        const r = R * (1 - ph) + 2;
+        x.globalAlpha = 0.08 + 0.26 * ph * s;
+        const n = Math.max(10, Math.round(r * 2.4));
+        for (let i = 0; i < n; i++) if (i % 3) x.fillRect(Math.round(cx + Math.cos((i / n) * Math.PI * 2) * r), Math.round(cy + 3 + Math.sin((i / n) * Math.PI * 2) * r * 0.62), 1, 1);
+      }
+      x.globalAlpha = 1;
+    }
     if (c.lock && (P.calm || Math.floor(now / 170) % 2 === 0)) reticle(x, cx, cy, P.calm ? 2 : 1 + (Math.floor(now / 340) % 2), '#FF5C77');
   }
   // the shadow itself: three rings of floor dark, the widest about the 3x3 core at
@@ -17024,7 +17220,7 @@ const SquadView = (() => {
     if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas', 'blasted'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'thud', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
     if (e.t === 'blowup') P.cause[e.u] = 'blowup';
     // a Miner tunnelling: it stays where it was while it digs down, is gone under the
     // floor, and comes up at the other end with a hop
@@ -17353,60 +17549,66 @@ const SquadView = (() => {
       case 'nuke': {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         const F = MS.nukeHit * k; // the moment it lands
-        const SH = Math.min(F * 0.1, 160 * k); // the twitch as it lets go
-        // it comes down from where it hung, homing in on the tile it picked
+        // engine 19 (the owner): all there was to see was its shadow; now it swells over
+        // the crowd, pulls in tight and black on the tile it picked, and only then does
+        // the pill come into sight, a streak out of the sky
         const [fx0, fy0] = P.pillFrom ? tileC(P.pillFrom[0], P.pillFrom[1]) : [cx, cy];
         const land = cy + 2;
-        const fall = (el) => (el < SH ? 0 : (el - SH) / (F - SH));
         const home = (p) => {
           const q = clamp(p * 1.6, 0, 1);
           const e2 = q * q * (3 - 2 * q);
           return [fx0 + (cx - fx0) * e2, fy0 + (cy - fy0) * e2];
         };
-        // the drop in its parts, as shares of F: the twitch, up and away, the empty sky, the plunge
-        const UP = 0.36;
-        const DOWN = 0.5;
-        const sky = TOP - 64;
-        // on the floor: the shadow pulls in from the crowd, tight and black, and the
-        // sights close in
+        const DROP = 0.58; // the pill breaks through the sky at this share of F
+        const sky = TOP - 52;
+        const dark = '#1B1229';
         addFx(T, F, (x, kk, el) => {
-          const p = fall(el);
-          const [hx, hy] = home(p);
-          const R = 25 - p * 17;
-          blob(x, hx, hy + 3, R, Math.round(R * 0.62), '#1B1229', 0.26 + p * 0.2);
-          blob(x, hx, hy + 3, R * 0.6, Math.round(R * 0.38), '#1B1229', 0.34 + p * 0.5);
-          reticle(x, cx, cy, Math.round((1 - p) * 4), p > 0.8 ? '#FFFFFF' : '#FF5C77');
-        }, true);
-        // In the air: a twitch where it hangs, then up it goes, faster and faster, out
-        // of sight; a beat of empty sky; then it plunges nose first from far above,
-        // streaking, with a last wobble that dies away so it lands dead straight.
-        addFx(T, F, (x, kk, el) => {
-          const [hx, hy] = home(fall(el));
-          const hang = pillY(fy0); // where it was hanging
-          let y;
-          let fr = 3;
-          let ox = 0;
-          if (el < SH) {
-            ox = P.calm ? 0 : Math.floor(el / 30) % 2 ? 1 : -1;
-            y = hang;
-          } else if (kk < UP) {
-            const q = (kk - SH / F) / (UP - SH / F);
-            y = hang - (hang - sky) * q * q;
-          } else if (kk < DOWN) return;
-          else {
-            const q = (kk - DOWN) / (1 - DOWN);
-            y = sky + (land - 12 - sky) * q * q;
-            fr = P.calm ? 0 : Math.floor(el / 60) % 3;
-            ox = P.calm ? 0 : Math.round(Math.sin(q * Math.PI * 3) * 3 * (1 - q));
+          const [hx, hy] = home(kk);
+          const swell = kk < DROP ? kk / DROP : 1;
+          const tight = kk < DROP ? 0 : (kk - DROP) / (1 - DROP);
+          const R = 25 + swell * 6 - tight * 19;
+          blob(x, hx, hy + 3, R, Math.round(R * 0.62), dark, 0.26 + swell * 0.08 + tight * 0.22);
+          blob(x, hx, hy + 3, R * 0.6, Math.round(R * 0.38), dark, 0.34 + swell * 0.12 + tight * 0.45);
+          // rings drawn in to its middle, quicker and quicker
+          if (!P.calm) {
+            x.fillStyle = dark;
+            for (let q = 0; q < 3; q++) {
+              const ph = (el / (440 - 300 * kk) + q / 3) % 1;
+              const r = (R + 6) * (1 - ph) + 1;
+              x.globalAlpha = 0.3 * ph;
+              const n = Math.max(10, Math.round(r * 2.4));
+              for (let i = 0; i < n; i++) if (i % 3) x.fillRect(Math.round(hx + Math.cos((i / n) * Math.PI * 2) * r), Math.round(hy + 3 + Math.sin((i / n) * Math.PI * 2) * r * 0.62), 1, 1);
+            }
+            x.globalAlpha = 1;
           }
-          x.drawImage(fxFrame('pill', fr), Math.round(hx - 24 + ox), Math.round(y - 26));
+          reticle(x, cx, cy, Math.round((1 - kk) * 4), kk > 0.85 ? '#FFFFFF' : '#FF5C77');
+        }, true);
+        // grit and dust falling into it from above while it swells
+        if (!P.calm)
+          for (let n = 0; n < 16; n++) {
+            const gx = cx + ((n * 11) % 21) - 10;
+            addFx(T + (n / 16) * F * DROP, 460 * k, (x, kk) => {
+              x.fillStyle = n % 3 ? '#E9DDF2' : '#FFFFFF';
+              x.fillRect(Math.round(gx), Math.round(TOP + (cy - TOP) * kk * kk), 1, 2);
+            });
+          }
+        atClock(T + 120 * k, () => sfx('read'));
+        // the pill itself, only now: nose first out of the sky, a trail of light above
+        // it, a last wobble that dies away so it lands dead straight
+        addFx(T + F * DROP, F * (1 - DROP), (x, kk, el) => {
+          const y = sky + (land - 12 - sky) * kk * kk;
+          const fr = P.calm ? 0 : Math.floor(el / 60) % 3;
+          const ox = P.calm ? 0 : Math.round(Math.sin(kk * Math.PI * 3) * 3 * (1 - kk));
+          for (let s = 1; s <= 5; s++) {
+            x.globalAlpha = Math.max(0, 0.55 - s * 0.1);
+            x.fillStyle = s % 2 ? '#D6F5DD' : '#FFFFFF';
+            x.fillRect(cx - 1 + ox, Math.round(y - 30 - s * 7), 3, 6);
+          }
+          x.globalAlpha = 1;
+          x.drawImage(fxFrame('pill', fr), Math.round(cx - 24 + ox), Math.round(y - 26));
         });
-        // a whoosh of air as it goes up, and a ring in the sky as it comes back
-        if (!P.calm) {
-          addParts(8, fx0, pillY(fy0) + 10, ['#FFF6F8', '#E9DDF2'], 0.04, 0.00008, 520 * k, T + SH, false, [Math.PI * 0.2, Math.PI * 0.8]);
-          ringFx(T + F * DOWN, cx, TOP + 4, 420 * k, '#D6F5DD', 4, 18, false, 0.4);
-        }
-        sfx('power');
+        if (!P.calm) ringFx(T + F * DROP, cx, TOP + 4, 420 * k, '#D6F5DD', 4, 18, false, 0.4);
+        atClock(T + F * DROP, () => sfx('power'));
 
         // the landing
         const I = T + F;
@@ -17469,14 +17671,9 @@ const SquadView = (() => {
       case 'curve': {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         if (e.rug) {
-          // the dev sold: the pill wobbles off up and out of the arena, and that is all
-          const top = pillY(cy);
-          addFx(T, 900 * k, (x, kk) => {
-            x.globalAlpha = Math.max(0, 1 - kk * 1.15);
-            const wob = P.calm ? 0 : Math.round(Math.sin(kk * 18) * 2);
-            x.drawImage(fxFrame('pill', 3), Math.round(cx - 24 + wob), Math.round(top - 26 - kk * 72));
-            x.globalAlpha = 1;
-          });
+          // the dev sold (engine 19: the shadow is all there was): it thins out and is
+          // gone, and nothing comes down
+          addFx(T, 900 * k, (x, kk) => pillShade(x, cx, cy, 1 - kk, 0), true);
           const word = pxText('DEV SOLD', '#FF5C77', 2);
           const ink = pxText('DEV SOLD', '#1B1229', 2);
           const wx = clamp(Math.round(cx - word.width / 2), 2, N * TILE - word.width - 2);
@@ -17494,7 +17691,12 @@ const SquadView = (() => {
         if (e.lock) {
           ringFx(T + 900 * k, cx, cy + 4, 520 * k, '#FF5C77', 30, 10, true, 0.62);
           atClock(T + 900 * k, () => sfx('power'));
-        } else sfx('click');
+          label(T + 900 * k, 'INCOMING', '#FF5C77', cx, cy - 14, true);
+        } else {
+          // a dark ring rolling out to its new edge as it grows
+          ringFx(T + 300 * k, cx, cy + 3, 760 * k, '#1B1229', 5, 8 + shadeOf(e.pct) * 17, true, 0.62);
+          sfx('click');
+        }
         return;
       }
       // the hole it leaves, opening and later filling back in
@@ -17737,14 +17939,178 @@ const SquadView = (() => {
         }, true);
         return;
       }
-      // the candle grows a block: a puff of green going up off its top
+      // the candle pumps a block (engine 19: its rider rides it up): a puff of green
+      // off its top, and how hard its rider hits now
       case 'grow': {
         const p = S.props.find((v) => v.id === e.id);
         if (!p) return;
+        p.grewT = T;
+        p.grewK = k;
         const [cx, cy] = tileC(p.x, p.y);
         const top = cy + 6 - 38 + 35 - 6 - e.size * 4;
-        addParts(6, cx, top, ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.04, -0.00006, 520 * k, T, false, [-Math.PI, 0]);
-        label(T, '+' + e.size, '#4BE08F', cx, top - 4, false);
+        addParts(8, cx, top, ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.05, -0.00006, 560 * k, T, false, [-Math.PI, 0]);
+        // (one block on is the rider's own beat: its words are already up)
+        if (e.size > 1) label(T, 'PUMP +' + e.size, '#4BE08F', cx, top - 26, false);
+        if (e.size >= SE.RULES.candleMax) ringFx(T, cx, top, 420 * k, '#FFD447', 3, 12, false, 1);
+        return;
+      }
+      // up onto the Green Candle (engine 19): a hop from beside it, or, when the candle
+      // picked it, lifted over in a column of green light
+      case 'ride': {
+        const u = U[e.u];
+        const [fx0, fy0] = tileC(e.from[0], e.from[1]);
+        const [cx, cy] = tileC(e.at[0], e.at[1]);
+        const far = Math.max(Math.abs(e.from[0] - e.at[0]), Math.abs(e.from[1] - e.at[1])) > 1;
+        const H = MS.rideHit * k;
+        u.air = [T, T + H + 30 * k];
+        const face = cx > fx0 ? 1 : cx < fx0 ? -1 : u.face || 1;
+        u.face = face;
+        const spr = P.spr[u.id].get(face, 'h');
+        const top = cy + 6 - 13;
+        if (far) addFx(T, H + 240 * k, (x, kk) => ditherRect(x, cx - 5, TOP, 11, Math.max(0, top - TOP), '#9FE3A8', 0.4 * (1 - kk * kk)), true);
+        addFx(T, H, (x, kk) => {
+          const q = kk * kk * (3 - 2 * kk);
+          const sx = lerp(fx0, cx, q);
+          const sy = lerp(fy0 + 6, top, q) - Math.sin(Math.PI * kk) * (far ? 46 : 18);
+          x.drawImage(spr, Math.round(sx - 8), Math.round(sy - 19));
+        });
+        atClock(T + H, () => sfx('power'));
+        addParts(12, cx, top, ['#4FB36B', '#9FE3A8', '#FFFFFF'], 0.07, 0.0002, 520 * k, T + H, true, [Math.PI, Math.PI * 2]);
+        label(T + H, 'PUMP IT!', '#4BE08F', cx, top - 26, true);
+        u.hop = { kind: 'toss', t0: T + H, dur: 200 * k, h: 3 };
+        return;
+      }
+      // TO THE MOON (engine 19): the rider crouches on the top block, shoots up out of
+      // sight on a flame, a beat of sky, then drops onto the tile it picked and slams
+      // down; the candle sinks back into the floor behind it
+      case 'moon': {
+        const u = U[e.u];
+        const p = S.props.find((v) => v.id === e.id);
+        const [cx, cy] = tileC(e.from[0], e.from[1]);
+        const [lx, ly] = tileC(e.to[0], e.to[1]);
+        const L = MS.moonHit * k;
+        const C = 0.14 * L;
+        const UP = 0.4 * L;
+        const DN = 0.55 * L;
+        u.air = [T, T + L + 20 * k];
+        const face = lx > cx ? 1 : lx < cx ? -1 : u.face || 1;
+        u.face = face;
+        const feet = cy + 6 - (9 + 4 * SE.RULES.candleMax);
+        const sky = TOP - 44;
+        // (it comes back in from just over the top edge, so it is soon in sight)
+        const sky2 = TOP - 24;
+        const land = ly + 6;
+        const spr = P.spr[u.id].get(face, 'o');
+        const ink = '#1B1229';
+        // the candle (off the board as the beat starts): at the top under the crouch,
+        // then sinking back into the floor behind its rider
+        if (p)
+          addFx(T, C + 6 * 70 * k, (x, kk, el) => {
+            const fr = el < C ? 5 : 5 - Math.floor((el - C) / (70 * k));
+            if (fr >= 0) x.drawImage(fxFrame('candle', fr), Math.round(cx - 20), cy + 6 - 38);
+          }, true);
+        addFx(T, L, (x, kk, el) => {
+          let sx = cx;
+          let sy;
+          if (el < C) {
+            // down on its haunches
+            const s = Math.round(Math.sin((el / C) * Math.PI) * 3);
+            x.drawImage(spr, Math.round(cx - 8), Math.round(feet - 19 + s), 16, 20 - s);
+            return;
+          }
+          if (el < UP) {
+            const q = (el - C) / (UP - C);
+            sy = feet + (sky - feet) * q * q;
+          } else if (el < DN) return;
+          else {
+            const q = (el - DN) / (L - DN);
+            sx = lx;
+            sy = sky2 + (land - sky2) * q ** 1.6;
+          }
+          x.drawImage(spr, Math.round(sx - 8), Math.round(sy - 19));
+        });
+        // a rocket's flame under it on the way up, speed lines on the way down
+        addFx(T + C, UP - C, (x, kk) => {
+          const sy = feet + (sky - feet) * kk * kk;
+          x.drawImage(fxFrame('flame', Math.floor(kk * 14) % 4), Math.round(cx - 12), Math.round(sy + 1));
+        });
+        addFx(T + DN, L - DN, (x, kk) => {
+          const sy = sky2 + (land - sky2) * kk ** 1.6;
+          x.fillStyle = '#FFFFFF';
+          for (let s = 0; s < 4; s++) x.fillRect(lx - 9 + s * 6, Math.round(sy - 32 - (s % 2) * 6), 1, 7);
+        });
+        // where it will come down: from the moment it is out of sight, a shadow drawing
+        // in on the landing tile, gold sights blinking round it and rings closing on it
+        addFx(T + UP, L - UP, (x, kk, el) => {
+          blob(x, lx, land, 3 + kk * 9, 1 + Math.round(kk * 2), ink, 0.18 + kk * 0.32);
+          if (P.calm) return;
+          const ph = (el / (300 * k)) % 1;
+          const r = 13 * (1 - ph) + 3;
+          x.globalAlpha = 0.2 + 0.55 * ph;
+          x.fillStyle = '#FFD447';
+          for (let i = 0; i < 24; i++) if (i % 2) x.fillRect(Math.round(lx + Math.cos((i / 24) * Math.PI * 2) * r), Math.round(land + Math.sin((i / 24) * Math.PI * 2) * r * 0.5), 1, 1);
+          x.globalAlpha = 1;
+          if (Math.floor(el / (130 * k)) % 2 === 0) reticle(x, lx, ly, 1, '#FFD447');
+        }, true);
+        // and up there, where it went: a twinkle
+        addFx(T + UP - 80 * k, 420 * k, (x, kk) => {
+          const s = Math.round(Math.sin(kk * Math.PI) * 5);
+          if (s < 1) return;
+          const sx = Math.round(cx);
+          const sy = TOP + 7;
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(sx - s, sy, s * 2 + 1, 1);
+          x.fillRect(sx, sy - s, 1, s * 2 + 1);
+          if (s > 2) {
+            x.fillStyle = '#FFD447';
+            for (const [ax, ay] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) x.fillRect(sx + ax, sy + ay, 1, 1);
+          }
+        });
+        atClock(T + UP, () => sfx('gem'));
+        label(T + C, 'TO THE MOON!', '#FFD447', cx, feet - 28, true, 2);
+        atClock(T + C, () => sfx('power'));
+        // the slam
+        const I = T + L;
+        closeUp(I - 260 * k, 900 * k, lx, ly - 8, { slow: [I - 120 * k, I + 60 * k] });
+        atClock(I, () => {
+          hold(100);
+          sfx('crit');
+        });
+        shake(I);
+        playFx(I, 'bang', lx, ly, 320 * k);
+        ringFx(I, lx, ly + 6, 460 * k, '#FFD447', 4, 26, true, 0.45);
+        ringFx(I + 60 * k, lx, ly + 6, 520 * k, '#FFFFFF', 3, 18, true, 0.45);
+        addParts(20, lx, ly + 4, ['#FFD447', '#4FB36B', '#9FE3A8', '#FFFFFF'], 0.12, 0.0005, 760 * k, I, true, [Math.PI * 1.05, Math.PI * 1.95]);
+        for (const s of [-1, 1]) addFx(I, 520 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(lx - 8 + s * (6 + (el * 0.025) / k)), Math.round(ly - 6)));
+        u.hop = { kind: 'toss', t0: I, dur: 240 * k, h: 4 };
+        return;
+      }
+      // what the landing does to the Blubs beside it
+      case 'slam': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') {
+          label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
+          return;
+        }
+        d.hurt = T;
+        d.flash = T;
+        label(T, String(e.dmg), '#FFD447', dx, dy - 14, true, 2);
+        addParts(8, dx, dy, ['#FFD447', '#FFFFFF', '#4FB36B'], 0.08, 0.0003, 480 * k, T, true);
+        return;
+      }
+      // the Lambo's crash singes whoever stands beside it (engine 19)
+      case 'singed': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') {
+          label(T + 40 * k, 'POP', '#BDE7FF', dx, dy - 14, true);
+          return;
+        }
+        d.hurt = T + 40 * k;
+        d.flash = T + 40 * k;
+        label(T + 40 * k, String(e.dmg), '#FF8A3D', dx, dy - 14, true);
+        addParts(6, dx, dy - 4, ['#2B1D3F', '#6E6E80', '#FF8A3D'], 0.05, -0.00004, 640 * k, T, false, [Math.PI * 1.1, Math.PI * 1.9]);
         return;
       }
       case 'prophit': {
@@ -17765,7 +18131,18 @@ const SquadView = (() => {
         closeUp(T - 80 * k, 700 * k, cx, cy - 10);
         shake(T);
         sfx('crit');
-        if (e.id === 'candle') {
+        if (e.id === 'candle' && e.dump) {
+          // a red candle (engine 19): its rider is out, it goes red and crumbles away
+          const n = Math.max(0, Math.min(5, p.size));
+          addFx(T, 900 * k, (x, kk) => {
+            const fr = Math.max(0, n - Math.floor(kk * 7));
+            x.globalAlpha = kk < 0.7 ? 1 : 1 - (kk - 0.7) / 0.3;
+            x.drawImage(redCandle(fr), Math.round(cx - 20), cy + 6 - 38 + Math.round(kk * 4));
+            x.globalAlpha = 1;
+          });
+          addParts(20, cx, cy - 14, ['#E2566E', '#B8324A', '#FF8FA3', '#1B1229'], 0.09, 0.0006, 760 * k, T, true);
+          label(T, 'DUMPED', '#FF5C77', cx, cy - 30, true, 2);
+        } else if (e.id === 'candle') {
           addParts(20, cx, cy - 14, ['#4FB36B', '#2F7D46', '#9FE3A8', '#1B1229'], 0.09, 0.0006, 760 * k, T, true);
           label(T, 'CANDLE DOWN', '#E2566E', cx, cy - 30, true);
         } else {
@@ -18699,6 +19076,12 @@ const SquadView = (() => {
         }
         d.hurt = T;
         d.flash = T;
+        // engine 19: a direct hit flattens it
+        if (e.hp === 0) {
+          label(T, 'FLATTENED!', '#FF5C77', dx, dy - 20, true, 2);
+          addParts(14, dx, dy, ['#FFD447', '#FFFFFF', '#FF5C77', '#C98A12'], 0.12, 0.0004, 620 * k, T, true);
+          return;
+        }
         label(T, String(e.dmg), '#FFD447', dx, dy - 14, true, 2);
         addParts(8, dx, dy, ['#FFD447', '#FFFFFF', '#C98A12'], 0.08, 0.0003, 480 * k, T, true);
         return;
@@ -19536,7 +19919,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'thud', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -20822,15 +21205,15 @@ const SquadView = (() => {
     const s = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
     const T = {
       ev: {
-        nuke: `Turn ${R.nukeTurn}: lands where it hurts most. ${R.nukeCore} damage in the core, ${R.nukeRing} around it.`,
+        nuke: `A shadow grows over the crowd. Turn ${R.nukeTurn}: the pill comes down in it. ${R.nukeCore} damage in the core, ${R.nukeRing} around it.`,
         fud: `Turn ${R.fudTurn}: a storm over one Blub. Swings from under it miss far more.`,
         rug: `A trap. The first Blub on it drops out for ${s(R.rugTurns, 'turn')}.`,
         honeypot: `Looks like a power-up. Whoever grabs it can't attack for ${s(R.honeyTurns, 'turn')}.`,
         whale: `Turn ${R.whaleTurn}: a wave shoves every Blub ${R.whalePush} tiles back.`,
         rocket: `Turn ${R.rocketTurn}: takes a Blub to the moon. It never comes back.`,
-        lambo: `The first Blub in floors it: ${R.lamboDmg} damage to whoever it hits.`,
+        lambo: `The first Blub in floors it: whoever it hits is knocked out, and the crash singes those beside for ${R.lamboBang}.`,
         sendit: `A catapult each side: ${R.sendHop} tiles through the air, ${R.sendSplash} damage on landing.`,
-        candle: `Claim it: +${R.candleDmg} damage a block beside it, and it grows every turn.`,
+        candle: `A Blub rides it up: +${R.candleDmg} damage a block. At the top, TO THE MOON: ${R.candleSlam} damage where it lands.`,
         diamond: `Claim it: your Blubs near it can't be frozen, knocked or shoved.`,
         laser: `Claim it: your nearest Blub gets +${R.laserRange} reach and +${R.laserDmg} damage.`,
         copium: `Claim it: your hurt Blubs near it take ${R.copiumSoak}% less.`,
@@ -21451,18 +21834,42 @@ const SquadView = (() => {
   const frameOf = (id, k) => fxFrame(id, Math.min(fxCount(id) - 1, Math.floor(k * fxCount(id))));
   // one scene per card; t runs 0..LOOP
   const SCENES = {
+    // engine 19: a shadow growing over the floor, rings drawn into it, then the pill
+    // streaking down out of the sky into it, and the blast
     nuke(x, t) {
-      cxBlub(x, 18, 52, 1, t > 900 && t < 2200 ? 'o' : 'n', t > 1000 && t < 1500 ? Math.sin(ease(t, 1000, 1500) * Math.PI) * 8 : 0);
-      if (t < 950) {
-        const y = lerp(-30, 26, ease(t, 0, 950) ** 2);
-        const sway = Math.round(Math.sin(t / 120) * 3 * (1 - ease(t, 0, 950)));
-        x.drawImage(fxFrame('pill', 0), 46 - 24 + sway, Math.round(y) - 24);
-      } else if (t < 2300) {
-        const k = ease(t, 950, 2300);
-        const f = fxFrame('nuke', Math.min(11, Math.floor(k * 12)));
-        x.drawImage(f, 46 - 40, 46 - 52);
-        if (t < 1050) ditherRect(x, 0, 0, CX, CX, '#FFFFFF', 1 - ease(t, 950, 1050));
-        if (t > 1100) cxText(x, 'GRADUATED', '#9FE3A8', 36, 4);
+      const grow = ease(t, 0, 1450);
+      const boom = t >= 1850;
+      if (!boom) {
+        const R = 4 + grow * 16;
+        blob(x, 44, 48, R, Math.round(R * 0.62), INK, 0.16 + grow * 0.24);
+        blob(x, 44, 48, R * 0.55, Math.round(R * 0.34), INK, 0.18 + grow * 0.36);
+        x.fillStyle = INK;
+        for (let q = 0; q < 2; q++) {
+          const ph = (t / 700 + q / 2) % 1;
+          const r = R * (1 - ph) + 2;
+          x.globalAlpha = 0.32 * ph;
+          for (let i = 0; i < 18; i++) if (i % 3) x.fillRect(Math.round(44 + Math.cos((i / 18) * Math.PI * 2) * r), Math.round(48 + Math.sin((i / 18) * Math.PI * 2) * r * 0.62), 1, 1);
+        }
+        x.globalAlpha = 1;
+      }
+      cxBlub(x, 14, 52, 1, t > 1300 ? 'o' : 'n', boom && t < 2300 ? Math.sin(ease(t, 1850, 2300) * Math.PI) * 8 : 0);
+      if (t > 1000 && t < 1500) cxText(x, 'INCOMING', '#FF5C77', 44, 8);
+      if (t >= 1500 && !boom) {
+        const k = ease(t, 1500, 1850);
+        const y = lerp(-30, 40, k * k);
+        for (let s = 1; s <= 4; s++) {
+          x.globalAlpha = 0.5 - s * 0.1;
+          x.fillStyle = '#D6F5DD';
+          x.fillRect(43, Math.round(y - 30 - s * 6), 3, 5);
+        }
+        x.globalAlpha = 1;
+        x.drawImage(fxFrame('pill', Math.floor(t / 60) % 3), 44 - 24, Math.round(y) - 26);
+      }
+      if (boom) {
+        const k = ease(t, 1850, 2600);
+        x.drawImage(fxFrame('nuke', Math.min(11, Math.floor(k * 12))), 44 - 40, 48 - 52);
+        if (t < 1950) ditherRect(x, 0, 0, CX, CX, '#FFFFFF', 1 - ease(t, 1850, 1950));
+        if (t > 1950) cxText(x, 'GRADUATED', '#9FE3A8', 36, 4);
       }
     },
     fud(x, t) {
@@ -21559,9 +21966,30 @@ const SquadView = (() => {
       }
       if (t > 1000) cxText(x, 'TO THE MOON', '#FFD447', 36, 4);
     },
+    // engine 19: the car runs into a Blub, which is flattened, and the crash singes the
+    // one beside it
     lambo(x, t) {
-      const go = ease(t, 1200, 1700);
-      const y = 52 - go * go * 90;
+      const go = ease(t, 1200, 1460);
+      const crash = t >= 1460;
+      const y = crash ? 31 : 52 - go * go * 21;
+      if (!crash) cxBlub(x, 36, 12, 1, t > 1100 ? 'o' : 'n', 0);
+      else if (t < 2200) {
+        const k = ease(t, 1460, 1900);
+        x.drawImage(codexBlub().get(1, 's'), Math.round(36 - 8 + k * 22), Math.round(12 - 13 - Math.sin(k * Math.PI) * 12 + k * 4));
+        for (let s = 0; s < 3; s++) {
+          const a = t / 120 + (s * Math.PI * 2) / 3;
+          x.fillStyle = s ? '#FFD447' : '#FFFFFF';
+          x.fillRect(Math.round(36 + k * 22 + Math.cos(a) * 6), Math.round(-4 + k * 4 + Math.sin(a) * 2), 1, 1);
+        }
+      }
+      cxBlub(x, 60, 18, -1, crash && t < 2000 ? 'o' : 'n', 0);
+      if (crash) {
+        x.drawImage(fxFrame('lambo', 4), 36 - 16, y - 21);
+        if (t < 1780) x.drawImage(frameOf('bang', ease(t, 1460, 1780)), 36 - 16, 20 - 16);
+        if (t < 2300) cxText(x, 'FLATTENED!', '#FF5C77', 36, 60);
+        if (t > 1500 && t < 2100) cxText(x, '-' + SE.RULES.lamboBang, '#FF8A3D', 62, 0);
+        return;
+      }
       if (t < 1200) {
         const rev = t > 800 && Math.floor(t / 35) % 2 ? 1 : 0;
         x.drawImage(fxFrame('lambo', t < 800 ? (Math.floor(t / 160) % 2) : Math.floor(t / 70) % 3 === 2 ? 3 : 2), 36 - 16 + rev, 52 - 21);
@@ -21570,18 +21998,14 @@ const SquadView = (() => {
           const ph = ((t - 800) / 400 + n * 0.25) % 1;
           x.drawImage(fxFrame('puff', Math.floor(ph * 6)), Math.round(36 - 8 + (n % 2 ? 1 : -1) * (10 + ph * 12)), 52 - 6 + Math.round(ph * 4));
         }
-      } else if (t < 1750) {
+      } else {
         for (let n = 3; n >= 1; n--) {
-          const bk = ease(t - n * 26, 1200, 1700);
-          x.drawImage(ghostOf(fxFrame('lambo', 3), 'lambo3', 0.62 - n * 0.16), 36 - 16, Math.round(52 - bk * bk * 90) - 21);
+          const bk = ease(t - n * 26, 1200, 1460);
+          x.drawImage(ghostOf(fxFrame('lambo', 3), 'lambo3', 0.62 - n * 0.16), 36 - 16, Math.round(52 - bk * bk * 21) - 21);
         }
         x.drawImage(fxFrame('lambo', 3), 36 - 16, Math.round(y) - 21);
       }
-      if (t > 1200) {
-        x.fillStyle = INK;
-        for (const dx of [-12, 9]) ditherRect(x, 36 + dx, Math.round(Math.max(-10, y) + 3), 3, Math.round(55 - Math.max(-10, y)), INK, 0.55 * (1 - ease(t, 1800, 2600)));
-      }
-      if (t > 600 && t < 1900) cxText(x, 'WEN LAMBO', '#FFD447', 36, 60);
+      if (t > 600 && t < 1460) cxText(x, 'WEN LAMBO', '#FFD447', 36, 60);
     },
     sendit(x, t) {
       const fired = t >= 600;
@@ -21601,12 +22025,37 @@ const SquadView = (() => {
       }
       if (t > 650 && t < 1700) cxText(x, 'SEND IT', '#FFD447', 36, 4);
     },
+    // engine 19: a Blub hops onto the candle and rides it up, a block at a time, then
+    // leaps off TO THE MOON and slams down beside an enemy
     candle(x, t) {
-      const n = Math.min(5, Math.floor(t / 420));
-      cxBlub(x, 18, 52, 1, 'h', 0);
-      blob(x, 46, 58, 9, 2, colors.you.fill, 0.6);
-      x.drawImage(fxFrame('candle', n), 46 - 20, 58 - 38);
-      if (n > 0) cxText(x, '+' + n, '#4BE08F', 18, 26);
+      const n = t < 400 ? 0 : Math.min(5, 1 + Math.floor((t - 400) / 260));
+      const launch = t >= 1750;
+      const fr = launch ? 5 - Math.floor((t - 1750) / 70) : n;
+      const B = codexBlub();
+      blob(x, 50, 58, 9, 2, colors.you.fill, 0.6);
+      if (fr >= 0) x.drawImage(fxFrame('candle', fr), 50 - 20, 58 - 38);
+      cxBlub(x, 12, 50, 1, t > 2150 && t < 2500 ? 'o' : 'n', 0);
+      if (t < 400) {
+        const k = ease(t, 0, 400);
+        blob(x, lerp(30, 50, k), 58, 6, 1, INK, 0.3);
+        x.drawImage(B.get(1, 'h'), Math.round(lerp(30, 50, k) - 8), Math.round(lerp(58, 45, k) - 19 - Math.sin(k * Math.PI) * 12));
+      } else if (!launch) {
+        x.drawImage(B.get(1, 'h'), 50 - 8, 49 - 4 * n - 19);
+        if (t > 660) cxText(x, 'PUMP +' + n, '#4BE08F', 36, 2);
+      } else if (t < 2150) {
+        const k = ease(t, 1750, 2150);
+        if (k < 0.5) {
+          const y = lerp(29, -24, (k * 2) ** 2);
+          x.drawImage(fxFrame('flame', Math.floor(t / 70) % 4), 50 - 12, Math.round(y));
+          x.drawImage(B.get(1, 'o'), 50 - 8, Math.round(y - 19));
+        } else x.drawImage(B.get(-1, 'o'), 28 - 8, Math.round(lerp(-24, 56, ((k - 0.5) * 2) ** 2) - 19));
+        cxText(x, 'TO THE MOON', '#FFD447', 36, 2);
+      } else {
+        const k = ease(t, 2150, 2600);
+        cxBlub(x, 28, 50, -1, 'o', 0);
+        if (k < 0.6) x.drawImage(frameOf('bang', k / 0.6), 20 - 16, 48 - 16);
+        cxText(x, '-' + SE.RULES.candleSlam, '#FFD447', 12, 26);
+      }
     },
     diamond(x, t) {
       blob(x, 46, 58, 9, 2, colors.you.fill, 0.6);
