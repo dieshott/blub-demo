@@ -2136,7 +2136,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · new home page: Blub  The Sift, the game step by step, the coin live from DexScreener</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">13 Oct 2026 · engine 16: a stance for every Blub (attack, defend, control, evade)</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2250,7 +2250,7 @@ body.no-scroll{overflow:hidden}
         </div>
         <ul class="parts">
           <li><div class="part-art" data-art="looks" aria-hidden="true"></div><h4>Team · Looks</h4><p>Dress your five in the Blub Maker: colours, hats, eyes and more. Looks are just for fun and stay the same in every strategy.</p><a class="btn small" href="#team">Team</a></li>
-          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><h4>Team · Skills</h4><p>Give every Blub a role (Brawler, Guardian, Skirmisher, Medic or Trickster), a weapon, gear, a power and a tactic, and spend its training points.</p><a class="btn small" href="#team">Team</a></li>
+          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><h4>Team · Skills</h4><p>Give every Blub a role (Brawler, Guardian, Skirmisher, Medic or Trickster), a weapon, gear, a power, a tactic and a stance (attack, defend, hold the middle or evade), and spend its training points.</p><a class="btn small" href="#team">Team</a></li>
           <li><div class="part-art" data-art="plan" aria-hidden="true"></div><h4>Team · Strategy</h4><p>Place your five on your rows, dig in two objects of the trench kit and pick the captain’s command. You keep three strategies and switch with a tap.</p><a class="btn small" href="#team">Team</a></li>
           <li><div class="part-art" data-art="fight" aria-hidden="true"></div><h4>The arena</h4><p>Every round brings a new arena, weather and a chest of surprises. Smoke makes shots blind, Diggers hide pits, Builders raise cannons and barbed wire tangles whoever crosses it.</p><button type="button" class="btn small" data-botshow>Watch a fight</button></li>
           <li><div class="part-art" data-art="practice" aria-hidden="true"></div><h4>Practice</h4><p>Play bot squads as often as you like, watch two bot squads fight, or take the guided first match that explains everything as it happens. Free, no wallet.</p><a class="btn small mint" href="#practice">Practice</a></li>
@@ -5827,7 +5827,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 15;
+const SQUAD_ENGINE = 16;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -6016,6 +6016,13 @@ const RULES = lock({
   rainPct: 15, rainRange: 1,
   // Builders, Miners and Diggers are made of tougher stuff: this much more HP
   workHp: 6,
+  // Stances (engine 16, STANCES): where a Blub goes to fight. Defend keeps to its own
+  // half (up to holdRow rows out from its back row; the middle is 7), Control to the
+  // middle band (midBand rows either side of the middle row); both fight from there and
+  // never chase out of it. Evade keeps evadeGap tiles from every enemy where it can,
+  // falls back when one comes closer, and hits from such a tile (or anything already
+  // locked in a fight with its squad).
+  holdRow: 6, midBand: 2, evadeGap: 3,
   // How many Blubs of a squad may have a power (engine 14, the owner's call: never a
   // squad of five Diggers): the trench jobs and the Freeze Ray once, the rest twice
   powMax: { freeze: 1, storm: 2, rage: 2, nap: 2, bubble: 2, builder: 1, digger: 1, miner: 1 },
@@ -6099,6 +6106,14 @@ const TACTICS = lock([
   ['strongest', 'Giant Slayer', 'Goes for the enemy that hits hardest.'],
   ['backline', 'Backline', 'Hunts archers, wand users and medics first.'],
   ['protect', 'Bodyguard', 'Attacks whoever is closest to your most hurt ally.'],
+]);
+// [id, name, description]: how a Blub moves to fight (engine 16, the owner's call: attack,
+// defend, the middle, or keep out of trouble). A squad saved without one attacks.
+const STANCES = lock([
+  ['attack', 'Attack', 'Goes after its target and fights wherever it finds it.'],
+  ['hold', 'Defend', 'Holds your own half: it fights whatever comes onto it and never chases past the middle. Strong behind wire, pits and a cannon.'],
+  ['middle', 'Control', `Takes the middle and holds it: it fights from the ${2 * RULES.midBand + 1} middle rows and does not chase out of them.`],
+  ['evade', 'Evade', `Keeps out of the brawl: it stays ${RULES.evadeGap} tiles from every enemy where it can, falls back when one comes closer, and hits from there, or whoever is already locked in a fight with your squad. Good for shooters, medics and sneaky blades.`],
 ]);
 // [id, name, description]: what the captain calls to its squad, once a round
 const COMMANDS = lock([
@@ -6315,6 +6330,9 @@ function cleanSquad(raw) {
   for (const u of list) {
     if (!u || typeof u !== 'object') return null;
     const { cls, gear, pow, tac } = u;
+    // its stance (engine 16): none is Attack
+    const stn = u.stn === undefined || u.stn === 'attack' ? 'attack' : u.stn;
+    if (!has(STANCES, stn)) return null;
     // a Last Stand Pack (engines 5 to 11) is a Boom Pack now
     const wpn = u.wpn === 'last' ? 'boom' : u.wpn;
     if (!has(PLAYSTYLES, cls) || !has(WEAPONS, wpn) || !has(GEAR, gear) || !has(POWERS, pow) || !has(TACTICS, tac)) return null;
@@ -6336,7 +6354,7 @@ function cleanSquad(raw) {
       trn[k] = v;
       left -= v;
     }
-    units.push({ cls, wpn, gear, pow, tac, trn, x, y });
+    units.push({ cls, wpn, gear, pow, tac, trn, x, y, ...(stn !== 'attack' ? { stn } : {}) });
   }
   // so many Blubs of a squad with a power, and no more (RULES.powMax)
   for (const [id] of POWERS) if (units.filter((u) => u.pow === id).length > (RULES.powMax[id] || TEAM)) return null;
@@ -6577,7 +6595,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const eng = engineerOf(sq.units, i);
       const st = unitStats(s, i === 0, eng);
       const u = {
-        id: team * TEAM + i, team, cls: s.cls, wpn: eng ? 'tool' : s.wpn, gear: s.gear, pow: s.pow, tac: s.tac, x, y, engineer: eng,
+        id: team * TEAM + i, team, cls: s.cls, wpn: eng ? 'tool' : s.wpn, gear: s.gear, pow: s.pow, tac: s.tac, stn: s.stn || 'attack', x, y, engineer: eng,
         hp: st.max, max: st.max, move: st.move, dodge: st.dodge, crit: st.crit, block: st.block, guard: st.guard, power: st.power, init: st.init,
         alive: true, skip: 0, used: false, rage: false, blade: 0, totem: false, bubble: s.pow === 'bubble', ambush: s.cls === 'cheeky',
         potion: s.gear === 'potion', pillowAt: 1, attacked: false, hurt: false, dealt: 0, startedTurn: 0, immune: false, lastHealed: -1, pending: 0, amb: 0, moved: false,
@@ -6690,7 +6708,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (by && meme[t].nerf === 'rekt') by.hp = Math.max(1, by.hp - RULES.rektHp);
       if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
     }
-  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
+  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
   push({ t: 'round', n: round + 1, theme, weather, powerup, chest: spin });
   if (spin)
     for (const t of [0, 1]) {
@@ -7452,6 +7470,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (best >= 0 && bs >= 20 && walk(u, route(P, best))) return hitAround(u, target);
       if (!u.alive) return;
     }
+    // its stance (engine 16): Defend and Control keep to their ground, Evade keeps out
+    // of the brawl; Attack fights wherever its target is
+    if (u.stn !== 'attack' && stanceTurn(u, target)) return;
     if (canHit(u, u.x, u.y, target)) return attack(u, target);
     let P = search(u, 999, (x, y) => canHit(u, x, y, target));
     const goal = attackGoal(u, P, target);
@@ -7479,6 +7500,86 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (best >= 0) walk(u, route(P, best));
     }
     hitAround(u, target);
+  }
+  // ---- stances (engine 16, RULES.holdRow, midBand, evadeGap)
+  const inZone = (u, y) => (u.stn === 'hold' ? ahead(u, y) <= RULES.holdRow : u.stn === 'middle' ? Math.abs(ahead(u, y) - 7) <= RULES.midBand : true);
+  // Defend and Control: hit the target (or else anyone) from its ground, where it stands
+  // or on a tile of it it gets to this turn; with nobody to hit from there, Control
+  // walks onto its ground and Defend stays where it is
+  function stanceTurn(u, target) {
+    if (u.stn === 'evade') return evadeTurn(u, target);
+    if (inZone(u, u.y) && canHit(u, u.x, u.y, target)) {
+      attack(u, target);
+      return true;
+    }
+    let P = search(u, u.move, (x, y) => inZone(u, y) && canHit(u, x, y, target));
+    const goal = attackGoal(u, P, target);
+    if (goal >= 0) {
+      walk(u, route(P, goal));
+      hitAround(u, target);
+      return true;
+    }
+    if (inZone(u, u.y)) {
+      const near = inReach(u);
+      if (near.length) {
+        attack(u, chooseTarget(u, near));
+        return true;
+      }
+    }
+    P = search(u, u.move, (x, y) => inZone(u, y) && foes(u).some((v) => canHit(u, x, y, v)));
+    if (P.found.length) {
+      walk(u, route(P, P.found[0]));
+      hitAround(u);
+      return true;
+    }
+    if (!inZone(u, u.y)) {
+      // onto its ground: the tile of it nearest its target
+      P = search(u, 999, (x, y) => inZone(u, y));
+      let best = -1;
+      let bd = 99;
+      for (const c of P.found) {
+        const [x, y] = xyOf(c);
+        const d = cheb(x, y, target.x, target.y);
+        if (d < bd) {
+          bd = d;
+          best = c;
+        }
+      }
+      if (best >= 0) walk(u, route(P, best));
+    }
+    if (u.alive && over < 0) hitAround(u);
+    return true;
+  }
+  // Evade: the tile in its reach that is safest (evadeGap tiles from every enemy, near
+  // its squad) and from which it hits something, its target first; a tile next to an
+  // enemy only for one already locked in a fight with its squad. It drifts towards
+  // its target, never into the brawl.
+  function evadeTurn(u, target) {
+    const list = foes(u);
+    const G = RULES.evadeGap;
+    const here = idx(u.x, u.y);
+    const P = search(u, u.move);
+    let best = here;
+    let bs = -1e9;
+    for (const c of [here, ...seen(P)]) {
+      if (c !== here && occ[c] >= 0) continue;
+      const [x, y] = xyOf(c);
+      const gap = foeGap(u, x, y);
+      const hits = list.filter((v) => canHit(u, x, y, v));
+      const locked = hits.some((v) => living[u.team].some((a) => a !== u && cheb(a.x, a.y, v.x, v.y) <= 1));
+      let mate = 99;
+      for (const a of living[u.team]) if (a !== u) mate = Math.min(mate, cheb(x, y, a.x, a.y));
+      const s =
+        Math.min(gap, G + 1) * 10 + (hits.length ? 25 : 0) + (hits.includes(target) ? 5 : 0) + (locked ? 12 : 0) - (gap < G && !locked ? 25 * (G - gap) : 0) -
+        Math.max(0, mate - RULES.keepUp) * 4 - cheb(x, y, target.x, target.y);
+      if (s > bs) {
+        bs = s;
+        best = c;
+      }
+    }
+    if (best !== here) walk(u, route(P, best));
+    if (u.alive && over < 0) hitAround(u, target);
+    return true;
   }
   // ---- the Digger's pits (engine 10) and its smoke grenade (engine 14).
   // How far out a row lies for u's squad: 0 on its own back row, 7 in the middle
@@ -9434,7 +9535,9 @@ function randomSquad(r) {
     // so many of a power a squad: one too many is picked again
     let pow = pick(POWERS);
     while (units.filter((v) => v.pow === pow).length >= (RULES.powMax[pow] || TEAM)) pow = pick(POWERS);
-    units.push({ cls, wpn, gear, pow, tac: cls === 'cheeky' ? 'backline' : cls === 'sleepy' ? 'protect' : pick(TACTICS), trn, x, y });
+    // a stance: Attack half the time (the old way), else one of the others
+    const stn = r() < 0.5 ? 'attack' : pick(STANCES.slice(1));
+    units.push({ cls, wpn, gear, pow, tac: cls === 'cheeky' ? 'backline' : cls === 'sleepy' ? 'protect' : pick(TACTICS), trn, x, y, ...(stn !== 'attack' ? { stn } : {}) });
   }
 
   // two different objects of the trench kit, dug in where they make sense
@@ -9562,7 +9665,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -9831,6 +9934,21 @@ const SquadView = (() => {
       // Bodyguard: a heart behind a shield wall
       protect: ['............', '..kkk.kkk...', '.kFFFkFFFk..', '.kFwFFFFFk..', '.kFFFFFFFk..',
         '..kFFFFFk...', 'kkkkkkkkkkkk', 'kbbBkbbBkbbk', 'kbBBkbBBkbBk', 'kBBBkBBBkBBk', 'kkkkkkkkkkkk', '............'],
+    },
+    // stances (engine 16): where a Blub goes to fight
+    stn: {
+      // Attack: a sword thrust forward
+      attack: ['..........kk', '.........kSk', '........kSk.', '.......kSk..', '..k...kSk...',
+        '..kk.kSk....', '...kkSk.....', '....kNk.....', '...kNkk.....', '..kNk.kk....', '.kNk...k....', '.kk.........'],
+      // Defend: a tower with its gate
+      hold: ['.k.k.kk.k.k.', '.kkkkkkkkkk.', '.kSSSSSSSSk.', '.kSkkSSkkSk.', '.kSSSSSSSSk.',
+        '.kSSSkkSSSk.', '.kSSkBBkSSk.', '.kSSkBBkSSk.', '.kSSkBBkSSk.', '.kkkkkkkkkk.', '............', '............'],
+      // Control: a flag on the hill in the middle
+      middle: ['....kkkkk...', '....kRRRRk..', '....kRRRk...', '....kRRk....', '....kk......',
+        '....kk......', '....kk......', '..kkkkkk....', '.kGGGGGGk...', 'kGGGgGGGGk..', 'kGgGGGGgGGk.', 'kkkkkkkkkkkk'],
+      // Evade: footprints going away, and the dust they leave
+      evade: ['............', '.......kk...', '......kbbk..', '.....kbbbbk.', '....kbbbbk..',
+        '..kk.kbbk...', '.kbbk.kk....', 'kbbbbk......', '.kbbk..k.k.k', '..kk........', '............', '............'],
     },
     item: {
       apple: ['......kk....', '.....kNk.kk.', '..kkkknkkGk.', '.kyyyykyGGk.', 'kyYYyyyykk..',
@@ -21663,14 +21781,16 @@ const SquadHall = (() => {
   const E = SquadEngine;
   const byId = list => { const m = Object.create(null); list.forEach(x => { m[x[0]] = x; }); return m; };
   const CLS = byId(E.PLAYSTYLES), WPN = byId(E.WEAPONS), GEAR = byId(E.GEAR), POW = byId(E.POWERS), TAC = byId(E.TACTICS), TRN = byId(E.TRAINING), THEME = byId(E.THEMES);
+  // stances (engine 16): how a Blub moves to fight; none is Attack
+  const STN = byId(E.STANCES || [['attack', 'Attack', '']]);
   const ROLES = E.PLAYSTYLES.map(x => x[0]);
   // picking a role fills in a sensible build, so a whole squad takes five taps
   const ROLE = {
-    fierce: {wpn: 'sword', gear: 'shield', pow: 'rage', tac: 'nearest', trn: {pow: 3, grd: 0, spd: 0, lck: 2}},
-    sleepy: {wpn: 'sword', gear: 'shield', pow: 'bubble', tac: 'protect', trn: {pow: 2, grd: 3, spd: 0, lck: 0}},
-    playful: {wpn: 'bow', gear: 'boots', pow: 'freeze', tac: 'weakest', trn: {pow: 2, grd: 0, spd: 0, lck: 3}},
-    sweet: {wpn: 'wand', gear: 'pillow', pow: 'nap', tac: 'protect', trn: {pow: 0, grd: 3, spd: 2, lck: 0}},
-    cheeky: {wpn: 'daggers', gear: 'potion', pow: 'bubble', tac: 'backline', trn: {pow: 0, grd: 0, spd: 3, lck: 2}},
+    fierce: {wpn: 'sword', gear: 'shield', pow: 'rage', tac: 'nearest', stn: 'attack', trn: {pow: 3, grd: 0, spd: 0, lck: 2}},
+    sleepy: {wpn: 'sword', gear: 'shield', pow: 'bubble', tac: 'protect', stn: 'attack', trn: {pow: 2, grd: 3, spd: 0, lck: 0}},
+    playful: {wpn: 'bow', gear: 'boots', pow: 'freeze', tac: 'weakest', stn: 'attack', trn: {pow: 2, grd: 0, spd: 0, lck: 3}},
+    sweet: {wpn: 'wand', gear: 'pillow', pow: 'nap', tac: 'protect', stn: 'attack', trn: {pow: 0, grd: 3, spd: 2, lck: 0}},
+    cheeky: {wpn: 'daggers', gear: 'potion', pow: 'bubble', tac: 'backline', stn: 'attack', trn: {pow: 0, grd: 0, spd: 3, lck: 2}},
   };
   const SLOT_NAMES = ['Alpha Squad', 'Bravo Squad', 'Coral Crew', 'Bubble Brigade', 'Night Shift', 'Sift Raiders', 'Pink Fury', 'Moon Watch', 'Turtle Team', 'Rush Crew', 'Arrow Rain', 'Glass Cannons'];
   const BOT_TEAMS = ['Coral Crushers', 'Bubble Bandits', 'Moss Mob', 'Pixel Pirates', 'Sift Sentinels', 'Jelly Legion', 'Night Owls', 'Pebble Patrol', 'Fizz Gang', 'Waffle Wardens', 'Glimmer Guard', 'Pudding Posse'];
@@ -21830,7 +21950,7 @@ const SquadHall = (() => {
     if (list && POW_MAX[u.pow] && list.filter(v => v.pow === u.pow).indexOf(u) >= POW_MAX[u.pow]) return POW[u.pow][1] + ' is ' + capWord(u.pow) + ', and others have it: pick another power.';
     return '';
   }
-  const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, trn: {...P.trn}, x, y}; };
+  const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}, x, y}; };
   // so many Blubs of a squad with a power (engine 14, E.RULES.powMax): is there room for
   // u to have it? And the one u wants if there is, else the first spare with room
   const POW_MAX = E.RULES.powMax || {};
@@ -21998,7 +22118,9 @@ const SquadHall = (() => {
       if (!v || typeof v !== 'object' || !CLS[v.cls]) return null;
       // (a Last Stand Pack, engines 5 to 11, is a Boom Pack now, as in E.cleanSquad)
       const P = ROLE[v.cls], t = v.trn && typeof v.trn === 'object' ? v.trn : {}, w = v.wpn === 'last' ? 'boom' : v.wpn, u = {cls: v.cls,
-        wpn: WPN[w] ? w : P.wpn, gear: GEAR[v.gear] ? v.gear : P.gear, pow: POW[v.pow] ? v.pow : P.pow, tac: TAC[v.tac] ? v.tac : P.tac, trn: {}, x: v.x, y: v.y, auto: v.auto === true};
+        wpn: WPN[w] ? w : P.wpn, gear: GEAR[v.gear] ? v.gear : P.gear, pow: POW[v.pow] ? v.pow : P.pow, tac: TAC[v.tac] ? v.tac : P.tac,
+        // (a squad from before stances attacks, as it always did)
+        stn: STN[v.stn] ? v.stn : 'attack', trn: {}, x: v.x, y: v.y, auto: v.auto === true};
       let left = E.TRAIN_POINTS;
       E.TRAINING.forEach(([k]) => { const n = Math.min(E.TRAIN_MAX, Math.max(0, Math.floor(+t[k]) || 0), left); u.trn[k] = n; left -= n; });
       units.push(u);
@@ -22023,7 +22145,7 @@ const SquadHall = (() => {
     return {units, objs, cmd};
   }
   const copyDraft = d => cleanDraft(JSON.parse(JSON.stringify(d)));
-  const squadOf = d => ({units: d.units.map(u => ({cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, trn: {...u.trn}, x: u.x, y: u.y})), objs: (d.objs || []).map(o => ({k: o.k, x: o.x, y: o.y})), ...(CMD_OK(d.cmd) ? {cmd: d.cmd} : {})});
+  const squadOf = d => ({units: d.units.map(u => ({cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, ...(u.stn && u.stn !== 'attack' ? {stn: u.stn} : {}), trn: {...u.trn}, x: u.x, y: u.y})), objs: (d.objs || []).map(o => ({k: o.k, x: o.x, y: o.y})), ...(CMD_OK(d.cmd) ? {cmd: d.cmd} : {})});
   const readyCount = d => d.units.filter(u => !problem(u, d.units)).length;
   // the captain: real once your Blub is saved (in the Meadow), else a stand-in
   function captain(){ return {...team()[0], real: !!SquadNet.captain()}; }
@@ -22352,7 +22474,7 @@ const SquadHall = (() => {
         the picked object's details and the auto-arrange buttons;
      3. the squad sheet: strength, team, kit and one row per Blub.
      --------------------------------------------------------------- */
-  const PARTS = [['role', 'Role'], ['wpn', 'Weapon'], ['gear', 'Gear'], ['pow', 'Power'], ['tac', 'Tactic'], ['trn', 'Training']];
+  const PARTS = [['role', 'Role'], ['wpn', 'Weapon'], ['gear', 'Gear'], ['pow', 'Power'], ['tac', 'Tactic'], ['stn', 'Stance'], ['trn', 'Training']];
   function select(i, focusCell){
     const n = clamp(i, 0, 4);
     if (n !== st.sel){ st.peek = null; st.prev = null; }
@@ -22406,7 +22528,7 @@ const SquadHall = (() => {
     R.stage.hidden = looks || plan; R.looks.hidden = !looks;
     R.zStrat.hidden = !plan; R.zField.hidden = !plan; R.zSheet.hidden = !plan;
     renderSteps();
-    R.tabNote.textContent = looks ? 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.' : plan ? 'Strategy: where everyone starts, the trench kit, the captain’s command and your three plans.' : 'Skills: how ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic and training.';
+    R.tabNote.textContent = looks ? 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.' : plan ? 'Strategy: where everyone starts, the trench kit, the captain’s command and your three plans.' : 'Skills: how ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic, stance and training.';
     if (looks) mountLooks();
     else if (plan){ paintBoard(); keepFocus(renderSheet); }
     else keepFocus(renderUnit);
@@ -22510,6 +22632,7 @@ const SquadHall = (() => {
     if (p === 'gear') return [vIcon('gear', u.gear, 24), GEAR[u.gear][1]];
     if (p === 'pow') return [vIcon('pow', u.pow, 24), POW[u.pow][1]];
     if (p === 'tac') return [vIcon('tac', u.tac, 24), TAC[u.tac][1]];
+    if (p === 'stn') return [vIcon('stn', u.stn || 'attack', 24), STN[u.stn || 'attack'][1]];
     return [trainIcon(u.trn, 24), trnUsed(u.trn) + '/' + E.TRAIN_POINTS + ' points'];
   }
   // a part's short line under its value (desktop): what it does, in a few words
@@ -22524,8 +22647,8 @@ const SquadHall = (() => {
       if (left > 0) return [left + ' point' + (left === 1 ? '' : 's') + ' left', true];
       return [E.TRAINING.filter(([k]) => u.trn[k]).map(([k, n]) => n + ' ' + u.trn[k]).join(' · '), false];
     }
-    const C = LISTS[p].find(x => x[0] === u[p]);
-    return [C ? firstBit(C[2], /\.(?:\s|$)/) : '', false];
+    const C = LISTS[p].find(x => x[0] === (p === 'stn' ? u.stn || 'attack' : u[p]));
+    return [C ? firstBit(C[2], /[.:](?:\s|$)/) : '', false];
   }
   // a tiny bar chart of the four training values
   function trainIcon(t, px){
@@ -22556,7 +22679,7 @@ const SquadHall = (() => {
         'aria-label': label + ': ' + val, onclick: () => openPart(p)}, ic, h('span', {class: 'k', 'aria-hidden': 'true'}, label), h('b', {'aria-hidden': 'true'}, val),
         h('span', {class: 'sq-psub' + (gold ? ' warn' : ''), 'aria-hidden': 'true', title: sub}, sub));
       if (p === 'role' && u.cls === m.style) t.append(h('i', {class: 'sq-fit', 'aria-hidden': 'true'}, '♥'));
-      (n < 3 ? R.partsL : R.partsR).append(t);
+      (n < 4 ? R.partsL : R.partsR).append(t);
     });
     placeNotch();
   }
@@ -22595,7 +22718,7 @@ const SquadHall = (() => {
   }
   // a two-handed weapon takes the shield off (Cloud Boots instead)
   const wpnPatch = (u, id) => (u.gear === 'shield' && twoHanded(id) ? {wpn: id, gear: 'boots'} : {wpn: id});
-  const LISTS = {wpn: E.WEAPONS, gear: E.GEAR, pow: E.POWERS, tac: E.TACTICS};
+  const LISTS = {wpn: E.WEAPONS, gear: E.GEAR, pow: E.POWERS, tac: E.TACTICS, stn: E.STANCES || []};
   function why(p, id, u){
     if (p === 'gear' && id === 'shield' && twoHanded(u.wpn)) return WPN[u.wpn][1] + ' needs both hands';
     // so many of a power a squad (engine 14)
@@ -22615,11 +22738,11 @@ const SquadHall = (() => {
       const c = id || u.cls, P = ROLE[c], S = E.STYLE_STATS[c];
       box.append(h('p', {class: 'sq-chd-t'}, vIcon('cls', c, 20), h('b', null, CLS[c][1]), h('span', null, 'HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ' · Move ' + S.move)), h('p', {class: 'sq-desc'}, CLS[c][2]));
       if (c === u.cls) box.append(h('p', {class: 'sq-chg now'}, u.auto ? 'Picked. It follows ' + m.name + '’s personality until you change a part.' : 'Picked.'));
-      else box.append(h('p', {class: 'sq-chg'}, [...changes(u, i, {cls: c, wpn: P.wpn, gear: P.gear, trn: P.trn}).slice(0, 4), 'fills in ' + [WPN[P.wpn][1], GEAR[P.gear][1], POW[P.pow][1], TAC[P.tac][1]].join(', ')].join(' · ')));
+      else box.append(h('p', {class: 'sq-chg'}, [...changes(u, i, {cls: c, wpn: P.wpn, gear: P.gear, trn: P.trn}).slice(0, 4), 'fills in ' + [WPN[P.wpn][1], GEAR[P.gear][1], POW[P.pow][1], TAC[P.tac][1], STN[P.stn || 'attack'][1]].join(', ')].join(' · ')));
       if (c === m.style) box.append(h('p', {class: 'sq-desc sq-mood'}, '♥ ' + m.name + ' is ' + (STYLE[c] ? STYLE[c].n.toLowerCase() : 'like that') + ', so ' + CLS[c][1] + ' suits it. Any role works.'));
       return;
     }
-    const list = LISTS[p], kind = p, cur = u[p], c = id || cur, C = list.find(x => x[0] === c) || list[0], bad = why(p, C[0], u);
+    const list = LISTS[p], kind = p, cur = p === 'stn' ? u.stn || 'attack' : u[p], c = id || cur, C = list.find(x => x[0] === c) || list[0], bad = why(p, C[0], u);
     box.append(h('p', {class: 'sq-chd-t'}, vIcon(kind, C[0], 20), h('b', null, C[1]), p === 'wpn' ? h('span', null, weaponLine(C[0])) : null), h('p', {class: 'sq-desc'}, C[2]));
     if (bad) box.append(h('p', {class: 'sq-chg bad'}, (p === 'wpn' || p === 'pow' ? 'Not now: ' : 'Not with this weapon: ') + bad + '.'));
     else if (C[0] === cur) box.append(h('p', {class: 'sq-chg now'}, 'Picked.'));
@@ -22669,7 +22792,7 @@ const SquadHall = (() => {
       ROLES.forEach(c => {
         const S = E.STYLE_STATS[c];
         const b = radio(g, c === u.cls, [vIcon('cls', c, 28), h('span', {class: 'sq-rt'}, h('b', null, CLS[c][1]), h('small', null, 'HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ' · Move ' + S.move))],
-          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: fitPow(st.draft.units, u, P.pow), tac: P.tac, trn: {...P.trn}}, c === fit); },
+          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: fitPow(st.draft.units, u, P.pow), tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}}, c === fit); },
           {class: 'sq-role' + (c === fit ? ' fit' : ''), 'data-k': 'role:' + c, 'data-id': c, 'aria-describedby': 'sqChDesc', 'aria-label': CLS[c][1] + ', HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ', move ' + S.move + (c === fit ? '. Suits ' + m.name + '’s personality' : '')});
         if (c === fit) b.append(h('i', {class: 'sq-fit', 'aria-hidden': 'true', title: 'Suits ' + m.name + '’s personality'}, '♥'));
         hover(b, c);
@@ -22679,10 +22802,10 @@ const SquadHall = (() => {
     } else {
       const list = LISTS[p], g = h('div', {class: 'sq-chs', role: 'radiogroup', 'aria-label': label + ' for ' + m.name});
       list.forEach(([id, n]) => {
-        const no = why(p, id, u);
-        const b = radio(g, id === u[p], [vIcon(p, id, 28), h('span', null, n)], () => {
+        const no = why(p, id, u), cur = p === 'stn' ? u.stn || 'attack' : u[p];
+        const b = radio(g, id === cur, [vIcon(p, id, 28), h('span', null, n)], () => {
           if (no){ peek(id); return; }
-          if (id === u[p]) return;
+          if (id === cur) return;
           setUnit(p === 'wpn' ? wpnPatch(u, id) : {[p]: id});
         }, {class: 'sq-ch' + (no ? ' off' : ''), 'data-k': p + ':' + id, 'data-id': id, 'aria-describedby': 'sqChDesc', 'aria-label': n + (no ? ' (' + no + ')' : ''), 'aria-disabled': no ? 'true' : null});
         if (no) b.append(h('i', {class: 'sq-lock', 'aria-hidden': 'true'}));
@@ -22691,7 +22814,7 @@ const SquadHall = (() => {
       fixTabStop(g); radioKeys(g);
       // a Builder fights with its Build Hammer: the weapon picked here waits till it has another power
       const tool = p === 'wpn' && armsOf(u) === 'tool';
-      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote' + (tool ? ' warn' : '')}, tool ? 'a Builder fights with its ' + E.TOOL[1] + '; this waits for another power' : p === 'tac' ? 'who it goes for' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
+      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote' + (tool ? ' warn' : '')}, tool ? 'a Builder fights with its ' + E.TOOL[1] + '; this waits for another power' : p === 'tac' ? 'who it goes for' : p === 'stn' ? 'where it goes to fight' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
     }
     if (st.dmax) desc.style.minHeight = st.dmax + 'px';
     detail(desc, p, st.peek);
