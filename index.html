@@ -394,22 +394,26 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(18px,4vw,40px);align-items:center}
 .step.flip .step-art{order:2}
 .step-how,.step-parts{grid-template-columns:minmax(0,1fr)}
-.step-art{background:#21494B;border:4px solid #000;box-shadow:inset 4px 4px 0 #2F5E60,inset -4px -4px 0 #173A40,8px 8px 0 rgba(43,29,63,.18);min-height:180px;display:grid;place-items:center;padding:16px;overflow:hidden}
+/* the pictures sit right on the page: the arena in a pixel frame, the medals on their own */
+.step-art{display:grid;place-items:center;min-width:0}
 .step-art canvas{image-rendering:pixelated;max-width:100%;height:auto}
+.step-art canvas.scene{border:4px solid var(--ink);box-shadow:8px 8px 0 rgba(43,29,63,.18)}
 .step-txt{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
 .step-txt p{font-size:17px;line-height:1.45;max-width:58ch}
 .step-n{font-family:var(--f-display);font-size:10px;color:var(--coral-deep)}
 .step-txt h3{font-size:clamp(14px,2.2vw,18px);line-height:1.4}
 .ranks-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
 .ranks-row + .ranks-row{margin-top:14px}
-.ranks-row i{font-style:normal;font-family:var(--f-display);font-size:12px;color:#9FE3D6}
+.ranks-row i{font-style:normal;font-family:var(--f-display);font-size:14px;color:var(--coral-deep)}
+@media (max-width:520px){.ranks-row canvas.sq-lgb{width:48px!important;height:48px!important}}
 .parts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 @media (max-width:980px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:599px){.parts{grid-template-columns:minmax(0,1fr)}}
-.parts > li{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:16px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
+.parts > li{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px 16px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
 .parts h4{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.5}
-.parts p{font-size:16px;line-height:1.4;flex:1}
-.part-art{align-self:stretch;height:92px;background:#21494B;border:3px solid #000;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px;overflow:hidden}
+.parts p{font-size:16px;line-height:1.4}
+.part-top{align-self:stretch;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.part-art{align-self:stretch;min-height:64px;display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:2px 0 4px}
 .part-art canvas{image-rendering:pixelated}
 @media (max-width:760px){.step{grid-template-columns:minmax(0,1fr)}.step.flip .step-art{order:0}}
 .how-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
@@ -419,7 +423,14 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .how-n{display:grid;place-items:center;width:36px;height:36px;font-family:var(--f-display);font-size:14px;color:var(--gold);background:var(--ink);border:3px solid #000}
 .how-steps b{font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5}
 @media (max-width:1040px){.how-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:599px){.how-steps{grid-template-columns:1fr}}
+@media (max-width:599px){
+  .how-steps{grid-template-columns:1fr;gap:12px}
+  /* on a phone a move is one row: its number beside its title, line and button */
+  .how-steps li{display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:12px;row-gap:6px;align-items:center;padding:12px 14px}
+  .how-steps li > .how-n{grid-row:1 / span 3;align-self:start}
+  .how-steps li > :not(.how-n){grid-column:2}
+  .how-steps li > .btn{justify-self:start}
+}
 #sift{background:#21494B;color:#EAF6F4}
 #sift .eyebrow{color:#9FE3D6}
 #sift h2{color:#fff}
@@ -2185,7 +2196,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">fb0fadf · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">6f238fd · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2259,7 +2270,7 @@ body.no-scroll{overflow:hidden}
   <div class="wrap">
     <div class="sec-head">
       <div><span class="eyebrow">The game</span><h2 id="gameTitle">Squad Arena, step by step</h2></div>
-      <p>A pixel strategy game about Blub: you make the plan, the fight plays itself. Here is all of it, one step at a time.</p>
+      <p>You make the plan, the fight plays itself. All of it in four steps.</p>
     </div>
     <ol class="steps">
       <li class="step">
@@ -2267,21 +2278,21 @@ body.no-scroll{overflow:hidden}
         <div class="step-txt">
           <span class="step-n">Step 1 · What it is</span>
           <h3>Five Blubs against five</h3>
-          <p>Squad Arena is a 5v5 battle game. You build a team of five Blubs, give each one a role, a weapon and a plan, and send them into the arena. Then you watch: the fight plays itself, turn by turn, on a fresh arena every round.</p>
+          <p>Build a team of five Blubs, each with a role, a weapon and a plan. Then watch the fight play itself, turn by turn, in a new arena every round.</p>
           <button type="button" class="btn small" data-botshow>Watch a bot fight</button>
         </div>
       </li>
       <li class="step step-how" id="how">
         <div class="step-txt">
           <span class="step-n">Step 2 · How to start</span>
-          <h3 id="howTitle">Your first duel in four moves</h3>
-          <p>Practice is free and needs no wallet. A wallet only comes in for duels against other fans.</p>
+          <h3 id="howTitle">Start in four moves</h3>
+          <p>Practice is free. A wallet only comes in to play other fans.</p>
         </div>
     <ol class="how-steps">
-      <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Five Blubs: their looks, their skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
-      <li><span class="how-n" aria-hidden="true">2</span><b>Play your first match</b><span>Free against bots, no wallet needed. Cards explain what happens.</span><a class="btn small mint" href="#practice">Practice</a></li>
-      <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transaction, no fees, and your coins stay put.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
-      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the weekly league</b><span>Your strategy plays your group every day: a win is 3 points, and the top 7 move up each Monday.</span><a class="btn small" href="#rankings">Rankings</a></li>
+      <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Looks, skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
+      <li><span class="how-n" aria-hidden="true">2</span><b>Play a practice match</b><span>Free against bots, no wallet.</span><a class="btn small mint" href="#practice">Practice</a></li>
+      <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transactions.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
+      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the league</b><span>Your five play your group every day.</span><a class="btn small" href="#rankings">Rankings</a></li>
     </ol>
       </li>
       <li class="step flip">
@@ -2289,21 +2300,21 @@ body.no-scroll{overflow:hidden}
         <div class="step-txt">
           <span class="step-n">Step 3 · The goal</span>
           <h3>Climb from Shrimp to Whale</h3>
-          <p>Set your strategy, and every day your five play the others in your group of 35: a win is 3 points and a loss still 1. Each Monday the top of your group moves up and the bottom moves down, through 18 ranks from Bronze Shrimp to Gold Whale, each with its own medal in bronze, silver or gold. Practice against bots is always free and never counts.</p>
+          <p>Every day your five play your group of 35: a win is 3 points, a loss 1. Each Monday the top 7 move up and the bottom 7 down, through 18 ranks with a medal each.</p>
         </div>
       </li>
       <li class="step step-parts">
         <div class="step-txt">
-          <span class="step-n">Step 4 · Every part of the game</span>
-          <h3>What you will find, and how it works</h3>
+          <span class="step-n">Step 4 · What’s inside</span>
+          <h3>Every part in one line</h3>
         </div>
         <ul class="parts">
-          <li><div class="part-art" data-art="looks" aria-hidden="true"></div><h4>Team · Looks</h4><p>Dress your five in the Blub Maker: colours, hats, eyes and more. Looks are just for fun and stay the same in every strategy.</p><a class="btn small" href="#team">Team</a></li>
-          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><h4>Team · Skills</h4><p>Give every Blub a role (Brawler, Guardian, Skirmisher, Medic or Trickster), a weapon, gear, a power, a tactic and a stance (attack, defend, hold the middle or evade), and spend its training points.</p><a class="btn small" href="#team">Team</a></li>
-          <li><div class="part-art" data-art="plan" aria-hidden="true"></div><h4>Team · Strategy</h4><p>Place your five on your rows, dig in two objects of the trench kit and pick the captain’s command. You keep three strategies and switch with a tap.</p><a class="btn small" href="#team">Team</a></li>
-          <li><div class="part-art" data-art="fight" aria-hidden="true"></div><h4>The arena</h4><p>Every round brings a new arena, weather and a chest of surprises. Smoke makes shots blind, Diggers hide pits, Builders raise cannons and barbed wire tangles whoever crosses it.</p><button type="button" class="btn small" data-botshow>Watch a fight</button></li>
-          <li><div class="part-art" data-art="practice" aria-hidden="true"></div><h4>Practice</h4><p>Play bot squads as often as you like, watch two bot squads fight, or take the guided first match that explains everything as it happens. Free, no wallet.</p><a class="btn small mint" href="#practice">Practice</a></li>
-          <li><div class="part-art" data-art="league" aria-hidden="true"></div><h4>Rankings</h4><p>The weekly league with its 18 ranks, friend leagues for your own crew, and the duel season, where the month’s top 3 win a trophy. Every rank may duel every other.</p><a class="btn small" href="#rankings">Rankings</a></li>
+          <li><div class="part-art" data-art="looks" aria-hidden="true"></div><div class="part-top"><h4>Looks</h4><a class="btn small" href="#team">Team</a></div><p>Dress your five: colours, hats, eyes and more. Just for fun.</p></li>
+          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><div class="part-top"><h4>Skills</h4><a class="btn small" href="#team">Team</a></div><p>Each Blub gets a role, weapon, gear, power, tactic and stance.</p></li>
+          <li><div class="part-art" data-art="plan" aria-hidden="true"></div><div class="part-top"><h4>Strategy</h4><a class="btn small" href="#team">Team</a></div><p>Rows, two trench-kit objects and a captain’s command. Keep three plans.</p></li>
+          <li><div class="part-art" data-art="fight" aria-hidden="true"></div><div class="part-top"><h4>The arena</h4><button type="button" class="btn small" data-botshow>Watch</button></div><p>A new arena, weather and a chest of surprises every round.</p></li>
+          <li><div class="part-art" data-art="practice" aria-hidden="true"></div><div class="part-top"><h4>Practice</h4><a class="btn small mint" href="#practice">Practice</a></div><p>Bots, bot fights and a guided first match. Always free.</p></li>
+          <li><div class="part-art" data-art="league" aria-hidden="true"></div><div class="part-top"><h4>Rankings</h4><a class="btn small" href="#rankings">Rankings</a></div><p>The weekly league, friend leagues and the monthly duel season.</p></li>
         </ul>
       </li>
     </ol>
@@ -26676,7 +26687,7 @@ function homeArt(){
       const at = [[34, 8], [36, 26], [16, 18], [2, 6], [2, 28]];
       A.forEach(([cls, wpn], i) => { const u = unit(i, wpn, cls, 1); if (u) x.drawImage(u, at[i][0], at[i][1]); });
       B.forEach(([cls, wpn], i) => { const u = unit(5 + i, wpn, cls, -1); if (u) x.drawImage(u, W - 24 - at[i][0], at[i][1]); });
-      c.className = 'spr'; c.style.width = W * 3 + 'px'; c.setAttribute('aria-hidden', 'true');
+      c.className = 'spr scene'; c.style.width = W * 3 + 'px'; c.setAttribute('aria-hidden', 'true');
       el.append(c);
     },
     // from Bronze Shrimp to Gold Whale
@@ -26684,12 +26695,12 @@ function homeArt(){
       // in two rows of three: Shrimp, Crab, Fish, then Dolphin, Shark and the Gold Whale
       [[1, 4, 7], [10, 13, 18]].forEach(ds => {
         const row = document.createElement('div'); row.className = 'ranks-row';
-        ds.forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d)]); });
+        ds.forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d, 96)]); });
         el.append(row);
       });
     },
     looks(el){ LOOKS.slice(0, 4).forEach(L => { const c = lookCanvas(L, {}); c.style.width = '48px'; c.style.height = '60px'; c.setAttribute('aria-hidden', 'true'); el.append(c); }); },
-    skills(el){ put(el, SquadEngine.PLAYSTYLES.map(([id]) => ic('cls', id, 30)).concat([ic('wpn', 'bow', 30), ic('pow', 'freeze', 30)])); },
+    skills(el){ put(el, SquadEngine.PLAYSTYLES.map(([id]) => ic('cls', id, 28)).concat([ic('wpn', 'bow', 28)])); },
     plan(el){ put(el, ['sandbags', 'wire', 'tower', 'smoke', 'hospital'].map(id => ic('obj', id, 30))); },
     fight(el){ put(el, [ic('pow', 'digger', 30), ic('pow', 'builder', 30), ic('gear', 'goggles', 30), ic('ev', 'whale', 30), ic('ev', 'rocket', 30)]); },
     practice(el){ [unit(0, 'sword', 'fierce', 1), unit(6, 'hammer', 'fierce', -1)].forEach(u => { if (u) { u.style.width = '72px'; u.style.height = '78px'; el.append(u); } }); },
