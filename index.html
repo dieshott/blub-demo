@@ -307,44 +307,7 @@ section{position:relative}
 .xpbar{width:min(560px,100%);height:20px;border:3px solid #000;background:#1b1129;display:grid;grid-template-columns:repeat(20,1fr);gap:2px;padding:2px}
 .xpbar i{background:#2f2345}
 .xpbar i.f{background:var(--blub);box-shadow:inset 0 3px 0 var(--blub-2)}
-/* the road through The Sift (owner, 13 Oct 2026): achievements on a dashed pink path,
-   left and right of it on wide screens and down its left side on phones, with Blub
-   walking it up to where we are */
-.road-wrap{position:relative;max-width:940px;margin:0 auto}
-.road{list-style:none;margin:0;padding:0;position:relative;display:grid;gap:22px}
-.road::before{content:"";position:absolute;left:50%;top:8px;bottom:8px;width:8px;margin-left:-4px;background:repeating-linear-gradient(var(--pink) 0 10px,transparent 10px 18px)}
-.road > li{position:relative;width:calc(50% - 44px);background:#21162f;border:4px solid #000;box-shadow:inset 4px 4px 0 var(--ink-2);padding:16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 14px;align-items:center}
-.road > li:nth-child(odd){justify-self:start}
-.road > li:nth-child(even){justify-self:end}
-.road > li::after{content:"";position:absolute;top:30px;width:20px;height:20px;background:var(--ink-2);border:4px solid #000;box-sizing:border-box}
-.road > li:nth-child(odd)::after{right:-56px}
-.road > li:nth-child(even)::after{left:-56px}
-.road > li.done::after{background:var(--gold)}
-.road > li.now::after{background:var(--blub)}
-.road .frame{width:56px;height:56px;display:grid;place-items:center;background:var(--ink-2);clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%);grid-row:span 2}
-.road li.done .frame,.road li.now .frame{background:var(--gold)}
-.road .frame canvas{width:32px;height:32px}
-.road li.locked .frame canvas{filter:grayscale(1) brightness(.5)}
-.road h3{font-size:12px;color:#fff;line-height:1.5}
-.road p{font-size:16px;color:var(--ink-soft);grid-column:2}
-.road .state{grid-column:1/-1}
-/* the last one: the dimension update, black and nameless */
-.road li.dim{background:#000;box-shadow:inset 0 0 0 3px #1B1129}
-.road li.dim .frame{background:#000;box-shadow:inset 0 0 0 3px #2D2440;clip-path:none;width:96px;height:96px}
-.road li.dim .frame canvas{width:80px;height:80px}
-.road li.dim h3{color:#EDE9F5;letter-spacing:.06em}
-.road li.dim .dim-year{font-family:var(--f-display);font-size:18px;color:#fff}
-.road-blub{position:absolute;left:50%;top:0;width:32px;height:30px;margin-left:-16px;z-index:2;image-rendering:pixelated;transition:top .5s steps(6);pointer-events:none}
-@media (max-width:760px){
-  .road::before{left:22px}
-  .road > li{width:auto;margin-left:58px;justify-self:stretch!important}
-  .road > li::after{left:-48px!important;right:auto!important}
-  .road-blub{left:22px}
-}
-.state{font-family:var(--f-data);font-size:20px;line-height:1;align-self:flex-start;justify-self:start;padding:3px 8px;border:2px solid currentColor}
-.state.done{color:var(--up)}
-.state.now{color:var(--gold);animation:blink 1s steps(2) infinite}
-.state.locked{color:var(--text-mid);border-style:dashed}
+
 @keyframes blink{50%{opacity:.4}}
 
 /* footer */
@@ -388,79 +351,31 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 /* ---------- how to play: the way in for a new player (owner, 12 Oct 2026) ---------- */
 #game{background:var(--pink-3)}
 #game + #pair{padding-top:clamp(16px,3vw,32px)}
-/* the game, step by step (owner, 13 Oct 2026): each step a band with a picture from the
-   game on one side, the words on the other (sides take turns); the parts in a grid */
-.steps{list-style:none;margin:0;padding:0;display:grid;gap:clamp(28px,5vw,48px)}
-.step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(18px,4vw,40px);align-items:center}
-.step.flip .step-art{order:2}
-.step-how,.step-parts{grid-template-columns:minmax(0,1fr)}
-/* the pictures sit right on the page: the arena in a pixel frame, the medals on their own */
-.step-art{display:grid;place-items:center;min-width:0}
-.step-art canvas{image-rendering:pixelated;max-width:100%;height:auto}
-.step-art canvas.scene{border:4px solid var(--ink);box-shadow:8px 8px 0 rgba(43,29,63,.18)}
-.step-txt{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
-.step-txt p{font-size:17px;line-height:1.45;max-width:58ch}
-.step-n{font-family:var(--f-display);font-size:10px;color:var(--coral-deep)}
-.step-txt h3{font-size:clamp(14px,2.2vw,18px);line-height:1.4}
-.ranks-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
-.ranks-row + .ranks-row{margin-top:14px}
-.ranks-row i{font-style:normal;font-family:var(--f-display);font-size:14px;color:var(--coral-deep)}
-@media (max-width:520px){.ranks-row canvas.sq-lgb{width:48px!important;height:48px!important}}
-.parts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-@media (max-width:980px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:599px){.parts{grid-template-columns:minmax(0,1fr)}}
-.parts > li{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px 16px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
-.parts h4{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.5}
-.parts p{font-size:16px;line-height:1.4}
-.part-top{align-self:stretch;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.part-art{align-self:stretch;min-height:64px;display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;padding:2px 0 4px}
-.part-art canvas{image-rendering:pixelated}
-@media (max-width:760px){.step{grid-template-columns:minmax(0,1fr)}.step.flip .step-art{order:0}}
-.how-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-.how-steps li{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px;background:var(--paper);border:4px solid var(--ink);box-shadow:inset 4px 4px 0 #fff,inset -4px -4px 0 var(--pink-2),8px 8px 0 rgba(43,29,63,.18)}
-.how-steps li > span:not(.how-n){flex:1;font-size:16px;line-height:1.4}
-.how-steps li.how-key{box-shadow:inset 0 0 0 4px var(--gold),8px 8px 0 rgba(43,29,63,.18)}
-.how-n{display:grid;place-items:center;width:36px;height:36px;font-family:var(--f-display);font-size:14px;color:var(--gold);background:var(--ink);border:3px solid #000}
+/* the game itself is shown in chapters by src/squad/home.js (.show); under it the four
+   moves in, numbered and joined by a dotted path, with nothing boxed */
+.how{margin-top:clamp(40px,7vw,72px);display:flex;flex-direction:column;align-items:center;gap:22px}
+.how h3{font-size:clamp(13px,1.8vw,16px);line-height:1.4;text-align:center}
+.how-steps{list-style:none;margin:0;padding:0;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.how-steps li{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:0 4px}
+.how-steps li + li::before{content:"";position:absolute;top:17px;left:calc(-50% + 4px);width:calc(100% - 26px);height:3px;background:repeating-linear-gradient(90deg,var(--coral) 0 6px,transparent 6px 12px)}
+.how-steps li > span:not(.how-n){flex:1;font-size:16px;line-height:1.4;max-width:22ch}
+.how-n{display:grid;place-items:center;width:36px;height:36px;font-family:var(--f-display);font-size:14px;color:var(--gold);background:var(--ink);border:3px solid #000;box-shadow:0 4px 0 rgba(43,29,63,.22)}
+.how-steps li.how-key .how-n{background:var(--gold);color:var(--ink)}
 .how-steps b{font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5}
-@media (max-width:1040px){.how-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .how-steps{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:28px}
+  .how-steps li:nth-child(odd)::before{display:none}
+}
 @media (max-width:599px){
-  .how-steps{grid-template-columns:1fr;gap:12px}
-  /* on a phone a move is one row: its number beside its title, line and button */
-  .how-steps li{display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:12px;row-gap:6px;align-items:center;padding:12px 14px}
+  .how-steps{grid-template-columns:1fr;row-gap:16px}
+  /* on a phone a move is one row: its number beside its title, line and button, the path down the side */
+  .how-steps li{display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:12px;row-gap:4px;align-items:center;text-align:left;padding:0}
   .how-steps li > .how-n{grid-row:1 / span 3;align-self:start}
   .how-steps li > :not(.how-n){grid-column:2}
   .how-steps li > .btn{justify-self:start}
+  .how-steps li > span:not(.how-n){max-width:none}
+  .how-steps li + li::before,.how-steps li:nth-child(odd)::before{display:block;top:-14px;left:17px;width:3px;height:12px;background:repeating-linear-gradient(180deg,var(--coral) 0 4px,transparent 4px 8px)}
 }
-#sift{background:#21494B;color:#EAF6F4}
-#sift .eyebrow{color:#9FE3D6}
-#sift h2{color:#fff}
-#sift .sec-head p{color:#CFE7E3}
-#sift .sec-head > div{flex-basis:100%}   /* the lead sits under the title at a width in em: no jump when the fonts arrive */
-#sift .sec-head p{max-width:26em}
-@media (max-width:599px){#sift .sec-head h2{max-width:10.5em;min-height:calc(2 * 1.35em)}}
-.guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;list-style:none;margin:0;padding:0}
-@media (max-width:900px){.guide{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.guide{grid-template-columns:minmax(0,1fr)}}
-.tip-card{display:flex;flex-direction:column;background:#140A1E;border:3px solid #000;box-shadow:inset 0 0 0 3px #2D0F5E,8px 8px 0 rgba(0,0,0,.25);padding:6px;transition:transform .15s steps(3);min-width:0}
-.tip-card:hover{transform:translateY(-6px)}
-.tip-card canvas{width:100%;height:auto;display:block;border:3px solid #000}
-.tt{padding:12px 10px 10px;display:flex;flex-direction:column;gap:6px}
-.tt b{font-family:var(--f-display);font-size:12px;line-height:1.5;font-weight:400}
-.tt .kind{font-family:var(--f-data);font-size:18px;color:#9A8BC8;line-height:1}
-.tt p{font-size:16px;color:#DCD5EA}
-.tt ul{list-style:none;margin:0;padding:0;font-family:var(--f-data);font-size:19px;color:#8FE3FF;line-height:1.2}
-/* why fans built a game (owner, 13 Oct 2026) */
-.fan{margin-top:clamp(28px,5vw,48px);display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(16px,3vw,32px);align-items:center;background:#140A1E;border:3px solid #000;box-shadow:inset 0 0 0 3px #2D0F5E,8px 8px 0 rgba(0,0,0,.25);padding:clamp(16px,3vw,28px)}
-.fan-blub{width:96px;height:90px;image-rendering:pixelated;animation:fanhop 1.6s steps(4) infinite}
-@keyframes fanhop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.fan-copy{display:flex;flex-direction:column;gap:12px;min-width:0}
-.fan-copy h3{color:#fff;font-size:14px;line-height:1.5}
-.fan-copy p{font-size:17px;line-height:1.5;color:#DCD5EA;max-width:70ch}
-.fan-points{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
-.fan-points li{display:flex;flex-direction:column;gap:2px;padding:8px 12px;background:#21494B;border:3px solid #000}
-.fan-points b{font-family:var(--f-display);font-weight:400;font-size:10px;color:#9FE3D6;line-height:1.5}
-.fan-points span{font-size:15px;color:#EAF6F4}
-@media (max-width:599px){.fan{grid-template-columns:minmax(0,1fr)}.fan-blub{width:64px;height:60px}}
 .cmds-row #fsBtn{margin-left:auto}
 .field:fullscreen{width:100%;height:100%;border:0;box-shadow:none}
 
@@ -2191,12 +2106,91 @@ body.no-scroll{overflow:hidden}
 .sq-join{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
 .sq-join > span{color:#fff}
 @media (prefers-reduced-motion:reduce){.arena-sec *,.sq-modal *{animation:none!important;transition:none!important}}
+
+/* ---------- the home page (src/squad/home.js): the game in chapters ---------- */
+.show{display:flex;flex-direction:column;align-items:center;gap:14px}
+.show-tabs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.show-tab{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px 10px;font-family:var(--f-display);font-size:11px;line-height:1;color:var(--ink);background:var(--paper);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(43,29,63,.22);cursor:pointer}
+.show-tab:hover{transform:translateY(-2px)}
+.show-tab[aria-pressed="true"]{background:var(--gold);box-shadow:inset 0 0 0 2px #FFF3B0,0 4px 0 var(--ink)}
+.show-n{display:grid;place-items:center;width:20px;height:20px;background:var(--ink);color:var(--gold);font-size:10px}
+.show-tab[aria-pressed="true"] .show-n{color:#fff}
+.show-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--coral);transform:scaleX(0);transform-origin:left center}
+.show-tab.seen .show-bar{background:var(--ink-soft)}
+/* the scenes float on the page: only a soft light behind them, no box */
+.show-stage{--glow:#FFFFFF;position:relative;width:100%;display:flex;justify-content:center;background:radial-gradient(closest-side,var(--glow),rgba(255,255,255,.3) 72%,rgba(255,255,255,0))}
+.show-cv{display:block;image-rendering:pixelated;max-width:100%}
+.show-hold{position:absolute;right:0;top:0;min-height:36px;padding:6px 10px;font-family:var(--f-display);font-size:9px;color:var(--ink-2);background:rgba(255,246,248,.85);border:2px solid var(--ink-2);cursor:pointer}
+.show-hold[hidden]{display:none}
+.show-cap{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-height:5.2em}
+.show-cap h3{font-size:clamp(14px,2.1vw,18px);line-height:1.4}
+.show-cap p{font-size:17px;line-height:1.45;max-width:54ch}
+.show-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+@media (max-width:560px){
+  /* the five tabs stay on one row on a phone */
+  .show-tabs{gap:4px;flex-wrap:nowrap}
+  .show-tab{padding:6px 6px 8px;font-size:9px;gap:0;min-height:40px}
+  .show-n{display:none}
+  .show-cap p{font-size:16px}
+}
+@media (max-width:340px){.show-tab{font-size:8px;padding-inline:4px}}
+
+/* ---------- why we built a fan game: the words, and a small scene for each reason ---------- */
+#sift{background:var(--paper)}
+.why-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(24px,5vw,64px);align-items:center}
+.why-copy{display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-width:0}
+.why-lead{font-size:clamp(17px,1.5vw,19px);line-height:1.55;max-width:46ch}
+.why-link{font-family:var(--f-display);font-size:10px;line-height:1.6;color:var(--coral-deep);text-underline-offset:4px}
+.why-points{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.why-points li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
+.why-cv{display:block;width:144px;height:150px;max-width:100%;image-rendering:pixelated}
+.why-points b{font-family:var(--f-display);font-weight:400;font-size:11px;line-height:1.5}
+.why-points span{font-size:15px;line-height:1.35;color:var(--ink-2)}
+@media (max-width:900px){.why-in{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.why-cv{width:96px;height:100px}.why-points{gap:6px}.why-points b{font-size:9px}.why-points span{font-size:14px}}
+
+/* ---------- the roadmap: Blub's road through The Sift, a stop a click ---------- */
+.trail{position:relative;margin-top:8px}
+.trail-stage{display:flex;justify-content:center;overflow:hidden}
+/* the road fades in and out at the top and bottom, so it sits in the night instead of a box */
+.trail-cv{display:block;image-rendering:pixelated;cursor:pointer;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 9%,#000 93%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 9%,#000 93%,transparent)}
+.trail-ui{--ghost:#FFF6F8;--ghost-sh:rgba(0,0,0,.45);--ghost-hover:var(--ink-2);--ghost-ring:var(--gold);display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;max-width:860px;margin:18px auto 0;padding-inline:clamp(16px,4vw,40px)}
+.trail-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;min-height:9.5em;justify-content:center}
+.trail-card h3{color:#fff;font-size:clamp(13px,1.8vw,16px);line-height:1.4}
+.trail-card p{font-size:17px;line-height:1.45;color:var(--ink-soft);max-width:52ch}
+.trail-card .trail-note{font-size:15px;color:#9FE3D6}
+.trail-note[hidden]{display:none}
+.trail-note b{font-family:var(--f-display);font-weight:400;font-size:10px}
+.trail-state{font-family:var(--f-display);font-size:9px;line-height:1;padding:5px 8px;border:2px solid currentColor}
+.trail-state.done{color:var(--gold)}
+.trail-state.now{color:var(--blub)}
+.trail-state.locked{color:var(--ink-soft);border-style:dashed}
+.trail-state.dim{color:#B8A4EC}
+.trail-next canvas{width:12px;height:12px;image-rendering:pixelated}
+.trail-stops{list-style:none;margin:16px auto 0;padding:0 16px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:860px}
+.trail-stop{display:grid;place-items:center;width:44px;height:44px;padding:0;background:#21162f;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--ink-2);cursor:pointer}
+.trail-stop canvas{width:24px;height:24px;image-rendering:pixelated}
+.trail-stop.done{box-shadow:inset 0 0 0 2px var(--gold)}
+.trail-stop.now{box-shadow:inset 0 0 0 2px var(--blub)}
+.trail-stop.locked canvas{filter:grayscale(1) brightness(.75)}
+.trail-stop.dim{background:#000}
+.trail-stop:hover{transform:translateY(-2px)}
+.trail-stop.on{background:var(--ink-2);transform:translateY(-4px);outline:3px solid #fff;outline-offset:0}
+.trail-stop:focus-visible{outline-color:var(--gold)}
+@media (max-width:599px){
+  .trail-ui{grid-template-columns:1fr 1fr;row-gap:12px}
+  .trail-card{grid-column:1 / -1;order:-1;min-height:11em}
+  .trail-prev{justify-self:start}
+  .trail-next{justify-self:end}
+  .trail-stops{gap:6px}
+  .trail-stop{width:40px;height:40px}
+}
 /* ==== end squad arena css ==== */
 </style>
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&(d.local.saved||(d.local.runs||[]).length)))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">6f238fd · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">141c17a · 13 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
@@ -2237,87 +2231,48 @@ body.no-scroll{overflow:hidden}
   <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
-<!-- the home page (owner, 13 Oct 2026): first Blub and The Sift and why fans built a
-     game, then the game step by step, then the coin (live from DexScreener), how $BLUB
-     came to be (the community take-over) and the roadmap as achievements -->
-<section id="sift" class="sec" aria-labelledby="siftTitle">
-  <div class="wrap">
-    <div class="sec-head">
-      <div>
-        <span class="eyebrow">Meet Blub</span>
-        <h2 id="siftTitle">Blub &amp; The Sift</h2>
-      </div>
-      <p>Blub is a small, blue, always-hopping creature from The Sift: a brand-new pink dimension where the ground steps down in rose terraces, deep-teal mushroom forests line the horizon and slabs of solid cloud drift overhead.</p>
+<!-- the home page (owner, 13 Oct 2026): why fans built a game first, then the game in
+     chapters (looks, team, plan, fight, climb), the coin, how $BLUB came to be (the
+     community take-over) and the roadmap as Blub's road through The Sift, walked a stop
+     a click; the scenes are drawn by src/squad/home.js from the game's own sprites -->
+<section id="sift" class="sec fan-why" aria-labelledby="siftTitle">
+  <div class="wrap why-in">
+    <div class="why-copy">
+      <span class="eyebrow">Meet Blub</span>
+      <h2 id="siftTitle">Why we built a fan game</h2>
+      <p class="why-lead">Blub is a small, blue, always-hopping block from The Sift, a brand-new pink dimension. We fell for it the moment it hopped into view. The update that opens The Sift is still a while away, so we built a place for the fans in the meantime: a free game, a coin the community runs itself and a corner of the internet to share the hype.</p>
+      <a class="why-link" href="#roadmap">Walk Blub’s road through The Sift</a>
     </div>
-    <ul class="guide" id="guide" aria-label="Field guide to The Sift"></ul>
-    <div class="fan">
-      <canvas class="fan-blub" id="fanBlub" width="16" height="15" aria-hidden="true"></canvas>
-      <div class="fan-copy">
-        <h3>Why we built a fan game</h3>
-        <p>We fell for Blub the moment it hopped into view. The Sift is still a mystery and the update that opens it is a while away, so we built a place for the fans in the meantime: a free community game where your Blubs train, team up and battle, a coin the community runs itself, and a corner of the internet to share the hype.</p>
-        <ul class="fan-points">
-          <li><b>Made by fans</b><span>for everyone who loves Blub</span></li>
-          <li><b>Free to play</b><span>no wallet needed to start</span></li>
-          <li><b>Built together</b><span>by the community, in the open</span></li>
-        </ul>
-      </div>
-    </div>
+    <ul class="why-points">
+      <li><canvas class="why-cv" data-why="fans" width="48" height="50" aria-hidden="true"></canvas><b>Made by fans</b><span>for everyone who loves Blub</span></li>
+      <li><canvas class="why-cv" data-why="free" width="48" height="50" aria-hidden="true"></canvas><b>Free to play</b><span>no fees and no stakes</span></li>
+      <li><canvas class="why-cv" data-why="together" width="48" height="50" aria-hidden="true"></canvas><b>Built together</b><span>by the community, in the open</span></li>
+    </ul>
   </div>
 </section>
-<div class="edge" data-top="#21494B" data-bot="#FFE9EE"></div>
-
+<div class="edge" data-top="#FFF6F8" data-bot="#FFE9EE"></div>
 <section id="game" class="sec" aria-labelledby="gameTitle">
   <div class="wrap">
     <div class="sec-head">
-      <div><span class="eyebrow">The game</span><h2 id="gameTitle">Squad Arena, step by step</h2></div>
-      <p>You make the plan, the fight plays itself. All of it in four steps.</p>
+      <div><span class="eyebrow">The game</span><h2 id="gameTitle">Squad Arena</h2></div>
+      <p>Dress five Blubs, give each a job, make the plan and watch them fight. All of it, in five steps.</p>
     </div>
-    <ol class="steps">
-      <li class="step">
-        <div class="step-art" data-art="arena" aria-hidden="true"></div>
-        <div class="step-txt">
-          <span class="step-n">Step 1 · What it is</span>
-          <h3>Five Blubs against five</h3>
-          <p>Build a team of five Blubs, each with a role, a weapon and a plan. Then watch the fight play itself, turn by turn, in a new arena every round.</p>
-          <button type="button" class="btn small" data-botshow>Watch a bot fight</button>
-        </div>
-      </li>
-      <li class="step step-how" id="how">
-        <div class="step-txt">
-          <span class="step-n">Step 2 · How to start</span>
-          <h3 id="howTitle">Start in four moves</h3>
-          <p>Practice is free. A wallet only comes in to play other fans.</p>
-        </div>
-    <ol class="how-steps">
-      <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Looks, skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
-      <li><span class="how-n" aria-hidden="true">2</span><b>Play a practice match</b><span>Free against bots, no wallet.</span><a class="btn small mint" href="#practice">Practice</a></li>
-      <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transactions.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
-      <li><span class="how-n" aria-hidden="true">4</span><b>Climb the league</b><span>Your five play your group every day.</span><a class="btn small" href="#rankings">Rankings</a></li>
-    </ol>
-      </li>
-      <li class="step flip">
-        <div class="step-art" data-art="ranks" aria-hidden="true"></div>
-        <div class="step-txt">
-          <span class="step-n">Step 3 · The goal</span>
-          <h3>Climb from Shrimp to Whale</h3>
-          <p>Every day your five play your group of 35: a win is 3 points, a loss 1. Each Monday the top 7 move up and the bottom 7 down, through 18 ranks with a medal each.</p>
-        </div>
-      </li>
-      <li class="step step-parts">
-        <div class="step-txt">
-          <span class="step-n">Step 4 · What’s inside</span>
-          <h3>Every part in one line</h3>
-        </div>
-        <ul class="parts">
-          <li><div class="part-art" data-art="looks" aria-hidden="true"></div><div class="part-top"><h4>Looks</h4><a class="btn small" href="#team">Team</a></div><p>Dress your five: colours, hats, eyes and more. Just for fun.</p></li>
-          <li><div class="part-art" data-art="skills" aria-hidden="true"></div><div class="part-top"><h4>Skills</h4><a class="btn small" href="#team">Team</a></div><p>Each Blub gets a role, weapon, gear, power, tactic and stance.</p></li>
-          <li><div class="part-art" data-art="plan" aria-hidden="true"></div><div class="part-top"><h4>Strategy</h4><a class="btn small" href="#team">Team</a></div><p>Rows, two trench-kit objects and a captain’s command. Keep three plans.</p></li>
-          <li><div class="part-art" data-art="fight" aria-hidden="true"></div><div class="part-top"><h4>The arena</h4><button type="button" class="btn small" data-botshow>Watch</button></div><p>A new arena, weather and a chest of surprises every round.</p></li>
-          <li><div class="part-art" data-art="practice" aria-hidden="true"></div><div class="part-top"><h4>Practice</h4><a class="btn small mint" href="#practice">Practice</a></div><p>Bots, bot fights and a guided first match. Always free.</p></li>
-          <li><div class="part-art" data-art="league" aria-hidden="true"></div><div class="part-top"><h4>Rankings</h4><a class="btn small" href="#rankings">Rankings</a></div><p>The weekly league, friend leagues and the monthly duel season.</p></li>
-        </ul>
-      </li>
-    </ol>
+    <!-- the game in chapters, drawn by src/squad/home.js from the game's own sprites -->
+    <div class="show" id="show"></div>
+    <div class="show-cta">
+      <a class="btn gold" href="#team"><i data-ic="play" aria-hidden="true"></i>Build your team</a>
+      <a class="btn mint" href="#practice">Practice for free</a>
+      <button type="button" class="btn ghost" data-botshow>Watch a bot fight</button>
+    </div>
+    <div class="how" id="how">
+      <h3 id="howTitle">Start in four moves</h3>
+      <ol class="how-steps">
+        <li><span class="how-n" aria-hidden="true">1</span><b>Build your team</b><span>Looks, skills and a strategy.</span><a class="btn small" href="#team">Team</a></li>
+        <li><span class="how-n" aria-hidden="true">2</span><b>Play a practice match</b><span>Free against bots, no wallet.</span><a class="btn small mint" href="#practice">Practice</a></li>
+        <li class="how-key"><span class="how-n" aria-hidden="true">3</span><b>Connect your wallet</b><span>Read-only and safe: no transactions.</span><button type="button" class="btn small gold" data-wallet>Connect wallet</button></li>
+        <li><span class="how-n" aria-hidden="true">4</span><b>Climb the league</b><span>Your five play your group every day.</span><a class="btn small" href="#rankings">Rankings</a></li>
+      </ol>
+    </div>
   </div>
 </section>
 
@@ -2467,14 +2422,12 @@ body.no-scroll{overflow:hidden}
         <span class="eyebrow">Roadmap</span>
         <h2 id="roadTitle" style="color:#fff">Achievements to unlock</h2>
       </div>
-      <p style="color:var(--ink-soft)">Blub’s road through The Sift. Every step is an achievement, just like in a game: unlocked, in progress, or still locked.</p>
+      <p style="color:var(--ink-soft)">Blub’s road through The Sift, from launch to the dimension update. Click Blub to walk it, one achievement at a time.</p>
     </div>
     <div class="xp"><span class="lvl" id="lvl">Level 1</span><div class="xpbar" id="xpbar" aria-hidden="true"></div></div>
-    <div class="road-wrap">
-      <canvas class="road-blub" id="roadBlub" width="16" height="15" aria-hidden="true"></canvas>
-      <ol class="road" id="adv"></ol>
-    </div>
   </div>
+  <!-- the road itself: drawn by src/squad/home.js, a stop a click -->
+  <div class="trail" id="trail"></div>
 </section>
 
 </div>
@@ -2644,7 +2597,7 @@ body.no-scroll{overflow:hidden}
       </div>
       <div class="game-grid">
         <div>
-          <div class="game" id="game" tabindex="0" role="application" aria-label="Blub Jump. Press space or tap to jump. Hold to jump higher.">
+          <div class="game" id="jumpGame" tabindex="0" role="application" aria-label="Blub Jump. Press space or tap to jump. Hold to jump higher.">
             <canvas id="gameCv" width="240" height="100"></canvas>
             <div class="hud"><span id="gScore">0</span><span id="gCoins">0 coins</span></div>
             <div class="g-over" id="gOver"><div><b id="gTitle">Blub Jump</b><span id="gSub">Jump over the coral, grab the coins.</span><span class="earn" id="gEarn">1 coin = 5 play-BLUB</span><span class="key" id="gKey">Tap, click or space</span></div></div>
@@ -2759,7 +2712,7 @@ function drawBlub(ctx, st={}){
   if(blink||sleep){ctx.fillRect(3+look,9,2,1);ctx.fillRect(11+look,9,2,1);}
   else{ctx.fillRect(3+look,8,2,2);ctx.fillRect(11+look,8,2,2);}
 }
-['logoBlub','logoBlub2','pairIcon','walker','fanBlub','roadBlub'].forEach(id=>{const c=document.getElementById(id);if(c)drawBlub(c.getContext('2d'),{});});
+['logoBlub','logoBlub2','pairIcon','walker'].forEach(id=>{const c=document.getElementById(id);if(c)drawBlub(c.getContext('2d'),{});});
 // every other blue logo Blub (fixed palette: never a player's own Blub) and the sprite icons in the markup
 document.querySelectorAll('canvas.logo-blub').forEach(c=>{const x=c.getContext('2d');if(x)drawBlub(x,{});});
 document.querySelectorAll('[data-ic]').forEach(e=>{if(SPR[e.dataset.ic]&&!e.firstChild)e.append(icon(e.dataset.ic));});
@@ -3329,115 +3282,18 @@ const scene=(()=>{
 })();
 let pets=0;
 
-/* ================= The Sift field guide ================= */
-(function guide(){
-  const list=$('#guide'); if(!list)return;
-  const W=40,H=30,cards=[];
-  function skyBg(c,stops){const bh=H/stops.length;stops.forEach((col,i)=>{c.fillStyle=col;c.fillRect(0,Math.floor(i*bh),W,Math.ceil(bh)+1);});}
-  function pre(fn){const cv=document.createElement('canvas');cv.width=W;cv.height=H;fn(cv.getContext('2d'),rng(cards.length*31+5));return cv;}
-  const tuft=[];{const r=rng(8);for(let i=0;i<14;i++)tuft.push({x:2+Math.floor(r()*36),y:22+Math.floor(r()*7),h:3+Math.floor(r()*6),ph:r()*6,c:['#FFE6EC','#F9CCD7','#EFB4C3'][i%3]});tuft.sort((a,b)=>a.y-b.y);}
-  const bc=document.createElement('canvas');bc.width=16;bc.height=15;const bx=bc.getContext('2d');
-  const items=[
-    {n:'Sift Cap',k:'Flora',col:'#5FF0E0',d:'Mushroom trees with deep-teal caps up to twenty blocks wide. Blub naps in their shade.',s:['Height: 12 to 24 blocks','Found: the forest rim'],
-      bg:pre((c,r)=>{skyBg(c,SIFT_SKY.slice(0,5));siftGround(c,W,H,24,r,{bands:[0]});siftTree(c,20,25,10,28,8,SIFT_MID,'#1E3B3D',r);}),
-      anim:(c,t)=>{for(let i=0;i<3;i++){const y=(t*.15+i*9)%14;c.fillStyle='rgba(157,191,188,.9)';c.fillRect(12+i*7+Math.round(Math.sin(t*.05+i)),9+y,1,1);}}},
-    {n:'Rose Terraces',k:'Terrain',col:'#FF8FA3',d:'Pink ground that steps down one block at a time. Every step shows a darker rose face.',s:['Step: 1 block','Color: rose to blush'],
-      bg:pre((c,r)=>{skyBg(c,SIFT_SKY.slice(2,6));siftGround(c,W,H,9,r,{bands:[0,.2,.48,.8]});}),
-      anim:(c,t)=>{if(t%60<30){c.fillStyle='#FFFFFF';c.fillRect(8+(t>>6)%24,17,1,1);}}},
-    {n:'Sky Slab',k:'Sky',col:'#FFFFFF',d:'Flat clouds of solid block that drift across the sky. Nobody knows what holds them up.',s:['Speed: very slow','Solid: yes'],
-      bg:pre((c,r)=>{skyBg(c,SIFT_SKY);c.fillStyle='#F59AB0';c.fillRect(0,27,W,3);}),
-      slab:siftSlab(rng(77),30,9),
-      anim:function(c,t){const x=Math.round(((t*.08)%(W+30))-30);c.drawImage(this.slab,x,3);c.drawImage(this.slab,x+W+30,3);const y=16+Math.round(Math.sin(t*.04)*2);c.fillStyle='#ECF0F5';c.fillRect(28,y,3,3);c.fillStyle='#B9C3CF';c.fillRect(28,y+2,3,1);}},
-    {n:'Blush Grass',k:'Flora',col:'#FFC4D1',d:'Pale pink grass that sways, even when there is no wind at all.',s:['Height: 1 to 2 blocks','Sound: a soft hiss'],
-      bg:pre((c,r)=>{skyBg(c,SIFT_SKY.slice(3));siftGround(c,W,H,18,r,{bands:[0,.4]});}),
-      anim:(c,t)=>{tuft.forEach(g=>{const s=RM?0:Math.sin(t*.04+g.ph)*g.h*.35;c.fillStyle=g.c;for(let k=0;k<g.h;k++)c.fillRect(g.x+Math.round(s*k/g.h),g.y-k,1,1);});}},
-    {n:'Glow Mote',k:'Light',col:'#CFF6FF',d:'Tiny lights that rise from the terraces at dusk and fade high in the air.',s:['Lifespan: a few seconds','Best seen: after sunset'],
-      bg:pre((c,r)=>{skyBg(c,['#1B2E45','#22394F','#2A4A5A','#2F5E60']);for(let x=0;x<W;x++){const yy=22+Math.round(Math.sin(x*.3)*1.5);c.fillStyle='#5A2A45';c.fillRect(x,yy,1,H-yy);c.fillStyle='#7A3A5C';c.fillRect(x,yy,1,1);}}),
-      anim:(c,t)=>{for(let i=0;i<9;i++){const y=26-((t*.12+i*7)%24),x=4+i*4+Math.round(Math.sin(t*.03+i)*1.5),a=.3+.7*Math.abs(Math.sin(t*.05+i));c.globalAlpha=a;c.fillStyle=i%3?'#FFFFFF':'#CFF6FF';c.fillRect(x,Math.round(y),1,1);}c.globalAlpha=1;}},
-    {n:'Blub',k:'Creature',col:'#86CBF3',d:'Small, blue and always hopping. Pet one and it drops coins.',s:['Mood: follows MSFT','Drops: $BLUB'],
-      bg:pre((c,r)=>{skyBg(c,SIFT_SKY.slice(0,5));siftGround(c,W,H,20,r,{bands:[0,.5]});}),
-      anim:(c,t)=>{const j=Math.round(-Math.abs(Math.sin(t*.07))*4);drawBlub(bx,{blink:t%140<7,look:Math.sin(t*.01)>0?1:-1});c.fillStyle='rgba(185,60,95,.35)';c.fillRect(13,27,14,1);c.drawImage(bc,12,13+j);}},
-  ];
-  items.forEach(it=>{
-    const li=document.createElement('li');li.className='tip-card';
-    const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.setAttribute('aria-hidden','true');
-    const tt=document.createElement('div');tt.className='tt';
-    const nm=document.createElement('b');nm.textContent=it.n;nm.style.color=it.col;
-    const kd=document.createElement('span');kd.className='kind';kd.textContent=it.k;
-    const p=document.createElement('p');p.textContent=it.d;
-    const ul=document.createElement('ul');it.s.forEach(x=>{const l=document.createElement('li');l.textContent=x;ul.append(l);});
-    tt.append(nm,kd,p,ul);li.append(cv,tt);list.append(li);
-    cards.push({it,c:cv.getContext('2d')});
-  });
-  let t=0,vis=false,raf=0;
-  function frame(){raf=0;if(!vis)return;t++;cards.forEach(({it,c})=>{c.imageSmoothingEnabled=false;c.drawImage(it.bg,0,0);it.anim.call(it,c,t);});if(!RM)raf=requestAnimationFrame(frame);}
-  new IntersectionObserver(es=>{vis=es[0].isIntersecting;if(vis&&!raf)raf=requestAnimationFrame(frame);}).observe(list);
-  vis=true;frame();vis=false;
-})();
-
-
 /* ================= tokenomics: the community take-over, step by step ================= */
 document.querySelectorAll('#cto .ic[data-spr]').forEach(el=>{if(SPR[el.dataset.spr])el.append(icon(el.dataset.spr));});
 
-/* ================= the road through The Sift (owner, 13 Oct 2026) ================= */
-// Achievements to unlock: done, in progress, locked, and at the end the dimension update,
-// black and nameless. Blub walks the path up to where we are when it comes into view.
-const adv=[
-  {t:'Spawn Point',d:'$BLUB launches on Solana.',s:'done',i:'rocket'},
-  {t:'Community Take-Over',d:'The first-wave holders take the project over together: the CTO.',s:'done',i:'people'},
-  {t:'Welcome to The Sift',d:'A home for the fans: Blub’s world, the Blub Maker and this site.',s:'done',i:'chest'},
-  {t:'Squad Arena',d:'Game development: 5v5 squad battles, bot practice and bot shows. Playable now.',s:'done',i:'star'},
-  {t:'Ranks & Leagues',d:'18 ranks from Shrimp to Whale, weekly leagues and friend leagues: built, going live with online duels.',s:'now',i:'diamond'},
-  {t:'Blub Goes Social',d:'Social media: the community on X, shareable matches and clips, raids and contests.',s:'now',i:'heart'},
-  {t:'Launch Day',d:'Online duels between real wallets, and the weekly league goes live.',s:'locked',i:'coin'},
-  {t:'Seasons & Rewards',d:'Cosmetic rewards, seasons and community tournaments.',s:'locked',i:'bucket'},
-  {t:'The Dimension Update',s:'dim'},
-];
-const STATE={done:'UNLOCKED',now:'IN PROGRESS',locked:'LOCKED',dim:'???'};
-// the dimension update's picture: black, three question marks and nothing else to go on
-function mystery(){
-  const c=document.createElement('canvas');c.width=16;c.height=16;const x=c.getContext('2d');
-  x.fillStyle='#000';x.fillRect(0,0,16,16);
-  const Q=['.##.','#..#','..#.','.#..','....','.#..'];
-  [[1,6],[6,3],[11,7]].forEach(([ox,oy],k)=>Q.forEach((r,y)=>[...r].forEach((v,xx)=>{if(v==='#'){x.fillStyle=k===1?'#FFFFFF':'#6D5D86';x.fillRect(ox+xx,oy+y,1,1);}})));
-  c.className='spr';return c;
-}
-const ol=$('#adv');
-adv.forEach(a=>{
-  const li=document.createElement('li');li.className=a.s;
-  const f=document.createElement('div');f.className='frame';f.append(a.i?icon(a.i):mystery());
-  const h=document.createElement('h3');h.textContent=a.t;
-  li.append(f,h);
-  if(a.s==='dim'){const y=document.createElement('p');y.className='dim-year';y.textContent='2027';li.append(y);}
-  else{const p=document.createElement('p');p.textContent=a.d;li.append(p);}
-  const st=document.createElement('span');st.className='state '+(a.s==='dim'?'locked':a.s);st.textContent=STATE[a.s];li.append(st);
-  ol.append(li);
-});
-const doneN=adv.filter(a=>a.s==='done').length, cur=Math.max(0,adv.findIndex(a=>a.s!=='done'));
-$('#lvl').textContent='Level '+(cur+1)+' · '+adv[cur].t;
-const xp=$('#xpbar');for(let i=0;i<20;i++){const c=document.createElement('i');xp.append(c);}
-const xpTo=Math.round(20*(doneN+.5)/adv.length);
-function fillXp(){[...xp.children].forEach((c,i)=>setTimeout(()=>c.classList.toggle('f',i<xpTo),RM?0:i*60));}
-const roadBlub=$('#roadBlub');
-function blubTo(k){const li=ol.children[k];if(li)roadBlub.style.top=(li.offsetTop+12)+'px';}
-let walked=false;
-function walkRoad(){
-  if(walked)return;walked=true;fillXp();
-  if(RM){blubTo(cur);return;}
-  let k=0;blubTo(0);
-  const step=()=>{if(k>=cur)return;k++;blubTo(k);setTimeout(step,650);};
-  setTimeout(step,700);
-}
-new IntersectionObserver(es=>{if(es[0].isIntersecting)walkRoad();},{threshold:.15}).observe(ol);
-addEventListener('resize',()=>blubTo(walked?cur:0));
-blubTo(0);
-// stars
+/* ================= the road through The Sift: src/squad/home.js (owner, 13 Oct 2026) ================= */
+// the roadmap's night sky: stars over the whole section
 (function stars(){const c=$('#stars'),x=c.getContext('2d'),r=rng(77);let st=[];
   function size(){const R=c.parentElement.getBoundingClientRect();c.width=Math.ceil(R.width/4);c.height=Math.ceil(R.height/4);
     st=[];for(let i=0;i<c.width*c.height/120;i++)st.push({x:Math.floor(r()*c.width),y:Math.floor(r()*c.height),p:r()*6,b:r()<.15});}
   function d(tt){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{const a=.25+.75*Math.abs(Math.sin(tt/900+s.p));x.fillStyle=s.b?`rgba(255,211,221,${a})`:`rgba(189,231,255,${a*.7})`;x.fillRect(s.x,s.y,1,1);
     if(s.b&&a>.9){x.fillRect(s.x-1,s.y,3,1);x.fillRect(s.x,s.y-1,1,3);}});if(!RM)requestAnimationFrame(d);}
-  size();addEventListener('resize',size);requestAnimationFrame(d);})();
+  // the section grows once the road is drawn in it: the sky grows along
+  size();addEventListener('resize',size);if(window.ResizeObserver)new ResizeObserver(()=>{const R=c.parentElement.getBoundingClientRect();if(Math.ceil(R.height/4)!==c.height||Math.ceil(R.width/4)!==c.width)size();}).observe(c.parentElement);requestAnimationFrame(d);})();
 
 /* ================= footer ground with sleeping Blub ================= */
 (function ground(){const c=$('#ground'),x=c.getContext('2d');
@@ -5598,7 +5454,7 @@ const Board = (() => {
    BLUB JUMP
    ===================================================================== */
 const Game = (() => {
-  const wrap = $('#game'), cv = $('#gameCv'), x = cv.getContext('2d'), ov = $('#gOver');
+  const wrap = $('#jumpGame'), cv = $('#gameCv'), x = cv.getContext('2d'), ov = $('#gOver');
   const W = 240, H = 100, G = 84;
   const cell = document.createElement('canvas'); cell.width = 16; cell.height = 20; const cx = cell.getContext('2d');
   const r = rng(7), hillA = [], hillB = [], gnoise = [];
@@ -21948,7 +21804,8 @@ const SquadView = (() => {
     };
   }
 
-  return Object.freeze({ play, close: finish, describe, unitCanvas, icon, objectCanvas, colors, codex });
+  // the home page draws its scenes from the same art: effect frames, the pixel font and the foot rings
+  return Object.freeze({ play, close: finish, describe, unitCanvas, icon, objectCanvas, colors, codex, fx: fxFrame, fxCount, pxText, ring: drawRing });
 })();
 
 /* =====================================================================
@@ -26413,6 +26270,2434 @@ const SquadHall = (() => {
   const rankBadge = divBadge;
   return {ready, render, show, openInvite, botShow, prefill, focus, record, watch, botFace, friends, rankBadge};
 })();
+
+/* =====================================================================
+   THE HOME PAGE (owner, 13 Oct 2026): the game shown chapter by chapter
+   (the looks, the team, the plan, the fight, the climb), the three reasons
+   fans built it, and the roadmap as Blub's road through The Sift, walked one
+   stop a click. Everything is drawn in the browser from the game's own
+   sprites, icons and effects (zero database commands), and holds one still
+   frame each when the visitor asks for less motion.
+   Uses the page's drawLook, cleanLook, ARMS_SPR, armsPose, icon and SPR.
+   ===================================================================== */
+const SquadHome = (() => {
+  const V = SquadView;
+  const ENG = SquadEngine;
+  let RMQ = null;
+  const calm = () => !!(RMQ && RMQ.matches);
+  const R = Math.round;
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const seg = (t, a, b) => clamp01((t - a) / (b - a));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+  const easeIn = (k) => k * k * k;
+  const easeInOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+  const backOut = (k) => 1 + 2.70158 * Math.pow(k - 1, 3) + 1.70158 * Math.pow(k - 1, 2);
+  function bounce(k) {
+    const n = 7.5625, d = 2.75;
+    if (k < 1 / d) return n * k * k;
+    if (k < 2 / d) return n * (k -= 1.5 / d) * k + 0.75;
+    if (k < 2.5 / d) return n * (k -= 2.25 / d) * k + 0.9375;
+    return n * (k -= 2.625 / d) * k + 0.984375;
+  }
+  // a hop: 0 at both ends, 1 at the top
+  const arc = (k) => 4 * k * (1 - k);
+  // the same number for the same input, 0 to 1
+  function hash(a, b) {
+    let h = Math.imul((a | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul((b | 0) + 0x632be5ab, 0xc2b2ae35);
+    h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+    return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+  }
+  function mk(tag, cls, txt) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (txt != null) e.textContent = String(txt);
+    return e;
+  }
+  function cv(w, h) {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, R(w));
+    c.height = Math.max(1, R(h));
+    return c;
+  }
+  const nameOf = (list, id) => {
+    const e = (list || []).find((x) => x[0] === id);
+    return e ? e[1] : String(id);
+  };
+
+  // ---- sprites, drawn once and kept
+  const SPR_CACHE = new Map();
+  function memo(key, make) {
+    let c = SPR_CACHE.get(key);
+    if (!c) {
+      if (SPR_CACHE.size > 900) SPR_CACHE.clear();
+      c = make();
+      SPR_CACHE.set(key, c);
+    }
+    return c;
+  }
+  // a Blub (16x20, its feet on the bottom row) in a look and a mood
+  const blub = (L, st) =>
+    memo('b' + JSON.stringify(L) + JSON.stringify(st || 0), () => {
+      const c = cv(16, 20);
+      drawLook(c.getContext('2d'), 0, 0, L, st || {});
+      return c;
+    });
+  // a Blub with its weapon (24x22): the look at (4, 2), its hand at (19, 17), or (4, 17) facing left
+  const armed = (L, cls, wpn, face, pose, st) =>
+    memo('a' + JSON.stringify([L, cls, wpn || '', face, pose || 'up', st || 0]), () => {
+      const c = cv(24, 22);
+      const x = c.getContext('2d');
+      const f = face < 0 ? -1 : 1;
+      drawLook(x, 4, 2, L, Object.assign({ style: cls, gaze: f }, st || {}));
+      if (wpn && ARMS_SPR[wpn]) drawArms(x, wpn, f < 0 ? 4 : 19, 17, f, pose || 'up');
+      return c;
+    });
+  // derived copies of a sprite: one flat colour (a hit's flash), grey (knocked out)
+  const DERIVED = new WeakMap();
+  function derive(src, kind, make) {
+    let m = DERIVED.get(src);
+    if (!m) DERIVED.set(src, (m = {}));
+    return m[kind] || (m[kind] = make());
+  }
+  const flat = (src, col) =>
+    derive(src, 'f' + col, () => {
+      const c = cv(src.width, src.height);
+      const x = c.getContext('2d');
+      x.drawImage(src, 0, 0);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = col;
+      x.fillRect(0, 0, c.width, c.height);
+      return c;
+    });
+  const grey = (src) =>
+    derive(src, 'grey', () => {
+      const c = cv(src.width, src.height);
+      const x = c.getContext('2d');
+      x.drawImage(src, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height);
+      for (let i = 0; i < d.data.length; i += 4) {
+        const v = (d.data[i] * 0.3 + d.data[i + 1] * 0.59 + d.data[i + 2] * 0.11) * 0.8;
+        d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+      }
+      x.putImageData(d, 0, 0);
+      return c;
+    });
+  // what one part adds to a look (its hat, its extras): the look with and without it, kept where they differ
+  const partOf = (L, k) =>
+    memo('p' + k + JSON.stringify(L), () => {
+      const a = blub(L).getContext('2d').getImageData(0, 0, 16, 20).data;
+      const b = blub(Object.assign({}, L, { [k]: 'geen' })).getContext('2d').getImageData(0, 0, 16, 20).data;
+      const c = cv(16, 20);
+      const x = c.getContext('2d');
+      const o = x.createImageData(16, 20);
+      for (let i = 0; i < a.length; i += 4)
+        if (a[i] !== b[i] || a[i + 1] !== b[i + 1] || a[i + 2] !== b[i + 2] || a[i + 3] !== b[i + 3]) for (let j = 0; j < 4; j++) o.data[i + j] = a[i + j];
+      x.putImageData(o, 0, 0);
+      return c;
+    });
+  const ico = (kind, id) =>
+    memo('i' + kind + ':' + id, () => {
+      try {
+        return V.icon(kind, id, 12);
+      } catch (err) {
+        return cv(12, 12);
+      }
+    });
+  const badge = (d, px) =>
+    memo('m' + d + ':' + px, () => {
+      try {
+        return SquadHall.rankBadge(d, px);
+      } catch (err) {
+        return cv(16, 16);
+      }
+    });
+
+  // ---- drawing
+  // a sprite with its feet at (x, y): z times its size, squashed by q (below 1) or stretched (above)
+  function put(g, s, x, y, z, q, a) {
+    z = z || 1;
+    q = q || 1;
+    const w = R(s.width * z * (q < 1 ? 1 + (1 - q) * 0.5 : 1 / Math.sqrt(q)));
+    const h = R(s.height * z * q);
+    if (a != null) g.globalAlpha = clamp01(a);
+    g.drawImage(s, R(x - w / 2), R(y - h), w, h);
+    g.globalAlpha = 1;
+  }
+  // a short soft shadow on the ground under a sprite
+  function shade(g, x, y, w, a) {
+    const hw = Math.max(2, R(w / 2));
+    g.fillStyle = 'rgba(43,29,63,' + (0.17 * (a == null ? 1 : a)).toFixed(3) + ')';
+    g.fillRect(R(x) - hw, R(y), hw * 2, 1);
+    g.fillRect(R(x) - hw + 2, R(y) + 1, hw * 2 - 4, 1);
+  }
+  // a word in the game's pixel font, centred on (x, y)
+  function say(g, s, x, y, col, sc, a) {
+    const c = V.pxText(String(s), col || '#FFFFFF', sc || 1);
+    if (a != null) {
+      if (a <= 0) return;
+      g.globalAlpha = clamp01(a);
+    }
+    g.drawImage(c, R(x - c.width / 2), R(y - c.height / 2));
+    g.globalAlpha = 1;
+  }
+  // a four-point twinkle
+  function star(g, x, y, r, col) {
+    x = R(x);
+    y = R(y);
+    g.fillStyle = col || '#FFFFFF';
+    g.fillRect(x - r, y, 2 * r + 1, 1);
+    g.fillRect(x, y - r, 1, 2 * r + 1);
+    if (r > 1) {
+      g.fillStyle = '#FFFFFF';
+      g.fillRect(x, y, 1, 1);
+    }
+  }
+  // a pixel ellipse (filled), its middle on (cx, cy)
+  function oval(g, cx, cy, rx, ry, col) {
+    g.fillStyle = col;
+    for (let j = -ry; j <= ry; j++) {
+      const hw = R(rx * Math.sqrt(Math.max(0, 1 - (j * j) / (ry * ry))));
+      if (hw > 0) g.fillRect(R(cx) - hw, R(cy) + j, hw * 2, 1);
+    }
+  }
+  // a straight line of pixels
+  function line(g, x0, y0, x1, y1, col) {
+    x0 = R(x0); y0 = R(y0); x1 = R(x1); y1 = R(y1);
+    g.fillStyle = col;
+    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let e = dx + dy;
+    for (let n = 0; n < 400; n++) {
+      g.fillRect(x0, y0, 1, 1);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * e;
+      if (e2 >= dy) { e += dy; x0 += sx; }
+      if (e2 <= dx) { e += dx; y0 += sy; }
+    }
+  }
+
+  // ---- sparks and effects, stepped with the scene
+  function Fx() {
+    let ps = [];
+    let an = [];
+    const api = {
+      add(p) {
+        ps.push(Object.assign({ vx: 0, vy: 0, g: 0, life: 0.8, age: 0, s: 1, col: '#FFFFFF', fade: true }, p));
+        if (ps.length > 500) ps.splice(0, ps.length - 500);
+      },
+      burst(x, y, n, cols, sp, o) {
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const v = sp * (0.35 + Math.random() * 0.65);
+          api.add(Object.assign({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - ((o && o.up) || 0), life: 0.45 + Math.random() * 0.5, col: cols[i % cols.length] }, o || {}));
+        }
+      },
+      // one of the game's effects, frame by frame (foot: anchored on its bottom edge)
+      play(id, x, y, o) {
+        let n = 0;
+        try {
+          n = V.fxCount(id);
+        } catch (err) {
+          return;
+        }
+        an.push(Object.assign({ id, x, y, fps: 14, age: 0, n }, o || {}));
+      },
+      step(dt) {
+        for (const p of ps) {
+          p.age += dt;
+          p.vy += p.g * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          if (p.floor != null && p.y > p.floor) {
+            p.y = p.floor;
+            p.vy = -p.vy * 0.35;
+            p.vx *= 0.6;
+          }
+        }
+        ps = ps.filter((p) => p.age < p.life);
+        for (const a of an) a.age += dt;
+        an = an.filter((a) => a.age * a.fps < a.n);
+      },
+      draw(g) {
+        for (const a of an) {
+          const f = V.fx(a.id, Math.floor(a.age * a.fps));
+          g.drawImage(f, R(a.x - f.width / 2), R(a.y - (a.foot ? f.height : f.height / 2)));
+        }
+        for (const p of ps) {
+          const k = p.age / p.life;
+          g.globalAlpha = p.fade ? Math.max(0, 1 - k * k) : 1;
+          g.fillStyle = p.col;
+          g.fillRect(R(p.x - p.s / 2), R(p.y - p.s / 2), p.s, p.s);
+        }
+        g.globalAlpha = 1;
+      },
+      clear() {
+        ps = [];
+        an = [];
+      },
+    };
+    return api;
+  }
+
+  /* ---------------------------------------------------------------
+     THE GAME, CHAPTER BY CHAPTER
+     --------------------------------------------------------------- */
+  // chapter 1: one Blub dressed up change by change, then its four team mates drop in
+  const BASE = { tint: 'blauw', eyes: 'rond', ears: 'kort', pattern: 'geen', hat: 'geen', acc: 'geen' };
+  const DRESS = [
+    { at: 1.0, k: 'eyes', v: 'sterren', say: 'STAR EYES' },
+    { at: 2.0, k: 'hat', v: 'kroon', say: 'CROWN', how: 'drop' },
+    { at: 3.0, k: 'tint', v: 'roze', say: 'PINK', how: 'wipe' },
+    { at: 4.0, k: 'acc', v: 'bril', say: 'SHADES', how: 'slide' },
+    { at: 4.9, k: 'pattern', v: 'sterretjes', say: 'SPARKLES' },
+    { at: 5.7, k: 'tint', v: 'goud', say: 'GOLD', how: 'wipe' },
+  ];
+  let DRESSED = null;
+  let MATES = null;
+  let ROLES = null;
+  // the look after each change (made on first use: cleanLook is the page's)
+  function dressed() {
+    if (DRESSED) return DRESSED;
+    let L = cleanLook(BASE);
+    DRESSED = [L];
+    DRESS.forEach((d) => {
+      L = cleanLook(Object.assign({}, L, { [d.k]: d.v }));
+      DRESSED.push(L);
+    });
+    return DRESSED;
+  }
+  function mates() {
+    return (MATES = MATES || [
+      { tint: 'mint', eyes: 'blij', hat: 'bloem', acc: 'sjaal' },
+      { tint: 'lavendel', eyes: 'hart', ears: 'antenne' },
+      { tint: 'nacht', eyes: 'rood', ears: 'puntig', hat: 'loopgraaf' },
+      { tint: 'blauw', eyes: 'boos', hat: 'pet', pattern: 'strepen', acc: 'koptelefoon' },
+    ].map(cleanLook));
+  }
+  // the five with their jobs: the dressed-up one is the Brawler and the captain
+  function roles() {
+    if (ROLES) return ROLES;
+    const Ls = dressed();
+    const M = mates();
+    return (ROLES = [
+      { cls: 'fierce', wpn: 'sword', pow: 'rage', L: Ls[Ls.length - 1] },
+      { cls: 'sleepy', wpn: 'hammer', pow: 'bubble', L: M[2] },
+      { cls: 'cheeky', wpn: 'daggers', pow: 'freeze', L: M[3] },
+      { cls: 'playful', wpn: 'bow', pow: 'storm', L: M[1] },
+      { cls: 'sweet', wpn: 'wand', pow: 'nap', L: M[0] },
+    ]);
+  }
+  // a cone of light from above and the round pink stand the Blub poses on
+  function spot(g, cx, gy, rx, t) {
+    for (let y = 0; y < gy; y++) {
+      const f = y / gy;
+      const hw = R(lerp(9, rx, f));
+      g.fillStyle = 'rgba(255,255,255,' + (0.08 + 0.2 * f).toFixed(3) + ')';
+      g.fillRect(cx - hw, y, hw * 2, 1);
+    }
+    for (let i = 0; i < 12; i++) {
+      const yy = gy - ((t * 8 + i * 11) % gy);
+      const xx = cx + R(Math.sin(t * 0.8 + i * 2.1) * lerp(6, rx - 5, yy / gy));
+      g.fillStyle = i % 3 ? '#FFFFFF' : '#FFE9A8';
+      g.fillRect(xx, R(yy), 1, 1);
+    }
+  }
+  function pedestal(g, cx, cy, rx, ry) {
+    oval(g, cx, cy + 4, rx, ry, '#B8324A');
+    oval(g, cx, cy + 2, rx, ry, '#E2788F');
+    oval(g, cx, cy, rx, ry, '#FFD3DD');
+    oval(g, cx, cy - 1, rx - 4, ry - 2, '#FFE9EE');
+  }
+  // the dressing room's two menus: parts on the left, colours on the right
+  const PARTS = [['eyes', 'sterren'], ['hat', 'kroon'], ['acc', 'bril'], ['pattern', 'sterretjes']];
+  const SWATCH = ['blauw', 'roze', 'mint', 'lavendel', 'nacht', 'goud', 'diamant'];
+  // which menu item each change is picked from: [menu, index]
+  const pickOf = (d) => (d.k === 'tint' ? ['sw', SWATCH.indexOf(d.v)] : ['part', PARTS.findIndex(([k, v]) => k === d.k && v === d.v)]);
+  // corner brackets round a picked item
+  function brackets(g, x0, y0, x1, y1, col) {
+    g.fillStyle = col;
+    g.fillRect(x0, y0, 3, 1);
+    g.fillRect(x0, y0, 1, 3);
+    g.fillRect(x1 - 2, y0, 3, 1);
+    g.fillRect(x1, y0, 1, 3);
+    g.fillRect(x0, y1, 3, 1);
+    g.fillRect(x0, y1 - 2, 1, 3);
+    g.fillRect(x1 - 2, y1, 3, 1);
+    g.fillRect(x1, y1 - 2, 1, 3);
+  }
+  function chLooks(g, t, E) {
+    const { cx, gy, fx } = E;
+    const Ls = dressed();
+    const M = mates();
+    const ui = 1 - seg(t, 6.15, 6.45);
+    spot(g, cx, gy, 40, t);
+    pedestal(g, cx, gy + 2, 34, 6);
+    let i = 0;
+    while (i < DRESS.length && DRESS[i].at <= t) i++;
+    const d = i ? DRESS[i - 1] : null;
+    const since = d ? t - d.at : 9;
+    const k = d ? seg(t, d.at, d.at + 0.45) : 1;
+    const prev = Ls[Math.max(0, i - 1)];
+    const now = Ls[i];
+    const q = since < 0.3 ? 1 - 0.16 * Math.sin((since / 0.3) * Math.PI) : 1;
+    const cheer = arc(seg(t, 7.0, 7.4));
+    const st = since < 0.7 || cheer > 0 ? { mouth: 'open' } : t % 2.4 < 0.12 ? { blink: true } : null;
+    const y = gy - R(cheer * 8);
+    const Z = 3;
+    shade(g, cx, gy, 36, 1 - cheer * 0.5);
+    if (d && k < 1 && d.how === 'drop') {
+      put(g, blub(prev), cx, y, Z, q);
+      put(g, partOf(now, 'hat'), cx, y - R((1 - bounce(k)) * 60), Z);
+    } else if (d && k < 1 && d.how === 'wipe') {
+      put(g, blub(prev), cx, y, Z);
+      const top = y - R(easeInOut(k) * 60);
+      g.save();
+      g.beginPath();
+      g.rect(cx - 30, top, 60, y - top);
+      g.clip();
+      put(g, blub(now), cx, y, Z);
+      g.restore();
+      // a bright line runs up the body with the new colour
+      if (top < y - 3 && top > y - 46) {
+        g.fillStyle = '#FFFFFF';
+        g.fillRect(cx - 21, top, 42, 1);
+      }
+    } else if (d && k < 1 && d.how === 'slide') {
+      put(g, blub(prev), cx, y, Z, q);
+      put(g, partOf(now, 'acc'), cx + R((1 - easeOut(k)) * 54), y, Z);
+    } else put(g, blub(now, st), cx, y, Z, q);
+    DRESS.forEach((dd, j) =>
+      E.at(dd.at + (dd.how === 'drop' ? 0.16 : 0), 'd' + j, () => {
+        fx.burst(cx, y - 36, 18, ['#FFD447', '#FFFFFF', '#FF8FB1', '#BDE7FF'], 56, { life: 0.7 });
+      }),
+    );
+    // the change's name floats up, with twinkles round the fresh look
+    if (d && since < 1.1) say(g, d.say, cx, y - 70 - R(easeOut(seg(since, 0, 0.4)) * 6), '#FFFFFF', 1, (1 - seg(since, 0.8, 1.1)) * ui);
+    if (since < 0.8)
+      for (let s = 0; s < 4; s++) {
+        const a = s * 1.57 + since * 4;
+        star(g, cx + Math.cos(a) * 32, y - 30 + Math.sin(a) * 24, since < 0.4 ? 2 : 1, '#FFD447');
+      }
+    // the menus, and the hand that picks from them before each change
+    if (ui > 0) {
+      const mid = gy - 30;
+      const PP = PARTS.map((p, n) => [cx - 74 + (n % 2) * 22, mid - 2 + Math.floor(n / 2) * 26]);
+      const SP = SWATCH.map((s, n) => [cx + 52 + (n % 2) * 13, mid - 22 + Math.floor(n / 2) * 13]);
+      say(g, 'PARTS', cx - 63, mid - 30, '#B8324A', 1, ui);
+      say(g, 'COLOURS', cx + 58, mid - 32, '#B8324A', 1, ui);
+      const picked = (menu, n) => {
+        let at = -1;
+        DRESS.forEach((dd) => {
+          const [m, idx] = pickOf(dd);
+          if (m === menu && idx === n && t >= dd.at) at = dd.at;
+        });
+        return at;
+      };
+      const pressing = (menu, n) => DRESS.some((dd) => {
+        const [m, idx] = pickOf(dd);
+        return m === menu && idx === n && t >= dd.at - 0.15 && t < dd.at + 0.05;
+      });
+      PARTS.forEach(([pk, pv], n) => {
+        const [x, fy] = PP[n];
+        const down = pressing('part', n) ? 1 : 0;
+        put(g, blub(cleanLook(Object.assign({}, BASE, { [pk]: pv }))), x, fy + down, 1, 1, ui * 0.95);
+        const at = picked('part', n);
+        if (at >= 0 && (t - at > 0.5 || Math.floor((t - at) * 10) % 2 === 0)) {
+          g.globalAlpha = ui;
+          brackets(g, x - 10, fy - 17, x + 9, fy + 2, '#FFD447');
+          g.globalAlpha = 1;
+        }
+      });
+      SWATCH.forEach((s, n) => {
+        const [x, yy] = SP[n];
+        const T = TINTS[s];
+        const down = pressing('sw', n) ? 1 : 0;
+        g.globalAlpha = ui;
+        g.fillStyle = '#2B1D3F';
+        g.fillRect(x - 5, yy - 5 + down, 11, 11);
+        g.fillStyle = T.b;
+        g.fillRect(x - 4, yy - 4 + down, 9, 9);
+        g.fillStyle = T.a;
+        g.fillRect(x - 4, yy - 4 + down, 9, 2);
+        g.fillStyle = T.d;
+        g.fillRect(x - 4, yy + 3 + down, 9, 2);
+        const at = picked('sw', n);
+        if (at >= 0 && (t - at > 0.5 || Math.floor((t - at) * 10) % 2 === 0)) brackets(g, x - 7, yy - 7, x + 7, yy + 7, '#FFD447');
+        g.globalAlpha = 1;
+      });
+      // the hand: to each item a moment before its change, a press, then on to the next
+      let hx = E.W + 8;
+      let hy = E.H + 8;
+      let press = false;
+      DRESS.forEach((dd) => {
+        const [m, idx] = pickOf(dd);
+        const [tx, ty] = m === 'sw' ? SP[idx] : [PP[idx][0], PP[idx][1] - 9];
+        const kk = easeInOut(seg(t, dd.at - 0.55, dd.at - 0.15));
+        if (t >= dd.at - 0.55) {
+          hx = lerp(hx, tx, kk);
+          hy = lerp(hy, ty, kk);
+        }
+        if (t >= dd.at - 0.15 && t < dd.at + 0.05) press = true;
+      });
+      g.globalAlpha = ui;
+      hand(g, hx, hy + (press ? 1 : 0), press);
+      g.globalAlpha = 1;
+    }
+    // the four team mates drop in beside it
+    const xs = [-68, -44, 44, 68];
+    M.forEach((L, m) => {
+      const tm = 6.3 + m * 0.11;
+      if (t < tm) return;
+      const kk = seg(t, tm, tm + 0.32);
+      const x = cx + xs[m];
+      const fy = gy - 4;
+      const yy = kk < 1 ? lerp(-26, fy, easeIn(kk)) : fy - R(arc(seg(t, 7.0 + m * 0.04, 7.4 + m * 0.04)) * 7);
+      const qq = t - tm - 0.32 < 0.18 && kk >= 1 ? 0.8 : 1;
+      shade(g, x, fy, 14, kk);
+      put(g, blub(L, cheer > 0 ? { mouth: 'open' } : null), x, yy, 1, qq);
+      E.at(tm + 0.32, 'm' + m, () => fx.play('puff', x, fy + 1, { foot: true, fps: 20 }));
+    });
+    if (t >= 6.55) say(g, 'YOUR TEAM OF FIVE', cx, 7, '#FFD447', 1, seg(t, 6.55, 6.85));
+  }
+
+  // chapter 2: each gets a role, a weapon and a power, one by one, then all five are ready
+  const SLOT = [2, 1, 3, 0, 4];
+  function chTeam(g, t, E) {
+    const { W, cx, gy, fx } = E;
+    const U = roles();
+    const sp = Math.min(40, Math.floor((W - 20) / 5));
+    const ready = t >= 5.5;
+    U.forEach((u, j) => {
+      const x = cx + (SLOT[j] - 2) * sp;
+      const tj = 0.45 + j * 0.95;
+      const has = t >= tj + 0.55;
+      const live = t >= tj && t < tj + 0.95;
+      const hop = ready ? R(arc(seg(t, 5.5 + SLOT[j] * 0.07, 5.92 + SLOT[j] * 0.07)) * 8) : 0;
+      if (live) {
+        oval(g, x, gy, 13, 3, 'rgba(255,255,255,.55)');
+        oval(g, x, gy, 9, 2, 'rgba(255,255,255,.65)');
+      }
+      shade(g, x, gy, 14);
+      // its health, filling up once it is kitted out (the role's own HP)
+      if (has) {
+        const hp = (ENG.STYLE_STATS[u.cls] || { hp: 24 }).hp;
+        const fill = R(14 * (hp / 32) * easeOut(seg(t, tj + 0.55, tj + 0.9)));
+        g.fillStyle = '#2B1D3F';
+        g.fillRect(R(x) - 8, gy + 4, 16, 4);
+        g.fillStyle = '#3E2C58';
+        g.fillRect(R(x) - 7, gy + 5, 14, 2);
+        g.fillStyle = '#4BE08F';
+        g.fillRect(R(x) - 7, gy + 5, fill, 2);
+        g.fillStyle = '#B6F2D0';
+        g.fillRect(R(x) - 7, gy + 5, fill, 1);
+      }
+      const st = hop > 0 || (has && t < tj + 0.9) ? { mouth: 'open' } : t % 3 < 0.1 + j * 0.02 ? { blink: true } : null;
+      put(g, armed(u.L, u.cls, has ? u.wpn : null, 1, 'up', st), x, gy - hop);
+      if (!has && t >= tj + 0.2) {
+        const kk = seg(t, tj + 0.2, tj + 0.55);
+        const P = armsPose(u.wpn, 'up', 1);
+        if (P) g.drawImage(P.c, R(x + 7 - P.gx), R(gy - 5 - P.gy - (1 - easeIn(kk)) * 44));
+      }
+      E.at(tj + 0.55, 'w' + j, () => fx.burst(x + 7, gy - 8, 12, ['#FFFFFF', '#FFD447', '#BDE7FF'], 42));
+      if (t >= tj) {
+        const kk = seg(t, tj, tj + 0.25);
+        g.globalAlpha = kk;
+        g.drawImage(ico('cls', u.cls), R(x - 13), gy - 38 + R((1 - backOut(kk)) * 7) - hop);
+        g.globalAlpha = 1;
+      }
+      if (t >= tj + 0.6) {
+        const kk = seg(t, tj + 0.6, tj + 0.82);
+        g.globalAlpha = kk;
+        g.drawImage(ico('pow', u.pow), R(x + 1), gy - 38 + R((1 - backOut(kk)) * 7) - hop);
+        g.globalAlpha = 1;
+        E.at(tj + 0.6, 'p' + j, () => fx.burst(x + 7, gy - 32, 8, ['#FFD447', '#FFFFFF'], 30));
+      }
+    });
+    const j = Math.min(4, Math.floor((t - 0.45) / 0.95));
+    if (!ready && j >= 0) {
+      const u = U[j];
+      const kk = seg(t, 0.45 + j * 0.95, 0.65 + j * 0.95);
+      say(g, nameOf(ENG.PLAYSTYLES, u.cls).toUpperCase(), cx, 7, '#FFD447', 1, kk);
+      say(g, (nameOf(ENG.WEAPONS, u.wpn) + ' + ' + nameOf(ENG.POWERS, u.pow)).toUpperCase(), cx, 16, '#FFFFFF', 1, kk);
+    }
+    if (ready) {
+      say(g, 'READY!', cx, 12, '#FFD447', 2, seg(t, 5.5, 5.7));
+      E.at(5.55, 'ready', () => fx.burst(cx, 14, 34, ['#FFD447', '#FFFFFF', '#FF8FB1', '#86CBF3'], 64, { g: 70, life: 1.1 }));
+    }
+  }
+
+  // the arena floor: tiles in the game's colours, popping in as a wave, on a terrace edge
+  const AR = () => V.colors.arena;
+  function tile(g, x, y, c, r) {
+    const A = AR();
+    g.fillStyle = (c + r) & 1 ? A.grassB : A.grassA;
+    g.fillRect(x, y, 16, 16);
+    g.fillStyle = A.grout;
+    g.fillRect(x, y + 15, 16, 1);
+    g.fillRect(x + 15, y, 1, 16);
+    const tx = x + 2 + Math.floor(hash(c, r) * 10);
+    const ty = y + 3 + Math.floor(hash(r + 7, c) * 9);
+    g.fillStyle = '#DD9AAE';
+    g.fillRect(tx, ty, 1, 2);
+    g.fillRect(tx + 2, ty, 1, 2);
+    g.fillRect(tx + 1, ty + 1, 1, 1);
+    if (hash(c + 3, r + 5) < 0.5) {
+      g.fillStyle = '#FADCE4';
+      g.fillRect(x + 3 + Math.floor(hash(c + 9, r) * 9), y + 2 + Math.floor(hash(c, r + 9) * 10), 1, 1);
+    }
+  }
+  function floor(g, fx0, fy0, cols, rows, t, t0, faded) {
+    const A = AR();
+    let all = true;
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++) {
+        const a = t0 + (c + r) * 0.035;
+        const k = seg(t, a, a + 0.2);
+        if (k < 1) all = false;
+        if (k <= 0) continue;
+        g.globalAlpha = k * (faded && faded(r, c) ? 0.55 : 1);
+        tile(g, fx0 + c * 16, fy0 + r * 16 - R((1 - easeOut(k)) * 8), c, r);
+      }
+    g.globalAlpha = 1;
+    if (all || t > t0 + 0.6) {
+      const y = fy0 + rows * 16;
+      g.fillStyle = A.terraceRiser;
+      g.fillRect(fx0, y, cols * 16, 3);
+      g.fillStyle = '#A9506A';
+      g.fillRect(fx0, y + 3, cols * 16, 1);
+      for (let c = 0; c < cols; c++) {
+        g.fillStyle = '#E28AA2';
+        g.fillRect(fx0 + c * 16 + 3 + ((c * 5) % 9), y, 2, 1);
+      }
+      g.fillStyle = 'rgba(43,29,63,.12)';
+      g.fillRect(fx0 + 3, y + 4, cols * 16 - 6, 2);
+    }
+  }
+  // a game object on its tile (c, r): drawn the way the arena does, `up` rows rising above
+  function obj(g, k, side, fx0, fy0, c, r, a, dy) {
+    const o = memo('o' + k + side, () => V.objectCanvas(k, side, 32));
+    const lo = +o.dataset.dx || 0;
+    const up = +o.dataset.up || 0;
+    if (a != null) g.globalAlpha = clamp01(a);
+    g.drawImage(o, fx0 + (c + lo) * 16, fy0 + (r - up) * 16 + R(dy || 0));
+    g.globalAlpha = 1;
+    return up;
+  }
+  // a dashed line whose dashes march along it (off: how far they have marched)
+  function dashed(g, x0, y0, x1, y1, col, off) {
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    if (len < 1) return;
+    g.fillStyle = col;
+    for (let s = 0; s <= len; s++) {
+      if (((s - off) % 6 + 6) % 6 >= 3) continue;
+      g.fillRect(R(x0 + ((x1 - x0) * s) / len), R(y0 + ((y1 - y0) * s) / len), 1, 1);
+    }
+  }
+  // an arrow head at (x, y) pointing along (dx, dy)
+  function head(g, x, y, dx, dy, col) {
+    g.fillStyle = col;
+    for (let k = 0; k < 4; k++) {
+      const bx = R(x - dx * k);
+      const by = R(y - dy * k);
+      g.fillRect(bx - (dy ? k : 0), by - (dx ? k : 0), 1, 1);
+      g.fillRect(bx + (dy ? k : 0), by + (dx ? k : 0), 1, 1);
+    }
+  }
+  // a pixel hand pointing up-left, its fingertip on (x, y)
+  const HAND = ['k.......', 'kk......', 'kwk.....', 'kwwk....', 'kwwwk...', 'kwwwwk..', 'kwwwwwk.', 'kwwkkkkk', 'kwk.....', 'kk......'];
+  function hand(g, x, y, press) {
+    const rows = HAND;
+    for (let j = 0; j < rows.length; j++)
+      for (let i = 0; i < rows[j].length; i++) {
+        const ch = rows[j][i];
+        if (ch === '.') continue;
+        g.fillStyle = ch === 'k' ? '#2B1D3F' : press ? '#FFD447' : '#FFFFFF';
+        g.fillRect(R(x) + i, R(y) + j, 1, 1);
+      }
+  }
+  // a flag unrolling left to right with the command's name in it
+  function banner(g, x, y, text, k, col) {
+    const w = V.pxText(text, '#FFFFFF', 1).width + 8;
+    const shown = R(w * easeOut(k));
+    if (shown < 2) return;
+    g.save();
+    g.beginPath();
+    g.rect(x - w / 2, y - 8, shown, 18);
+    g.clip();
+    const x0 = R(x - w / 2);
+    g.fillStyle = '#2B1D3F';
+    g.fillRect(x0 - 1, y - 6, w + 2, 13);
+    g.fillStyle = col || '#E2566E';
+    g.fillRect(x0, y - 5, w, 11);
+    g.fillStyle = 'rgba(255,255,255,.35)';
+    g.fillRect(x0, y - 5, w, 1);
+    say(g, text, x0 + w / 2, y, '#FFFFFF', 1);
+    g.restore();
+    // the pole and its knob on the left
+    g.fillStyle = '#6B3E1F';
+    g.fillRect(R(x - w / 2) - 2, y - 7, 1, 17);
+    g.fillStyle = '#FFD447';
+    g.fillRect(R(x - w / 2) - 3, y - 8, 3, 2);
+  }
+
+  // chapter 3: the five hop onto their rows, one is dragged to a better tile, the trench kit
+  // drops in and the captain calls its command; then plans B and C, a click each
+  const PLANS = [
+    { at: 0, cmd: 'charge', pos: [[3, 1], [2, 1], [5, 1], [1, 3], [3, 2]], objs: [['sandbags', 3, 0, 3.4], ['tower', 1, 3, 3.95]], call: 4.7 },
+    { at: 6.0, cmd: 'hold', pos: [[2, 1], [3, 1], [4, 2], [5, 3], [3, 3]], objs: [['wire', 3, 0, 6.35], ['hospital', 1, 3, 6.5]], call: 6.75 },
+    { at: 7.3, cmd: 'focus', pos: [[1, 1], [3, 1], [5, 1], [2, 3], [4, 3]], objs: [['crate', 3, 2, 7.6], ['smoke', 5, 0, 7.72]], call: 7.95 },
+  ];
+  // a Blub up on a watchtower stands this much higher (the arena's TOWER_LIFT)
+  const ON_TOWER = 13;
+  function chPlan(g, t, E) {
+    const { W, H, cx, fx } = E;
+    const U = roles();
+    const cols = 7;
+    const rows = 4;
+    const fx0 = cx - (cols * 16) / 2;
+    const fy0 = H - 10 - rows * 16;
+    floor(g, fx0, fy0, cols, rows, t, 0, (r) => r === 0);
+    // the deploy line between no man's land and your three rows
+    if (t > 0.3) {
+      g.globalAlpha = seg(t, 0.3, 0.6) * 0.7;
+      g.fillStyle = V.colors.you.fill;
+      for (let x = 0; x < cols * 16; x += 6) g.fillRect(fx0 + x, fy0 + 16, 3, 1);
+      g.globalAlpha = 1;
+    }
+    const pi = t >= PLANS[2].at ? 2 : t >= PLANS[1].at ? 1 : 0;
+    const P = PLANS[pi];
+    // the plan tabs A, B, C down the right-hand side of the floor
+    ['A', 'B', 'C'].forEach((n, i) => {
+      const x = fx0 + cols * 16 + 5;
+      const y = fy0 + 6 + i * 12;
+      const on = i === pi;
+      const pop = on && t - PLANS[i].at < 0.2 && i ? 1 : 0;
+      g.globalAlpha = seg(t, 0.3, 0.6);
+      g.fillStyle = '#2B1D3F';
+      g.fillRect(x - 1, y - 1 - pop, 11, 11);
+      g.fillStyle = on ? '#FFD447' : '#FFF6F8';
+      g.fillRect(x, y - pop, 9, 9);
+      say(g, n, x + 4.5, y + 4.5 - pop, on ? '#2B1D3F' : '#B9A9D6', 1);
+      g.globalAlpha = 1;
+    });
+    say(g, 'PLAN', fx0 + cols * 16 + 9.5, fy0 - 1, '#B8324A', 1, seg(t, 0.3, 0.6));
+    // objects: the ones of the plan in force, each arriving at its own moment
+    const towerUp = [];
+    PLANS.forEach((pl, n) => {
+      const next = PLANS[n + 1];
+      pl.objs.forEach(([k, c, r, at], oi) => {
+        if (t < at) return;
+        const gone = next && t >= next.at ? seg(t, next.at, next.at + 0.3) : 0;
+        if (gone >= 1) return;
+        const kk = seg(t, at, at + 0.28);
+        let dy = 0;
+        let a = 1 - gone;
+        if (k === 'tower' || k === 'hospital') {
+          // rises out of the ground
+          const o = memo('o' + k + 'you', () => V.objectCanvas(k, 'you', 32));
+          const h = R(o.height * easeOut(kk));
+          g.save();
+          g.beginPath();
+          g.rect(fx0, fy0 + (r + 1) * 16 - h, cols * 16, h);
+          g.clip();
+          obj(g, k, 'you', fx0, fy0, c, r, a, -R(gone * 10));
+          g.restore();
+          if (k === 'tower') towerUp.push([c, r, easeOut(kk) * (1 - gone)]);
+        } else {
+          dy = -(1 - easeIn(kk)) * 50 - gone * 30;
+          obj(g, k, 'you', fx0, fy0, c, r, a, dy);
+        }
+        E.at(at + (k === 'tower' || k === 'hospital' ? 0.05 : 0.28), 'o' + n + oi, () => {
+          const w = k === 'wire' ? 5 : k === 'sandbags' ? 3 : 1;
+          for (let s = 0; s < w; s += w > 2 ? 2 : 1) fx.play('puff', fx0 + (c - (w >> 1) + s) * 16 + 8, fy0 + r * 16 + 15, { foot: true, fps: 18 });
+          if (k === 'sandbags' || k === 'wire') E.shake(0.18, 1.2);
+        });
+      });
+    });
+    // the five: hop in, Medic dragged, then hop to every new plan's tiles
+    const tileAt = ([c, r]) => [fx0 + c * 16 + 8, fy0 + r * 16 + 14];
+    const draws = [];
+    U.forEach((u, j) => {
+      const tin = 0.5 + j * 0.27;
+      if (t < tin) return;
+      let from = j === 4 ? [5, 2] : PLANS[0].pos[j];
+      let [x, y] = tileAt(from);
+      let lift = 0;
+      if (t < tin + 0.38) {
+        const kk = seg(t, tin, tin + 0.38);
+        x = lerp(cx + (SLOT[j] - 2) * 30, x, kk);
+        y = lerp(H + 24, y, easeOut(kk)) - arc(kk) * 18;
+      } else if (j === 4 && pi === 0) {
+        // the hand picks the Medic up and puts it behind the captain
+        const kk = seg(t, 2.75, 3.15);
+        const to = tileAt(PLANS[0].pos[4]);
+        if (t >= 2.6 && t < 3.25) lift = 3;
+        x = lerp(x, to[0], easeInOut(kk));
+        y = lerp(y, to[1], easeInOut(kk));
+      }
+      // to the tiles of plan B and C
+      for (let n = 1; n <= pi; n++) {
+        const a = PLANS[n].at + j * 0.05;
+        const kk = seg(t, a, a + 0.36);
+        const [x0, y0] = tileAt(PLANS[n - 1].pos[j]);
+        const [x1, y1] = tileAt(PLANS[n].pos[j]);
+        if (kk < 1 && n === pi) {
+          x = lerp(x0, x1, easeInOut(kk));
+          y = lerp(y0, y1, easeInOut(kk)) - arc(kk) * 10;
+        } else if (n === pi) {
+          x = x1;
+          y = y1;
+        }
+      }
+      // on the watchtower: the Skirmisher stands on its platform
+      const tw = towerUp.find(([c, r]) => j === 3 && PLANS[pi].pos[3][0] === c && PLANS[pi].pos[3][1] === r);
+      const up = tw ? R(tw[2] * ON_TOWER) : 0;
+      E.at(tin + 0.38, 'u' + j, () => fx.play('puff', x, y + 1, { foot: true, fps: 20 }));
+      draws.push({ y, f: () => {
+        if (!up) V.ring(g, x, y - 1 - lift, 'you', 0.9);
+        shade(g, x, y, 12, lift ? 0.5 : 1);
+        put(g, armed(u.L, u.cls, u.wpn, 1, 'up'), x, y - lift - up + 1);
+      } });
+    });
+    draws.sort((a, b) => a.y - b.y).forEach((d) => d.f());
+    // the hand that drags
+    if (pi === 0 && t >= 2.2 && t < 3.6) {
+      const a = tileAt([5, 2]);
+      const b = tileAt(PLANS[0].pos[4]);
+      let x;
+      let y;
+      if (t < 2.6) {
+        const kk = easeInOut(seg(t, 2.2, 2.6));
+        x = lerp(W - 6, a[0], kk);
+        y = lerp(H - 4, a[1] - 10, kk);
+      } else if (t < 3.15) {
+        const kk = easeInOut(seg(t, 2.75, 3.15));
+        x = lerp(a[0], b[0], kk);
+        y = lerp(a[1] - 10, b[1] - 10, kk);
+      } else {
+        const kk = easeIn(seg(t, 3.25, 3.6));
+        x = lerp(b[0], W + 10, kk);
+        y = lerp(b[1] - 10, H + 10, kk);
+      }
+      hand(g, x, y, t >= 2.6 && t < 3.2);
+      E.at(3.15, 'drop', () => fx.play('puff', b[0], b[1] + 1, { foot: true, fps: 20 }));
+    }
+    // what the command means, drawn like a coach's board: charge arrows, a held line, focused fire
+    if (t >= P.call + 0.2) {
+      const a = seg(t, P.call + 0.2, P.call + 0.5);
+      const off = calm() ? 0 : t * 10;
+      const front = U.map((u, j) => tileAt(P.pos[j]));
+      g.globalAlpha = a;
+      if (P.cmd === 'charge')
+        front.forEach(([x, y], j) => {
+          if (P.pos[j][1] !== 1) return;
+          dashed(g, x, y - 20, x, fy0 - 3, '#E2566E', off);
+          head(g, x, fy0 - 4, 0, -1, '#E2566E');
+        });
+      else if (P.cmd === 'hold') {
+        const y = fy0 + 16;
+        g.fillStyle = '#3E86C9';
+        for (let x = 4; x < cols * 16 - 4; x += 6) g.fillRect(fx0 + x + (R(off) % 6), y, 4, 2);
+        g.fillStyle = '#FFFFFF';
+        g.fillRect(fx0 + 4, y, cols * 16 - 8, 1);
+      } else {
+        const tx = fx0 + (cols * 16) / 2;
+        const ty = fy0 - 5;
+        front.forEach(([x, y]) => dashed(g, x, y - 14, tx, ty + 3, '#B8324A', off));
+        // the target, turning
+        const r = 4 + R(Math.sin(t * 6));
+        g.fillStyle = '#B8324A';
+        g.fillRect(tx - r, ty, 2 * r + 1, 1);
+        g.fillRect(tx, ty - r, 1, 2 * r + 1);
+        oval(g, tx, ty, 3, 3, 'rgba(184,50,74,.35)');
+      }
+      g.globalAlpha = 1;
+    }
+    // the captain's command
+    if (t >= P.call) {
+      const cap = tileAt(P.pos[0]);
+      const name = nameOf(ENG.COMMANDS, P.cmd).toUpperCase();
+      banner(g, Math.max(fx0 + 24, Math.min(fx0 + cols * 16 - 30, cap[0])), cap[1] - 33, name, seg(t, P.call, P.call + 0.35), pi === 1 ? '#3E86C9' : pi === 2 ? '#B8324A' : '#E2566E');
+      E.at(P.call, 'call' + pi, () => fx.burst(cap[0], cap[1] - 33, 10, ['#FFD447', '#FFFFFF'], 36));
+    }
+  }
+
+  // chapter 4: five against five. VS, then the highlights of a round: a charge, a bubble
+  // that pops, a critical arrow off the tower, a heal, the Freeze Ray, a Boom Pack, a sneak
+  // attack, the Pixel Storm and the last knock-outs, then VICTORY
+  const RIVAL = [
+    { cls: 'sleepy', wpn: 'hammer', L: { tint: 'roze', eyes: 'boos', hat: 'helm' } },
+    { cls: 'fierce', wpn: 'sword', L: { tint: 'nacht', eyes: 'rood', hat: 'kroon', ears: 'puntig' } },
+    { cls: 'playful', wpn: 'bow', L: { tint: 'mint', eyes: 'rond', hat: 'muts' } },
+    { cls: 'sweet', wpn: 'wand', L: { tint: 'lavendel', eyes: 'slaperig', acc: 'snor' } },
+    { cls: 'cheeky', wpn: 'boom', L: { tint: 'goud', eyes: 'boos', pattern: 'vlekjes' } },
+  ];
+  let RIVALS = null;
+  // where each starts: yours on the left (facing right), theirs on the right
+  const F_YOU = [[2, 1], [2, 2], [1, 0], [0, 1], [1, 3]];
+  const F_RIV = [[6, 0], [6, 2], [8, 1], [7, 2], [7, 3]];
+  // the round's highlights: who does what to whom, when
+  const HITS = [
+    { t: 2.6, by: 'y0', to: 'r1', n: '-9', melee: 1 },
+    { t: 3.45, by: 'r2', to: 'y1', n: 'POP!', col: '#BDE7FF', shot: 3.0, pop: 1 },
+    { t: 4.0, by: 'y3', to: 'r3', n: '-11!', col: '#FFD447', shot: 3.6, crit: 1 },
+    { t: 4.45, by: 'r3', to: 'r1', n: '+6', col: '#4BE08F', heal: 1 },
+    { t: 5.0, by: 'y2', to: 'r0', n: 'FROZEN', col: '#BDE7FF', ray: 1 },
+    { t: 6.25, by: 'r4', to: 'y1', n: '-8', boom: 1 },
+    { t: 6.3, by: 'r4', to: 'y4', n: '-4' },
+    { t: 6.95, by: 'y4', to: 'y1', n: '+8', col: '#4BE08F', heal: 1 },
+    { t: 7.75, by: 'y2', to: 'r2', n: '-6', melee: 1 },
+    { t: 7.98, by: 'y2', to: 'r2', n: '-7!', col: '#FFD447', melee: 1 },
+    { t: 8.75, by: 'y3', to: 'r1', n: '-6', bolt: 1 },
+    { t: 8.82, by: 'y3', to: 'r3', n: '-6', bolt: 1 },
+    { t: 8.89, by: 'y3', to: 'r0', n: '-6', bolt: 1 },
+    { t: 9.5, by: 'y0', to: 'r1', n: '-14!', col: '#FFD447', melee: 1, crit: 1 },
+    { t: 10.1, by: 'y0', to: 'r0', n: '-12!', col: '#FFD447', melee: 1, crit: 1, shatter: 1 },
+  ];
+  const KO = { r4: 6.25, r2: 7.98, r3: 8.82, r1: 9.5, r0: 10.1 };
+  // moves: [who, from time, to time, to tile]
+  const MOVES = [
+    ['y0', 2.2, 2.5, [5, 2]],
+    ['r4', 5.55, 6.15, [3, 3]],
+    ['y2', 7.0, 7.55, [7, 0]],
+    ['y0', 9.85, 10.0, [5, 1]],
+  ];
+  const TOWERS = [['you', 0, 1], ['rival', 8, 1]];
+  const WIN = 10.7;
+  function fighters() {
+    if (RIVALS) return RIVALS;
+    const U = roles();
+    RIVALS = [];
+    U.forEach((u, i) => RIVALS.push({ id: 'y' + i, side: 'you', face: 1, cls: u.cls, wpn: u.wpn, L: u.L, at: F_YOU[i] }));
+    RIVAL.forEach((u, i) => RIVALS.push({ id: 'r' + i, side: 'rival', face: -1, cls: u.cls, wpn: u.wpn, L: cleanLook(u.L), at: F_RIV[i] }));
+    return RIVALS;
+  }
+  function chFight(g, t, E) {
+    const { W, H, cx, fx } = E;
+    const FU = fighters();
+    const cols = 9;
+    const rows = 4;
+    const fx0 = cx - (cols * 16) / 2;
+    const fy0 = H - 8 - rows * 16;
+    const at = ([c, r]) => [fx0 + c * 16 + 8, fy0 + r * 16 + 14];
+    floor(g, fx0, fy0, cols, rows, t, 0);
+    // each side's deploy columns, faintly
+    if (t > 0.4) {
+      g.globalAlpha = 0.08 * seg(t, 0.4, 0.8);
+      g.fillStyle = V.colors.you.fill;
+      g.fillRect(fx0, fy0, 48, rows * 16);
+      g.fillStyle = V.colors.rival.fill;
+      g.fillRect(fx0 + 96, fy0, 48, rows * 16);
+      g.globalAlpha = 1;
+    }
+    // the two watchtowers rise
+    const tw = seg(t, 0.35, 0.7);
+    TOWERS.forEach(([side, c, r]) => {
+      const o = memo('o' + 'tower' + side, () => V.objectCanvas('tower', side, 32));
+      const h = R(o.height * easeOut(tw));
+      if (h < 1) return;
+      g.save();
+      g.beginPath();
+      g.rect(fx0 + c * 16, fy0 + (r + 1) * 16 - h, 16, h);
+      g.clip();
+      obj(g, 'tower', side, fx0, fy0, c, r);
+      g.restore();
+    });
+    // positions now
+    const posOf = (u) => {
+      let p = at(u.at);
+      for (const [who, a, b, to] of MOVES) {
+        if (who !== u.id || t < a) continue;
+        const q = at(to);
+        const k = seg(t, a, b);
+        p = [lerp(p[0], q[0], easeIn(k)), lerp(p[1], q[1], easeIn(k))];
+      }
+      return p;
+    };
+    const P = {};
+    FU.forEach((u) => (P[u.id] = posOf(u)));
+    // dust kicked up behind the runners
+    MOVES.forEach(([who, a, b], mi) => {
+      for (let s = a; s < b; s += 0.05) E.at(s, 'dust' + mi + ':' + s.toFixed(2), () => fx.burst(P[who][0] - FU.find((u) => u.id === who).face * 5, P[who][1], 3, ['#FFFFFF', '#FADCE4', '#F2C4CF'], 14, { up: 8, life: 0.4 }));
+    });
+    // units, back rows first
+    const order = FU.slice().sort((a, b) => P[a.id][1] - P[b.id][1]);
+    for (const u of order) {
+      const [x, y0] = P[u.id];
+      const i = +u.id.slice(1);
+      const tin = 0.4 + i * 0.08 + (u.side === 'rival' ? 0.12 : 0);
+      if (t < tin) continue;
+      const kin = seg(t, tin, tin + 0.3);
+      const onTower = (u.id === 'y3' || u.id === 'r2') && !(u.id === 'r2' && t >= KO.r2);
+      const up = onTower ? R(easeOut(tw) * ON_TOWER) : 0;
+      let y = kin < 1 ? lerp(-30, y0, easeIn(kin)) : y0;
+      const ko = KO[u.id];
+      if (ko != null && t >= ko) {
+        // knocked out: grey, on its side, stars round its head, then faint
+        const kk = seg(t, ko, ko + 0.25);
+        const s = grey(armed(u.L, u.cls, null, u.face, 'up', { sleep: true }));
+        g.save();
+        g.globalAlpha = 1 - seg(t, ko + 1.2, ko + 1.8) * 0.6;
+        g.translate(R(x), R(y - up));
+        g.rotate((u.face > 0 ? -1 : 1) * (Math.PI / 2) * easeOut(kk));
+        g.drawImage(s, -12, -22);
+        g.restore();
+        if (t < ko + 1.4)
+          for (let s2 = 0; s2 < 3; s2++) {
+            const a = t * 7 + (s2 * Math.PI * 2) / 3;
+            g.fillStyle = s2 === 1 ? '#FFFFFF' : '#FFD447';
+            g.fillRect(R(x + Math.cos(a) * 6), R(y - up - 12 + Math.sin(a) * 2), 1, 1);
+          }
+        continue;
+      }
+      // the pose of the moment: winding up, striking
+      let pose = 'up';
+      let knock = 0;
+      let flash = false;
+      for (const h of HITS) {
+        if (h.by === u.id && (h.melee || h.shot != null)) {
+          const ts = h.shot != null ? h.shot : h.t;
+          if (t >= ts - 0.12 && t < ts) pose = 'back';
+          else if (t >= ts && t < ts + 0.16) pose = 'fwd';
+        }
+        if (h.to === u.id && !h.heal && !h.ray && !h.pop && t >= h.t && t < h.t + 0.16) {
+          knock = u.face * -2;
+          flash = t < h.t + 0.08;
+        }
+      }
+      const won = t >= WIN && u.side === 'you';
+      const hop = won ? R(arc(((t - WIN + i * 0.09) % 0.55) / 0.55) * 7) : kin < 1 ? 0 : R(Math.max(0, Math.sin(t * 5 + i)) * 0.6);
+      const st = won ? { mouth: 'open' } : flash ? { blink: true } : null;
+      const spr = armed(u.L, u.cls, u.wpn, u.face, pose, st);
+      if (!up) V.ring(g, R(x), R(y) - 1, u.side, kin);
+      shade(g, x, y, 12, kin);
+      put(g, flash ? flat(spr, '#FFFFFF') : spr, x + knock, y - up - hop + 1);
+      // frozen solid from the Freeze Ray until the last hit shatters it
+      if (u.id === 'r0' && t >= 5.0) {
+        const kk = seg(t, 5.0, 5.2);
+        g.globalAlpha = 0.55 * kk;
+        g.fillStyle = '#BDE7FF';
+        g.fillRect(R(x - 9), R(y - 19), 18, 19);
+        g.globalAlpha = 0.9 * kk;
+        g.fillStyle = '#FFFFFF';
+        g.fillRect(R(x - 9), R(y - 19), 18, 1);
+        g.fillRect(R(x - 9), R(y - 19), 1, 19);
+        g.fillRect(R(x + 4), R(y - 16), 2, 1);
+        g.fillStyle = '#86CBF3';
+        g.fillRect(R(x - 9), R(y - 1), 18, 1);
+        g.fillRect(R(x + 8), R(y - 19), 1, 19);
+        g.globalAlpha = 1;
+      }
+      // the Boom Pack's fuse, lit as it runs in
+      if (u.id === 'r4' && t >= 5.5 && (t * 12) % 2 < 1) star(g, x - 8, y - 22, 1, '#FFD447');
+    }
+    // arrows in flight
+    HITS.forEach((h) => {
+      if (h.shot == null || t < h.shot || t >= h.t) return;
+      const a = P[h.by];
+      const b = P[h.to];
+      const k = seg(t, h.shot, h.t);
+      const upA = h.by === 'y3' || h.by === 'r2' ? ON_TOWER : 0;
+      const x = lerp(a[0], b[0], k);
+      const y = lerp(a[1] - 12 - upA, b[1] - 10, k) - arc(k) * 6;
+      const ang = Math.atan2(b[1] - 10 - (a[1] - 12 - upA), b[0] - a[0]);
+      line(g, x - Math.cos(ang) * 5, y - Math.sin(ang) * 5, x, y, '#8C5A2B');
+      g.fillStyle = '#FFFFFF';
+      g.fillRect(R(x), R(y), 1, 1);
+      g.fillStyle = '#E2566E';
+      g.fillRect(R(x - Math.cos(ang) * 5), R(y - Math.sin(ang) * 5), 1, 1);
+    });
+    // the Freeze Ray: a crackling blue line for a moment
+    if (t >= 4.85 && t < 5.15) {
+      const a = P.y2;
+      const b = P.r0;
+      let px = a[0] + 6;
+      let py = a[1] - 10;
+      for (let s = 1; s <= 10; s++) {
+        const k = s / 10;
+        const nx = lerp(a[0] + 6, b[0], k);
+        const ny = lerp(a[1] - 10, b[1] - 10, k) + (s < 10 ? (hash(s, R(t * 30)) - 0.5) * 6 : 0);
+        line(g, px, py, nx, ny, s % 2 ? '#BDE7FF' : '#FFFFFF');
+        px = nx;
+        py = ny;
+      }
+    }
+    // the storm: the sky goes dark and three bolts come down
+    if (t >= 8.5 && t < 9.2) {
+      g.globalCompositeOperation = 'source-atop';
+      g.globalAlpha = 0.45 * Math.min(seg(t, 8.5, 8.62), 1 - seg(t, 9.0, 9.2));
+      g.fillStyle = '#1B1129';
+      g.fillRect(-4, -4, W + 8, H + 8);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+      ['r1', 'r3', 'r0'].forEach((id, n) => {
+        const h = HITS.find((x) => x.bolt && x.to === id);
+        if (!h || t < h.t - 0.06 || t > h.t + 0.14) return;
+        const [bx, by] = P[id];
+        let x = bx + (hash(n, 3) - 0.5) * 10;
+        let y = -2;
+        while (y < by - 10) {
+          const ny = Math.min(by - 10, y + 4 + hash(n, y) * 5);
+          const nx = (ny >= by - 10 ? bx : x + (hash(y, n) - 0.5) * 7);
+          line(g, x + 1, y, nx + 1, ny, '#FFD447');
+          line(g, x, y, nx, ny, '#FFFFFF');
+          x = nx;
+          y = ny;
+        }
+      });
+    }
+    // what each hit does: sparks, effects, the shake, and its number rising
+    HITS.forEach((h, hi) => {
+      const [x, y] = P[h.to];
+      E.at(h.t, 'h' + hi, () => {
+        if (h.heal) fx.burst(x, y - 8, 12, ['#4BE08F', '#B6F2D0', '#FFFFFF'], 18, { up: 14, life: 0.9 });
+        else if (h.pop) fx.burst(x, y - 10, 16, ['#BDE7FF', '#FFFFFF', '#86CBF3'], 44);
+        else if (h.ray) fx.burst(x, y - 10, 14, ['#BDE7FF', '#FFFFFF'], 30);
+        else if (h.boom) {
+          fx.play('bang', x + 4, y - 8, { fps: 12 });
+          fx.burst(x + 4, y - 6, 30, ['#FFD447', '#FF8A3D', '#FFFFFF', '#E2566E'], 90, { g: 120, life: 0.9 });
+          fx.play('puff', x - 8, y + 1, { foot: true, fps: 12 });
+          fx.play('puff', x + 14, y + 1, { foot: true, fps: 12 });
+          E.shake(0.35, 2.2);
+          E.flash(0.12, '#FFF3B0');
+        } else {
+          fx.burst(x, y - 10, h.crit ? 18 : 10, h.crit ? ['#FFD447', '#FFFFFF', '#FF8A3D'] : ['#FFFFFF', '#FFD3DD'], h.crit ? 60 : 40);
+          if (h.crit) E.shake(0.16, 1.4);
+          if (h.bolt) E.flash(0.06, '#FFFFFF');
+          if (h.shatter) fx.burst(x, y - 10, 22, ['#BDE7FF', '#FFFFFF', '#86CBF3'], 70, { g: 120, life: 0.8 });
+        }
+      });
+      if (t >= h.t && t < h.t + 0.95) {
+        const kk = seg(t, h.t, h.t + 0.95);
+        const big = h.crit || h.boom;
+        say(g, h.n, x + (hi % 2 ? 3 : -3), y - 24 - R(easeOut(kk) * 9), h.col || '#FFFFFF', big ? 2 : 1, 1 - seg(kk, 0.7, 1));
+      }
+    });
+    // the bubble shield popping: a ring that grows
+    if (t >= 3.45 && t < 3.75) {
+      const [x, y] = P.y1;
+      const r = 6 + seg(t, 3.45, 3.75) * 8;
+      g.globalAlpha = 1 - seg(t, 3.45, 3.75);
+      for (let a = 0; a < 24; a++) {
+        g.fillStyle = a % 3 ? '#BDE7FF' : '#FFFFFF';
+        g.fillRect(R(x + Math.cos((a / 24) * Math.PI * 2) * r), R(y - 9 + Math.sin((a / 24) * Math.PI * 2) * r * 0.8), 1, 1);
+      }
+      g.globalAlpha = 1;
+    }
+    // KO! over each one that goes down
+    Object.entries(KO).forEach(([id, ko]) => {
+      if (t < ko + 0.1 || t > ko + 1.0) return;
+      const [x, y] = P[id];
+      say(g, 'KO!', x, y - 34 - R(seg(t, ko + 0.1, ko + 0.4) * 4), '#FF5C77', 1, 1 - seg(t, ko + 0.8, 1.0 + ko));
+    });
+    // VS, then VICTORY
+    if (t >= 1.15 && t < 2.15) {
+      const k = seg(t, 1.15, 1.3);
+      const sc = k < 1 ? 4 : 3;
+      say(g, 'VS', cx, fy0 + 32, '#FFFFFF', sc, 1 - seg(t, 1.9, 2.15));
+      say(g, 'YOU', fx0 + 24, fy0 - 6, '#86CBF3', 1, seg(t, 1.2, 1.4) * (1 - seg(t, 1.9, 2.15)));
+      say(g, 'RIVAL', fx0 + cols * 16 - 24, fy0 - 6, '#FF8A3D', 1, seg(t, 1.2, 1.4) * (1 - seg(t, 1.9, 2.15)));
+      E.at(1.15, 'vs', () => {
+        E.shake(0.25, 2);
+        E.flash(0.1, '#FFFFFF');
+      });
+    }
+    if (t >= WIN) {
+      const k = seg(t, WIN, WIN + 0.2);
+      say(g, 'VICTORY!', cx, fy0 + 24 - R((1 - k) * 10), '#FFD447', k < 1 ? 3 : 2, k * 4);
+      E.at(WIN, 'win', () => {
+        E.flash(0.12, '#FFF3B0');
+        for (let s = 0; s < 3; s++) fx.burst(cx - 40 + s * 40, fy0 + 10, 26, ['#FFD447', '#FF8FB1', '#86CBF3', '#4BE08F', '#FFFFFF'], 70, { g: 90, life: 1.5, s: 1 });
+      });
+      if ((t - WIN) % 0.6 < 0.02) fx.burst(cx + (Math.random() - 0.5) * 100, 6, 6, ['#FFD447', '#FF8FB1', '#86CBF3', '#4BE08F'], 20, { g: 60, life: 1.4 });
+    }
+  }
+
+  // chapter 5: Blub climbs a stair of terraces, a medal on every step, to the Gold Whale
+  const CLIMB = [1, 5, 9, 11, 15, 18];
+  function chClimb(g, t, E) {
+    const { W, H, cx, fx } = E;
+    const n = CLIMB.length;
+    const sw = Math.min(30, Math.floor((W - 24) / n));
+    const rise = Math.min(10, Math.floor((H - 62) / n));
+    const x0 = cx - (sw * n) / 2;
+    const base = H - 6;
+    const topOf = (i) => base - 8 - i * rise;
+    const top = seg(t, 5.0, 5.4);
+    // rays behind the top step once Blub stands on it
+    if (t >= 5.0) {
+      const mx = Math.min(W - 26, x0 + (n - 1) * sw + sw / 2);
+      const my = Math.max(26, topOf(n - 1) - 34);
+      g.globalAlpha = 0.22 * top;
+      for (let a = 0; a < 12; a++) {
+        const ang = t * 0.6 + (a * Math.PI) / 6;
+        for (let r = 6; r < 60; r++) {
+          g.fillStyle = a % 2 ? '#FFD447' : '#FFFFFF';
+          g.fillRect(R(mx + Math.cos(ang) * r), R(my + Math.sin(ang) * r), 1 + (r > 30 ? 1 : 0), 1);
+        }
+      }
+      g.globalAlpha = 1;
+    }
+    // the steps: rose terraces, each a bit higher
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * sw;
+      const y = topOf(i);
+      const k = seg(t, i * 0.06, i * 0.06 + 0.3);
+      if (k <= 0) continue;
+      const yy = y + R((1 - easeOut(k)) * 10);
+      g.globalAlpha = k;
+      // the riser in rose with darker bands, the top in blush with a bright lip and a tuft or two
+      g.fillStyle = '#CC6B85';
+      g.fillRect(x, yy + 4, sw, base - yy - 4);
+      g.fillStyle = '#B05070';
+      for (let by = yy + 9; by < base; by += 6) g.fillRect(x, by, sw, 1);
+      g.fillRect(x + sw - 1, yy + 4, 1, base - yy - 4);
+      g.fillStyle = '#E28AA2';
+      g.fillRect(x, yy + 4, 1, base - yy - 4);
+      for (let s = 0; s < 3; s++) g.fillRect(x + 3 + R(hash(i, s) * (sw - 6)), yy + 6 + R(hash(s, i) * Math.max(1, base - yy - 10)), 2, 1);
+      g.fillStyle = '#F7A9BC';
+      g.fillRect(x, yy + 3, sw, 1);
+      g.fillStyle = '#FFE3EA';
+      g.fillRect(x, yy, sw, 3);
+      g.fillStyle = '#FFF6F8';
+      g.fillRect(x, yy, sw, 1);
+      g.fillStyle = '#F9CCD7';
+      for (let s = 0; s < 2; s++) {
+        const tx = x + 2 + R(hash(i + 5, s) * (sw - 5));
+        g.fillRect(tx, yy - 2, 1, 2);
+        g.fillRect(tx + 2, yy - 1, 1, 1);
+      }
+      g.globalAlpha = 1;
+    }
+    // Blub's hops: one step every 0.75 s from 0.6
+    const hopAt = (i) => 0.6 + i * 0.75;
+    let bi = -1;
+    for (let i = 0; i < n; i++) if (t >= hopAt(i) + 0.4) bi = i;
+    // the medals: hovering over their steps, popping when Blub lands below
+    for (let i = 0; i < n; i++) {
+      const x = x0 + i * sw + sw / 2;
+      const got = t >= hopAt(i) + 0.4;
+      const pop = got ? seg(t, hopAt(i) + 0.4, hopAt(i) + 0.7) : 0;
+      const bob = calm() ? 0 : R(Math.sin(t * 3 + i) * 1);
+      const y = topOf(i) - 30 - R(arc(pop) * 6) + bob;
+      const m = badge(CLIMB[i], 16);
+      if (i === n - 1 && t >= 5.0) continue;
+      g.globalAlpha = got ? 1 : 0.45 + 0.1 * Math.sin(t * 2 + i);
+      g.drawImage(m, R(x - 8), y);
+      g.globalAlpha = 1;
+      if (got && pop < 1) star(g, x + 7, y + 1, 2, '#FFFFFF');
+      E.at(hopAt(i) + 0.4, 'm' + i, () => {
+        fx.burst(x, y + 8, 14, ['#FFD447', '#FFFFFF', '#FF8FB1'], 40);
+        fx.play('puff', x - 4, topOf(i) + 1, { foot: true, fps: 20 });
+      });
+      if (got && t < hopAt(i) + 1.3) say(g, '+3', x + 10, y - 2 - R(seg(t, hopAt(i) + 0.4, hopAt(i) + 1.3) * 8), '#4BE08F', 1, 1 - seg(t, hopAt(i) + 1.0, hopAt(i) + 1.3));
+    }
+    // Blub
+    {
+      const L = dressed()[DRESS.length];
+      let x = x0 - 12;
+      let y = base - 2;
+      if (bi >= 0) {
+        x = x0 + bi * sw + sw / 2;
+        y = topOf(bi);
+      }
+      const nx = bi + 1;
+      if (nx < n && t >= hopAt(nx)) {
+        const k = seg(t, hopAt(nx), hopAt(nx) + 0.4);
+        const tx = x0 + nx * sw + sw / 2;
+        const ty = topOf(nx);
+        x = lerp(x, tx, k);
+        y = lerp(y, ty, k) - arc(k) * 14;
+      }
+      const atTop = bi === n - 1;
+      const cheer = atTop ? arc(((t - 5.2) % 0.6) / 0.6) : 0;
+      shade(g, x, atTop || bi >= 0 ? topOf(Math.max(0, bi)) : base - 2, 12);
+      put(g, blub(L, atTop ? { mouth: 'open' } : t % 2.5 < 0.1 ? { blink: true } : null), x, y - R(cheer * 6));
+    }
+    // the Gold Whale, big, at the top (kept inside the stage)
+    if (t >= 5.0) {
+      const mx = Math.min(W - 26, x0 + (n - 1) * sw + sw / 2);
+      const m = badge(18, 48);
+      const k = seg(t, 5.0, 5.35);
+      const sz = R(lerp(16, 48, easeOut(k)) / 16) * 16;
+      const my = Math.max(26, topOf(n - 1) - 34);
+      g.drawImage(m, R(mx - sz / 2), R(my - sz / 2), sz, sz);
+      E.at(5.05, 'whale', () => {
+        E.flash(0.12, '#FFF3B0');
+        fx.burst(mx, my, 40, ['#FFD447', '#FFFFFF', '#FF8FB1', '#86CBF3'], 80, { g: 70, life: 1.3 });
+      });
+      // its name to the left of it, in the rays
+      const tw = V.pxText('GOLD WHALE', '#FFD447', 1).width;
+      say(g, 'GOLD WHALE', R(mx - 28 - tw / 2), R(my), '#FFD447', 1, seg(t, 5.2, 5.5));
+    }
+    // the first steps' names, short
+    if (t < 4.4) say(g, '18 RANKS', cx - R(sw * 1.5), 8, '#2B1D3F', 1, seg(t, 0.3, 0.6) * (1 - seg(t, 4.0, 4.4)));
+  }
+
+  const CHAPTERS = [
+    { tab: 'Looks', title: 'Dress your five', line: 'Colours, hats, eyes and extras for every Blub. Every look is free.', dur: 8.0, key: 7.7, draw: chLooks, glow: '#FFFFFF' },
+    { tab: 'Team', title: 'Give each a job', line: 'A role, a weapon and a power for each, plus gear, a tactic and a stance.', dur: 7.2, key: 6.9, draw: chTeam, glow: '#FFF3C4' },
+    { tab: 'Plan', title: 'Make the plan', line: 'Rows, two trench-kit objects and the captain’s command. Keep three plans.', dur: 8.9, key: 5.6, draw: chPlan, glow: '#DDF6F2' },
+    { tab: 'Fight', title: 'Watch them fight', line: 'The fight plays itself, turn by turn, against another five.', dur: 13.4, key: 11.6, draw: chFight, glow: '#FFE0C8' },
+    { tab: 'Climb', title: 'Climb the ranks', line: 'Win, score points and rise through 18 ranks, from Shrimp to Whale.', dur: 7.6, key: 7.0, draw: chClimb, glow: '#FFF3B0' },
+  ];
+
+  // the stage: one canvas at a whole number of screen pixels per pixel, tabs above, the words below
+  function Show(root) {
+    root.textContent = '';
+    const nav = mk('div', 'show-tabs');
+    nav.setAttribute('role', 'group');
+    nav.setAttribute('aria-label', 'The game in five steps');
+    const tabs = CHAPTERS.map((ch, i) => {
+      const b = mk('button', 'show-tab');
+      b.type = 'button';
+      b.append(mk('span', 'show-n', i + 1), mk('span', 'show-tt', ch.tab));
+      const bar = mk('i', 'show-bar');
+      bar.setAttribute('aria-hidden', 'true');
+      b.append(bar);
+      b.onclick = () => go(i);
+      nav.append(b);
+      return { b, bar };
+    });
+    const stage = mk('div', 'show-stage');
+    const c = cv(200, 110);
+    c.className = 'show-cv';
+    c.setAttribute('aria-hidden', 'true');
+    const hold = mk('button', 'show-hold');
+    hold.type = 'button';
+    stage.append(c, hold);
+    // the words of the chapter on screen (not announced: the chapters move on by themselves)
+    const cap = mk('div', 'show-cap');
+    const h = mk('h3');
+    const p = mk('p');
+    cap.append(h, p);
+    root.append(nav, stage, cap);
+    const g = c.getContext('2d');
+    const fx = Fx();
+    const fired = new Set();
+    let cur = 0;
+    let t = 0;
+    let last = 0;
+    let raf = 0;
+    let vis = false;
+    let held = false;
+    let shakeT = 0;
+    let shakeA = 0;
+    let flashT = 0;
+    let flashD = 0.1;
+    let flashC = '#FFFFFF';
+    let W = 200;
+    let H = 110;
+    const E = {
+      W, H, cx: 100, gy: 96, fx,
+      // a beat fires once, near its time (not when the chapter was entered past it)
+      at(time, key, fn) {
+        if (t >= time && !fired.has(key)) {
+          fired.add(key);
+          if (t - time < 0.4 && !calm()) fn();
+        }
+      },
+      shake(d, a) {
+        shakeT = d;
+        shakeA = a;
+      },
+      flash(d, col) {
+        flashT = d;
+        flashD = d;
+        flashC = col || '#FFFFFF';
+      },
+    };
+    // about 180 pixels across at a whole number of screen pixels each (a narrow phone
+    // takes a fraction: at its pixel density nobody sees the odd row)
+    function size() {
+      const cw = stage.clientWidth || 360;
+      const S = cw >= 360 ? Math.max(2, Math.floor(cw / 180)) : cw / 180;
+      W = Math.floor(cw / S);
+      H = Math.max(96, Math.min(116, R(W * (cw >= 700 ? 0.52 : 0.58))));
+      c.width = W;
+      c.height = H;
+      c.style.width = W * S + 'px';
+      c.style.height = H * S + 'px';
+      Object.assign(E, { W, H, cx: W >> 1, gy: H - 14, S });
+    }
+    function paintHold() {
+      hold.textContent = held ? 'Play' : 'Pause';
+      hold.setAttribute('aria-pressed', held ? 'true' : 'false');
+      hold.hidden = calm();
+    }
+    function go(i, auto) {
+      cur = (i + CHAPTERS.length) % CHAPTERS.length;
+      t = calm() ? CHAPTERS[cur].key : 0;
+      fired.clear();
+      fx.clear();
+      shakeT = 0;
+      flashT = 0;
+      tabs.forEach((x, k) => {
+        x.b.setAttribute('aria-pressed', k === cur ? 'true' : 'false');
+        x.b.classList.toggle('seen', k < cur);
+        x.bar.style.transform = 'scaleX(' + (k < cur ? 1 : 0) + ')';
+      });
+      h.textContent = CHAPTERS[cur].title;
+      p.textContent = CHAPTERS[cur].line;
+      stage.style.setProperty('--glow', CHAPTERS[cur].glow);
+      if (!auto && held) {
+        held = false;
+        paintHold();
+      }
+      draw(0);
+      kick();
+    }
+    function draw(dt) {
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, W, H);
+      g.imageSmoothingEnabled = false;
+      if (shakeT > 0) {
+        shakeT -= dt;
+        g.translate(R((Math.random() * 2 - 1) * shakeA), R((Math.random() * 2 - 1) * shakeA));
+      }
+      try {
+        CHAPTERS[cur].draw(g, t, E);
+        fx.step(dt);
+        fx.draw(g);
+      } catch (err) {
+        if (!draw.err) {
+          draw.err = 1;
+          console.warn('home show', err);
+        }
+      }
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      // a flash lights up what is drawn, never the empty page around it
+      if (flashT > 0) {
+        g.globalCompositeOperation = 'source-atop';
+        g.globalAlpha = clamp01(flashT / flashD) * 0.5;
+        g.fillStyle = flashC;
+        g.fillRect(0, 0, W, H);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = 'source-over';
+        flashT -= dt;
+      }
+      const ch = CHAPTERS[cur];
+      c.style.opacity = calm() ? '1' : Math.min(seg(t, 0, 0.2), 1 - seg(t, ch.dur - 0.2, ch.dur)).toFixed(3);
+      tabs[cur].bar.style.transform = 'scaleX(' + (calm() ? 1 : clamp01(t / ch.dur)).toFixed(3) + ')';
+    }
+    function frame(now) {
+      raf = 0;
+      if (!vis || document.hidden || calm() || held) return;
+      const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+      last = now;
+      t += dt;
+      if (t >= CHAPTERS[cur].dur) go(cur + 1, true);
+      else draw(dt);
+      kick();
+    }
+    function kick() {
+      if (raf || !vis || document.hidden || calm() || held) return;
+      last = 0;
+      raf = requestAnimationFrame(frame);
+    }
+    hold.onclick = () => {
+      held = !held;
+      paintHold();
+      kick();
+    };
+    size();
+    paintHold();
+    go(0);
+    if ('IntersectionObserver' in window)
+      new IntersectionObserver((es) => {
+        vis = es.some((e) => e.isIntersecting);
+        kick();
+      }, { rootMargin: '60px 0px' }).observe(stage);
+    else vis = true;
+    document.addEventListener('visibilitychange', kick);
+    let rt = 0;
+    addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => {
+        size();
+        draw(0);
+      }, 120);
+    });
+    if (RMQ && RMQ.addEventListener)
+      RMQ.addEventListener('change', () => {
+        paintHold();
+        go(cur);
+      });
+    return { go };
+  }
+
+  /* ---------------------------------------------------------------
+     WHY WE BUILT A FAN GAME: three small scenes beside the three reasons
+     --------------------------------------------------------------- */
+  let WHY_LOOKS = null;
+  const whyLooks = () => (WHY_LOOKS = WHY_LOOKS || [{ tint: 'roze', eyes: 'blij' }, { tint: 'mint', hat: 'pet' }].map(cleanLook));
+  // a little floating island of rose terrace for a scene to stand on, its top at y
+  function islet(g, cx, y, hw, t) {
+    const x0 = R(cx) - hw;
+    g.fillStyle = 'rgba(43,29,63,.10)';
+    g.fillRect(x0 + 4, y + 9, hw * 2 - 8, 1);
+    g.fillStyle = '#CC6B85';
+    g.fillRect(x0, y + 2, hw * 2, 4);
+    g.fillRect(x0 + 2, y + 6, hw * 2 - 4, 1);
+    g.fillStyle = '#B05070';
+    g.fillRect(x0 + 2, y + 7, hw * 2 - 4, 1);
+    g.fillRect(x0 + hw - 6, y + 8, 12, 1);
+    g.fillStyle = '#E28AA2';
+    g.fillRect(x0 + 5, y + 3, 2, 1);
+    g.fillRect(x0 + hw + 7, y + 4, 2, 1);
+    g.fillStyle = '#FFE3EA';
+    g.fillRect(x0, y, hw * 2, 2);
+    g.fillStyle = '#FFF6F8';
+    g.fillRect(x0 + 1, y, hw * 2 - 2, 1);
+    // blush grass at both ends, swaying
+    [[x0 + 2, 0], [x0 + hw * 2 - 4, 1.7]].forEach(([gx, ph]) => {
+      const s = calm() ? 0 : R(Math.sin(t * 2.4 + ph) * 1);
+      g.fillStyle = '#F9CCD7';
+      g.fillRect(gx + s, y - 3, 1, 3);
+      g.fillRect(gx + 2 + s, y - 2, 1, 2);
+      g.fillStyle = '#EFB4C3';
+      g.fillRect(gx + 1, y - 1, 1, 1);
+    });
+  }
+  const WHY = {
+    // made by fans: Blub, happy, hearts going up
+    fans(g, t, W, H) {
+      const base = H - 10;
+      islet(g, W / 2, base, 20, t);
+      const bob = calm() ? 0 : R(Math.abs(Math.sin(t * 3)) * 2);
+      shade(g, W / 2, base - 1, 14, 1 - bob / 6);
+      put(g, blub(dressed()[0], { style: 'sweet', mouth: 'smile', blink: t % 2.6 < 0.12 }), W / 2, base - bob);
+      for (let i = 0; i < 3; i++) {
+        const age = (t + i * 0.6) % 1.8;
+        g.globalAlpha = calm() ? 1 : 1 - age / 1.8;
+        paint(g, SPR.heart, R(W / 2 - 3 + (i - 1) * 10 + Math.sin(t * 2 + i) * 2), R(base - 27 - (calm() ? i * 3 : age * 9)), 1);
+        g.globalAlpha = 1;
+      }
+    },
+    // free to play: Blub hops onto a big play button
+    free(g, t, W, H) {
+      const base = H - 10;
+      islet(g, W / 2, base, 22, t);
+      const p = calm() ? 1.2 : t % 2.4;
+      const bx = 32;
+      const by = base - 3;
+      const press = p >= 1.0 && p < 1.6;
+      const ry = press ? 2 : 3;
+      oval(g, bx, by + 1, 10, 3, '#2E9C92');
+      oval(g, bx, by, 10, ry, press ? '#B6F2EA' : '#5ED6CB');
+      rows(g, ['w..', 'ww.', 'www', 'ww.', 'w..'].slice(0, ry + 2), bx - 1, by - R(ry / 2) - 1, { w: '#FFFFFF' });
+      const home = 13;
+      let x = home;
+      let y = base;
+      const top = by - ry + 1;
+      if (p >= 0.5 && p < 1.0) {
+        const k = (p - 0.5) / 0.5;
+        x = lerp(home, bx, k);
+        y = lerp(base, top, k) - arc(k) * 12;
+      } else if (p >= 1.0 && p < 1.8) {
+        x = bx;
+        y = top;
+      } else if (p >= 1.8 && p < 2.3) {
+        const k = (p - 1.8) / 0.5;
+        x = lerp(bx, home, k);
+        y = lerp(top, base, k) - arc(k) * 10;
+      }
+      shade(g, x, base - 1, 12);
+      put(g, blub(dressed()[0], press ? { mouth: 'open' } : null), x, y);
+      if (press) {
+        say(g, 'PLAY!', bx, 6 + R((1 - seg(p, 1.0, 1.2)) * 3), '#4BE08F', 1);
+        for (let s = 0; s < 4; s++) star(g, bx + Math.cos(s * 1.57 + p * 5) * 14, by - 12 + Math.sin(s * 1.57 + p * 5) * 7, 1, '#FFD447');
+      }
+    },
+    // built together: two Blubs toss blocks onto a tower, and up goes a flag
+    together(g, t, W, H) {
+      const base = H - 10;
+      islet(g, W / 2, base, 22, t);
+      const L = whyLooks();
+      const T = calm() ? 5.2 : t % 6;
+      const n = Math.min(4, Math.floor(T / 1.1));
+      const sx = W / 2;
+      const block = (x, y) => {
+        g.fillStyle = '#B8324A';
+        g.fillRect(R(x) - 4, R(y), 8, 6);
+        g.fillStyle = '#F59AB0';
+        g.fillRect(R(x) - 3, R(y) + 1, 6, 4);
+        g.fillStyle = '#FFD3DD';
+        g.fillRect(R(x) - 3, R(y) + 1, 6, 1);
+      };
+      for (let b = 0; b < n; b++) block(sx, base - 6 - b * 6);
+      const left = n % 2 === 0;
+      const tx = left ? 10 : W - 10;
+      const ph = T - n * 1.1;
+      if (n < 4) {
+        if (ph < 0.6) block(tx, base - 23);
+        else {
+          const k = seg(ph, 0.6, 1.1);
+          block(lerp(tx, sx, k), lerp(base - 23, base - 6 - n * 6, k) - arc(k) * 10);
+        }
+      }
+      [[10, 0], [W - 10, 1]].forEach(([x, i]) => {
+        const toss = n < 4 && (i === 0) === left && ph >= 0.6 && ph < 0.9;
+        shade(g, x, base - 1, 12);
+        put(g, blub(L[i], toss ? { mouth: 'open' } : null), x, base - (toss ? 2 : 0));
+      });
+      if (n >= 4) {
+        const top = base - 6 - 3 * 6;
+        g.fillStyle = '#6B3E1F';
+        g.fillRect(sx, top - 9, 1, 9);
+        g.fillStyle = '#FFD447';
+        g.fillRect(sx + 1, top - 9, 5, 3);
+        if (!calm()) for (let s = 0; s < 3; s++) star(g, sx - 8 + s * 8, top - 12 + ((s + Math.floor(t * 6)) % 3), 1, s === 1 ? '#FFFFFF' : '#FFD447');
+      }
+    },
+  };
+  function Why(list) {
+    const cvs = [...list.querySelectorAll('canvas[data-why]')];
+    if (!cvs.length) return;
+    let t = 0;
+    let last = 0;
+    let raf = 0;
+    let vis = false;
+    function draw() {
+      cvs.forEach((c) => {
+        const g = c.getContext('2d');
+        g.clearRect(0, 0, c.width, c.height);
+        g.imageSmoothingEnabled = false;
+        try {
+          WHY[c.dataset.why](g, t, c.width, c.height);
+        } catch (err) {
+          /* a scene is decoration */
+        }
+      });
+    }
+    function frame(now) {
+      raf = 0;
+      if (!vis || document.hidden || calm()) return;
+      t += Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+      last = now;
+      draw();
+      kick();
+    }
+    function kick() {
+      if (raf || !vis || document.hidden || calm()) return;
+      last = 0;
+      raf = requestAnimationFrame(frame);
+    }
+    draw();
+    if ('IntersectionObserver' in window)
+      new IntersectionObserver((es) => {
+        vis = es.some((e) => e.isIntersecting);
+        kick();
+      }).observe(list);
+    else vis = true;
+    document.addEventListener('visibilitychange', kick);
+  }
+
+  /* ---------------------------------------------------------------
+     BLUB'S ROAD THROUGH THE SIFT (owner, 13 Oct 2026): the roadmap as a
+     walk, one stop a click. The sky turns from day (done) through dusk (in
+     progress) to night (locked) and the black of the dimension update; The
+     Sift's places line the road, each stop has its own little scene.
+     --------------------------------------------------------------- */
+  const ROAD = [
+    { t: 'Spawn Point', d: '$BLUB launches on Solana.', s: 'done', i: 'rocket', note: ['Rose Terraces', 'pink ground that steps down one block at a time.'] },
+    { t: 'Community Take-Over', d: 'The first-wave holders take the project over together: the CTO.', s: 'done', i: 'people', note: ['Blush Grass', 'pale pink grass that sways, even when there is no wind.'] },
+    { t: 'Welcome to The Sift', d: 'A home for the fans: Blub’s world, the Blub Maker and this site.', s: 'done', i: 'chest', note: ['Sift Caps', 'mushroom trees with deep-teal caps up to twenty blocks wide.'] },
+    { t: 'Squad Arena', d: 'Game development: 5v5 squad battles, bot practice and bot shows. Playable now.', s: 'done', i: 'star', note: ['The clearing', 'where squads of five meet.'] },
+    { t: 'Ranks & Leagues', d: '18 ranks from Shrimp to Whale, weekly leagues and friend leagues: built, going live with online duels.', s: 'now', i: 'diamond', note: ['Sky Slabs', 'flat clouds of solid block. Nobody knows what holds them up.'] },
+    { t: 'Blub Goes Social', d: 'Social media: the community on X, shareable matches and clips, raids and contests.', s: 'now', i: 'heart', note: ['Glow Motes', 'tiny lights that rise from the terraces at dusk.'] },
+    { t: 'Launch Day', d: 'Online duels between real wallets, and the weekly league goes live.', s: 'locked', i: 'coin', note: ['Nightfall', 'the gate stays shut until launch day.'] },
+    { t: 'Seasons & Rewards', d: 'Cosmetic rewards, seasons and community tournaments.', s: 'locked', i: 'bucket' },
+    { t: 'The Dimension Update', d: '2027. What waits beyond The Sift, nobody knows yet.', s: 'dim' },
+  ];
+  const STATE_TXT = { done: 'UNLOCKED', now: 'IN PROGRESS', locked: 'LOCKED', dim: '???' };
+  const GAP = 124;
+  const stopX = (i) => 92 + i * GAP;
+  const WORLD = stopX(ROAD.length - 1) + 150;
+  // the edge of the world: Blub stops just before it, the last scene hangs in the dark past it
+  const CLIFF = stopX(ROAD.length - 1) - 10;
+  // where Blub stands at a stop: a little before its scene
+  const standX = (i) => stopX(i) - 22;
+  // the sky along the road: [world x, top, horizon, how much night]
+  const SKY = [
+    [0, [140, 196, 238], [148, 230, 221], 0],
+    [stopX(3) + 40, [140, 196, 238], [148, 230, 221], 0],
+    [stopX(4) - 10, [120, 100, 182], [255, 190, 156], 0.25],
+    [stopX(5) + 30, [92, 70, 150], [255, 158, 128], 0.4],
+    [stopX(6) - 24, [27, 17, 41], [62, 44, 88], 0.8],
+    [stopX(7) + 30, [22, 14, 36], [52, 37, 78], 0.85],
+    [CLIFF - 6, [0, 0, 0], [10, 6, 18], 1],
+    [WORLD, [0, 0, 0], [10, 6, 18], 1],
+  ];
+  function skyAt(wx) {
+    let i = 0;
+    while (i < SKY.length - 2 && wx > SKY[i + 1][0]) i++;
+    const a = SKY[i];
+    const b = SKY[i + 1];
+    const k = clamp01((wx - a[0]) / Math.max(1, b[0] - a[0]));
+    const mix = (p, q) => p.map((v, j) => R(v + (q[j] - v) * k));
+    return { top: mix(a[1], b[1]), bot: mix(a[2], b[2]), n: a[3] + (b[3] - a[3]) * k };
+  }
+  const rgb = (c, a) => (a == null ? 'rgb(' + c.join(',') + ')' : 'rgba(' + c.join(',') + ',' + a.toFixed(3) + ')');
+  function mysteryIcon() {
+    const c = cv(8, 8);
+    const x = c.getContext('2d');
+    x.fillStyle = '#000000';
+    x.fillRect(0, 0, 8, 8);
+    x.fillStyle = '#FFFFFF';
+    ['.##.', '#..#', '..#.', '.#..', '....', '.#..'].forEach((r, j) => [...r].forEach((ch, i) => ch === '#' && x.fillRect(2 + i, 1 + j, 1, 1)));
+    c.className = 'spr';
+    return c;
+  }
+  // a little speech bubble, ink with a white rim, the word in colour; its tail on (x, y)
+  function bubble(g, x, y, text, col) {
+    const w = V.pxText(text, col || '#FFFFFF', 1);
+    const bw = w.width + 2;
+    const bh = w.height + 2;
+    const x0 = R(x - bw / 2);
+    const y0 = R(y - bh - 3);
+    g.fillStyle = '#FFFFFF';
+    g.fillRect(x0 - 1, y0, bw + 2, bh);
+    g.fillRect(x0, y0 - 1, bw, bh + 2);
+    g.fillRect(R(x) - 2, y0 + bh, 5, 1);
+    g.fillRect(R(x) - 1, y0 + bh + 1, 3, 1);
+    g.fillRect(R(x), y0 + bh + 2, 1, 1);
+    g.fillStyle = '#2B1D3F';
+    g.fillRect(x0, y0, bw, bh);
+    g.fillRect(R(x) - 1, y0 + bh, 3, 1);
+    g.fillRect(R(x), y0 + bh + 1, 1, 1);
+    g.drawImage(w, x0 + 1, y0 + 1);
+  }
+  const FLAG = ['pppppppppppp', 'ppwwpppwwppp', 'pwwwwpwwwwpp', 'pwwwwwwwwwpp', 'ppwwwwwwwppp', 'pppwwwwwpppp', 'ppppwwwppppp', 'pppppwpppppp'];
+  const CUP = ['.yyyyyyyyyy.', 'yyYYYYYYYYyy', 'y.yYYYYYYy.y', 'y.yYYYYYYy.y', '.yyYYYYYYyy.', '...yYYYYy...', '....yYYy....', '.....yy.....', '.....yy.....', '....yyyy....', '...oooooo...', '...oyyyyo...', '...oooooo...'];
+  const MEGA = ['.........kk', '.......kkwk', '.....kkwwwk', '...kkwwwwwk', 'kkkwwwwwwwk', 'kRkwwwwwwwk', 'kRkwwwwwwwk', 'kkkwwwwwwwk', '...kkwwwwwk', '.....kkwwwk', '.......kkwk', '.........kk'];
+  const ROWS_PAL = { p: '#F59AB0', w: '#FFFFFF', y: '#FFD447', Y: '#FFF3B0', o: '#C98A12', k: '#2B1D3F', R: '#E2566E' };
+  function rows(g, list, x, y, pal, flipX) {
+    for (let j = 0; j < list.length; j++)
+      for (let i = 0; i < list[j].length; i++) {
+        const col = (pal || ROWS_PAL)[list[j][i]];
+        if (!col) continue;
+        g.fillStyle = col;
+        g.fillRect(R(x) + (flipX ? list[j].length - 1 - i : i), R(y) + j, 1, 1);
+      }
+  }
+  let CROWD = null;
+  const crowd = () =>
+    (CROWD = CROWD || [{ tint: 'roze', eyes: 'blij' }, { tint: 'mint', hat: 'pet' }, { tint: 'lavendel', eyes: 'hart' }, { tint: 'goud', eyes: 'sterren' }, { tint: 'blauw', eyes: 'boos', acc: 'sjaal' }].map(cleanLook));
+  // the scenes, one a stop: (g, x: the stop on screen, y: the road, t: the clock, k: seconds since Blub came, or -1)
+  const SCENES = [
+    // the game's own moon rocket on its pad: a countdown, then off it goes, and a new one rolls out
+    function rocket(g, x, y, t, k, B) {
+      const pad = V.fx('rocket', 1);
+      const ship = V.fx('rocket', 0);
+      const ox = R(x + 14 - 24);
+      const oy = R(y - 46);
+      g.drawImage(pad, ox, oy);
+      let lift = 0;
+      let flame = -1;
+      let a = 1;
+      if (k >= 0 && k < 5.4) {
+        if (k < 1.3) {
+          const n = 3 - Math.floor(k / 0.44);
+          if (n > 0) say(g, String(n), x + 14, oy - 2, '#FFD447', 2);
+        } else if (k < 3.6) {
+          const s = k - 1.3;
+          lift = R(s * s * 24);
+          flame = Math.floor(t * 16) % 4;
+        } else a = seg(k, 4.4, 5.2);
+      }
+      if (a > 0 && lift < 220) {
+        g.globalAlpha = a;
+        g.drawImage(ship, ox, oy - lift);
+        g.globalAlpha = 1;
+        if (flame >= 0) g.drawImage(V.fx('flame', flame), ox + 12, oy - lift + 42);
+      }
+      if (!lift && Math.floor(t * 2) % 2) {
+        g.fillStyle = '#FF5C77';
+        g.fillRect(ox + 23, oy + 28, 2, 1);
+      }
+      B(1.3, () => [0, 1, 2].forEach((s) => B.fx.play('puff', ox + 10 + s * 14, y + 1, { foot: true, fps: 10 })));
+      B(1.7, () => [0, 1].forEach((s) => B.fx.play('puff', ox + 16 + s * 16, y - 2, { foot: true, fps: 9 })));
+      B(3.1, () => B.fx.burst(x + 14, 18, 44, ['#FFD447', '#FF8FB1', '#86CBF3', '#FFFFFF'], 46, { g: 26, life: 1.6 }));
+    },
+    // the first wave of holders round a flag going up the pole
+    function crowdFlag(g, x, y, t, k, B) {
+      const px = x + 16;
+      const up = k >= 0 && k < 2 ? easeOut(seg(k, 0.3, 1.3)) : 1;
+      g.fillStyle = '#6B3E1F';
+      g.fillRect(px, y - 46, 1, 46);
+      g.fillStyle = '#FFD447';
+      g.fillRect(px - 1, y - 48, 3, 2);
+      const fy = R(lerp(y - 14, y - 45, up));
+      for (let c = 0; c < 12; c++) {
+        const dy = calm() ? 0 : R(Math.sin(t * 5 - c * 0.7) * (c / 12) * 1.5);
+        for (let r = 0; r < FLAG.length; r++) {
+          g.fillStyle = ROWS_PAL[FLAG[r][c]];
+          g.fillRect(px + 1 + c, fy + r + dy, 1, 1);
+        }
+      }
+      const L = crowd();
+      [-6, 6, 30, 42, 54].forEach((dx, i) => {
+        const cheer = k >= 1.3 && k < 3 ? arc(((k - 1.3 + i * 0.12) % 0.55) / 0.55) : 0;
+        const bob = calm() ? 0 : Math.max(0, Math.sin(t * 3 + i * 1.3)) * 1;
+        shade(g, x + dx, y, 12);
+        put(g, blub(L[i], cheer > 0 ? { mouth: 'open' } : (t + i) % 3 < 0.1 ? { blink: true } : null), x + dx, y - R(cheer * 6 + bob) + 1);
+      });
+      B(1.3, () => B.fx.burst(x + 22, y - 30, 16, ['#FF5C77', '#FFB3C0', '#FFFFFF'], 30, { up: 20, life: 1.2 }));
+    },
+    // a sign over the road under the Sift Caps, and a chest that opens when Blub comes
+    function welcome(g, x, y, t, k, B) {
+      const sx = x - 2;
+      g.fillStyle = '#6B3E1F';
+      g.fillRect(sx, y - 24, 2, 24);
+      g.fillRect(sx + 36, y - 24, 2, 24);
+      g.fillStyle = '#4A2A14';
+      g.fillRect(sx - 3, y - 33, 44, 12);
+      g.fillStyle = '#C98A5B';
+      g.fillRect(sx - 2, y - 32, 42, 10);
+      g.fillStyle = '#E2B07E';
+      g.fillRect(sx - 2, y - 32, 42, 1);
+      say(g, 'THE SIFT', sx + 19, y - 27, '#FFE9EE', 1);
+      // the chest
+      const cx0 = x + 46;
+      const open = k >= 0 ? seg(k, 0.4, 0.7) : 0;
+      if (open > 0 && k < 3.2) {
+        g.globalAlpha = 0.35 * Math.min(1, 1 - seg(k, 2.4, 3.2));
+        for (let a = 0; a < 7; a++) {
+          const ang = -Math.PI / 2 + (a - 3) * 0.28;
+          for (let r = 4; r < 30; r++) {
+            g.fillStyle = a % 2 ? '#FFF3B0' : '#FFD447';
+            g.fillRect(R(cx0 + 6 + Math.cos(ang) * r), R(y - 9 + Math.sin(ang) * r), 1, 1);
+          }
+        }
+        g.globalAlpha = 1;
+      }
+      g.fillStyle = '#7A2E45';
+      g.fillRect(cx0, y - 8, 13, 8);
+      g.fillStyle = '#E2566E';
+      g.fillRect(cx0 + 1, y - 7, 11, 6);
+      g.fillStyle = '#FFD447';
+      g.fillRect(cx0, y - 5, 13, 1);
+      g.fillRect(cx0 + 5, y - 6, 3, 3);
+      const lid = R(open * 5);
+      g.fillStyle = '#7A2E45';
+      g.fillRect(cx0, y - 11 - lid, 13, 4);
+      g.fillStyle = '#F07D92';
+      g.fillRect(cx0 + 1, y - 10 - lid, 11, 2);
+      B(0.55, () => {
+        B.fx.burst(cx0 + 6, y - 10, 18, ['#FFD447', '#FFF3B0', '#FFFFFF'], 40, { up: 30, g: 60, life: 1.1, floor: y });
+        for (let s = 0; s < 3; s++) B.fx.add({ x: cx0 + 6, y: y - 10, vx: (s - 1) * 14, vy: -50 - s * 8, g: 120, life: 1.6, s: 2, col: '#FFD447', floor: y - 1, fade: false });
+      });
+    },
+    // a patch of arena floor where a Brawler and a Guardian trade blows
+    function arena(g, x, y, t, k, B) {
+      const ax = x - 6;
+      const ay = y - 17;
+      // the clearing: trodden ground between the two pennants
+      oval(g, ax + 32, y, 30, 3, 'rgba(184,50,74,.18)');
+      oval(g, ax + 32, y, 22, 2, 'rgba(184,50,74,.16)');
+      [[ax, V.colors.you.fill], [ax + 63, V.colors.rival.fill]].forEach(([fx0, col], i) => {
+        g.fillStyle = '#6B3E1F';
+        g.fillRect(fx0, ay - 18, 1, 20);
+        g.fillStyle = col;
+        const w = calm() ? 0 : R(Math.sin(t * 6 + i) * 1);
+        g.fillRect(i ? fx0 - 6 : fx0 + 1, ay - 18 + w, 6, 4);
+      });
+      const U = roles();
+      const p = t % 1.6;
+      const lunA = p < 0.25 ? R(arc(p / 0.25) * 4) : 0;
+      const lunB = p > 0.8 && p < 1.05 ? R(arc((p - 0.8) / 0.25) * 4) : 0;
+      V.ring(g, ax + 20, ay + 14, 'you', 0.9);
+      V.ring(g, ax + 44, ay + 14, 'rival', 0.9);
+      put(g, armed(U[0].L, 'fierce', 'sword', 1, lunA ? 'fwd' : 'up'), ax + 20 + lunA, ay + 16);
+      put(g, armed(cleanLook(RIVAL[0].L), 'sleepy', 'hammer', -1, lunB ? 'fwd' : 'up'), ax + 44 - lunB, ay + 16);
+      if (p > 0.12 && p < 0.3) star(g, ax + 34, ay + 4, 2, '#FFFFFF');
+      if (p > 0.92 && p < 1.1) star(g, ax + 30, ay + 5, 2, '#FFD447');
+      if (k >= 0 && k < 1.4) say(g, 'FIGHT!', ax + 32, ay - 12 - R(easeOut(seg(k, 0, 0.3)) * 4), '#FFD447', 1, 1 - seg(k, 1.1, 1.4));
+    },
+    // the podium with three medals, the crane still building beside it
+    function ranks(g, x, y, t, k, B) {
+      const px = x + 2;
+      const block = (bx, h, top, side, n) => {
+        g.fillStyle = side;
+        g.fillRect(bx, y - h, 12, h);
+        g.fillStyle = top;
+        g.fillRect(bx, y - h, 12, 2);
+        say(g, n, bx + 6, y - h + 6, '#FFFFFF', 1);
+      };
+      block(px, 9, '#E6EEF5', '#9AA8B8', '2');
+      block(px + 12, 14, '#FFF3B0', '#D9A21B', '1');
+      block(px + 24, 6, '#F4C9A0', '#B5762F', '3');
+      [[15, px + 6, 9], [18, px + 18, 14], [12, px + 30, 6]].forEach(([d, mx, h], i) => {
+        const pop = k >= 0 ? arc(seg(k, 0.4 + i * 0.2, 0.75 + i * 0.2)) : 0;
+        const bob = calm() ? 0 : R(Math.sin(t * 2.4 + i) * 1);
+        g.drawImage(badge(d, 16), R(mx - 8), R(y - h - 20 - pop * 6 + bob));
+        if (pop > 0.6) star(g, mx + 6, y - h - 20, 1, '#FFFFFF');
+      });
+      // the crane
+      const cx0 = px + 50;
+      g.fillStyle = '#C98A12';
+      for (let yy = y - 50; yy < y; yy++) {
+        g.fillRect(cx0, yy, 1, 1);
+        g.fillRect(cx0 + 3, yy, 1, 1);
+        if ((yy - y) % 4 === 0) g.fillRect(cx0, yy, 4, 1);
+        if ((yy - y) % 4 === 2) g.fillRect(cx0 + 1 + ((yy >> 1) & 1), yy, 1, 1);
+      }
+      g.fillRect(cx0 - 26, y - 50, 34, 1);
+      g.fillRect(cx0 - 26, y - 48, 34, 1);
+      for (let xx = cx0 - 26; xx < cx0 + 8; xx += 3) g.fillRect(xx, y - 49, 1, 1);
+      const sway = calm() ? 0 : Math.sin(t * 1.4) * 2;
+      const hx = R(cx0 - 20 + sway);
+      const hy = R(y - 30 + Math.sin(t * 0.7) * 3);
+      line(g, cx0 - 20, y - 48, hx, hy, '#2B1D3F');
+      g.fillStyle = '#8A96A8';
+      g.fillRect(hx - 3, hy, 7, 4);
+      g.fillStyle = '#C9C9D6';
+      g.fillRect(hx - 3, hy, 7, 1);
+      B(0.5, () => B.fx.burst(px + 18, y - 34, 14, ['#FFD447', '#FFFFFF'], 34));
+      if (k >= 0.6 && k < 2) say(g, '+3', px + 32, y - 40 - R(seg(k, 0.6, 2) * 8), '#4BE08F', 1, 1 - seg(k, 1.6, 2));
+    },
+    // a megaphone sending bubbles up into the dusk
+    function social(g, x, y, t, k, B) {
+      const mx = x + 18;
+      g.fillStyle = '#6B3E1F';
+      g.fillRect(mx + 4, y - 14, 1, 14);
+      g.fillRect(mx + 1, y - 1, 7, 1);
+      rows(g, MEGA, mx, y - 26, null, false);
+      for (let i = 0; i < 3; i++) {
+        const age = (t + i * 0.75) % 2.25;
+        const bx = mx + 14 + R(Math.sin(t * 1.3 + i * 2) * 2) + i * 4;
+        const by = y - 24 - R(age * 14);
+        g.globalAlpha = 1 - seg(age, 1.6, 2.25);
+        g.fillStyle = '#2B1D3F';
+        g.fillRect(bx - 1, by - 1, 11, 9);
+        g.fillStyle = '#FFFFFF';
+        g.fillRect(bx, by, 9, 7);
+        if (i === 0) rows(g, ['.r.r.', 'rrrrr', '.rrr.', '..r..'], bx + 2, by + 1, { r: '#FF5C77' });
+        else if (i === 1) star(g, bx + 4, by + 3, 2, '#FFD447');
+        else rows(g, ['.k.', '.k.', '.k.', '...', '.k.'], bx + 3, by + 1, { k: '#E2566E' });
+        g.globalAlpha = 1;
+      }
+      if (k >= 0 && k < 2)
+        for (let w = 0; w < 3; w++) {
+          const r = 4 + w * 4 + R(((k * 12) % 4));
+          g.fillStyle = '#FFF3B0';
+          for (let a = -3; a <= 3; a++) g.fillRect(R(mx + 11 + Math.cos(a * 0.25 - 0.6) * r), R(y - 20 + Math.sin(a * 0.25 - 0.6) * r), 1, 1);
+        }
+      B(0.5, () => B.fx.burst(mx + 10, y - 26, 16, ['#FF5C77', '#FFB3C0', '#FFD447', '#FFFFFF'], 34, { up: 24, life: 1.3 }));
+    },
+    // the gate to launch day, shut, a padlock on it; fireworks wait behind
+    function gate(g, x, y, t, k, B) {
+      const gx = x - 2;
+      // a firework behind, now and then, still in grey
+      const fw = t % 3.2;
+      if (fw < 1)
+        for (let a = 0; a < 12; a++) {
+          const ang = (a / 12) * Math.PI * 2;
+          const r = 4 + fw * 12;
+          g.globalAlpha = 0.5 * (1 - fw);
+          g.fillStyle = '#B9A9D6';
+          g.fillRect(R(gx + 18 + Math.cos(ang) * r), R(y - 52 + Math.sin(ang) * r), 1, 1);
+          g.globalAlpha = 1;
+        }
+      const pillar = (px) => {
+        g.fillStyle = '#4A3A66';
+        g.fillRect(px, y - 34, 6, 34);
+        g.fillStyle = '#6D5D86';
+        g.fillRect(px + 1, y - 34, 4, 34);
+        g.fillStyle = '#8A7BA8';
+        g.fillRect(px - 1, y - 37, 8, 3);
+        for (let yy = y - 30; yy < y; yy += 6) {
+          g.fillStyle = '#4A3A66';
+          g.fillRect(px + 1, yy, 4, 1);
+        }
+      };
+      pillar(gx);
+      pillar(gx + 30);
+      g.fillStyle = '#2B1D3F';
+      for (let bx = gx + 7; bx < gx + 30; bx += 3) g.fillRect(bx, y - 30, 1, 30);
+      g.fillRect(gx + 6, y - 31, 24, 2);
+      g.fillRect(gx + 6, y - 16, 24, 1);
+      g.fillRect(gx + 6, y - 4, 24, 1);
+      const jig = k >= 0 && k < 0.6 ? R(Math.sin(k * 50) * 1.5) : 0;
+      paint(g, SPR.lock, gx + 14 + jig, y - 22, 1);
+      if (k >= 0.2 && k < 1.8) say(g, 'LOCKED', gx + 18, y - 44 - R(seg(k, 0.2, 0.5) * 3), '#FF5C77', 1, 1 - seg(k, 1.4, 1.8));
+    },
+    // the season's trophy under glass, locked away
+    function trophy(g, x, y, t, k, B) {
+      const tx = x + 4;
+      g.fillStyle = '#4A3A66';
+      g.fillRect(tx, y - 10, 22, 10);
+      g.fillStyle = '#6D5D86';
+      g.fillRect(tx + 1, y - 10, 20, 2);
+      rows(g, CUP, tx + 5, y - 24);
+      // the glass over it
+      g.fillStyle = 'rgba(189,231,255,.55)';
+      for (let a = 0; a <= 20; a++) {
+        const ang = Math.PI + (a / 20) * Math.PI;
+        g.fillRect(R(tx + 11 + Math.cos(ang) * 11), R(y - 14 + Math.sin(ang) * 16), 1, 1);
+      }
+      g.fillRect(tx, y - 14, 1, 4);
+      g.fillRect(tx + 22, y - 14, 1, 4);
+      if ((t % 3) < 0.25) star(g, tx + 9, y - 21, 1, '#FFFFFF');
+      const jig = k >= 0 && k < 0.6 ? R(Math.sin(k * 50) * 1.5) : 0;
+      paint(g, SPR.lock, tx + 7 + jig, y - 9, 1);
+      if (k >= 0.2 && k < 1.8) say(g, 'LOCKED', tx + 11, y - 40 - R(seg(k, 0.2, 0.5) * 3), '#FF5C77', 1, 1 - seg(k, 1.4, 1.8));
+    },
+    // the end of the road: a door of static in the dark, and three question marks
+    function portal(g, x, y, t, k, B) {
+      const px = x + 2;
+      const top = y - 48;
+      const f = Math.floor(t * 12);
+      for (let yy = 0; yy < 44; yy++)
+        for (let xx = 0; xx < 22; xx++) {
+          const h = hash(xx * 31 + f, yy * 17 + (f >> 1));
+          if (h < 0.1) {
+            g.fillStyle = h < 0.03 ? '#FFFFFF' : h < 0.06 ? '#B8A4EC' : '#6B54A8';
+            g.fillRect(px + xx, top + yy, 1, 1);
+          }
+        }
+      g.fillStyle = '#6B54A8';
+      g.fillRect(px - 2, top - 2, 26, 1);
+      g.fillRect(px - 2, top - 2, 1, 48);
+      g.fillRect(px + 23, top - 2, 1, 48);
+      g.fillStyle = '#B8A4EC';
+      for (let i = 0; i < 6; i++) {
+        const s = (f + i * 7) % 48;
+        g.fillRect(i % 2 ? px + 23 : px - 2, top - 2 + s, 1, 2);
+      }
+      [[-12, -20], [32, -30], [10, -56]].forEach(([dx, dy], i) => say(g, '?', px + dx, y + dy + (calm() ? 0 : R(Math.sin(t * 2 + i * 2) * 2)), i === 2 ? '#FFFFFF' : '#B8A4EC', i === 2 ? 2 : 1));
+      say(g, '2027', px + 11, top - 8, '#FFFFFF', 1);
+    },
+  ];
+  // what Blub does on arriving: a hop of joy, an exclamation, a shrug at a locked door, a question
+  const MOOD = { done: ['YAY!', '#FFD447'], now: ['SOON!', '#86CBF3'], locked: ['...', '#FFFFFF'], dim: ['?', '#B8A4EC'] };
+
+  function Trail(root, xpLvl, xpBar) {
+    root.textContent = '';
+    const stage = mk('div', 'trail-stage');
+    const c = cv(300, 96);
+    c.className = 'trail-cv';
+    c.setAttribute('aria-hidden', 'true');
+    stage.append(c);
+    const ui = mk('div', 'trail-ui');
+    const prev = mk('button', 'btn small ghost trail-prev');
+    prev.type = 'button';
+    prev.textContent = 'Back';
+    const card = mk('div', 'trail-card');
+    card.setAttribute('aria-live', 'polite');
+    const chip = mk('span', 'trail-state');
+    const h = mk('h3');
+    const p = mk('p');
+    const note = mk('p', 'trail-note');
+    card.append(chip, h, p, note);
+    const next = mk('button', 'btn small gold trail-next');
+    next.type = 'button';
+    ui.append(prev, card, next);
+    const rail = mk('ol', 'trail-stops');
+    rail.setAttribute('aria-label', 'Every stop on the road');
+    const dots = ROAD.map((a, i) => {
+      const li = mk('li');
+      const b = mk('button', 'trail-stop ' + a.s);
+      b.type = 'button';
+      b.setAttribute('aria-label', i + 1 + '. ' + a.t + ': ' + STATE_TXT[a.s].toLowerCase());
+      b.title = a.t;
+      b.append(a.i ? icon(a.i) : mysteryIcon());
+      b.onclick = () => walkTo(i);
+      li.append(b);
+      rail.append(li);
+      return b;
+    });
+    root.append(stage, ui, rail);
+    const g = c.getContext('2d');
+    const fx = Fx();
+    let W = 300;
+    let H = 96;
+    let gy = 74;
+    let L = null;
+    let at = 0;
+    let bx = standX(0);
+    let from = bx;
+    let to = bx;
+    let walkT0 = 0;
+    let walkDur = 0;
+    let walking = false;
+    let face = 1;
+    let camX = 0;
+    let t = 0;
+    let last = 0;
+    let raf = 0;
+    let vis = false;
+    let hint = true;
+    let came = -1;
+    let glitch = 0;
+    const fired = new Set();
+    const stars = [];
+    const slabs = [];
+    const motes = [];
+    const tufts = [];
+    // the beats of a stop's scene, once per visit
+    const beat = (k) => {
+      const B = (when, fn) => {
+        const key = at + ':' + came + ':' + when;
+        if (k >= when && !fired.has(key)) {
+          fired.add(key);
+          if (k - when < 0.4 && !calm()) fn();
+        }
+      };
+      B.fx = fx;
+      return B;
+    };
+    const noBeat = () => {};
+    noBeat.fx = fx;
+    // the world, drawn once per size: the sky, far and near Sift Caps, the terraces and the road
+    function build() {
+      const vw = root.clientWidth || innerWidth;
+      const S = vw >= 1000 ? 4 : vw >= 560 ? 3 : 2;
+      W = Math.floor(vw / S);
+      H = S >= 3 ? 96 : 116;
+      gy = H - 22;
+      c.width = W;
+      c.height = H;
+      c.style.width = W * S + 'px';
+      c.style.height = H * S + 'px';
+      const r = rng(2027);
+      const hz = gy - 14;
+      // sky, coloured along the road, with the sun, the setting sun and the moon in it
+      const sky = cv(WORLD, H);
+      const sg = sky.getContext('2d');
+      for (let x = 0; x < WORLD; x += 2) {
+        const s = skyAt(x);
+        for (let j = 0; j < 10; j++) {
+          const y0 = Math.floor((j * hz) / 10);
+          const y1 = Math.floor(((j + 1) * hz) / 10);
+          const kk = j / 9;
+          sg.fillStyle = rgb(s.top.map((v, q) => R(v + (s.bot[q] - v) * kk)));
+          sg.fillRect(x, y0, 2, y1 - y0 + 1);
+        }
+        sg.fillStyle = rgb(s.bot);
+        sg.fillRect(x, hz, 2, H - hz);
+      }
+      const sun = (sx, sy, rr, a, b2) => {
+        oval(sg, sx, sy, rr + 4, rr + 4, a);
+        oval(sg, sx, sy, rr, rr, b2);
+      };
+      sun(stopX(0) + 150, 16, 6, 'rgba(255,251,234,.35)', '#FFF6D6');
+      sun(stopX(5) - 10, hz - 4, 10, 'rgba(255,214,150,.35)', '#FFB070');
+      oval(sg, stopX(7) - 20, 18, 6, 6, '#FFF3B0');
+      oval(sg, stopX(7) - 17, 16, 5, 5, rgb(skyAt(stopX(7)).top));
+      // far and near Sift Caps (they scroll slower)
+      const far = cv(Math.ceil(W + (WORLD - W) * 0.35) + 8, H);
+      const fg = far.getContext('2d');
+      for (let x = 0; x < far.width; x++) {
+        const hy = R(hz - 3 + Math.sin(x * 0.021) * 3 + Math.sin(x * 0.057) * 2);
+        fg.fillStyle = SIFT_FAR[3];
+        fg.fillRect(x, hy, 1, H - hy);
+      }
+      for (let x = -8; x < far.width + 8; x += 5 + Math.floor(r() * 9)) siftTree(fg, x, hz + 2, 3 + Math.floor(r() * 6), 9 + Math.floor(r() * 12), 3 + Math.floor(r() * 3), SIFT_FAR, '#5C9496', r);
+      const mid = cv(Math.ceil(W + (WORLD - W) * 0.65) + 8, H);
+      const mg = mid.getContext('2d');
+      for (let x = 10; x < mid.width; x += 26 + Math.floor(r() * 44)) siftTree(mg, x, gy - 4, 9 + Math.floor(r() * 9), 18 + Math.floor(r() * 16), 5 + Math.floor(r() * 3), SIFT_MID, '#1E3B3D', r);
+      // the terraces and the road, to the edge of the world; past it nothing
+      const ground = cv(WORLD, H);
+      const gg = ground.getContext('2d');
+      siftGround(gg, CLIFF + 2, H, gy - 3, r, { bands: [0, 0.3, 0.66] });
+      // two big Sift Caps over the welcome sign
+      [stopX(2) - 12, stopX(2) + 50].forEach((tx) => siftTree(gg, tx, gy - 2, 30, 42, 8, ['#2A6B6E', '#3F8A8C', '#A6D4CF', '#1A4D50'], '#163234', r));
+      for (let x = 2; x < CLIFF - 6; x += 6 + Math.floor(r() * 4)) {
+        gg.fillStyle = '#FFF6F8';
+        gg.fillRect(x, gy + 1 + Math.floor(r() * 2), 3, 1);
+        gg.fillStyle = '#FBD9E1';
+        gg.fillRect(x, gy + 2, 3, 1);
+      }
+      // the cliff's broken edge
+      for (let yy = gy - 3; yy < H; yy++) {
+        gg.clearRect(CLIFF - Math.floor(r() * 3), yy, 8, 1);
+        gg.fillStyle = '#B05070';
+        gg.fillRect(CLIFF - 3 - Math.floor(r() * 2), yy, 1, 1);
+      }
+      // night falling over the land: one row per column, stretched down when drawn
+      const tint = cv(WORLD, 1);
+      const tg = tint.getContext('2d');
+      for (let x = 0; x < WORLD; x++) {
+        tg.fillStyle = rgb([16, 10, 32], Math.min(0.92, skyAt(x).n * 0.62));
+        tg.fillRect(x, 0, 1, 1);
+      }
+      L = { sky, far, mid, ground, tint, hz };
+      // stars, sky slabs and glow motes along the road
+      stars.length = 0;
+      for (let i = 0; i < WORLD / 3; i++) stars.push({ x: r() * WORLD, y: r() * (hz - 6), p: r() * 6, b: r() < 0.15 });
+      slabs.length = 0;
+      for (let i = 0; i < 9; i++) slabs.push({ c: siftSlab(r, 22 + Math.floor(r() * 26), 6 + Math.floor(r() * 4)), x: r() * WORLD, y: 4 + Math.floor(r() * (hz * 0.4)), v: 1 + r() * 2 });
+      motes.length = 0;
+      for (let i = 0; i < 70; i++) motes.push({ x: stopX(4) + r() * (stopX(7) - stopX(4)), y: r(), v: 3 + r() * 5, p: r() * 6 });
+      // blush grass on the terraces below the road, swaying even without wind
+      tufts.length = 0;
+      for (let x = 4; x < CLIFF - 8; x += 5 + Math.floor(r() * 9)) {
+        const y = gy + 6 + Math.floor(r() * (H - gy - 9));
+        const n = 2 + Math.floor(r() * 3);
+        const bl = [];
+        for (let k = 0; k < n; k++) bl.push({ dx: k * 2 - n + Math.floor(r() * 2), h: 2 + Math.floor(r() * (y > gy + 12 ? 4 : 3)), c: ['#FFE6EC', '#F9CCD7', '#EFB4C3'][Math.floor(r() * 3)] });
+        tufts.push({ x, y, p: r() * 6, bl });
+      }
+    }
+    function paintUI() {
+      const a = ROAD[at];
+      chip.textContent = STATE_TXT[a.s];
+      chip.className = 'trail-state ' + a.s;
+      h.textContent = a.t;
+      p.textContent = a.d;
+      note.textContent = '';
+      if (a.note) note.append(mk('b', null, a.note[0]), document.createTextNode(': ' + a.note[1]));
+      note.hidden = !a.note;
+      prev.disabled = at === 0;
+      next.textContent = at === ROAD.length - 1 ? 'Back to the start' : 'Walk on';
+      if (at < ROAD.length - 1) next.append(icon('play'));
+      dots.forEach((d, i) => {
+        d.setAttribute('aria-current', i === at ? 'step' : 'false');
+        d.classList.toggle('on', i === at);
+      });
+    }
+    function walkTo(i) {
+      i = Math.max(0, Math.min(ROAD.length - 1, i));
+      hint = false;
+      if (i === at && !walking) {
+        came = t;
+        kick();
+        return;
+      }
+      from = bx;
+      to = standX(i);
+      face = to >= from ? 1 : -1;
+      walkT0 = t;
+      walkDur = Math.min(2.6, Math.max(0.8, Math.abs(to - from) / 78));
+      walking = true;
+      at = i;
+      came = -1;
+      paintUI();
+      if (calm()) {
+        bx = to;
+        walking = false;
+        came = t;
+        camX = camFor(bx);
+        draw(0);
+      }
+      kick();
+    }
+    const camFor = (x) => Math.max(0, Math.min(WORLD - W, x - W * 0.38));
+    function draw(dt) {
+      if (!L) return;
+      g.imageSmoothingEnabled = false;
+      const cam = R(camX);
+      const hz = L.hz;
+      g.drawImage(L.sky, cam, 0, W, H, 0, 0, W, H);
+      // stars come out with the night
+      for (const s of stars) {
+        const sx = R(s.x - cam * 0.9);
+        if (sx < 0 || sx >= W) continue;
+        const n = skyAt(cam + sx).n;
+        if (n < 0.3) continue;
+        const a = ((n - 0.3) / 0.7) * (calm() ? 0.8 : 0.35 + 0.65 * Math.abs(Math.sin(t * 0.9 + s.p)));
+        g.fillStyle = s.b ? rgb([255, 211, 221], a) : rgb([189, 231, 255], a * 0.85);
+        g.fillRect(sx, R(s.y), 1, 1);
+        if (s.b && a > 0.8) {
+          g.fillRect(sx - 1, R(s.y), 3, 1);
+          g.fillRect(sx, R(s.y) - 1, 1, 3);
+        }
+      }
+      // sky slabs drift by, fainter at night
+      for (const s of slabs) {
+        const wx = (s.x + t * s.v) % (WORLD + 60);
+        const sx = R(wx - cam * 0.5);
+        if (sx > W || sx + s.c.width < 0) continue;
+        g.globalAlpha = 1 - skyAt(cam + sx).n * 0.75;
+        g.drawImage(s.c, sx, s.y);
+        g.globalAlpha = 1;
+      }
+      g.drawImage(L.far, R(cam * 0.35), 0, W, H, 0, 0, W, H);
+      g.drawImage(L.mid, R(cam * 0.65), 0, W, H, 0, 0, W, H);
+      g.drawImage(L.ground, cam, 0, W, H, 0, 0, W, H);
+      for (const tf of tufts) {
+        const sx = tf.x - cam;
+        if (sx < -4 || sx > W + 4) continue;
+        for (const b of tf.bl) {
+          const s = calm() ? 0 : Math.sin(t * 1.8 + tf.p + b.dx * 0.4) * b.h * 0.35;
+          g.fillStyle = b.c;
+          for (let k = 0; k < b.h; k++) g.fillRect(R(sx + b.dx + (s * k) / b.h), tf.y - k, 1, 1);
+        }
+      }
+      // past the cliff there is nothing yet
+      const cx0 = CLIFF - cam;
+      if (cx0 < W) {
+        g.fillStyle = '#000000';
+        g.fillRect(Math.max(0, cx0 + 4), hz - 30, W, H);
+      }
+      g.drawImage(L.tint, cam, 0, W, 1, 0, hz - 34, W, H - hz + 34);
+      // glow motes rise from the terraces at dusk
+      for (const m of motes) {
+        const sx = R(m.x - cam);
+        if (sx < -2 || sx > W + 2) continue;
+        const life = (m.y + t / m.v) % 1;
+        const yy = R(gy + 6 - life * 50);
+        g.globalAlpha = Math.sin(life * Math.PI) * 0.9;
+        g.fillStyle = (m.p > 3) ? '#FFF3B0' : '#CFF6FF';
+        g.fillRect(sx + R(Math.sin(t + m.p) * 2), yy, 1, 1);
+        g.globalAlpha = 1;
+      }
+      // each stop: a sign with its achievement, and its scene
+      ROAD.forEach((a, i) => {
+        const sx = stopX(i) - cam;
+        if (sx < -90 || sx > W + 90) return;
+        const px = R(sx - 48);
+        g.fillStyle = '#6B3E1F';
+        g.fillRect(px + 5, gy - 14, 2, 15);
+        const col = a.s === 'done' ? '#FFD447' : a.s === 'now' ? (Math.sin(t * 4) > 0 ? '#86CBF3' : '#BDE7FF') : a.s === 'locked' ? '#8A7BA8' : '#6B54A8';
+        g.fillStyle = '#2B1D3F';
+        g.fillRect(px - 1, gy - 26, 14, 14);
+        g.fillStyle = col;
+        g.fillRect(px, gy - 25, 12, 12);
+        g.fillStyle = a.s === 'dim' ? '#000000' : '#FFF6F8';
+        g.fillRect(px + 1, gy - 24, 10, 10);
+        g.drawImage(memo('ri' + i, () => (a.i ? icon(a.i) : mysteryIcon())), px + 2, gy - 23);
+        const k = i === at && !walking && came >= 0 && !calm() ? t - came : -1;
+        try {
+          SCENES[i](g, R(sx), gy, t, k, k >= 0 ? beat(k) : noBeat);
+        } catch (err) {
+          if (!draw.err) {
+            draw.err = 1;
+            console.warn('home road', err);
+          }
+        }
+      });
+      // Blub, walking or waiting
+      const a = ROAD[at];
+      const k = !walking && came >= 0 && !calm() ? t - came : -1;
+      let hop = 0;
+      let dx = 0;
+      if (walking) hop = R(Math.abs(Math.sin(((bx - from) / 7) * Math.PI)) * 3);
+      else if (k >= 0 && k < 0.5 && a.s === 'done') hop = R(arc(k / 0.5) * 8);
+      else if (k >= 0 && k < 0.5 && a.s === 'locked') dx = R(arc(k / 0.5) * 4);
+      const sx = R(bx - cam) + dx;
+      const st = walking ? { gaze: face } : k >= 0 && k < 1.6 ? { mouth: a.s === 'locked' ? 'sad' : 'open', gaze: 1 } : (t % 2.6) < 0.12 ? { blink: true } : { gaze: 1 };
+      shade(g, sx, gy + 1, 12, 1 - hop / 10);
+      put(g, blub(dressed()[0], st), sx, gy + 2 - hop);
+      if (k >= 0.25 && k < 1.9) bubble(g, sx, gy - 20, MOOD[a.s][0], MOOD[a.s][1]);
+      else if (hint && !walking) bubble(g, sx, gy - 20 - (calm() ? 0 : R(Math.abs(Math.sin(t * 3)) * 2)), 'CLICK ME!', '#FFD447');
+      fx.step(dt);
+      fx.draw(g);
+      // at the end of the road the picture itself comes apart for a moment
+      if (at === ROAD.length - 1 && k >= 0 && k < 0.7 && !calm()) {
+        for (let s = 0; s < 5; s++) {
+          const yy = Math.floor(Math.random() * H);
+          const hh = 2 + Math.floor(Math.random() * 6);
+          g.drawImage(c, 0, yy, W, hh, Math.floor((Math.random() - 0.5) * 10), yy, W, hh);
+        }
+      }
+    }
+    function frame(now) {
+      raf = 0;
+      if (!vis || document.hidden || calm()) return;
+      const dt = Math.min(0.05, last ? (now - last) / 1000 : 0.016);
+      last = now;
+      t += dt;
+      if (walking) {
+        const kk = seg(t, walkT0, walkT0 + walkDur);
+        bx = lerp(from, to, easeInOut(kk));
+        if (kk >= 1) {
+          walking = false;
+          came = t;
+        }
+      }
+      camX += (camFor(bx) - camX) * (1 - Math.exp(-dt * 4));
+      draw(dt);
+      kick();
+    }
+    function kick() {
+      if (raf || !vis || document.hidden || calm()) return;
+      last = 0;
+      raf = requestAnimationFrame(frame);
+    }
+    c.addEventListener('click', () => walkTo(at === ROAD.length - 1 ? 0 : at + 1));
+    prev.onclick = () => walkTo(at - 1);
+    next.onclick = () => walkTo(at === ROAD.length - 1 ? 0 : at + 1);
+    // the level and the bar: how far the project is (unlocked plus half of the one in progress)
+    const doneN = ROAD.filter((a) => a.s === 'done').length;
+    const cur = Math.max(0, ROAD.findIndex((a) => a.s !== 'done'));
+    if (xpLvl) xpLvl.textContent = 'Level ' + (cur + 1) + ' · ' + ROAD[cur].t;
+    if (xpBar) {
+      xpBar.textContent = '';
+      const fill = Math.round((20 * (doneN + 0.5)) / ROAD.length);
+      for (let i = 0; i < 20; i++) {
+        const b = mk('i');
+        xpBar.append(b);
+        setTimeout(() => b.classList.toggle('f', i < fill), calm() ? 0 : 300 + i * 60);
+      }
+    }
+    build();
+    camX = camFor(bx);
+    paintUI();
+    draw(0);
+    if ('IntersectionObserver' in window)
+      new IntersectionObserver((es) => {
+        vis = es.some((e) => e.isIntersecting);
+        kick();
+      }, { rootMargin: '40px 0px' }).observe(stage);
+    else vis = true;
+    document.addEventListener('visibilitychange', kick);
+    let rt = 0;
+    addEventListener('resize', () => {
+      clearTimeout(rt);
+      rt = setTimeout(() => {
+        build();
+        camX = camFor(bx);
+        draw(0);
+      }, 150);
+    });
+    if (RMQ && RMQ.addEventListener)
+      RMQ.addEventListener('change', () => {
+        draw(0);
+        kick();
+      });
+    return { walkTo };
+  }
+
+  /* ---------------------------------------------------------------
+     MOUNT
+     --------------------------------------------------------------- */
+  let mounted = false;
+  function mount() {
+    if (mounted) return;
+    mounted = true;
+    RMQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    const show = document.getElementById('show');
+    // drawn once the section comes near the screen
+    const later = (el, fn) => {
+      if (!el) return;
+      let done = false;
+      const run = () => {
+        if (done) return;
+        done = true;
+        try {
+          fn(el);
+        } catch (err) {
+          console.warn('home', err);
+        }
+      };
+      if ('IntersectionObserver' in window)
+        new IntersectionObserver((es, ob) => {
+          if (es.some((e) => e.isIntersecting)) {
+            ob.disconnect();
+            run();
+          }
+        }, { rootMargin: '400px 0px' }).observe(el);
+      else run();
+    };
+    later(show, Show);
+    later(document.getElementById('trail'), (el) => Trail(el, document.getElementById('lvl'), document.getElementById('xpbar')));
+    later(document.querySelector('.why-points'), Why);
+  }
+  return { mount };
+})();
 /* ==== end squad arena ==== */
 /* =====================================================================
    ROUTING: four views. #team is the team page (looks, battle builds and
@@ -26658,65 +28943,8 @@ async function boot(){
   // the list is cached at the edge, so this costs (almost) no database commands
   setInterval(() => { if ((!$('#team').hidden || !$('#practice').hidden || !$('#rankings').hidden) && !document.hidden) pullMeadow(false); }, 120000);
 }
-/* ---------------------------------------------------------------
-   THE HOME PAGE'S PICTURES FROM THE GAME (owner, 13 Oct 2026): the steps
-   and parts of "Squad Arena, step by step" show the game's own sprites,
-   icons and rank badges, drawn once that section comes near the screen
-   --------------------------------------------------------------- */
-function homeArt(){
-  const LOOKS = [
-    {tint: 'blauw', eyes: 'blij', hat: 'pet'}, {tint: 'mint', eyes: 'rond', hat: 'bloem', acc: 'sjaal'},
-    {tint: 'lavendel', eyes: 'sterren', ears: 'antenne'}, {tint: 'roze', eyes: 'hart', hat: 'kroon'},
-    {tint: 'blauw', eyes: 'boos', hat: 'helm', pattern: 'strepen'}, {tint: 'nacht', eyes: 'rood', ears: 'puntig'},
-    {tint: 'roze', eyes: 'slaperig', hat: 'muts'}, {tint: 'mint', eyes: 'blij', acc: 'bril'},
-    {tint: 'goud', eyes: 'rond', hat: 'kroon'}, {tint: 'lavendel', eyes: 'boos', acc: 'snor'},
-  ].map(cleanLook);
-  const ic = (kind, id, px) => { try { return SquadView.icon(kind, id, px); } catch { return null; } };
-  const unit = (i, wpn, cls, face) => { try { return SquadView.unitCanvas(LOOKS[i], wpn, {cls, face, px: 1, team: face > 0 ? 'you' : 'rival'}); } catch { return null; } };
-  const badge = (d, px = 48) => { try { return SquadHall.rankBadge(d, px); } catch { return null; } };
-  const put = (el, list) => list.filter(Boolean).forEach(c => el.append(c));
-  const draw = {
-    // five against five on a strip of The Sift
-    arena(el){
-      const W = 132, H = 54, c = document.createElement('canvas'); c.width = W; c.height = H;
-      const x = c.getContext('2d'), sky = window.BLUB.SIFT_SKY || ['#FFE3EA'];
-      sky.forEach((col, i) => { x.fillStyle = col; x.fillRect(0, Math.floor(i * 30 / sky.length), W, 31); });
-      siftGround(x, W, H, 30, rng(41), {bands: [0, .5]});
-      const A = [['fierce', 'sword'], ['sleepy', 'spear'], ['cheeky', 'daggers'], ['playful', 'bow'], ['sweet', 'wand']];
-      const B = [['fierce', 'hammer'], ['sleepy', 'sword'], ['cheeky', 'daggers'], ['playful', 'rifle'], ['sweet', 'wand']];
-      const at = [[34, 8], [36, 26], [16, 18], [2, 6], [2, 28]];
-      A.forEach(([cls, wpn], i) => { const u = unit(i, wpn, cls, 1); if (u) x.drawImage(u, at[i][0], at[i][1]); });
-      B.forEach(([cls, wpn], i) => { const u = unit(5 + i, wpn, cls, -1); if (u) x.drawImage(u, W - 24 - at[i][0], at[i][1]); });
-      c.className = 'spr scene'; c.style.width = W * 3 + 'px'; c.setAttribute('aria-hidden', 'true');
-      el.append(c);
-    },
-    // from Bronze Shrimp to Gold Whale
-    ranks(el){
-      // in two rows of three: Shrimp, Crab, Fish, then Dolphin, Shark and the Gold Whale
-      [[1, 4, 7], [10, 13, 18]].forEach(ds => {
-        const row = document.createElement('div'); row.className = 'ranks-row';
-        ds.forEach((d, k) => { if (k) { const i = document.createElement('i'); i.textContent = '›'; row.append(i); } put(row, [badge(d, 96)]); });
-        el.append(row);
-      });
-    },
-    looks(el){ LOOKS.slice(0, 4).forEach(L => { const c = lookCanvas(L, {}); c.style.width = '48px'; c.style.height = '60px'; c.setAttribute('aria-hidden', 'true'); el.append(c); }); },
-    skills(el){ put(el, SquadEngine.PLAYSTYLES.map(([id]) => ic('cls', id, 28)).concat([ic('wpn', 'bow', 28)])); },
-    plan(el){ put(el, ['sandbags', 'wire', 'tower', 'smoke', 'hospital'].map(id => ic('obj', id, 30))); },
-    fight(el){ put(el, [ic('pow', 'digger', 30), ic('pow', 'builder', 30), ic('gear', 'goggles', 30), ic('ev', 'whale', 30), ic('ev', 'rocket', 30)]); },
-    practice(el){ [unit(0, 'sword', 'fierce', 1), unit(6, 'hammer', 'fierce', -1)].forEach(u => { if (u) { u.style.width = '72px'; u.style.height = '78px'; el.append(u); } }); },
-    league(el){ put(el, [badge(16), badge(17), badge(18)]); },
-  };
-  let drawn = false;
-  const go = () => {
-    if (drawn) return; drawn = true;
-    document.querySelectorAll('#game [data-art]').forEach(el => { const f = draw[el.dataset.art]; if (f && !el.childElementCount) try { f(el); } catch {} });
-  };
-  const sec = document.getElementById('game');
-  if (!sec) return;
-  if ('IntersectionObserver' in window) new IntersectionObserver((es, ob) => { if (es.some(e => e.isIntersecting)) { ob.disconnect(); go(); } }, {rootMargin: '600px 0px'}).observe(sec);
-  else go();
-}
-homeArt();
+// the home page's scenes (src/squad/home.js), drawn as they come near the screen
+SquadHome.mount();
 refreshCoins(); refreshAll(); route(); boot();
 })();
 </script>
