@@ -5979,6 +5979,15 @@ const RULES = lock({
   // chest's own stream. Knocked out before it has flipped it, it flips it as it goes
   // down: heads still brings its double; tails changes nothing any more.
   coinAt: 35, coinBy: 8, coinHp: 12,
+  // Pizza Phone: an old golden phone for the Blub nearest the crate. As the fight starts
+  // it calls for a pizza, and on turn pizzaTurn a white delivery van that has seen
+  // better days comes along the squad's back edge and puts the box down on a free tile
+  // of its own rows, the one nearest the middle of its Blubs (nobody walks through it).
+  // pizzaSlices slices of pizzaHp HP each, for the whole squad: a Blub of it hurt to
+  // pizzaAt% HP or less with nobody in its reach walks back to it, when it gets beside
+  // it this turn, and has a slice (that is its turn); one that starts its turn beside it
+  // pizzaHp or more down has one on its way. Eaten up, the box goes.
+  pizzaTurn: 3, pizzaSlices: 6, pizzaHp: 8, pizzaAt: 60,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6288,6 +6297,7 @@ const NERFS = lock([
 // of these, each as likely; both squads may get the same one). It comes down on the
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
+  ['pizza', 'Pizza Phone', `An old golden phone. As the fight starts your Blub calls for a pizza, and in turn ${RULES.pizzaTurn} a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad: a Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back for one, and one that starts its turn beside the box grabs one on its way.`],
   ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. As the fight starts its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
@@ -6794,6 +6804,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       stats.push({ dmg: 0, kills: 0, healed: 0, taken: 0 });
       coins[t] = { by, v, done: false };
     }
+  // the Pizza Phone (engine 22): its Blub, and the box once it is down (c: its tile)
+  const pizzas = [0, 1].map((t) => (spin && meme[t].gold === 'pizza' && crates[t] && crates[t].by ? { team: t, by: crates[t].by, called: false, c: -1, x: -1, y: -1, was: GRASS, slices: 0 } : null));
+  const pizzaAt = (c) => pizzas.some((z) => z && z.c === c);
   const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id === u.team * TEAM, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble, ...(u.bench ? { bench: 1, of: u.of } : {}) }));
   // ---- the golden drop (engine 22): what is in each squad's crate goes to the Blub
   // that opens it. It is given here, after `start`, so the squad sheet the view starts
@@ -8133,6 +8146,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       push({ t: 'status', u: u.id, s: 'honey', on: false });
     }
     if (u.cls === 'sleepy' && !u.attacked && !u.hurt && u.hp < u.max && !misty && !foes(u).some((e) => cheb(e.x, e.y, u.x, u.y) <= 3)) heal(u, RULES.doze, 'doze');
+    // beside its squad's pizza and a slice down (engine 22): it grabs one on its way
+    const z = pizzaOf(u);
+    if (z && cheb(u.x, u.y, z.x, z.y) <= 1 && u.max - u.hp >= RULES.pizzaHp) slice(u, z);
     u.attacked = false;
     u.hurt = false;
     if (u.gear === 'pillow' && u.cls !== 'sweet' && turn >= u.pillowAt) {
@@ -8214,6 +8230,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         return;
       }
     }
+    // low on HP with nobody to fight: back for a slice of its squad's pizza (engine 22)
+    if (pizzaRun(u)) return;
     // a Builder's works come first while nobody is in its reach (its squad's cannon,
     // and the wall in front of it)
     if ((u.engineer || u.crew) && engineer(u)) return;
@@ -8471,7 +8489,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (tiles[c] !== GRASS && tiles[c] !== BUSH) return false;
     // (nor a Digger's pit: a pit and a wall never share a tile, engine 13)
     if (wireT[c] >= 0 || mineT[c] >= 0 || pitT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
-    if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c)) return false;
+    if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c) || pizzaAt(c)) return false;
     if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
     if (crater && crater.cells.indexOf(c) >= 0) return false;
     return !objs.some((o) => o.k === 'smoke' && o.cells[0] === c);
@@ -9535,6 +9553,75 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       checkOver();
     }
   }
+  // ---- the Pizza Phone (engine 22): the call as the fight starts, the van on pizzaTurn
+  // (a turn later when there is no room on its rows), and the slices
+  function callPizza() {
+    for (const z of pizzas) {
+      if (!z || z.called || !z.by.alive) continue;
+      z.called = true;
+      push({ t: 'phone', team: z.team, u: z.by.id });
+    }
+  }
+  function deliverPizza(turn) {
+    for (const z of pizzas) {
+      if (!z || !z.called || z.done || z.c >= 0 || turn < RULES.pizzaTurn || over >= 0) continue;
+      const rows = z.team ? [0, 1, 2] : [SIZE - 1, SIZE - 2, SIZE - 3];
+      const mates = living[z.team];
+      const mx = mates.length ? mates.reduce((s, v) => s + v.x, 0) / mates.length : 7;
+      const my = mates.length ? mates.reduce((s, v) => s + v.y, 0) / mates.length : rows[1];
+      let best = -1;
+      let bd = 1e9;
+      for (let k = 0; k < N; k++) {
+        // (team B reads the board turned round)
+        const c = z.team ? N - 1 - k : k;
+        const x = c % SIZE;
+        const y = (c - x) / SIZE;
+        if (!rows.includes(y)) continue;
+        const d = Math.abs(x - mx) + Math.abs(y - my);
+        if (d >= bd || !canBuild([c])) continue;
+        best = c;
+        bd = d;
+      }
+      if (best < 0) continue;
+      z.c = best;
+      z.x = best % SIZE;
+      z.y = (best - z.x) / SIZE;
+      z.was = tiles[best];
+      z.slices = RULES.pizzaSlices;
+      tiles[best] = SAND;
+      restep(best);
+      push({ t: 'pizza', team: z.team, at: [z.x, z.y], slices: z.slices });
+    }
+  }
+  function slice(u, z) {
+    z.slices--;
+    push({ t: 'slice', u: u.id, team: z.team, at: [z.x, z.y], left: z.slices });
+    heal(u, RULES.pizzaHp, 'pizza');
+    // eaten up: the box goes
+    if (!z.slices) {
+      tiles[z.c] = z.was;
+      restep(z.c);
+      z.c = -1;
+      z.done = true;
+    }
+  }
+  const pizzaOf = (u) => {
+    const z = pizzas[u.team];
+    return z && z.c >= 0 && z.slices > 0 ? z : null;
+  };
+  // a Blub low on HP with nobody to fight walks back for a slice (its turn)
+  function pizzaRun(u) {
+    const z = pizzaOf(u);
+    if (!z || u.hp * 100 > u.max * RULES.pizzaAt || inReach(u).length) return false;
+    if (cheb(u.x, u.y, z.x, z.y) > 1) {
+      const P = search(u, u.move, (x, y) => cheb(x, y, z.x, z.y) <= 1);
+      if (!P.found.length) return false;
+      walk(u, route(P, P.found[0]));
+      if (!u.alive || over >= 0 || cheb(u.x, u.y, z.x, z.y) > 1) return true;
+    }
+    slice(u, z);
+    return true;
+  }
   // let out of its cage as the fight starts
   function unleash() {
     for (const g of dogs) {
@@ -9757,7 +9844,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const padAt = live.filter((e) => e.id === 'rocket').map((e) => idx(e.cells[0][0], e.cells[0][1]));
   let exitAt = exitEv ? RULES.exitFrom + Math.floor(cr() * (RULES.exitTo - RULES.exitFrom + 1)) : 0;
   // the BFS in connected() starts on these two, so they never sink
-  const holeOk = (c) => tiles[c] === GRASS && c !== CENTRE && c !== idx(7, 0) && c !== idx(7, SIZE - 1) && c !== rug && c !== honey && !cats.includes(c) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c] && !padAt.includes(c) && !(crater && crater.cells.indexOf(c) >= 0) && !(item && idx(item.x, item.y) === c) && !objs.some((o) => o.cells.indexOf(c) >= 0);
+  const holeOk = (c) => tiles[c] === GRASS && !pizzaAt(c) && c !== CENTRE && c !== idx(7, 0) && c !== idx(7, SIZE - 1) && c !== rug && c !== honey && !cats.includes(c) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c] && !padAt.includes(c) && !(crater && crater.cells.indexOf(c) >= 0) && !(item && idx(item.x, item.y) === c) && !objs.some((o) => o.cells.indexOf(c) >= 0);
   // every hole that would fit round u, each as a list of cells
   function holesAround(u) {
     const S = RULES.exitSize;
@@ -9865,8 +9952,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   }
   function runEvents(turn) {
     // the golden drops that start as the fight does (engine 22)
-    if (turn === 1) unleash();
+    if (turn === 1) {
+      unleash();
+      callPizza();
+    }
     if (turn >= RULES.coinBy) flipCoins();
+    deliverPizza(turn);
     memeTurn(turn);
     claimTurn(turn);
     rugTurn(turn);
@@ -12601,6 +12692,133 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
+    // The Pizza Phone's van (engine 22): an old white delivery van, side on, facing right,
+    // 48 across, its wheels on row 41. Boxy, dented, rust on its sills, a red stripe, a
+    // pizza on its side and a pizza slice on its roof. 0-1 driving (the wheels turning),
+    // 2 stopped with its back doors swung open.
+    van: [3, 48, (i) => {
+      let g = FG.grid(48);
+      // the body: the box at the back, the cab in front with its sloping windscreen
+      FG.poly(g, [[3, 14], [33, 14], [36, 16], [42, 23], [45, 28], [45, 38], [3, 38]], '1');
+      g = FG.volume(g, '1', 'white');
+      // windows: the cab's side window and the windscreen
+      FG.poly(g, [[34.5, 17], [37, 17], [41.5, 23.5], [34.5, 23.5]], 'B');
+      for (let y = 18; y <= 22; y++) FG.put(g, 35, y, 'l');
+      FG.put(g, 36, 18, 'u');
+      // the red stripe along it, the pizza on the side: crust, cheese, pepperoni
+      for (let x = 3; x <= 44; x++) {
+        FG.put(g, x, 28, 'r');
+        FG.put(g, x, 29, 'R');
+      }
+      FG.disc(g, 18, 21.5, 4.6, 'o');
+      FG.disc(g, 18, 21.5, 3.6, 'y');
+      for (const [x, y] of [[16, 20], [19, 19], [20, 22], [17, 23]]) FG.put(g, x, y, 'r');
+      // the door line of the cab, a handle, the back doors' seam
+      for (let y = 17; y <= 36; y++) FG.put(g, 33, y, 'S');
+      FG.put(g, 31, 25, 'x');
+      FG.put(g, 32, 25, 'x');
+      // rust on the sills and a dent, dirt along the bottom
+      for (const [x, y, c] of [[6, 35, 'n'], [7, 36, 'a'], [8, 35, 'n'], [25, 36, 'n'], [26, 35, 'a'], [41, 36, 'n'], [22, 16, 's'], [23, 17, 's']]) FG.put(g, x, y, c);
+      for (let x = 4; x <= 44; x++) if (g[37][x] !== '.') g[37][x] = x % 3 ? 's' : 'x';
+      // lamps, bumpers, the exhaust
+      FG.put(g, 44, 30, 'Y');
+      FG.put(g, 44, 31, 'y');
+      FG.put(g, 3, 30, 'F');
+      FG.put(g, 3, 31, 'r');
+      for (let x = 42; x <= 46; x++) FG.put(g, x, 36, 'z');
+      for (let x = 1; x <= 4; x++) FG.put(g, x, 37, 'x');
+      // the sign on its roof: a slice of pizza on a pole
+      FG.line(g, 19, 9, 19, 14, 1, 'x');
+      FG.poly(g, [[13, 5], [25, 5], [19, 13]], '2');
+      g = FG.volume(g, '2', 'gold');
+      for (let x = 13; x <= 25; x++) FG.put(g, x, 5, 'N');
+      for (const [x, y] of [[17, 7], [21, 7], [19, 10]]) FG.put(g, x, y, 'r');
+      // the back doors swung open: a panel sticking out behind, the dark inside
+      if (i === 2) {
+        for (let y = 15; y <= 35; y++) {
+          FG.put(g, 3, y, 'K');
+          FG.put(g, 4, y, 'K');
+          FG.put(g, 0, y, 'e');
+          FG.put(g, 1, y, 'W');
+        }
+      }
+      g = FG.outline(g);
+      // the wheels, turning
+      for (const cx of [12, 37]) {
+        FG.disc(g, cx, 38, 4.6, 'k');
+        FG.disc(g, cx, 38, 3.4, 'x');
+        FG.disc(g, cx, 38, 1.6, 'S');
+        const a = i === 1 ? Math.PI / 4 : 0;
+        for (const r of [a, a + Math.PI / 2]) {
+          FG.put(g, Math.round(cx + Math.cos(r) * 2.6), Math.round(38 + Math.sin(r) * 2.6), 's');
+          FG.put(g, Math.round(cx - Math.cos(r) * 2.6), Math.round(38 - Math.sin(r) * 2.6), 's');
+        }
+      }
+      return g;
+    }],
+    // its pizza box, 16 across, seen from above and in front like the rest of the arena:
+    // 0 shut (a red logo on the lid), 1-6 open with that many slices left, 7 eaten up
+    pizzabox: [8, 16, (i) => {
+      let g = FG.grid(16);
+      // the box: its top, and its front a little darker
+      for (let y = 6; y <= 13; y++) for (let x = 1; x <= 14; x++) FG.put(g, x, y, '1');
+      g = FG.volume(g, '1', 'wood');
+      for (let x = 1; x <= 14; x++) {
+        FG.put(g, x, 13, 'n');
+        FG.put(g, x, 14, 'a');
+      }
+      if (i === 0) {
+        // shut: a red circle with a slice on it
+        FG.disc(g, 7.5, 9.5, 2.8, 'r');
+        FG.put(g, 7, 9, 'y');
+        FG.put(g, 8, 9, 'y');
+        FG.put(g, 7, 10, 'y');
+        return FG.outline(g);
+      }
+      // open: the lid stood up behind, the pizza in its box, slices gone as it is eaten
+      for (let y = 1; y <= 5; y++) for (let x = 1; x <= 14; x++) FG.put(g, x, y, y === 1 ? 'i' : 'N');
+      for (let y = 7; y <= 12; y++) for (let x = 2; x <= 13; x++) FG.put(g, x, y, 'i');
+      const left = i === 7 ? 0 : i;
+      for (let y = 6; y <= 13; y++)
+        for (let x = 2; x <= 13; x++) {
+          const dx = x + 0.5 - 7.5;
+          const dy = (y + 0.5 - 9.5) * 1.15;
+          const r = Math.hypot(dx, dy);
+          if (r > 4.6) continue;
+          // which of the six slices this pixel is in
+          const s = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (Math.PI * 2)) * 6) % 6;
+          if (s >= left) continue;
+          FG.put(g, x, y, r > 3.6 ? 'o' : 'y');
+        }
+      for (const [x, y] of [[6, 8], [9, 8], [5, 10], [10, 10], [7, 11], [8, 9]]) if (g[y][x] === 'y') FG.put(g, x, y, 'r');
+      if (i === 7) for (const [x, y] of [[5, 9], [9, 11], [10, 8]]) FG.put(g, x, y, 'o');
+      return FG.outline(g);
+    }],
+    // its icon: a golden phone with a dial, the handset on top, and a slice of pizza
+    gb_pizza: [1, 32, () => {
+      let g = FG.grid(32);
+      // the body: wider at the foot
+      FG.poly(g, [[6, 14], [22, 14], [25, 27], [3, 27]], '1');
+      g = FG.volume(g, '1', 'gold');
+      // the dial: a ring with its holes
+      FG.ring(g, 14, 20.5, 5, 1.6, 'o');
+      for (let a = 0; a < 8; a++) FG.put(g, Math.round(14 + Math.cos((a * Math.PI) / 4.5 - 2.6) * 3.2), Math.round(20.5 + Math.sin((a * Math.PI) / 4.5 - 2.6) * 3.2), 'A');
+      FG.disc(g, 14, 20.5, 1.4, 'Y');
+      // the handset across the top, its two ends
+      FG.line(g, 5, 9, 23, 9, 3, '2');
+      FG.disc(g, 5, 11, 3, '2');
+      FG.disc(g, 23, 11, 3, '2');
+      g = FG.volume(g, '2', 'gold');
+      g = FG.outline(g);
+      // the cord, curly
+      for (let k = 0; k < 6; k++) FG.put(g, 3 + (k % 2), 15 + k * 2, 'o');
+      // the slice of pizza, bottom right
+      FG.poly(g, [[22, 20], [31, 21], [28, 31]], '3');
+      g = FG.volume(g, '3', 'gold');
+      for (let x = 22; x <= 31; x++) if (g[20][x] !== '.' || g[21][x] !== '.') FG.put(g, x, 21, 'N');
+      for (const [x, y] of [[26, 24], [28, 27], [25, 27]]) FG.put(g, x, y, 'r');
+      return FG.outline(g);
+    }],
     // its icon: the coin at twice the size, heads up, with a glint
     gb_coin: [1, 32, () => {
       const f = FX_ART.flipcoin[2](0);
@@ -12993,6 +13211,13 @@ const SquadView = (() => {
         const call = nameOf('cmd', e.cmd).replace(/!$/, '');
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
+      // the Pizza Phone (engine 22)
+      case 'phone':
+        return u + ' calls for a pizza: "One large, extra cheese, and step on it!"';
+      case 'pizza':
+        return 'HONK HONK! The pizza van pulls up and drops a box on ' + lb(e.team) + "'s rows: " + e.slices + ' slices.';
+      case 'slice':
+        return u + ' grabs a slice of pizza' + (e.left ? ' (' + e.left + ' left).' : ': that was the last one.');
       // the Coin Flip (engine 22)
       case 'coin':
         if (e.fall) return e.heads ? u + ' flips the coin as it goes down: HEADS! Its double takes its place.' : u + ' flips the coin as it goes down: tails. Nothing left to lose.';
@@ -13087,6 +13312,8 @@ const SquadView = (() => {
         if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + ' and its power back.';
         if (src === 'devwallet') return 'The dev wallet pays ' + d + ' back: +' + e.amt + '.';
         if (src === 'gem') return 'The gem heals ' + d + ': +' + e.amt + '.';
+        // a slice of pizza is told as it is eaten ('slice', engine 22)
+        if (src === 'pizza') return '';
         // the pool's yield is told once for everybody ('yield')
         if (src === 'pool') return '';
         return d + ' heals ' + e.amt + '.';
@@ -14063,6 +14290,9 @@ const SquadView = (() => {
     // the Coin Flip (engine 22): the flick at coinFlick, the coin up and down, and on the
     // floor at coinHit; as its Blub goes down, the short one
     coin: 4500, coinHit: 2350, coinFlick: 450, coinFall: 3400, coinFallHit: 1450,
+    // the Pizza Phone (engine 22): the call; the van rolling in and stopping at vanStop,
+    // the box out of its back and down at vanHit, and off it goes; a slice to eat
+    phone: 1900, phoneHit: 1400, van: 3600, vanStop: 1250, vanHit: 1900, slice: 700, sliceHit: 380,
     unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
@@ -14119,7 +14349,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  const KEEP_TIME = new Set(['phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -14216,6 +14446,11 @@ const SquadView = (() => {
             return;
           }
           if (t === 'fog' && p.kind === 'mist') {
+            attachTo(p, i);
+            return;
+          }
+          // a slice of pizza heals as it is eaten (engine 22)
+          if (t === 'heal' && p.kind === 'slice' && e.src === 'pizza') {
             attachTo(p, i);
             return;
           }
@@ -14339,6 +14574,19 @@ const SquadView = (() => {
         if (t === 'ride') {
           parent = add({ kind: 'ride', dur: e.id === 'diamond' ? MS.dride : MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           pos[e.u] = e.at.slice();
+          return;
+        }
+        // the Pizza Phone (engine 22): the call, the van with the box down at contact, a slice
+        if (t === 'phone') {
+          parent = add({ kind: 'phone', dur: MS.phone, contact: MS.phoneHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
+          return;
+        }
+        if (t === 'pizza') {
+          parent = add({ kind: 'van', dur: MS.van, contact: MS.vanHit, list: [{ ei: i, off: MS.vanHit }], e });
+          return;
+        }
+        if (t === 'slice') {
+          parent = add({ kind: 'slice', dur: MS.slice, contact: MS.sliceHit, list: [{ ei: i, off: MS.sliceHit }], e, actors: [e.u] });
           return;
         }
         // the Coin Flip (engine 22): a scene of its own, the result on the floor at contact
@@ -14631,8 +14879,9 @@ const SquadView = (() => {
       works: {},
       // the Diggers' pits (engine 10): { x, y, team, open }
       pits: [],
-      // the golden drop (engine 22): the Shiba Inus, by team
+      // the golden drop (engine 22): the Shiba Inus and the pizzas, by team
       dogs: {},
+      pizzas: {},
     };
   }
   function fold(S, e) {
@@ -14817,10 +15066,24 @@ const SquadView = (() => {
             u.wpn = 'raygun';
           }
           if (e.id === 'coin') u.st.coin = true;
+          if (e.id === 'pizza') u.st.phone = true;
         }
         // the Shiba Inu, in its cage where the crate came down
         if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
         break;
+      // the Pizza Phone (engine 22): on the phone, the box down, a slice eaten
+      case 'phone':
+        delete U[e.u].st.phone;
+        break;
+      case 'pizza':
+        S.pizzas[e.team] = { team: e.team, x: e.at[0], y: e.at[1], slices: e.slices };
+        break;
+      case 'slice': {
+        const z = S.pizzas[e.team];
+        if (z) z.slices = e.left;
+        if (z && !e.left) delete S.pizzas[e.team];
+        break;
+      }
       // the Coin Flip (engine 22): heads, the double comes off the bench; tails, its Blub
       // is gone (as it goes down, nothing more happens to it)
       case 'coin': {
@@ -15547,6 +15810,22 @@ const SquadView = (() => {
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
     // lasting looks
+    // the Pizza Phone's golden handset (engine 22): at its side till it calls, then at its
+    // ear for the call
+    if ((u.st.phone && !(u.phoneT > t)) || (u.callT && t >= u.callT[0] && t < u.callT[1])) {
+      const s = u.face > 0 ? -1 : 1;
+      const onEar = u.callT && t >= u.callT[0] && t < u.callT[1];
+      const hx0 = onEar ? ox + 8 + s * 6 : ox + 8 + s * 8;
+      const hy0 = onEar ? oy + 6 : oy + 14;
+      x.fillStyle = INK;
+      x.fillRect(hx0 - 2, hy0 - 1, 5, 7);
+      x.fillStyle = '#FFD447';
+      x.fillRect(hx0 - 1, hy0, 3, 1);
+      x.fillRect(hx0 - 1, hy0 + 4, 3, 1);
+      x.fillRect(hx0, hy0 + 1, 1, 3);
+      x.fillStyle = '#FFF3B0';
+      x.fillRect(hx0 - 1, hy0, 1, 1);
+    }
     // the golden coin (engine 22) in its paw, glinting, till it flips it
     if (u.st.coin && !(u.coinT > t)) {
       const s = u.face > 0 ? -1 : 1;
@@ -17675,6 +17954,7 @@ const SquadView = (() => {
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
       for (const id in S.dogs) if (dogPos(S.dogs[id], t).row === r) drawDog(x, S.dogs[id], t, now);
+      for (const id in S.pizzas) if (scr(S.pizzas[id].x, S.pizzas[id].y)[1] === r) drawPizza(x, S.pizzas[id], now);
       for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
       for (const id in S.works) if (cannonRow(S.works[id]) === r) drawCannon(x, S.works[id], t);
       for (const p of S.pits) if (scr(p.x, p.y)[1] === r) drawPit(x, p, t);
@@ -18078,6 +18358,27 @@ const SquadView = (() => {
   function goldReveal(e, T, k, cx, cy, until, trip, open) {
     const u = e.u >= 0 ? P.S.u[e.u] : null;
     if (!u) return;
+    // the Pizza Phone: the golden phone rings in the crate, and up it comes into its
+    // Blub's paws, ringing all the way
+    if (e.id === 'pizza') {
+      const fly = 520 * k;
+      const t0 = T + open + 100 * k;
+      u.phoneT = P.calm || !trip ? 0 : t0 + fly;
+      if (!trip || P.calm) return;
+      const ic = iconSrc('gold', 'pizza');
+      addFx(t0, fly, (x, kk, el) => {
+        const ub = u._b;
+        const ex = ub ? ub.ox + 8 : trip.at[0];
+        const ey = ub ? ub.oy + 12 : trip.at[1];
+        const X = Math.round(lerp(cx, ex, kk));
+        const Y = Math.round(lerp(cy - 16, ey, kk) - Math.sin(kk * Math.PI) * 20) + (Math.floor(el / 40) & 1);
+        x.drawImage(ic, 0, 0, 32, 32, X - 8, Y - 8, 16, 16);
+      });
+      label(t0, 'RING RING', '#FFD447', cx, cy - 30, false);
+      atClock(t0, () => sfx('bell'));
+      label(t0 + fly + 60 * k, 'PIZZA PHONE', '#FFD447', trip.at[0], trip.at[1] - 34, true);
+      return;
+    }
     // the Coin Flip: the coin springs out of the crate, spinning, and into its Blub's paw
     if (e.id === 'coin') {
       const fly = 560 * k;
@@ -18247,6 +18548,169 @@ const SquadView = (() => {
       d.gooT = t1;
       hold(40);
     });
+  }
+  // ---- the Pizza Phone (engine 22)
+  function drawPizza(x, z, now) {
+    const [cx, cy] = tileC(z.x, z.y);
+    blob(x, cx, cy + 6, 7, 2, '#1B1229', 0.28);
+    x.drawImage(fxFrame('pizzabox', clamp(z.slices, 1, 6)), cx - 8, cy - 9);
+    // steam off it while it is hot
+    if (!P.calm)
+      for (let q = 0; q < 2; q++) {
+        const ph = ((now / 700 + q * 0.5) % 1);
+        x.globalAlpha = 0.6 * (1 - ph);
+        x.fillStyle = '#FFFFFF';
+        x.fillRect(Math.round(cx - 3 + q * 5 + Math.sin(ph * 6 + q) * 1.5), Math.round(cy - 10 - ph * 10), 1, 2);
+        x.globalAlpha = 1;
+      }
+  }
+  // a slice of pizza (7 across), drawn by hand: for the speech bubble and the eating
+  function drawSlice(x, X, Y) {
+    x.fillStyle = INK;
+    x.fillRect(X - 1, Y - 1, 9, 3);
+    for (let r = 0; r < 5; r++) x.fillRect(X + r - 1 + 1, Y + 1 + r, 9 - r * 2 - 1 + 1, 1);
+    x.fillStyle = '#D9A05B';
+    x.fillRect(X, Y, 7, 1);
+    x.fillStyle = '#FFD447';
+    for (let r = 0; r < 4; r++) x.fillRect(X + r + 1 - 1 + 1, Y + 1 + r, 7 - r * 2 - 1, 1);
+    x.fillStyle = '#E2566E';
+    x.fillRect(X + 2, Y + 1, 1, 1);
+    x.fillRect(X + 4, Y + 2, 1, 1);
+    x.fillRect(X + 3, Y + 3, 1, 1);
+  }
+  // The call: the golden handset to its ear, RING RING, the pizzeria picks up, a
+  // speech bubble with a slice in it ("x1"), and CLICK. The van, on its turn: in from
+  // the side along the squad's back edge, the camera riding along, brakes, HONK HONK,
+  // the back doors swing open and the box flies out onto its tile, and off it goes in a
+  // cloud of smoke. A slice: it flies off the box to the Blub, NOM.
+  function pizzaBeat(b, T, k) {
+    const e = b.e;
+    if (b.kind === 'phone') {
+      const u = P.S.u[e.u];
+      if (!u) return true;
+      u.callT = [T, T + b.dur];
+      const [ux, uy] = centreOf(u);
+      for (let j = 0; j < 2; j++) {
+        label(T + j * 330 * k, 'RING', '#FFD447', ux + (j ? 9 : -9), uy - 24 - j * 4, false);
+        atClock(T + j * 330 * k, () => sfx('bell'));
+      }
+      // the bubble: white, a tail down to its Blub, a slice and x1 in it
+      addFx(T + 700 * k, b.dur - 700 * k, (x, kk) => {
+        const ub = u._b;
+        const X = Math.round(ub ? ub.ox + 8 : ux) - 13;
+        const Y = Math.round(ub ? ub.oy : uy - 13) - 18;
+        const pop = kk < 0.08 ? Math.round((1 - kk / 0.08) * 3) : 0;
+        x.fillStyle = INK;
+        x.fillRect(X - 1 + pop, Y - 1 + pop, 28 - pop * 2, 14 - pop * 2);
+        x.fillRect(X + 11, Y + 12, 4, 3);
+        x.fillStyle = '#FFFFFF';
+        x.fillRect(X + pop, Y + pop, 26 - pop * 2, 12 - pop * 2);
+        x.fillRect(X + 12, Y + 12, 2, 2);
+        if (pop) return;
+        drawSlice(x, X + 3, Y + 3);
+        x.drawImage(pxText('X1', '#1B1229', 1), X + 12, Y + 2);
+      });
+      atClock(T + 700 * k, () => sfx('read'));
+      label(T + b.contact, 'CLICK', '#FFF3B0', ux, uy - 18, false);
+      return true;
+    }
+    if (b.kind === 'van') {
+      const [dx, dy] = tileC(e.at[0], e.at[1]);
+      const sy = scr(e.at[0], e.at[1])[1];
+      // its lane: the back edge of the squad's side as the screen shows it
+      const lane = sy >= (N - 1) / 2 ? N - 1 : 0;
+      const gy = TOP + lane * TILE + 14 + (lane ? 2 : 6);
+      // in from the side away from the box, towards it; it stops with its back doors (21
+      // behind its middle) right by the box
+      const face = dx < CW / 2 ? -1 : 1;
+      const stopX = dx + face * 19;
+      const startX = face > 0 ? -60 : CW + 60;
+      const endX = face > 0 ? CW + 60 : -60;
+      const tStop = T + MS.vanStop * k;
+      const tGo = T + (MS.vanHit + 350) * k;
+      const tEnd = T + b.dur;
+      const vx = (t) => {
+        if (t < tStop) {
+          const f = (t - T) / (tStop - T);
+          return lerp(startX, stopX, 1 - (1 - f) * (1 - f));
+        }
+        if (t < tGo) return stopX;
+        const f = (t - tGo) / Math.max(1, tEnd - tGo);
+        return lerp(stopX, endX, f * f);
+      };
+      const fr = (t) => (t >= tStop + 150 * k && t < tGo ? 2 : Math.floor(t / 70) & 1);
+      const img = (i) => (face > 0 ? fxFrame('van', i) : vanFlip(i));
+      closeUp(T, b.dur, stopX, gy - 18, { follow: (t) => [clamp(vx(t), 30, CW - 30), gy - 22], slow: [T + b.contact - 200 * k, T + b.contact + 120 * k], f: 0.45 });
+      addFx(T, b.dur, (x, kk, el) => {
+        const t = T + el;
+        const X = Math.round(vx(t));
+        const brake = t >= tStop - 140 * k && t < tStop + 120 * k ? 1 : 0;
+        blob(x, X, gy + 1, 22, 2, '#1B1229', 0.3);
+        x.save();
+        x.translate(X, gy - 41 + brake);
+        x.drawImage(img(fr(t)), -24, 0);
+        x.restore();
+        // smoke out of its exhaust, black when it pulls away
+        if (!P.calm && Math.floor(el / 90) % 2 === 0) {
+          x.fillStyle = t >= tGo ? '#3A3A4A' : '#C9C9D6';
+          x.fillRect(X - face * 25, gy - 4 - (Math.floor(el / 90) % 3), 2, 2);
+        }
+      });
+      atClock(tStop, () => sfx('thud'));
+      for (let j = 0; j < 2; j++) {
+        label(tStop + (80 + j * 260) * k, 'HONK', '#FFF3B0', stopX + face * 18, gy - 46 - j * 5, true);
+        atClock(tStop + (80 + j * 260) * k, () => sfx('click'));
+      }
+      // the box: out of its back doors in an arc onto its tile
+      const bx0 = stopX - face * 21;
+      const by0 = gy - 18;
+      const hit = T + b.contact;
+      const tOut = hit - 380 * k;
+      addFx(tOut, hit - tOut, (x, kk) => {
+        const X = Math.round(lerp(bx0, dx, kk));
+        const Y = Math.round(lerp(by0, dy - 1, kk) - Math.sin(kk * Math.PI) * 18);
+        x.drawImage(fxFrame('pizzabox', 0), X - 8, Y - 9);
+      });
+      atClock(hit, () => {
+        sfx('block');
+        shake(hit);
+      });
+      for (const s of [-1, 1]) addFx(hit, 420 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(dx - 8 + s * (4 + (el * 0.02) / k)), dy - 6));
+      label(hit + 80 * k, 'PIZZA!', '#FFD447', dx, dy - 24, true, 2);
+      addParts(10, dx, dy - 4, ['#FFD447', '#E2566E', '#FFFFFF'], 0.06, 0.0003, 600 * k, hit + 60 * k, true, [-Math.PI, 0]);
+      return true;
+    }
+    if (b.kind === 'slice') {
+      const u = P.S.u[e.u];
+      if (!u) return true;
+      const [bx, by] = tileC(e.at[0], e.at[1]);
+      const hit = T + b.contact;
+      faceTo(u, bx);
+      addFx(T + 80 * k, hit - T - 80 * k, (x, kk) => {
+        const ub = u._b;
+        const ex = ub ? ub.ox + 5 : bx;
+        const ey = ub ? ub.oy + 10 : by;
+        drawSlice(x, Math.round(lerp(bx - 3, ex, kk)), Math.round(lerp(by - 8, ey, kk) - Math.sin(kk * Math.PI) * 10));
+      });
+      label(hit, 'NOM', '#FFD447', bx, by - 20, false);
+      atClock(hit, () => sfx('heal'));
+      addParts(5, bx, by - 10, ['#D9A05B', '#FFD447'], 0.03, 0.0003, 400 * k, hit, false);
+      return true;
+    }
+    return false;
+  }
+  // the van facing left (the art faces right)
+  const vanCache = new Map();
+  function vanFlip(i) {
+    let c = vanCache.get(i);
+    if (c) return c;
+    c = canvas(48, 48);
+    const x = c.getContext('2d');
+    x.translate(48, 0);
+    x.scale(-1, 1);
+    x.drawImage(fxFrame('van', i), 0, 0);
+    vanCache.set(i, c);
+    return c;
   }
   // The Coin Flip (engine 22). The camera comes in close; its Blub flicks the coin up
   // with a PING and it goes up out of sight, turning over and over, the camera
@@ -18632,6 +19096,7 @@ const SquadView = (() => {
     if (b.kind === 'rocket') return rocketScene(b, T, k);
     if (dogBeat(b, T, k)) return;
     if (coinBeat(b, T, k)) return;
+    if (pizzaBeat(b, T, k)) return;
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
     if (worksBeat(b, T, k)) return;
@@ -21874,7 +22339,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -23230,6 +23695,7 @@ const SquadView = (() => {
       },
       // the golden drop (engine 22)
       gold: {
+        pizza: `Your Blub calls for pizza: in turn ${R.pizzaTurn} a van drops a box on your rows, ${R.pizzaSlices} slices of ${R.pizzaHp} HP for the whole squad.`,
         coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Tails: that Blub is out.`,
         raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
         shiba: `Let out as the fight starts: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
