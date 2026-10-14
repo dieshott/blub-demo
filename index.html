@@ -1211,6 +1211,7 @@ body.no-scroll{overflow:hidden}
 .sqx{display:flex;flex-direction:column;gap:22px}
 .sqx-h{margin:0 0 10px;font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5;color:#FFD447;text-shadow:2px 2px 0 #000}
 .sqx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.sqx-in{margin:-4px 0 10px;max-width:760px;font-family:var(--f-data);font-size:18px;line-height:1.15;color:#E9E2F5}
 .sqx-card{display:flex;gap:12px;align-items:flex-start;padding:8px;background:#1B1129;border:3px solid #000;box-shadow:inset 0 -4px 0 var(--xc,#FFD447)}
 .sqx-card.buff{--xc:#4BE08F}.sqx-card.nerf{--xc:#E2566E}.sqx-card.gold{--xc:#FFD447}
 .sqx-cv{flex:none;width:144px;height:144px;image-rendering:pixelated;border:2px solid #000;background:#000}
@@ -5799,7 +5800,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 22;
+const SQUAD_ENGINE = 23;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5938,14 +5939,14 @@ const RULES = lock({
   airdropHp: 8, airdropFrom: 3, airdropTo: 7,
   sniperDmg: 7,
   devwalletShare: 40, devwalletTurn: 8,
-  wagmiHp: 1,
-  pumpTurns: 3, pumpDmg: 1,
+  wagmiHp: 2,
+  pumpTurns: 4, pumpDmg: 1,
   // the nerfs
-  paperAt: 50, paperTurns: 1,
+  paperAt: 50, paperTurns: 3,
   gasTurns: 1, gasHp: 2, // Gas Fees: powers charge this much slower, and every one used costs gasHp
-  ngmiMiss: 1, // NGMI: the squad's first attacks that always miss
-  bagMove: 1,
-  rektHp: 5,
+  ngmiMiss: 1, // NGMI: the squad's next attacks that always miss
+  bagMove: 3,
+  rektHp: 8,
   // ---- the golden drop (engine 22, the owner: one golden crate a squad a round, in
   // place of the green buff and the red nerf; GOLDS). Whoever opens it gets what is in it.
   // Big Gun Blueprint: a Blub with no trench job (no Builder, Miner, Digger or Boom Pack)
@@ -6000,6 +6001,33 @@ const RULES = lock({
   // or there is nobody left to shoot. Then the enemy best placed to do it shoots it
   // down, one shot: no bubble, no totem.
   pillNear: 6, pillBy: 4, pillSee: 2, pillDash: 8, pillRange: 6, pillShot: 2, pillMin: 80, pillMax: 180,
+  // ---- the Lucky Wheel (engine 23, the owner: the green and red airdrops back, as a
+  // wheel out of the sky). On turn wheelEvery and every wheelEvery turns after it, a
+  // wheel comes down over each squad and spins. Each squad's own wheel only ever works
+  // for it: a green wedge (wheelGreen of its 8) deals a card for its own squad, a red
+  // one a card against the other squad. A squad never gets the same card off its wheel
+  // twice in a round, and only a card that can do something right now. Its draws come
+  // from a stream of its own (WHEEL_SALT + team), four a spin whatever comes up.
+  // The cards, as the wheel deals them (BUFFS and NERFS; Jeet and Alpha Leak, which do
+  // nothing in the middle of a fight, stay off it):
+  //   green: Airdrop (its most hurt Blub: airdropHp and its power back), Sniper Bot
+  //   (sniperDmg on the enemy that has done the most damage), Dev Wallet (each Blub
+  //   gets devwalletShare% of what it took this round back), WAGMI (+wagmiHp max HP each),
+  //   Pump (+pumpDmg on every hit for pumpTurns turns);
+  //   red: Paper Hands (the enemy that has done the most damage runs for paperTurns
+  //   turns), Gas Fees (gasHp from every one of them), Bagholder (their hardest-hitting
+  //   Blub that has to walk up to hit, reach 2 or less, else their healthiest, moves
+  //   bagMove less for the rest of the round), Rekt (rektHp on their healthiest
+  //   Blub), NGMI (their next ngmiMiss attacks miss). Gas and Rekt never take a Blub
+  //   below 1 HP, and the Blub that opened their golden crate is never a card's target
+  //   while there is another.
+  wheelEvery: 5, wheelGreen: 4,
+  // the Gambler (a power, one a squad): gambleCrit% more critical hits; its arrows and
+  // bullets that go blind in smoke still hit gambleBlind% of the time (not blindHit%);
+  // and while it stands it spins its squad's wheel: a gold JACKPOT wedge (a green card
+  // and a red one) instead of a red one, and every card it lands is the one that does
+  // its squad the most good right now.
+  gambleCrit: 12, gambleBlind: 65,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6070,7 +6098,7 @@ const RULES = lock({
   holdRow: 6, midBand: 2, evadeGap: 3,
   // How many Blubs of a squad may have a power (engine 14, the owner's call: never a
   // squad of five Diggers): the trench jobs and the Freeze Ray once, the rest twice
-  powMax: { freeze: 1, storm: 2, rage: 2, nap: 2, bubble: 2, builder: 1, digger: 1, miner: 1 },
+  powMax: { freeze: 1, storm: 2, rage: 2, nap: 2, bubble: 2, builder: 1, digger: 1, miner: 1, gambler: 1 },
   // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
   // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
   // its Mine Shaft, where it digs whenever nobody is in its reach and which it keeps
@@ -6146,6 +6174,7 @@ const POWERS = lock(capped([
   ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
+  ['gambler', 'Gambler', `Born lucky: +${RULES.gambleCrit}% critical hits, and its arrows and bullets that go blind in smoke still hit ${RULES.gambleBlind}% of the time (not ${RULES.blindHit}%). While it stands it spins your Lucky Wheel: one wedge is a gold JACKPOT (a green card for you and a red one for them), and it always lands the card that does your squad the most good right now.`],
   ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
   ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs a pit beside it, covered with leaves: its whole turn, at most ${RULES.pitMax === 1 ? 'one pit' : RULES.pitMax + ' pits'} a round${RULES.pitMax > 1 ? ', never two in one turn' : ''}. When the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
@@ -6289,21 +6318,24 @@ const EVENT_STATS = lock({
 // Up to engine 21 each squad got one perk a round, green (a buff) or red (a nerf).
 // Engine 22 (the owner) drops a golden crate instead (GOLDS); these stay in the
 // catalog for the text of older replays, and no longer fall.
+// Engine 23: the green and the red cards are back, on the Lucky Wheel (RULES.wheel*);
+// the texts are what each does when the wheel deals it. Alpha Leak and Jeet stay in the
+// catalog for older replays, off the wheel.
 const BUFFS = lock([
-  ['airdrop', 'Airdrop', `Somewhere between turn ${RULES.airdropFrom} and ${RULES.airdropTo} the weakest Blub gets ${RULES.airdropHp} HP and its power back.`],
-  ['sniper', 'Sniper Bot', `One shot of ${RULES.sniperDmg} damage on the first enemy that uses a power.`],
-  ['devwallet', 'Dev Wallet', `${RULES.devwalletShare}% of the damage the squad took comes back as healing in turn ${RULES.devwalletTurn}.`],
-  ['wagmi', 'WAGMI', `The whole squad starts with +${RULES.wagmiHp} HP.`],
-  ['pump', 'Pump', `+${RULES.pumpDmg} damage for the first ${RULES.pumpTurns} turns.`],
+  ['airdrop', 'Airdrop', `Your most hurt Blub gets ${RULES.airdropHp} HP and its power back.`],
+  ['sniper', 'Sniper Bot', `One shot of ${RULES.sniperDmg} damage on the enemy that has done the most damage.`],
+  ['devwallet', 'Dev Wallet', `Every Blub of yours gets ${RULES.devwalletShare}% of the damage it took this round back.`],
+  ['wagmi', 'WAGMI', `Every Blub of yours: +${RULES.wagmiHp} max HP, and healed as much.`],
+  ['pump', 'Pump', `+${RULES.pumpDmg} damage on every hit for ${RULES.pumpTurns} turns.`],
   ['alpha', 'Alpha Leak', `The squad knows what the other side hid: its Blubs walk around mines, foxholes and traps, and play around the enemy's Sniper Bot.`],
 ]);
 const NERFS = lock([
-  ['paper', 'Paper Hands', `The first own Blub under ${RULES.paperAt}% HP runs back for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
-  ['gas', 'Gas Fees', `Every power costs gas: ${RULES.gasHp} HP from the Blub that uses it, and they charge ${RULES.gasTurns} turn${RULES.gasTurns === 1 ? '' : 's'} slower.`],
-  ['bagholder', 'Bagholder', `The Blub that opens the crate loses ${RULES.bagMove} move.`],
+  ['paper', 'Paper Hands', `Their Blub that has done the most damage loses its nerve and runs for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
+  ['gas', 'Gas Fees', `A gas bill: ${RULES.gasHp} HP from every one of their Blubs (never below 1).`],
+  ['bagholder', 'Bagholder', `Their hardest hitter that has to walk up to hit carries the bags: ${RULES.bagMove} move less for the rest of the round.`],
   ['jeet', 'Jeet', `The captain jeets: it loses its +${RULES.captainHp} HP and calls no command this round.`],
-  ['rekt', 'Rekt', `The Blub that opens the crate starts ${RULES.rektHp} HP down.`],
-  ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss === 1 ? 'attack always misses' : RULES.ngmiMiss + ' attacks always miss'}.`],
+  ['rekt', 'Rekt', `A red crate on their healthiest Blub: ${RULES.rektHp} damage (never below 1 HP).`],
+  ['ngmi', 'NGMI', `Their next ${RULES.ngmiMiss === 1 ? 'attack always misses' : RULES.ngmiMiss + ' attacks always miss'}.`],
 ]);
 // The golden drop (engine 22): one golden crate a squad a round, drawn on its own (any
 // of these, each as likely; both squads may get the same one). It comes down on the
@@ -6316,6 +6348,14 @@ const GOLDS = lock([
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. As the fight starts its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
 ]);
+// The Lucky Wheel (engine 23): its wedges, clockwise from the pointer: g a green card
+// for the spinning squad, r a red one against the other, j the Gambler's JACKPOT (both).
+// Each squad's wheel draws from its own stream, WHEEL_SALT + its team (6 and 7: free).
+const WHEEL = lock(['g', 'r', 'g', 'r', 'g', 'r', 'g', 'r']);
+const GAMBLE_WHEEL = lock(['j', 'g', 'r', 'g', 'r', 'g', 'r', 'g']);
+const WHEEL_SALT = 6;
+const WHEEL_GREENS = lock(['airdrop', 'sniper', 'devwallet', 'wagmi', 'pump']);
+const WHEEL_REDS = lock(['paper', 'gas', 'bagholder', 'rekt', 'ngmi']);
 const CHEST_SALT = 4; // the chest's random stream
 // What the chest's own effects need to roll (which Blub gets Rekt, and so on) comes
 // from a stream of its own, so the fight rolls exactly the same with the chest off:
@@ -6448,7 +6488,7 @@ function cleanSquad(raw) {
 // A power one too many for a squad (RULES.powMax) swapped, in place, for the first in
 // POW_SPARE with room; the Blubs listed first keep theirs. For squads saved or built
 // before the caps (engine 14), and for squads filled in from the role presets.
-const POW_SPARE = lock(['rage', 'nap', 'bubble', 'storm', 'freeze', 'builder', 'miner', 'digger']);
+const POW_SPARE = lock(['rage', 'nap', 'bubble', 'storm', 'freeze', 'builder', 'miner', 'digger', 'gambler']);
 function capPowers(units) {
   const n = {};
   const room = (p) => (n[p] || 0) < (RULES.powMax[p] || TEAM);
@@ -6509,7 +6549,7 @@ function unitStats(u, captain, engineer) {
     dmg: heavy ? RULES.boomDmg : W.dmg,
     hits: W.hits || 1,
     dodge: S.dodge + (W.dodge || 0) + (u.gear === 'boots' ? 5 : 0) + t.spd * 4,
-    crit: 8 + (W.crit || 0) + t.lck * 6,
+    crit: 8 + (W.crit || 0) + t.lck * 6 + (u.pow === 'gambler' ? RULES.gambleCrit : 0),
     block: u.gear === 'shield' ? 30 : 0,
     guard: t.grd * 6,
     power: t.pow * 8,
@@ -7153,7 +7193,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const tg = d.tangled >= now ? 1 : 0;
     if (w.whiff && r() * 100 < w.whiff) res = 'whiff';
     else if (blind) {
-      if (r() * 100 >= RULES.blindHit) res = 'miss';
+      // (the Gambler, engine 23: its blind shots still find their mark more often)
+      if (r() * 100 >= (u.pow === 'gambler' ? RULES.gambleBlind : RULES.blindHit)) res = 'miss';
     } else if (!w.sure && !tg) {
       // cover from a bush (1), sandbags (2), a foxhole (3) or a watchtower (4).
       // A bush hides a Blub from everything that can miss; the rest only stop arrows.
@@ -7195,6 +7236,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       meme[u.team].opened++;
       res = 'miss';
     }
+    // NGMI off the Lucky Wheel (engine 23): the same, from the turn it was dealt
+    if (wm[u.team].ngmi > 0) {
+      wm[u.team].ngmi--;
+      res = 'miss';
+    }
     const guard = gd >= 0 ? { gd } : null;
     const bl = blind ? { blind } : null;
     if (res !== 'hit') {
@@ -7203,7 +7249,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     // the attack's bonuses ride on its first hit that lands
     // Pump: while the candle is still green, the whole squad swings harder
-    const pump = meme[u.team].buff === 'pump' && now && now <= RULES.pumpTurns ? RULES.pumpDmg : 0;
+    // (and off the Lucky Wheel, engine 23: for pumpTurns turns from the turn it was dealt)
+    const pump = (meme[u.team].buff === 'pump' && now && now <= RULES.pumpTurns) || wm[u.team].pumpTo >= now ? RULES.pumpDmg : 0;
     // Focus fire (the captain's command): hits on the marked enemy do more
     const focus = ordered(u.team, 'focus') && orders[u.team].mark === d.id ? RULES.focusDmg : 0;
     let dmg = Math.max(1, w.dmg + u.pending + pump + focus + propBonus(u));
@@ -9670,6 +9717,188 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     push({ t: 'pillend', u: u.id, dealt, hit: hit.size, pct });
     return true;
   }
+  // ---- the Lucky Wheel (engine 23, RULES.wheel*). Both wheels are read off the board as
+  // it stands when they come down, so neither squad's card changes what the other's wheel
+  // deals; then the cards are played, the green ones first, the squad that goes first
+  // turning over every spin.
+  const wr = [0, 1].map((t) => rng(subSeed(seed, round, WHEEL_SALT + t)));
+  const wm = [0, 1].map(() => ({ used: new Set(), pumpTo: 0, ngmi: 0 }));
+  const hurtMost = (t) => living[t].slice().sort(byHurt)[0] || null;
+  // the card's target on the other side: never the Blub that opened their golden crate
+  // while there is another (a tie: the lower unit)
+  const notGold = (o) => {
+    const gold = crates[o] && crates[o].by;
+    const list = living[o].filter((v) => v !== gold);
+    return list.length ? list : living[o].slice();
+  };
+  const healthiest = (o) => notGold(o).sort((a, b) => b.hp - a.hp || a.id - b.id)[0] || null;
+  // Bagholder's: the hardest hitter that has to walk up to hit (reach 2 or less), else
+  // their healthiest
+  const bagFor = (o) => notGold(o).filter((v) => W(v).range <= 2 && !W(v).boom && !v.ride).sort((a, b) => punch(b) - punch(a) || a.id - b.id)[0] || healthiest(o);
+  // the enemy that has done the most damage (Sniper Bot; Paper Hands, if it can run)
+  const topDealer = (o, run) => notGold(o).filter((v) => !run || (!anchored(v) && !v.ride)).sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || a.id - b.id)[0] || null;
+  const owed = (v) => Math.min(v.max - v.hp, Math.floor((stats[v.id].taken * RULES.devwalletShare) / 100));
+  const powerBack = (v) => (v.pow === 'bubble' ? !v.bubble : ['freeze', 'storm', 'nap', 'rage'].includes(v.pow) && v.used);
+  // can the card do something right now, dealt by squad t
+  function cardLive(t, id) {
+    const o = 1 - t;
+    if (id === 'airdrop') return living[t].some((v) => v.hp < v.max);
+    if (id === 'devwallet') return living[t].some((v) => owed(v) > 0);
+    if (id === 'pump') return wm[t].pumpTo < now;
+    if (id === 'paper') return !!topDealer(o, true);
+    if (id === 'gas' || id === 'rekt') return living[o].some((v) => v.hp > 1);
+    if (id === 'ngmi') return wm[o].ngmi === 0;
+    return living[o].length > 0 && living[t].length > 0;
+  }
+  // what the card would do for squad t, in HP either way: the Gambler takes the most
+  function cardWorth(t, id) {
+    const o = 1 - t;
+    const mates = living[t];
+    const them = living[o];
+    if (id === 'airdrop') {
+      const v = hurtMost(t);
+      return v ? Math.min(RULES.airdropHp, v.max - v.hp) + (powerBack(v) ? 4 : 0) : 0;
+    }
+    if (id === 'sniper') {
+      const v = topDealer(o, false);
+      return !v ? 0 : v.bubble ? 2 : Math.min(RULES.sniperDmg, v.hp) + (RULES.sniperDmg >= v.hp && !v.totem ? 12 : 0);
+    }
+    if (id === 'devwallet') return mates.reduce((s, v) => s + owed(v), 0);
+    if (id === 'wagmi') return mates.length * RULES.wagmiHp;
+    if (id === 'pump') return mates.length * RULES.pumpDmg * RULES.pumpTurns * 0.5;
+    if (id === 'paper') {
+      const v = topDealer(o, true);
+      return v ? punch(v) * RULES.paperTurns * 0.6 + 2 : 0;
+    }
+    if (id === 'gas') return them.reduce((s, v) => s + (v.bubble ? 1 : Math.max(0, Math.min(RULES.gasHp, v.hp - 1))), 0);
+    if (id === 'bagholder') return 3;
+    if (id === 'rekt') {
+      const v = healthiest(o);
+      return !v ? 0 : v.bubble ? 2 : Math.max(0, Math.min(RULES.rektHp, v.hp - 1));
+    }
+    if (id === 'ngmi') return (RULES.ngmiMiss * them.reduce((s, v) => s + punch(v), 0) * 0.6) / Math.max(1, them.length);
+    return 0;
+  }
+  // a card played: 'wcard' (what it is, for whom, on whom), then what it does
+  function playCard(t, kind, id) {
+    const o = 1 - t;
+    if (over >= 0) return;
+    const to = kind === 'buff' ? t : o;
+    const card = (d, x) => push({ t: 'wcard', team: t, kind, id, to, d: d ? d.id : -1, ...(x || {}) });
+    if (id === 'airdrop') {
+      const v = hurtMost(t);
+      if (!v) return;
+      card(v);
+      heal(v, RULES.airdropHp, 'airdrop');
+      if (powerBack(v)) {
+        if (v.pow === 'bubble') {
+          v.bubble = true;
+          push({ t: 'status', u: v.id, s: 'bubble', on: true });
+        } else v.used = false;
+      }
+    } else if (id === 'sniper') {
+      const v = topDealer(o, false);
+      if (!v) return;
+      card(v);
+      hurt(v, RULES.sniperDmg, 'sniped', null);
+    } else if (id === 'devwallet') {
+      card(null);
+      for (const v of living[t].slice()) {
+        const amt = owed(v);
+        if (amt > 0) heal(v, amt, 'devwallet');
+      }
+    } else if (id === 'wagmi') {
+      for (const v of living[t]) {
+        v.max += RULES.wagmiHp;
+        v.hp += RULES.wagmiHp;
+      }
+      card(null, { ups: living[t].map((v) => [v.id, v.hp, v.max]) });
+    } else if (id === 'pump') {
+      wm[t].pumpTo = now + RULES.pumpTurns - 1;
+      card(null, { until: wm[t].pumpTo });
+    } else if (id === 'paper') {
+      const v = topDealer(o, true);
+      if (!v) return;
+      v.paper = now + RULES.paperTurns - 1;
+      card(v, { until: v.paper });
+      push({ t: 'status', u: v.id, s: 'paper', on: true });
+    } else if (id === 'gas') {
+      card(null);
+      for (const v of living[o].slice()) if (v.alive && v.hp > 1 && over < 0) hurt(v, Math.min(RULES.gasHp, v.hp - 1), 'gas', null);
+    } else if (id === 'bagholder') {
+      const v = bagFor(o);
+      if (!v) return;
+      v.move = Math.max(1, v.move - RULES.bagMove);
+      card(v, { mv: v.move });
+      push({ t: 'status', u: v.id, s: 'bag', on: true });
+    } else if (id === 'rekt') {
+      const v = healthiest(o);
+      if (!v || v.hp <= 1) return;
+      card(v);
+      hurt(v, Math.min(RULES.rektHp, v.hp - 1), 'rekted', null);
+    } else if (id === 'ngmi') {
+      wm[o].ngmi = RULES.ngmiMiss;
+      card(null, { n: RULES.ngmiMiss });
+    }
+    checkOver();
+  }
+  function wheelTurn(turn) {
+    if (!spin || over >= 0) return;
+    const n = Math.round(turn / RULES.wheelEvery);
+    const out = [0, 1].map((t) => {
+      // four draws a spin, whatever comes up: the wedge, the turns it spins (for the
+      // page), a green card and a red one
+      const w = wr[t];
+      const roll = [w(), w(), w(), w()];
+      const o = 1 - t;
+      if (!living[t].length || !living[o].length) return null;
+      const gam = living[t].find((v) => v.pow === 'gambler') || null;
+      const spinner = gam || living[t].find((v) => v.id === t * TEAM) || living[t].slice().sort((a, b) => a.id - b.id)[0];
+      const wheel = gam ? GAMBLE_WHEEL : WHEEL;
+      let wedge = Math.floor(roll[0] * wheel.length);
+      const pool = (list) => list.filter((id) => !wm[t].used.has(id) && cardLive(t, id));
+      // the card: the Gambler takes the one worth the most, otherwise the wheel's luck
+      const pick = (list, r0) => {
+        const p = pool(list);
+        if (!p.length) return null;
+        if (!gam) return p[Math.floor(r0 * p.length)];
+        let best = p[0];
+        for (const id of p) if (cardWorth(t, id) > cardWorth(t, best)) best = id;
+        return best;
+      };
+      let col = wheel[wedge];
+      // a wedge with nothing left on it: the next wedge round that has
+      for (let k = 0; k < wheel.length; k++) {
+        const c = wheel[(wedge + k) % wheel.length];
+        const ok = (c !== 'r' && pool(WHEEL_GREENS).length) || (c !== 'g' && pool(WHEEL_REDS).length);
+        if (ok) {
+          wedge = (wedge + k) % wheel.length;
+          col = c;
+          break;
+        }
+      }
+      const cards = [];
+      if (col === 'g' || col === 'j') {
+        const id = pick(WHEEL_GREENS, roll[2]);
+        if (id) cards.push({ kind: 'buff', id });
+      }
+      if (col === 'r' || col === 'j') {
+        const id = pick(WHEEL_REDS, roll[3]);
+        if (id) cards.push({ kind: 'nerf', id });
+      }
+      for (const c of cards) wm[t].used.add(c.id);
+      return { t, spinner, gam: !!gam, wedge, spins: 3 + Math.floor(roll[1] * 3), col, cards };
+    });
+    for (const s of out) if (s) push({ t: 'wheel', n, team: s.t, u: s.spinner.id, gamble: s.gam ? 1 : 0, wedge: s.wedge, spins: s.spins, col: s.col, cards: s.cards.map((c) => c.kind + ':' + c.id) });
+    // the cards: green ones first, then red; on odd spins team A first, on even ones team B
+    const order = n % 2 ? [0, 1] : [1, 0];
+    for (const kind of ['buff', 'nerf'])
+      for (const t of order) {
+        const s = out[t];
+        if (!s) continue;
+        for (const c of s.cards) if (c.kind === kind) playCard(t, kind, c.id);
+      }
+  }
   // ---- the Pizza Phone (engine 22): the call as the fight starts, the van on pizzaTurn
   // (a turn later when there is no room on its rows), and the slices
   function callPizza() {
@@ -10075,6 +10304,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (turn >= RULES.coinBy) flipCoins();
     deliverPizza(turn);
+    // the Lucky Wheel (engine 23), every wheelEvery turns
+    if (turn % RULES.wheelEvery === 0) wheelTurn(turn);
     memeTurn(turn);
     claimTurn(turn);
     rugTurn(turn);
@@ -10449,7 +10680,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, WHEEL, GAMBLE_WHEEL, WHEEL_SALT, WHEEL_GREENS, WHEEL_REDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -10697,6 +10928,9 @@ const SquadView = (() => {
         'kYYk...kkkk.', 'kYYk........', 'kYYk......k.', '.kYYk....kk.', '.kYYYkkkkYk.', '..kYYYYYYk..', '...kkkkkk...'],
       bubble: ['...kkkkkk...', '..kbbbbbbk..', '.kbwwlllllk.', 'kbwwllllllbk', 'kbwlllllllbk',
         'kblllllllllk', 'kbllllllllbk', 'kblllllllbbk', 'kbllllllbbbk', '.kbbllbbbbk.', '..kbbbbbbk..', '...kkkkkk...'],
+      // Gambler (engine 23): a die, on its five
+      gambler: ['....kkkkkkk.', '...kWWWWWWSk', '..kWWWWWWSSk', '.kkkkkkkkSSk', '.kwwwwwwkSSk', '.kwFwwFwkSSk',
+        '.kwwwwwwkSSk', '.kwwwFwwkSSk', '.kwwwwwwkSk.', '.kwFwwFwkk..', '.kwwwwwwk...', '.kkkkkkkk...'],
       // Builder: a hard hat
       builder: ['............', '....kkkk....', '...kYyyyk...', '..kYyykyyk..', '.kYyyykyyyk.',
         '.kyyyykyyyk.', '.kyyyykyyok.', 'kkkkkkkkkkkk', 'kYyyyyyyyyok', 'kkkkkkkkkkkk', '............', '............'],
@@ -13212,6 +13446,7 @@ const SquadView = (() => {
     bite: 'The Shiba Inu takes down ',
     crashed: 'The Lambo crash finishes off ',
     gas: 'Gas fees finish off ',
+    rekted: 'The red crate finishes off ',
     blasted: 'The Boom Pack knocks out ',
     blowup: 'Its own Boom Pack takes out ',
   };
@@ -13403,7 +13638,7 @@ const SquadView = (() => {
       case 'pick':
         return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
       case 'gas':
-        return e.res === 'absorb' ? 'The gas fee pops ' + d + "'s bubble." : d + ' pays gas for that: -' + e.dmg + '.';
+        return e.res === 'absorb' ? 'The gas fee pops ' + d + "'s bubble." : d + ' pays the gas fee: -' + e.dmg + '.';
       case 'crashed':
         return e.res === 'absorb' ? 'The crash pops ' + d + "'s bubble." : d + ' wraps the Lambo round a wall: -' + e.dmg + '.';
       case 'prophit':
@@ -13411,6 +13646,26 @@ const SquadView = (() => {
       case 'propdown':
         if (e.id === 'diamond') return e.empty ? 'Out of ammo: the diamond tower crumbles and ' + u + ' climbs down.' : 'Its gunner is out: the diamond tower shatters.';
         return e.dump ? 'Its rider is out: the Green Candle dumps.' : 'The ' + nameOf('ev', e.id) + ' comes down!';
+      // the Lucky Wheel (engine 23)
+      case 'wheel':
+        return (e.gamble ? u + ', the Gambler, spins ' : u + ' spins ') + lb(e.team) + "'s Lucky Wheel: " + (e.col === 'j' ? 'JACKPOT! A card for ' + lb(e.team) + ' and one against ' + lb(1 - e.team) + '.' : e.col === 'g' ? 'GREEN, a card for ' + lb(e.team) + '.' : 'RED, a card against ' + lb(1 - e.team) + '.');
+      case 'wcard': {
+        const R = SE.RULES;
+        const c = 'Lucky Wheel: ' + nameOf(e.kind, e.id) + '! ';
+        if (e.id === 'airdrop') return c + 'A crate for ' + d + '.';
+        if (e.id === 'sniper') return c + 'It has ' + d + ' in its sights.';
+        if (e.id === 'devwallet') return c + lb(e.to) + ' gets paid back.';
+        if (e.id === 'wagmi') return c + 'Every Blub of ' + lb(e.to) + ': +' + R.wagmiHp + ' max HP.';
+        if (e.id === 'pump') return c + lb(e.to) + ' hits +' + R.pumpDmg + ' harder till turn ' + e.until + '.';
+        if (e.id === 'paper') return c + d + ' loses its nerve.';
+        if (e.id === 'gas') return c + lb(e.to) + ' pays up.';
+        if (e.id === 'bagholder') return c + d + ' carries the bags: ' + R.bagMove + ' move less.';
+        if (e.id === 'rekt') return c + 'A red crate comes down on ' + d + '.';
+        if (e.id === 'ngmi') return c + lb(e.to) + "'s next attack will miss.";
+        return c;
+      }
+      case 'rekted':
+        return e.res === 'absorb' ? 'The red crate pops ' + d + "'s bubble." : 'REKT! ' + d + ' takes ' + e.dmg + '.';
       case 'airdrop':
         return 'AIRDROP! A crate comes down for ' + lb(e.team) + "'s weakest Blub.";
       case 'snipe':
@@ -13494,6 +13749,8 @@ const SquadView = (() => {
         return u + ' uses ' + nameOf('pow', e.p) + '.';
       case 'status': {
         if (!e.on) return e.s === 'honey' ? u + ' licks the last of the honey off its paws.' : e.s === 'paper' ? u + ' finds its nerve again.' : u + ' is back to normal.';
+        // (the Lucky Wheel's Bagholder is told with its card)
+        if (e.s === 'bag') return '';
         const S = {
           frozen: ' is frozen solid.', trapped: ' is trapped in a bubble.', rage: ' is raging: +' + SE.RULES.rageDmg + ' damage.', bubble: ' gets a bubble shield.',
           blade: "'s weapon gleams: +2 damage.", feather: ' feels light as a feather.', totem: ' carries the Sift Totem.',
@@ -14472,6 +14729,12 @@ const SquadView = (() => {
     // dblock, the gun after; and a burst of its gun, a round every sprayGap from sprayHit
     dhop: 500, dblock: 220, dride: 2100, spray: 720, sprayHit: 260, sprayGap: 110,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
+    // the Lucky Wheel (engine 23): it comes down by wheelLand, its Blub slaps it round at
+    // wheelSlap, and it stops at wheelOne (two wheels: the first at wheelStop, the
+    // viewer's own wheelLast after it), then a moment to read it. A card flies out of
+    // it to its Blub (cardFly), shows what it is, and what it does starts at cardIn.
+    wheel: 3650, wheelLand: 460, wheelSlap: 760, wheelStop: 2350, wheelLast: 600, wheelOne: 2600,
+    cardFly: 560, cardIn: 900, gasEach: 120,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
     // rocketTake), the blast-off and the moon
@@ -14482,6 +14745,11 @@ const SquadView = (() => {
     // on it hangs in the air for sinkHang and drops (sinkEach after the one before),
     // and the sign drops in at sinkSign
     sink: 3300, sinkHit: 1150, sinkHang: 340, sinkEach: 110, sinkSign: 2150,
+  };
+  // a Lucky Wheel card (engine 23): how long what it does runs from cardIn, and when it lands
+  const CARD_MS = {
+    airdrop: [MS.airdrop, MS.airdropHit], sniper: [MS.snipe, MS.snipeHit], devwallet: [MS.devwallet, MS.devwalletHit], paper: [MS.paper, 0],
+    wagmi: [1000, 260], pump: [1000, 260], gas: [760, 200], bagholder: [1000, 420], rekt: [1250, 480], ngmi: [1050, 420],
   };
   // how long a Blub out of the stunt cannon is up in the air, by the tiles it crosses
   const sendFly = (d) => clamp(380 + 34 * d, 480, 860);
@@ -14516,7 +14784,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['pill', 'burst', 'oneshot', 'pillend', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  const KEEP_TIME = new Set(['wheels', 'wcard', 'pill', 'burst', 'oneshot', 'pillend', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow || !!b.keep;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -14551,6 +14819,8 @@ const SquadView = (() => {
       // time (the Blub on it: rager), its rush is a rush, its bullets ride on their burst
       let rager = -1;
       let lastBurst = null;
+      // the Lucky Wheel (engine 23): the wheels' beat its cards come out of
+      let wheelB = null;
       const add = (b) => {
         if (rager >= 0) b.keep = true;
         b.list = b.list || [];
@@ -14631,6 +14901,17 @@ const SquadView = (() => {
           // a slice of pizza heals as it is eaten (engine 22)
           if (t === 'heal' && p.kind === 'slice' && e.src === 'pizza') {
             attachTo(p, i);
+            return;
+          }
+          // the Lucky Wheel's cards (engine 23): what a card does lands as it comes
+          // down; the gas bills and the dev wallet's pay one Blub after another
+          if (p.kind === 'wcard' && ((t === 'heal' && (e.src === 'airdrop' || e.src === 'devwallet')) || t === 'sniped' || t === 'gas' || t === 'rekted')) {
+            const each = t === 'gas' ? MS.gasEach : t === 'heal' && e.src === 'devwallet' ? MS.walletEach : 0;
+            p.list.push({ ei: i, off: p.contact + p.n * each });
+            if (each) {
+              p.n++;
+              p.dur += each;
+            }
             return;
           }
           // the Shiba Inu's bite rides on its run (engine 22)
@@ -14788,6 +15069,29 @@ const SquadView = (() => {
         }
         if (t === 'slice') {
           parent = add({ kind: 'slice', dur: MS.slice, contact: MS.sliceHit, list: [{ ei: i, off: MS.sliceHit }], e, actors: [e.u] });
+          return;
+        }
+        // the Lucky Wheel (engine 23): both wheels in one scene, each told as it stops
+        // (the viewer's own last); then a scene for every card that comes out of them
+        if (t === 'wheel') {
+          const it = { ei: i, off: MS.wheelOne };
+          if (parent && parent.kind === 'wheels' && parent.wh.length === 1) {
+            const mine = e.team === (P ? P.me : 0);
+            parent.items[0].off = mine ? MS.wheelStop : MS.wheelStop + MS.wheelLast;
+            it.off = mine ? MS.wheelStop + MS.wheelLast : MS.wheelStop;
+            parent.wh.push(e);
+            parent.items.push(it);
+            parent.list.push(it);
+            return;
+          }
+          parent = wheelB = add({ kind: 'wheels', dur: MS.wheel, contact: 0, list: [it], items: [it], e, wh: [e], cards: [] });
+          return;
+        }
+        if (t === 'wcard') {
+          const c = CARD_MS[e.id] || [900, 300];
+          const hit = MS.cardIn + c[1];
+          parent = add({ kind: 'wcard', dur: MS.cardIn + c[0], contact: hit, list: [{ ei: i, off: hit }], e, actors: e.d >= 0 ? [e.d] : [], n: 0, wb: wheelB });
+          if (wheelB) wheelB.cards.push(parent);
           return;
         }
         // the Coin Flip (engine 22): a scene of its own, the result on the floor at contact
@@ -15045,6 +15349,10 @@ const SquadView = (() => {
       if (b.kind === 'turn' || b.kind === 'cturn') turns.push({ n: b.n, t, ei: b.ei });
       t += b.dur;
     });
+    // the Lucky Wheel's wheels (engine 23) stand till the last of their cards is out
+    beats.forEach((b) => {
+      if (b.kind === 'wheels') b.until = b.cards.reduce((m, c) => Math.max(m, c.t + c.dur), b.t + b.dur);
+    });
     Q.forEach((q, i) => (q.i = i));
     Q.sort((a, b) => a.at - b.at || a.i - b.i);
     const endBeat = beats[beats.length - 1];
@@ -15083,6 +15391,9 @@ const SquadView = (() => {
       // the golden drop (engine 22): the Shiba Inus and the pizzas, by team
       dogs: {},
       pizzas: {},
+      // the Lucky Wheel (engine 23), by team: pumped till that turn, the NGMI misses it
+      // still owes (and the last attack that paid one), the cards dealt so far
+      wpump: [0, 0], ngmi: [0, 0], ngmiE: null, wseen: {},
     };
   }
   function fold(S, e) {
@@ -15140,6 +15451,11 @@ const SquadView = (() => {
         break;
       }
       case 'attack':
+        // NGMI off the Lucky Wheel (engine 23): the squad's next swing was always going wide
+        if (S.ngmi[U[e.u].team] > 0) {
+          S.ngmi[U[e.u].team]--;
+          S.ngmiE = e;
+        }
         // the first blow that lands (or pops a bubble) digs a Blub out of its foxhole
         if (e.res !== 'miss' && e.res !== 'whiff') U[e.d].dug = false;
         // the Scope Rifle has fired: its aim is spent
@@ -15158,6 +15474,7 @@ const SquadView = (() => {
       case 'sniped':
       case 'crashed':
       case 'gas':
+      case 'rekted':
       case 'blasted':
       case 'cannonball':
       case 'slam':
@@ -15327,6 +15644,18 @@ const SquadView = (() => {
         if (e.path && e.path.length) [g.x, g.y] = e.path[e.path.length - 1];
         break;
       }
+      // a card off the Lucky Wheel (engine 23); what it does to HP and statuses comes
+      // in events of its own, except WAGMI's bigger bars, the pump and NGMI
+      case 'wcard':
+        S.wseen[e.to + ':w:' + e.id] = true;
+        if (e.id === 'wagmi')
+          for (const [id, hp, max] of e.ups || []) {
+            U[id].hp = hp;
+            U[id].max = max;
+          }
+        if (e.id === 'pump') S.wpump[e.team] = e.until;
+        if (e.id === 'ngmi') S.ngmi[e.to] = e.n;
+        break;
       // a one-shot memepower spent, for its chip in the roster
       case 'airdrop':
       case 'snipe':
@@ -15526,8 +15855,12 @@ const SquadView = (() => {
     coin: [['.ooo.', 'oYyyo', 'oyAyo', 'oyyyo', '.ooo.'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12', A: '#8A5C06' }],
     pill: [['...gg', '..ggg', '.wgg.', 'www..', 'ww...'], { g: '#4FB36B', w: '#FFFFFF' }],
     pumped: [['.g.g.', 'ggggg', 'gwgwg', 'ggggg', '.g.g.'], { g: '#4BE08F', w: '#FF2E4C' }],
+    // engine 23: off the Lucky Wheel
+    bag: [['.k.k.', '..n..', '.nnn.', 'nnynn', '.nnn.'], { k: '#8C5A2B', n: '#D9A05B', y: '#FFD447' }],
+    wpump: [['..g..', '.ggg.', 'gg.gg', '..g..', '.ggg.'], { g: '#4BE08F' }],
+    ngmi: [['.....', 'rFFFr', '.rFr.', '..r..', '.....'], { r: '#B8324A', F: '#FF5C77' }],
   };
-  const STATUS_NAME = { pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now', bag: 'bagholder: ' + SE.RULES.bagMove + ' move less', wpump: 'pumped: +' + SE.RULES.pumpDmg + ' damage on every hit', ngmi: 'NGMI: its squad\u2019s next attack misses' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -16178,6 +16511,16 @@ const SquadView = (() => {
       x.fillRect(ox + 16, oy + 1, 3, 3);
       x.fillStyle = '#C9C9D6';
       x.fillRect(ox + 19, oy + 3, 2, 1);
+    }
+    // Bagholder (engine 23): the bags on its back, a money sack tied at the neck
+    if (u.st.bag) paintRows(x, BAG, BAG_PAL, ox + (u.face > 0 ? -4 : 13), oy + 7, 1);
+    // off the Lucky Wheel (engine 23): pumped, a green chevron by its head now and
+    // then; owing an NGMI miss, a red one, pointing down
+    const WS = P.S;
+    if (u.alive && WS.turn && !P.calm) {
+      const blink = Math.floor(now / 320) % 3;
+      if (WS.wpump[u.team] >= WS.turn && blink) paintRows(x, ['..g..', '.gGg.', 'gG.Gg'], { g: '#4FB36B', G: '#9FE3A8' }, ox - 3, oy + 3 - (blink === 2 ? 1 : 0), 1);
+      if (WS.ngmi[u.team] > 0 && blink !== 1) paintRows(x, ['rF.Fr', '.rFr.', '..r..'], { r: '#B8324A', F: '#FF5C77' }, ox + 14, oy + 3, 1);
     }
     // tangled in barbed wire (engine 15): loops of it round its middle, barbs and all
     if (u.st.tangled) {
@@ -19230,6 +19573,343 @@ const SquadView = (() => {
   // floor in front of its Blub, rolls on its edge, wobbles and falls flat. HEADS: a
   // gold flash and its double steps out of it. TAILS: its Blub comes apart. Flipped as
   // its Blub goes down, the coin pops out of where it fell.
+  // ---- THE LUCKY WHEEL (engine 23). A wheel of eight wedges, green (a card for its
+  // squad) and red (a card against the other), on a stand with a pointer on top and
+  // bulbs round its gold rim; the Gambler's has a gold JACKPOT wedge. It is drawn a
+  // pixel at a time for each of 32 turns of it, so it stays pixel art however it
+  // turns: the wedges, white lines between them, the rim, the hub and on each wedge
+  // its sign, upright. Spinning fast it is a blur of its colours.
+  const WEDGE = { g: ['#4FB36B', '#9FE3A8', '#1E5B33'], r: ['#E2566E', '#FF9AA8', '#B8324A'], j: ['#FFD447', '#FFF3B0', '#C98A12'] };
+  const WEDGE_SIGN = { g: ['.w.', 'www', '.w.'], r: ['w.w', '.w.', 'w.w'], j: ['.w.', 'wow', '.w.'] };
+  const WHEEL_TIP = [['kkkkkkk', 'kwFFFFk', '.kFFFk.', '..kFk..', '...k...'], ['.kkkkkk', '.kwFFFk', '..kFFFk', '...kFk.', '....k..']];
+  const BAG = ['.k...k.', '..kNk..', '.kkkkk.', 'kNNyNNk', 'kNyNNnk', 'kNNyNnk', 'kNyyNnk', '.kkkkk.'];
+  const BAG_PAL = { k: '#2B1D3F', N: '#D9A05B', n: '#8C5A2B', y: '#FFD447' };
+  const UP_ARROW = ['...k...', '..kGk..', '.kGGgk.', 'kGGgggk', 'kkkgkkk', '..kgk..', '..kgk..', '..kkk..'];
+  const NGMI_ARROW = ['...kkkkk...', '...kFFRk...', '...kFFRk...', '...kFFRk...', '...kFFRk...', 'kkkkFFRkkkk', 'kFFFFFFRRRk', '.kFFFFRRRk.', '..kFFRRRk..', '...kFRRk...', '....kRk....', '.....k.....'];
+  const PIPS = [[[1, 1]], [[0, 0], [2, 2]], [[0, 0], [1, 1], [2, 2]], [[0, 0], [2, 0], [0, 2], [2, 2]], [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], [[0, 0], [0, 1], [0, 2], [2, 0], [2, 1], [2, 2]]];
+  const wheelCache = new Map();
+  function wheelArt(gamble, step, hl) {
+    const key = (gamble ? 'j' : 'n') + ':' + step + ':' + (hl == null ? '' : hl);
+    let c = wheelCache.get(key);
+    if (c) return c;
+    const list = gamble ? SE.GAMBLE_WHEEL : SE.WHEEL;
+    const n = list.length;
+    const span = 360 / n;
+    const rot = step * 11.25;
+    c = canvas(25, 25);
+    const x = c.getContext('2d');
+    for (let py = 0; py < 25; py++)
+      for (let px = 0; px < 25; px++) {
+        const dx = px - 12;
+        const dy = py - 12;
+        const r = Math.hypot(dx, dy);
+        if (r > 12.4) continue;
+        let col;
+        if (r > 11.3) col = INK;
+        else if (r > 9.7) col = dx + dy < -5 ? '#FFF3B0' : dx + dy > 6 ? '#C98A12' : '#FFD447';
+        else if (r > 9) col = INK;
+        else if (r < 1.5) col = '#FFF3B0';
+        else if (r < 2.3) col = '#FFD447';
+        else if (r < 3.1) col = INK;
+        else {
+          const a = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+          const rel = (((a - rot) % 360) + 360) % 360;
+          const w = Math.floor(rel / span) % n;
+          if (hl === 'blur') col = WEDGE[list[(w + ((px + py) & 1)) % n]][(px ^ py) & 2 ? 0 : 1];
+          else {
+            const off = Math.min(rel % span, span - (rel % span));
+            const C = WEDGE[list[w]];
+            col = (off * Math.PI * r) / 180 < 0.55 ? '#FFFFFF' : hl === w ? C[1] : r > 7.2 && dx + dy > 3 ? C[2] : C[0];
+          }
+        }
+        x.fillStyle = col;
+        x.fillRect(px, py, 1, 1);
+      }
+    // each wedge's sign, upright, two thirds of the way out
+    if (hl !== 'blur')
+      list.forEach((kd, w) => {
+        const ang = ((rot + (w + 0.5) * span) * Math.PI) / 180;
+        const sx = 12 + Math.round(Math.sin(ang) * 6);
+        const sy = 12 - Math.round(Math.cos(ang) * 6);
+        WEDGE_SIGN[kd].forEach((row, j) =>
+          [...row].forEach((ch, i) => {
+            if (ch === '.') return;
+            x.fillStyle = ch === 'o' ? '#C98A12' : '#FFFFFF';
+            x.fillRect(sx - 1 + i, sy - 1 + j, 1, 1);
+          }),
+        );
+      });
+    if (wheelCache.size > 300) wheelCache.clear();
+    wheelCache.set(key, c);
+    return c;
+  }
+  // the wheel where it stands: its centre at wx, wy, its foot on the floor at gy;
+  // bulbs: which of them are lit (-1 all), tip: the pointer flicked aside by a peg
+  function drawWheel(x, wx, wy, gy, img, bulbs, tip) {
+    x.fillStyle = INK;
+    x.fillRect(wx - 2, wy + 9, 4, gy - wy - 8);
+    x.fillRect(wx - 6, gy - 2, 13, 4);
+    x.fillStyle = '#8C5A2B';
+    x.fillRect(wx - 1, wy + 9, 2, gy - wy - 9);
+    x.fillStyle = '#D9A05B';
+    x.fillRect(wx - 5, gy - 1, 11, 2);
+    x.drawImage(img, wx - 12, wy - 12);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      x.fillStyle = bulbs < 0 || (i + bulbs) % 3 === 0 ? '#FFFFFF' : '#C98A12';
+      x.fillRect(Math.round(wx + Math.sin(a) * 10.4), Math.round(wy - Math.cos(a) * 10.4), 1, 1);
+    }
+    paintRows(x, WHEEL_TIP[tip ? 1 : 0], { k: INK, F: '#FF5C77', w: '#FFFFFF' }, wx - 3, wy - 15, 1);
+  }
+  // where a squad's wheel stands: beside its Blub, on the side towards the middle
+  function wheelSpot(u) {
+    const [ux, uy] = tileC(u.x, u.y);
+    const s = ux < CW / 2 ? 1 : -1;
+    const wx = clamp(ux + s * 20, 13, CW - 13);
+    const gy = uy + 6;
+    const wy = Math.max(TOP + 16, gy - 24);
+    return [wx, wy, Math.max(gy, wy + 14)];
+  }
+  // the middle of some Blubs (the middle of the arena if there are none)
+  function midOf(list) {
+    if (!list.length) return [CW / 2, CH / 2];
+    let sx = 0;
+    let sy = 0;
+    for (const v of list) {
+      const [vx, vy] = centreOf(v);
+      sx += vx;
+      sy += vy;
+    }
+    return [Math.round(sx / list.length), Math.round(sy / list.length)];
+  }
+  // the Gambler's dice: two of them tossed up, tumbling, down on two sixes
+  function drawDie(x, px, py, face) {
+    x.fillStyle = INK;
+    x.fillRect(px - 2, py - 2, 5, 5);
+    x.fillStyle = '#FFFFFF';
+    x.fillRect(px - 1, py - 1, 3, 3);
+    x.fillStyle = '#E2566E';
+    for (const [i, j] of PIPS[face]) x.fillRect(px - 1 + i, py - 1 + j, 1, 1);
+  }
+  function diceFx(T, cx, cy, k) {
+    if (P.calm || !fxOK(true)) return;
+    for (const s of [-1, 1])
+      addFx(T, 760 * k, (x, kk, el) => {
+        const f = Math.min(1, kk / 0.7);
+        const px = Math.round(cx + s * (3 + f * 8));
+        const py = Math.round(cy - Math.sin(f * Math.PI) * 13 + f * 8);
+        drawDie(x, px, py, f < 1 ? (Math.floor(el / (60 * k)) + (s > 0 ? 2 : 0)) % 6 : 5);
+      });
+  }
+  // a card out of the wheel, small and turning: w its width (it turns edge on), and
+  // its face (green or red, a plus or a minus) or its gold back
+  function drawCard(x, px, py, w, face) {
+    const x0 = px - (w >> 1);
+    const y0 = py - 6;
+    x.fillStyle = INK;
+    x.fillRect(x0 - 1, y0 - 1, w + 2, 14);
+    if (face === 'back') {
+      x.fillStyle = '#FFD447';
+      x.fillRect(x0, y0, w, 12);
+      if (w >= 3) {
+        x.fillStyle = '#C98A12';
+        x.fillRect(x0 + 1, y0 + 1, w - 2, 10);
+      }
+      if (w >= 5) {
+        x.fillStyle = '#FFF3B0';
+        x.fillRect(px, y0 + 3, 1, 6);
+      }
+      return;
+    }
+    x.fillStyle = '#FFFFFF';
+    x.fillRect(x0, y0, w, 12);
+    x.fillStyle = face === 'nerf' ? '#E2566E' : '#4FB36B';
+    x.fillRect(x0, y0, w, 3);
+    x.fillRect(x0, y0 + 9, w, 3);
+    if (w >= 5) {
+      x.fillRect(px - 1, y0 + 5, 3, 1);
+      if (face !== 'nerf') x.fillRect(px, y0 + 4, 1, 3);
+    }
+  }
+  // the card face up and big: its 32x32 icon in a green or red frame
+  function cardBig(kind, id) {
+    const key = 'card:' + kind + ':' + id;
+    let c = wheelCache.get(key);
+    if (c) return c;
+    c = canvas(38, 38);
+    const x = c.getContext('2d');
+    x.fillStyle = INK;
+    x.fillRect(0, 0, 38, 38);
+    x.fillStyle = kind === 'nerf' ? '#E2566E' : '#4FB36B';
+    x.fillRect(1, 1, 36, 36);
+    x.fillStyle = kind === 'nerf' ? '#FF9AA8' : '#9FE3A8';
+    x.fillRect(1, 1, 36, 1);
+    x.fillRect(1, 1, 1, 36);
+    x.drawImage(iconSrc(kind, id), 3, 3);
+    wheelCache.set(key, c);
+    return c;
+  }
+  // how far round a wheel has gone at clock t: still till the slap, then fast and
+  // slowing all the way to a stop, the pointer on the middle of its wedge
+  const wheelTurnAt = (w, t) => (t <= w.t0 ? 0 : w.end * (1 - Math.pow(1 - clamp((t - w.t0) / (w.t1 - w.t0), 0, 1), 3)));
+  // The wheels come down out of the sky, one beside each squad's spinner (the
+  // Gambler if it stands, else the captain), thud into the floor and wait, bulbs
+  // chasing round them. The spinner hops over and slaps its wheel round: a blur,
+  // then the wedges again, slower and slower, the pointer clicking over each peg.
+  // The other side's wheel stops first; the camera cuts in close on the viewer's
+  // own for its last few clicks. Then the wedge it stopped on blinks till its cards
+  // are out, and the wheels go back up where they came from.
+  function wheelBeat(b, T, k) {
+    if (b.kind === 'wcard') return cardBeat(b, T, k);
+    if (b.kind !== 'wheels') return false;
+    const S = P.S;
+    b.spots = {};
+    const until = Math.max(b.until || 0, T + b.dur);
+    const land = T + MS.wheelLand * k;
+    const slap = T + MS.wheelSlap * k;
+    let last = null;
+    banner('LUCKY WHEEL!', null, null, 1700);
+    sfx('rumble');
+    b.wh.forEach((e, j) => {
+      const u = S.u[e.u];
+      if (!u) return;
+      const [wx, wy, gy] = wheelSpot(u);
+      const [ux, uy] = centreOf(u);
+      const stop = T + b.items[j].off * k;
+      const n = (e.gamble ? SE.GAMBLE_WHEEL : SE.WHEEL).length;
+      const span = 360 / n;
+      const w = { t0: slap, t1: stop, end: e.spins * 360 + ((((360 - (e.wedge + 0.5) * span) % 360) + 360) % 360) };
+      b.spots[e.team] = [wx, wy];
+      if (!last || stop > last.stop) last = { stop, wx, wy };
+      const y0 = TOP - 44;
+      let peg = 0;
+      addFx(T, until - T + 420 * k, (x, kk, el) => {
+        const t = T + el;
+        // down out of the sky, and at the end back up into it
+        let yy = wy;
+        if (t < land) yy = Math.round(lerp(y0, wy, Math.pow((t - T) / (land - T), 2)));
+        else if (t > until) yy = Math.round(lerp(wy, y0 - 30, Math.pow(clamp((t - until) / (420 * k), 0, 1), 2)));
+        const dy = yy - wy;
+        if (t < land) blob(x, wx, gy, Math.round(2 + 6 * ((t - T) / (land - T))), 1, '#1B1229', 0.25);
+        const th = wheelTurnAt(w, t);
+        const spinning = t > w.t0 && t < w.t1;
+        const speed = spinning ? (3 * w.end * Math.pow(1 - (t - w.t0) / (w.t1 - w.t0), 2)) / (w.t1 - w.t0) : 0;
+        const step = Math.round(th / 11.25) % 32;
+        const done = t >= w.t1;
+        const hl = done && Math.floor((t - w.t1) / (130 * k)) % 2 === 0 ? e.wedge : null;
+        const img = speed * k > 0.9 ? wheelArt(e.gamble, step, 'blur') : wheelArt(e.gamble, step, hl);
+        // a click for every peg past the pointer
+        const p = Math.floor(th / span);
+        if (p !== peg && spinning) {
+          peg = p;
+          if (speed * k < 0.9) sfx('click');
+        }
+        const bulbs = done ? (Math.floor((t - w.t1) / (110 * k)) % 2 ? -1 : 1) : Math.floor(t / ((spinning ? 70 : 160) * k));
+        drawWheel(x, wx, wy + dy, gy + dy, img, bulbs, spinning && th % span < span * 0.22 && speed * k < 0.9);
+      });
+      // it lands: a thud, dust, the floor shakes once
+      atClock(land, () => {
+        sfx('thud');
+        if (j === 0) shake(land);
+      });
+      addParts(8, wx, gy, ['#FFE3EA', '#E9A2B6', '#FFFFFF'], 0.05, 0.0002, 380 * k, land, true, [Math.PI * 0.95, Math.PI * 2.05]);
+      ringFx(land, wx, gy, 320 * k, '#FFE3EA', 3, 12, true, 0.4);
+      // and its Blub slaps it round (the Gambler with a roll of the dice)
+      faceTo(u, wx);
+      u.hop = { kind: 'toss', t0: slap - 160 * k, dur: 220 * k, h: 3 };
+      atClock(slap, () => sfx('power'));
+      if (e.gamble) {
+        label(slap, 'LUCKY SPIN', '#FFD447', ux, above(uy - 24), true);
+        diceFx(slap - 60 * k, ux, uy - 8, k);
+      } else label(slap, 'SPIN!', '#FFFFFF', wx, above(wy - 20), false);
+    });
+    if (last) closeUp(last.stop - 760 * k, 1300 * k, last.wx, last.wy + 4, { slow: [last.stop - 320 * k, last.stop + 60 * k], f: 0.45, force: true });
+    return true;
+  }
+  // A card out of a wheel: it pops out of the hub and flies over, turning over and
+  // over, to whoever it is for (or against); there it shows what it is, framed and
+  // big, the name in the banner; and what it does starts at cardIn. The Airdrop, the
+  // Sniper Bot, the Dev Wallet and Paper Hands go off as they always have; a red
+  // crate slams down for Rekt, a money sack for Bagholder, a great red arrow for NGMI.
+  function cardBeat(b, T, k) {
+    const e = b.e;
+    const U = P.S.u;
+    const red = e.kind === 'nerf';
+    const col = red ? '#FF5C77' : '#4BE08F';
+    const at = b.wb && b.wb.spots && b.wb.spots[e.team];
+    const wv = b.wb && b.wb.wh.find((v) => v.team === e.team);
+    const [wx, wy] = at || (wv && U[wv.u] ? wheelSpot(U[wv.u]) : [CW / 2, CH / 2]);
+    const d = e.d >= 0 ? U[e.d] : null;
+    const [tx, ty] = d ? centreOf(d) : midOf(U.filter((v) => v.alive && !v.gone && v.team === e.to));
+    const fly = MS.cardFly * k;
+    const E = T + MS.cardIn * k;
+    const H = T + b.contact;
+    const cx = clamp(Math.round(tx), 20, CW - 20);
+    const top = clamp(Math.round(ty - 54), 1, CH - 40);
+    const big = cardBig(e.kind, e.id);
+    const wds = [9, 7, 5, 3, 1, 3, 5, 7];
+    sfx('click');
+    addFx(T, fly, (x, kk, el) => {
+      const ph = Math.floor(el / (55 * k)) % 8;
+      drawCard(x, Math.round(lerp(wx, cx, kk)), Math.round(lerp(wy, top + 19, kk) - Math.sin(kk * Math.PI) * 26), wds[ph], ph >= 4 ? 'back' : e.kind);
+    });
+    // face up, big, over its Blub (or its squad), gone as what it does gets going
+    const show = E - 80 * k - (T + fly);
+    addFx(T + fly, show + 150 * k, (x, kk, el) => {
+      const yy = top + (P.calm ? 0 : Math.round(Math.sin(el / (220 * k)) * 1.5));
+      x.drawImage(el < show ? big : ghostOf(big, 'card:' + e.kind + e.id, 1 - (el - show) / (150 * k)), cx - 19, yy);
+      // it flips up with a flash of white round its edge
+      if (el < 90 * k) {
+        x.fillStyle = '#FFFFFF';
+        const g = el < 45 * k ? 1 : 2;
+        x.fillRect(cx - 19 - g, yy - g, 38 + 2 * g, 1);
+        x.fillRect(cx - 19 - g, yy + 37 + g, 38 + 2 * g, 1);
+        x.fillRect(cx - 19 - g, yy - g, 1, 38 + 2 * g);
+        x.fillRect(cx + 18 + g, yy - g, 1, 38 + 2 * g);
+      }
+    }, false, true);
+    addParts(10, cx, top + 19, [col, '#FFFFFF', '#FFD447'], 0.08, 0.0001, 480 * k, T + fly, true);
+    atClock(T + fly, () => {
+      sfx('read');
+      banner(nameOf(e.kind, e.id) + (red ? ' on ' : ' for ') + P.sideLabels[P.sideOf(e.to)], e.kind, e.id, 1800);
+    });
+    // what it does
+    const syn = { airdrop: { t: 'airdrop', team: e.team, u: e.d }, sniper: { t: 'snipe', team: e.team, d: e.d }, devwallet: { t: 'devwallet', team: e.team }, paper: { t: 'paper', u: e.d } }[e.id];
+    if (syn && (!('u' in syn) || syn.u >= 0) && (!('d' in syn) || syn.d >= 0)) atClock(E, () => fx(syn, E, b, k));
+    if (e.id === 'rekt' && d) {
+      // a red crate, no chute, straight down onto it
+      const [dx, dy] = centreOf(d);
+      atClock(E, () => sfx('rumble'));
+      addFx(E, H - E + 90 * k, (x, kk, el) => {
+        const t = E + el;
+        const f = clamp((t - E) / (H - E), 0, 1);
+        const yy = Math.round(lerp(TOP - 40, dy - 25, f * f));
+        if (t < H) {
+          blob(x, dx, dy + 6, Math.round(2 + f * 6), 1, '#1B1229', 0.15 + f * 0.25);
+          x.fillStyle = '#FFFFFF';
+          for (const s of [-5, 0, 5]) x.fillRect(dx + s, yy + 8 - Math.round(f * 6), 1, 4 + Math.round(f * 4));
+        }
+        x.drawImage(fxFrame('airdrop', 5), dx - 16, yy);
+      });
+      closeUp(H - 360 * k, 760 * k, dx, dy - 10, { slow: [H - 90 * k, H + 60 * k], f: 0.4 });
+    }
+    if (e.id === 'bagholder' && d) {
+      // the sack drops onto its back
+      const [dx, dy] = centreOf(d);
+      const bx = d.face > 0 ? dx - 12 : dx + 5;
+      addFx(E, H - E, (x, kk) => paintRows(x, BAG, BAG_PAL, bx, Math.round(lerp(top + 14, dy - 6, kk * kk)), 1));
+    }
+    if (e.id === 'ngmi') {
+      // a great red arrow comes down on the squad
+      addFx(E, H - E + 480 * k, (x, kk, el) => {
+        const t = E + el;
+        const f = clamp((t - E) / (H - E), 0, 1);
+        const yy = Math.round(lerp(top - 10, Math.max(TOP, ty - 34), f * f)) + (t > H && !P.calm ? Math.floor((t - H) / (90 * k)) % 2 : 0);
+        if (t < H + 360 * k || Math.floor(t / (60 * k)) % 2) paintRows(x, NGMI_ARROW, { k: INK, F: '#FF5C77', R: '#B8324A' }, cx - 5, yy, 1);
+      });
+    }
+    return true;
+  }
   function coinBeat(b, T, k) {
     if (b.kind !== 'coin') return false;
     const e = b.e;
@@ -19607,6 +20287,7 @@ const SquadView = (() => {
     if (P.calm) return;
     if (b.kind === 'rocket') return rocketScene(b, T, k);
     if (dogBeat(b, T, k)) return;
+    if (wheelBeat(b, T, k)) return;
     if (coinBeat(b, T, k)) return;
     if (pizzaBeat(b, T, k)) return;
     if (pillBeat(b, T, k)) return;
@@ -19981,7 +20662,7 @@ const SquadView = (() => {
     if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
     const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
-    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
+    if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'rekted', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
     if (e.t === 'blowup') P.cause[e.u] = 'blowup';
     // a Miner tunnelling: it stays where it was while it digs down, is gone under the
     // floor, and comes up at the other end with a hop
@@ -20053,7 +20734,10 @@ const SquadView = (() => {
         const [ux, uy] = centreOf(u);
         const top = (d._b ? d._b.oy : dy - 13) - 2;
         // through the smoke (engine 14) it fires blind: said once over the shooter
-        if (e.blind && !e.n) label(T - 120 * k, 'BLIND', '#C9C9D6', ux, (u._b ? u._b.oy : uy - 13) - 4, false);
+        // (the Gambler, engine 23: still finds its mark more often than not)
+        const lucky = u.pow === 'gambler' && e.res !== 'miss' && e.res !== 'whiff';
+        if (e.blind && !e.n) label(T - 120 * k, lucky ? 'LUCKY SHOT' : 'BLIND', lucky ? '#FFD447' : '#C9C9D6', ux, (u._b ? u._b.oy : uy - 13) - 4, lucky);
+        if (e.blind && !e.n && lucky) diceFx(T - 120 * k, ux, uy - 10, k);
         if (e.res === 'miss' || e.res === 'whiff') {
           const end = b && b.e === e && b.end;
           if (end && b.endKind === 'sand') {
@@ -20066,6 +20750,11 @@ const SquadView = (() => {
             label(T, 'MISS', '#D9CDEA', dx, top);
             addParts(7, end[0], end[1], ['#FFFFFF', '#FFF3B0', colors.gold], 0.08, 0.0003, 260 * k, T, true);
             addParts(4, end[0], end[1], [OC.wdL, OC.wd], 0.05, 0.0004, 320 * k, T);
+            sfx('miss');
+          } else if (P.S.ngmiE === e) {
+            // NGMI off the Lucky Wheel (engine 23): it was never going to land
+            label(T, 'NGMI', '#FF5C77', dx, top, true);
+            addParts(6, ux, uy - 12, ['#FF5C77', '#B8324A'], 0.03, 0.0003, 420 * k, T, true, [Math.PI * 0.3, Math.PI * 0.7]);
             sfx('miss');
           } else {
             label(T, 'MISS', '#D9CDEA', dx, top);
@@ -20091,6 +20780,11 @@ const SquadView = (() => {
             addParts(14, dx, dy, ['#FFD447', '#FFFFFF', '#FFF3B0'], 0.09, 0.0002, 420 * k, T, true);
             ringFx(T, dx, dy, 220 * k, '#FFF3B0', 4, 12, false, 0.9);
             sfx('crit');
+            // the Gambler's (engine 23): born lucky, and it says so
+            if (u.pow === 'gambler') {
+              label(T + 2, 'LUCKY!', '#FFD447', dx, top - 10, true);
+              diceFx(T, ux, uy - 10, k);
+            }
           } else {
             label(T, String(e.dmg), e.res === 'block' ? '#BDE7FF' : '#FFFFFF', dx, top);
             sfx(e.res === 'block' ? 'block' : 'hit');
@@ -21466,6 +22160,94 @@ const SquadView = (() => {
         addParts(6, cx, cy - 10, ['#FFFFFF', '#E9E9F2'], 0.05, 0.0002, 600 * k, T, true, [-Math.PI, 0]);
         return;
       }
+      // THE LUCKY WHEEL (engine 23). Its wedge comes up: GREEN, RED or the Gambler's
+      // JACKPOT, in big letters over the wheel, a ring and sparks in its colour (gold
+      // and coins everywhere for a jackpot).
+      case 'wheel': {
+        const u = U[e.u];
+        if (!u) return;
+        const at = b && b.spots && b.spots[e.team];
+        const [wx, wy] = at || wheelSpot(u);
+        const C = e.col === 'j' ? '#FFD447' : e.col === 'g' ? '#4BE08F' : '#FF5C77';
+        label(T, e.col === 'j' ? 'JACKPOT!' : e.col === 'g' ? 'GREEN!' : 'RED!', C, wx, above(wy - 22), true, 2);
+        ringFx(T, wx, wy, 460 * k, C, 6, 22, false, 0.9);
+        addParts(e.col === 'j' ? 32 : 12, wx, wy, e.col === 'j' ? ['#FFD447', '#FFF3B0', '#FFFFFF', '#C98A12'] : [C, '#FFFFFF'], e.col === 'j' ? 0.1 : 0.07, 0.00018, 760 * k, T, true);
+        if (e.col === 'j') {
+          for (let c = 0; c < 6; c++)
+            addFx(T + c * 60 * k, 700 * k, (x, kk, el) => x.drawImage(fxFrame('coin', Math.floor(el / (70 * k)) % 4), Math.round(wx - 4 + (c - 2.5) * 6 * kk * 2), Math.round(wy - 10 - Math.sin(kk * Math.PI) * (16 + (c % 3) * 5) + kk * 14)));
+          flash(T);
+          hold(140);
+        }
+        sfx(e.col === 'j' ? 'win' : 'bell');
+        return;
+      }
+      // a card off the wheel lands: what it does to a whole squad, or a Blub's bags
+      case 'wcard': {
+        memePop(e.to, 'w:' + e.id, false);
+        const mates = U.filter((v) => v.alive && !v.gone && v.team === e.to);
+        const [mx, my] = midOf(mates);
+        if (e.id === 'wagmi') {
+          mates.forEach((v, n) => {
+            const [vx, vy] = centreOf(v);
+            const t0 = T + n * 70 * k;
+            ringFx(t0, vx, vy + 6, 360 * k, '#4BE08F', 3, 11, true, 0.4);
+            addFx(t0, 640 * k, (x, kk) => paintRows(x, UP_ARROW, { k: INK, g: '#4FB36B', G: '#9FE3A8' }, vx - 3, Math.round(vy - 2 - kk * 18), 1));
+            label(t0 + 120 * k, '+' + SE.RULES.wagmiHp + ' MAX', '#4BE08F', vx, vy - 22, true);
+          });
+          sfx('heal');
+        } else if (e.id === 'pump') {
+          mates.forEach((v, n) => {
+            const [vx, vy] = centreOf(v);
+            addParts(8, vx, vy + 2, ['#4BE08F', '#9FE3A8', '#FFFFFF'], 0.05, -0.00008, 640 * k, T + n * 60 * k, true, [-Math.PI * 0.8, -Math.PI * 0.2]);
+            ringFx(T + n * 60 * k, vx, vy + 6, 320 * k, '#4BE08F', 3, 10, true, 0.4);
+          });
+          label(T + 80 * k, 'PUMP +' + SE.RULES.pumpDmg + ' DMG', '#4BE08F', mx, above(my - 30), true);
+          sfx('power');
+        } else if (e.id === 'ngmi') {
+          mates.forEach((v) => {
+            v.flash = T;
+            const [vx, vy] = centreOf(v);
+            addParts(5, vx, vy - 12, ['#FF5C77', '#B8324A'], 0.03, 0.0002, 420 * k, T, true, [Math.PI * 0.3, Math.PI * 0.7]);
+          });
+          label(T, 'NGMI', '#FF5C77', mx, above(my - 30), true, 2);
+          label(T + 160 * k, 'NEXT ATTACK MISSES', '#FF9AA8', mx, above(my - 16), true);
+          shake(T);
+          sfx('miss');
+        } else if (e.id === 'bagholder' && U[e.d]) {
+          const d = U[e.d];
+          const [dx, dy] = centreOf(d);
+          d.flash = T;
+          d.hop = { kind: 'toss', t0: T, dur: 160 * k, h: 1 };
+          addParts(8, dx, dy + 6, ['#FFE3EA', '#E9A2B6', '#D9A05B'], 0.05, 0.0003, 380 * k, T, true, [Math.PI, Math.PI * 2]);
+          label(T, 'BAGHOLDER', '#FF5C77', dx, dy - 26, true);
+          label(T + 140 * k, '-' + SE.RULES.bagMove + ' MOVE', '#FF9AA8', dx, dy - 16, true);
+          sfx('thud');
+        } else if (e.id === 'gas') {
+          label(T, 'GAS FEES', '#FF5C77', mx, above(my - 30), true);
+          sfx('miss');
+        }
+        return;
+      }
+      // REKT (engine 23): the red crate lands on its Blub and bursts
+      case 'rekted': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        addParts(14, dx, dy, ['#E2566E', '#8C5A2B', '#D9A05B', '#FFFFFF'], 0.1, 0.0004, 520 * k, T, true, [Math.PI * 1.05, Math.PI * 1.95]);
+        for (const s of [-1, 1]) addFx(T, 480 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(dx - 8 + s * (4 + (el * 0.02) / k)), dy - 4));
+        if (e.res === 'absorb') {
+          label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
+          sfx('block');
+          return;
+        }
+        d.hurt = T;
+        d.flash = T;
+        label(T, String(e.dmg), '#FF5C77', dx, dy - 14, true, 2);
+        label(T + 140 * k, 'REKT', '#FF5C77', dx, dy - 30, true, 2);
+        shake(T);
+        hold(100);
+        sfx('crit');
+        return;
+      }
       // SEND IT (engine 20, the owner: a stunt cannon). The Blub hops up into the mouth
       // of the circus cannon (from wherever it was, when the cannon picked it), its ears
       // peek out while the fuse fizzes, then BOOM: a flash, smoke and confetti, and up it
@@ -21954,7 +22736,9 @@ const SquadView = (() => {
         const [dx, dy] = centreOf(d);
         if (e.res === 'absorb') return;
         d.hurt = T;
-        label(T, '-' + e.dmg + ' GAS', '#FF5C77', dx, dy - 22, false);
+        // (off the Lucky Wheel, engine 23: the bill comes in a puff of purple gas)
+        if (b && b.kind === 'wcard') addParts(9, dx, dy - 6, ['#B8A4EC', '#6B54A8', '#FFFFFF'], 0.04, -0.00005, 520 * k, T, true);
+        label(T, '-' + e.dmg + ' GAS', '#FF5C77', dx, dy - 22, !!(b && b.kind === 'wcard'));
         addFx(T, 600 * k, (x, kk) => x.drawImage(fxFrame('coin', Math.floor(kk * 8) % 4), Math.round(dx + 4 + kk * 10), Math.round(dy - 14 - Math.sin(kk * Math.PI) * 12)));
         return;
       }
@@ -22873,7 +23657,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['wheel', 'wcard', 'rekted', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -22946,6 +23730,18 @@ const SquadView = (() => {
         c.setAttribute('aria-label', (kind === 'buff' ? 'Buff ' : kind === 'gold' ? 'Golden drop ' : 'Nerf ') + nameOf(kind, id));
         R.meme.append(c);
         R.memeChips[id] = c;
+      }
+      // the Lucky Wheel's cards (engine 23), each once it is dealt: green ones from
+      // its own wheel, red ones off the other side's
+      for (const e of (P.rd && P.rd.R && P.rd.R.ev) || []) {
+        if (e.t !== 'wcard' || e.to !== team || R.memeChips['w:' + e.id]) continue;
+        const c = el('span', 'sqv-mc ' + e.kind);
+        c.append(icon(e.kind, e.id, 32));
+        c.title = 'Lucky Wheel, ' + nameOf(e.kind, e.id) + ': ' + descOf(e.kind, e.id);
+        c.setAttribute('aria-label', 'Lucky Wheel ' + (e.kind === 'buff' ? 'buff ' : 'nerf ') + nameOf(e.kind, e.id));
+        c.hidden = true;
+        R.meme.append(c);
+        R.memeChips['w:' + e.id] = c;
       }
     });
   }
@@ -23020,6 +23816,10 @@ const SquadView = (() => {
     if (!S) return;
     [[P.me, D.you], [1 - P.me, D.them]].forEach(([t, R]) => {
       for (const id in R.memeChips || {}) {
+        if (id.startsWith('w:')) {
+          R.memeChips[id].hidden = !S.wseen[t + ':' + id];
+          continue;
+        }
         R.memeChips[id].classList.toggle('used', !!S.spent[t + ':' + id]);
         // only once its crate is open
         R.memeChips[id].hidden = !S.perkSeen[t];
@@ -23035,6 +23835,10 @@ const SquadView = (() => {
         if (u.alive && u.dug) sts.push('dug');
         if (u.alive && u.ammo) sts.push('ammo');
         if (u.alive && u.gone) sts.push('rugged');
+        // off the Lucky Wheel (engine 23)
+        if (u.alive && u.st.bag) sts.push('bag');
+        if (u.alive && S.turn && S.wpump[u.team] >= S.turn) sts.push('wpump');
+        if (u.alive && S.ngmi[u.team] > 0) sts.push('ngmi');
         const acting = P.actors.includes(r.id) && P.phase === 'round';
         // the doppelganger's row only once it has come off the bench (engine 22)
         if (r.dbl) r.b.hidden = !!u.bench;
@@ -24212,20 +25016,20 @@ const SquadView = (() => {
         exit: `Turn ${R.exitFrom}-${R.exitTo}, no warning: the floor opens under a Blub. Whoever stands on it is out.`,
       },
       buff: {
-        airdrop: `Turn ${R.airdropFrom}-${R.airdropTo}: your weakest Blub gets +${R.airdropHp} HP and its power back.`,
-        sniper: `${R.sniperDmg} damage on the first enemy that uses a power.`,
-        devwallet: `Turn ${R.devwalletTurn}: ${R.devwalletShare}% of the damage taken comes back.`,
-        wagmi: `Every Blub starts with +${R.wagmiHp} HP.`,
-        pump: `+${R.pumpDmg} damage for the first ${s(R.pumpTurns, 'turn')}.`,
+        airdrop: `Your most hurt Blub: +${R.airdropHp} HP and its power back.`,
+        sniper: `${R.sniperDmg} damage on the enemy that has done the most damage.`,
+        devwallet: `Every Blub gets ${R.devwalletShare}% of the damage it took this round back.`,
+        wagmi: `Every Blub: +${R.wagmiHp} max HP.`,
+        pump: `+${R.pumpDmg} damage on every hit for ${s(R.pumpTurns, 'turn')}.`,
         alpha: `Sees the traps: walks around them, never falls for the honeypot or the sniper.`,
       },
       nerf: {
-        paper: `The first Blub under ${R.paperAt}% runs away for ${s(R.paperTurns, 'turn')}.`,
-        gas: `Every power costs its Blub ${R.gasHp} HP, and comes a turn later.`,
-        bagholder: `The slowest Blub loses ${s(R.bagMove, 'step')}.`,
+        paper: `Their Blub that has done the most damage runs for ${s(R.paperTurns, 'turn')}.`,
+        gas: `${R.gasHp} HP from every one of their Blubs (never below 1).`,
+        bagholder: `Their hardest hitter up close carries the bags: ${s(R.bagMove, 'step')} less.`,
         jeet: `The captain loses its +${R.captainHp} HP and calls no command.`,
-        rekt: `One Blub starts ${R.rektHp} HP down.`,
-        ngmi: R.ngmiMiss === 1 ? 'The first attack always misses.' : `The first ${R.ngmiMiss} attacks always miss.`,
+        rekt: `A red crate on their healthiest Blub: ${R.rektHp} damage (never below 1 HP).`,
+        ngmi: R.ngmiMiss === 1 ? 'Their next attack always misses.' : `Their next ${R.ngmiMiss} attacks always miss.`,
       },
       // the golden drop (engine 22)
       gold: {
@@ -25257,9 +26061,10 @@ const SquadView = (() => {
     const still = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     const root = el('div', 'sqx');
     const cards = [];
-    const section = (title, list, kind) => {
+    const section = (title, list, kind, intro) => {
       const sec = el('section', 'sqx-sec');
       sec.append(el('h3', 'sqx-h', title));
+      if (intro) sec.append(el('p', 'sqx-in', intro));
       const grid = el('div', 'sqx-grid');
       for (const [id, name, text] of list) {
         const card = el('article', 'sqx-card ' + kind);
@@ -25287,6 +26092,13 @@ const SquadView = (() => {
     section(o.eventsTitle || 'Chest events', SE.EVENTS, 'ev');
     // engine 22: the golden drop took the place of the buffs and nerfs
     if (SE.GOLDS) section(o.goldsTitle || 'Golden drops', SE.GOLDS, 'gold');
+    // engine 23: the green and the red cards back, on the Lucky Wheel
+    if (SE.WHEEL_GREENS) {
+      const R = SE.RULES;
+      const of = (list, ids) => ids.map((id) => list.find((v) => v[0] === id)).filter(Boolean);
+      section(o.wheelGreenTitle || 'Lucky Wheel: green cards', of(SE.BUFFS, SE.WHEEL_GREENS), 'buff', `On turn ${R.wheelEvery}, ${R.wheelEvery * 2} and ${R.wheelEvery * 3} a wheel comes down beside each squad and its captain spins it (its Gambler, if it has one). ${R.wheelGreen} wedges of ${SE.WHEEL.length} are green: a card for your squad. The rest are red: a card against theirs. Never the same card twice in a round, and only one that can do something right now.`);
+      section(o.wheelRedTitle || 'Lucky Wheel: red cards', of(SE.NERFS, SE.WHEEL_REDS), 'nerf');
+    }
     else {
       section(o.buffsTitle || 'Buffs', SE.BUFFS, 'buff');
       section(o.nerfsTitle || 'Nerfs', SE.NERFS, 'nerf');
