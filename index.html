@@ -6332,7 +6332,7 @@ const BUFFS = lock([
 const NERFS = lock([
   ['paper', 'Paper Hands', `Their Blub that has done the most damage loses its nerve and runs for ${RULES.paperTurns} turn${RULES.paperTurns === 1 ? '' : 's'}.`],
   ['gas', 'Gas Fees', `A gas bill: ${RULES.gasHp} HP from every one of their Blubs (never below 1).`],
-  ['bagholder', 'Bagholder', `Their hardest hitter that has to walk up to hit carries the bags: ${RULES.bagMove} move less for the rest of the round.`],
+  ['bagholder', 'Bagholder', `Their hardest hitter that has to walk up to hit (else their healthiest Blub) carries the bags: ${RULES.bagMove} move less for the rest of the round, never below 1.`],
   ['jeet', 'Jeet', `The captain jeets: it loses its +${RULES.captainHp} HP and calls no command this round.`],
   ['rekt', 'Rekt', `A red crate on their healthiest Blub: ${RULES.rektHp} damage (never below 1 HP).`],
   ['ngmi', 'NGMI', `Their next ${RULES.ngmiMiss === 1 ? 'attack always misses' : RULES.ngmiMiss + ' attacks always miss'}.`],
@@ -7236,15 +7236,17 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       meme[u.team].opened++;
       res = 'miss';
     }
-    // NGMI off the Lucky Wheel (engine 23): the same, from the turn it was dealt
-    if (wm[u.team].ngmi > 0) {
-      wm[u.team].ngmi--;
+    // NGMI off the Lucky Wheel (engine 23): the whole of the squad's next attack (see
+    // attack(): every bullet of a burst, both stabs) goes wide, cover or no cover
+    const ngmi = u.ngmiAtk ? 1 : 0;
+    if (ngmi) {
       res = 'miss';
+      cover = 0;
     }
     const guard = gd >= 0 ? { gd } : null;
     const bl = blind ? { blind } : null;
     if (res !== 'hit') {
-      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, cover, dmg: 0, hp: d.hp, ...guard, ...bl });
+      push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, cover, dmg: 0, hp: d.hp, ...guard, ...bl, ...(ngmi ? { ngmi } : {}) });
       return res;
     }
     // the attack's bonuses ride on its first hit that lands
@@ -7365,10 +7367,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.pending = bonus;
     u.amb = u.ambush && w.range <= 2 ? 1 : 0;
     let landed = false;
+    // owing an NGMI off the Lucky Wheel (engine 23): this is the attack that pays it
+    u.ngmiAtk = wm[u.team].ngmi > 0;
+    if (u.ngmiAtk) wm[u.team].ngmi--;
     for (let k = 0; k < hits && d.alive && over < 0; k++) {
       const res = strike(u, d, k, gd);
       if (res === 'hit' || res === 'crit' || res === 'block') landed = true;
     }
+    u.ngmiAtk = false;
     u.pending = 0;
     u.amb = 0;
     // the Ray Gun's slime (engine 22) splashes on every enemy beside the one it hit
@@ -9724,21 +9730,26 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const wr = [0, 1].map((t) => rng(subSeed(seed, round, WHEEL_SALT + t)));
   const wm = [0, 1].map(() => ({ used: new Set(), pumpTo: 0, ngmi: 0 }));
   const hurtMost = (t) => living[t].slice().sort(byHurt)[0] || null;
-  // the card's target on the other side: never the Blub that opened their golden crate
-  // while there is another (a tie: the lower unit)
-  const notGold = (o) => {
+  // the card's target on the other side, among those it can work on (ok): never the Blub
+  // that opened their golden crate while there is another (a tie: the lower unit)
+  const among = (o, ok) => {
     const gold = crates[o] && crates[o].by;
-    const list = living[o].filter((v) => v !== gold);
-    return list.length ? list : living[o].slice();
+    const all = ok ? living[o].filter(ok) : living[o].slice();
+    const list = all.filter((v) => v !== gold);
+    return list.length ? list : all;
   };
-  const healthiest = (o) => notGold(o).sort((a, b) => b.hp - a.hp || a.id - b.id)[0] || null;
+  const notGold = (o) => among(o, null);
+  const healthiest = (o, ok) => among(o, ok).sort((a, b) => b.hp - a.hp || a.id - b.id)[0] || null;
+  // Rekt's: their healthiest Blub with more than 1 HP to lose
+  const rektFor = (o) => healthiest(o, (v) => v.hp > 1);
   // Bagholder's: the hardest hitter that has to walk up to hit (reach 2 or less), else
   // their healthiest
   const bagFor = (o) => notGold(o).filter((v) => W(v).range <= 2 && !W(v).boom && !v.ride).sort((a, b) => punch(b) - punch(a) || a.id - b.id)[0] || healthiest(o);
   // the enemy that has done the most damage (Sniper Bot; Paper Hands, if it can run)
-  const topDealer = (o, run) => notGold(o).filter((v) => !run || (!anchored(v) && !v.ride)).sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || a.id - b.id)[0] || null;
+  const topDealer = (o, run) => among(o, run ? (v) => !anchored(v) && !v.ride : null).sort((a, b) => b.dealt - a.dealt || punch(b) - punch(a) || a.id - b.id)[0] || null;
   const owed = (v) => Math.min(v.max - v.hp, Math.floor((stats[v.id].taken * RULES.devwalletShare) / 100));
-  const powerBack = (v) => (v.pow === 'bubble' ? !v.bubble : ['freeze', 'storm', 'nap', 'rage'].includes(v.pow) && v.used);
+  // (Rage Mode, once on, stays on: there is nothing of it to give back)
+  const powerBack = (v) => (v.pow === 'bubble' ? !v.bubble : ['freeze', 'storm', 'nap'].includes(v.pow) && v.used);
   // can the card do something right now, dealt by squad t
   function cardLive(t, id) {
     const o = 1 - t;
@@ -9746,7 +9757,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (id === 'devwallet') return living[t].some((v) => owed(v) > 0);
     if (id === 'pump') return wm[t].pumpTo < now;
     if (id === 'paper') return !!topDealer(o, true);
-    if (id === 'gas' || id === 'rekt') return living[o].some((v) => v.hp > 1);
+    if (id === 'gas') return living[o].some((v) => v.hp > 1);
+    if (id === 'rekt') return !!rektFor(o);
     if (id === 'ngmi') return wm[o].ngmi === 0;
     return living[o].length > 0 && living[t].length > 0;
   }
@@ -9773,7 +9785,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (id === 'gas') return them.reduce((s, v) => s + (v.bubble ? 1 : Math.max(0, Math.min(RULES.gasHp, v.hp - 1))), 0);
     if (id === 'bagholder') return 3;
     if (id === 'rekt') {
-      const v = healthiest(o);
+      const v = rektFor(o);
       return !v ? 0 : v.bubble ? 2 : Math.max(0, Math.min(RULES.rektHp, v.hp - 1));
     }
     if (id === 'ngmi') return (RULES.ngmiMiss * them.reduce((s, v) => s + punch(v), 0) * 0.6) / Math.max(1, them.length);
@@ -9785,12 +9797,17 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (over >= 0) return;
     const to = kind === 'buff' ? t : o;
     const card = (d, x) => push({ t: 'wcard', team: t, kind, id, to, d: d ? d.id : -1, ...(x || {}) });
+    // a card dealt off the board as it was, with nothing left for it to do once its
+    // turn to be played comes (an earlier card of the same spin took its Blub down, or
+    // healed what it would have): it fizzles, and says so
+    const fizzle = () => card(null, { fizzle: 1 });
+    if (!cardLive(t, id) && id !== 'pump' && id !== 'ngmi') return fizzle();
     if (id === 'airdrop') {
       const v = hurtMost(t);
-      if (!v) return;
-      card(v);
+      const back = powerBack(v);
+      card(v, back ? { back: 1 } : null);
       heal(v, RULES.airdropHp, 'airdrop');
-      if (powerBack(v)) {
+      if (back) {
         if (v.pow === 'bubble') {
           v.bubble = true;
           push({ t: 'status', u: v.id, s: 'bubble', on: true });
@@ -9798,7 +9815,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
     } else if (id === 'sniper') {
       const v = topDealer(o, false);
-      if (!v) return;
       card(v);
       hurt(v, RULES.sniperDmg, 'sniped', null);
     } else if (id === 'devwallet') {
@@ -9818,7 +9834,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       card(null, { until: wm[t].pumpTo });
     } else if (id === 'paper') {
       const v = topDealer(o, true);
-      if (!v) return;
       v.paper = now + RULES.paperTurns - 1;
       card(v, { until: v.paper });
       push({ t: 'status', u: v.id, s: 'paper', on: true });
@@ -9827,13 +9842,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       for (const v of living[o].slice()) if (v.alive && v.hp > 1 && over < 0) hurt(v, Math.min(RULES.gasHp, v.hp - 1), 'gas', null);
     } else if (id === 'bagholder') {
       const v = bagFor(o);
-      if (!v) return;
-      v.move = Math.max(1, v.move - RULES.bagMove);
-      card(v, { mv: v.move });
+      // (never below 1 move of its own: a Charge! it is on comes off later as usual)
+      const c = v.charged ? RULES.chargeMove : 0;
+      const was = v.move;
+      v.move = Math.max(1, v.move - c - RULES.bagMove) + c;
+      card(v, { mv: v.move, lost: was - v.move });
       push({ t: 'status', u: v.id, s: 'bag', on: true });
     } else if (id === 'rekt') {
-      const v = healthiest(o);
-      if (!v || v.hp <= 1) return;
+      const v = rektFor(o);
       card(v);
       hurt(v, Math.min(RULES.rektHp, v.hp - 1), 'rekted', null);
     } else if (id === 'ngmi') {
@@ -13652,14 +13668,15 @@ const SquadView = (() => {
       case 'wcard': {
         const R = SE.RULES;
         const c = 'Lucky Wheel: ' + nameOf(e.kind, e.id) + '! ';
-        if (e.id === 'airdrop') return c + 'A crate for ' + d + '.';
+        if (e.fizzle) return c + 'But there is nothing left for it to do: it fizzles.';
+        if (e.id === 'airdrop') return c + 'A crate for ' + d + (e.back ? ', and its power back.' : '.');
         if (e.id === 'sniper') return c + 'It has ' + d + ' in its sights.';
         if (e.id === 'devwallet') return c + lb(e.to) + ' gets paid back.';
         if (e.id === 'wagmi') return c + 'Every Blub of ' + lb(e.to) + ': +' + R.wagmiHp + ' max HP.';
         if (e.id === 'pump') return c + lb(e.to) + ' hits +' + R.pumpDmg + ' harder till turn ' + e.until + '.';
         if (e.id === 'paper') return c + d + ' loses its nerve.';
         if (e.id === 'gas') return c + lb(e.to) + ' pays up.';
-        if (e.id === 'bagholder') return c + d + ' carries the bags: ' + R.bagMove + ' move less.';
+        if (e.id === 'bagholder') return c + d + ' carries the bags: ' + (e.lost || R.bagMove) + ' move less.';
         if (e.id === 'rekt') return c + 'A red crate comes down on ' + d + '.';
         if (e.id === 'ngmi') return c + lb(e.to) + "'s next attack will miss.";
         return c;
@@ -13727,7 +13744,7 @@ const SquadView = (() => {
         if (src === 'doze') return d + ' dozes: +' + e.amt + '.';
         if (src === 'apple') return d + ' eats the Golden Apple: +' + e.amt + '.';
         if (src === 'feather') return d + ' feels lighter: +' + e.amt + '.';
-        if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + ' and its power back.';
+        if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + '.';
         if (src === 'devwallet') return 'The dev wallet pays ' + d + ' back: +' + e.amt + '.';
         if (src === 'gem') return 'The gem heals ' + d + ': +' + e.amt + '.';
         // a slice of pizza is told as it is eaten ('slice', engine 22)
@@ -14819,8 +14836,10 @@ const SquadView = (() => {
       // time (the Blub on it: rager), its rush is a rush, its bullets ride on their burst
       let rager = -1;
       let lastBurst = null;
-      // the Lucky Wheel (engine 23): the wheels' beat its cards come out of
+      // the Lucky Wheel (engine 23): the wheels' beat its cards come out of, and the card
+      // being played (what it does rides on it, whatever a hit sets off in between)
       let wheelB = null;
+      let cardB = null;
       const add = (b) => {
         if (rager >= 0) b.keep = true;
         b.list = b.list || [];
@@ -14865,6 +14884,18 @@ const SquadView = (() => {
           pend.push(i);
           return;
         }
+        // the Lucky Wheel's cards (engine 23): what a card does lands as it comes down
+        // (only a card does these now); the gas bills and the dev wallet's pay one Blub
+        // after another
+        if (cardB && ((t === 'heal' && (e.src === 'airdrop' || e.src === 'devwallet')) || t === 'sniped' || t === 'gas' || t === 'rekted')) {
+          const each = t === 'gas' ? MS.gasEach : t === 'heal' && e.src === 'devwallet' ? MS.walletEach : 0;
+          cardB.list.push({ ei: i, off: cardB.contact + cardB.n * each });
+          if (each) {
+            cardB.n++;
+            cardB.dur += each;
+          }
+          return;
+        }
         // events that ride on the beat that caused them
         const p = parent;
         if (p) {
@@ -14901,17 +14932,6 @@ const SquadView = (() => {
           // a slice of pizza heals as it is eaten (engine 22)
           if (t === 'heal' && p.kind === 'slice' && e.src === 'pizza') {
             attachTo(p, i);
-            return;
-          }
-          // the Lucky Wheel's cards (engine 23): what a card does lands as it comes
-          // down; the gas bills and the dev wallet's pay one Blub after another
-          if (p.kind === 'wcard' && ((t === 'heal' && (e.src === 'airdrop' || e.src === 'devwallet')) || t === 'sniped' || t === 'gas' || t === 'rekted')) {
-            const each = t === 'gas' ? MS.gasEach : t === 'heal' && e.src === 'devwallet' ? MS.walletEach : 0;
-            p.list.push({ ei: i, off: p.contact + p.n * each });
-            if (each) {
-              p.n++;
-              p.dur += each;
-            }
             return;
           }
           // the Shiba Inu's bite rides on its run (engine 22)
@@ -14979,6 +14999,7 @@ const SquadView = (() => {
         }
         if (t === 'turn') {
           parent = null;
+          cardB = null;
           lastMove = null;
           add({ kind: 'turn', dur: e.n === 1 ? 0 : MS.gap, contact: 0, list: [{ ei: i, off: 0 }], n: e.n, ei: i });
           return;
@@ -15074,6 +15095,7 @@ const SquadView = (() => {
         // the Lucky Wheel (engine 23): both wheels in one scene, each told as it stops
         // (the viewer's own last); then a scene for every card that comes out of them
         if (t === 'wheel') {
+          cardB = null;
           const it = { ei: i, off: MS.wheelOne };
           if (parent && parent.kind === 'wheels' && parent.wh.length === 1) {
             const mine = e.team === (P ? P.me : 0);
@@ -15088,9 +15110,9 @@ const SquadView = (() => {
           return;
         }
         if (t === 'wcard') {
-          const c = CARD_MS[e.id] || [900, 300];
+          const c = e.fizzle ? [760, 200] : CARD_MS[e.id] || [900, 300];
           const hit = MS.cardIn + c[1];
-          parent = add({ kind: 'wcard', dur: MS.cardIn + c[0], contact: hit, list: [{ ei: i, off: hit }], e, actors: e.d >= 0 ? [e.d] : [], n: 0, wb: wheelB });
+          parent = cardB = add({ kind: 'wcard', dur: MS.cardIn + c[0], contact: hit, list: [{ ei: i, off: hit }], e, actors: e.d >= 0 ? [e.d] : [], n: 0, wb: wheelB });
           if (wheelB) wheelB.cards.push(parent);
           return;
         }
@@ -15393,7 +15415,8 @@ const SquadView = (() => {
       pizzas: {},
       // the Lucky Wheel (engine 23), by team: pumped till that turn, the NGMI misses it
       // still owes (and the last attack that paid one), the cards dealt so far
-      wpump: [0, 0], ngmi: [0, 0], ngmiE: null, wseen: {},
+      // and who carries the bags (they stay on through a Field Hospital)
+      wpump: [0, 0], ngmi: [0, 0], wseen: {}, bags: {},
     };
   }
   function fold(S, e) {
@@ -15451,11 +15474,8 @@ const SquadView = (() => {
         break;
       }
       case 'attack':
-        // NGMI off the Lucky Wheel (engine 23): the squad's next swing was always going wide
-        if (S.ngmi[U[e.u].team] > 0) {
-          S.ngmi[U[e.u].team]--;
-          S.ngmiE = e;
-        }
+        // NGMI off the Lucky Wheel (engine 23): the attack that pays it, every hit of it
+        if (e.ngmi && !e.n && S.ngmi[U[e.u].team] > 0) S.ngmi[U[e.u].team]--;
         // the first blow that lands (or pops a bubble) digs a Blub out of its foxhole
         if (e.res !== 'miss' && e.res !== 'whiff') U[e.d].dug = false;
         // the Scope Rifle has fired: its aim is spent
@@ -15647,7 +15667,10 @@ const SquadView = (() => {
       // a card off the Lucky Wheel (engine 23); what it does to HP and statuses comes
       // in events of its own, except WAGMI's bigger bars, the pump and NGMI
       case 'wcard':
+        // (a card that fizzled did nothing, and gets no chip)
+        if (e.fizzle) break;
         S.wseen[e.to + ':w:' + e.id] = true;
+        if (e.id === 'bagholder') S.bags[e.d] = true;
         if (e.id === 'wagmi')
           for (const [id, hp, max] of e.ups || []) {
             U[id].hp = hp;
@@ -15820,7 +15843,7 @@ const SquadView = (() => {
         U[e.u].x = e.to[0];
         U[e.u].y = e.to[1];
         U[e.u].hp = e.hp;
-        U[e.u].st = {};
+        U[e.u].st = S.bags[e.u] ? { bag: true } : {};
         U[e.u].dug = false;
         break;
       case 'end':
@@ -15860,7 +15883,7 @@ const SquadView = (() => {
     wpump: [['..g..', '.ggg.', 'gg.gg', '..g..', '.ggg.'], { g: '#4BE08F' }],
     ngmi: [['.....', 'rFFFr', '.rFr.', '..r..', '.....'], { r: '#B8324A', F: '#FF5C77' }],
   };
-  const STATUS_NAME = { pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now', bag: 'bagholder: ' + SE.RULES.bagMove + ' move less', wpump: 'pumped: +' + SE.RULES.pumpDmg + ' damage on every hit', ngmi: 'NGMI: its squad\u2019s next attack misses' };
+  const STATUS_NAME = { pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now', bag: 'bagholder: slower for the rest of the round', wpump: 'pumped: +' + SE.RULES.pumpDmg + ' damage on every hit', ngmi: 'NGMI: its squad\u2019s next attack misses' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -19874,6 +19897,7 @@ const SquadView = (() => {
       banner(nameOf(e.kind, e.id) + (red ? ' on ' : ' for ') + P.sideLabels[P.sideOf(e.to)], e.kind, e.id, 1800);
     });
     // what it does
+    if (e.fizzle) return true;
     const syn = { airdrop: { t: 'airdrop', team: e.team, u: e.d }, sniper: { t: 'snipe', team: e.team, d: e.d }, devwallet: { t: 'devwallet', team: e.team }, paper: { t: 'paper', u: e.d } }[e.id];
     if (syn && (!('u' in syn) || syn.u >= 0) && (!('d' in syn) || syn.d >= 0)) atClock(E, () => fx(syn, E, b, k));
     if (e.id === 'rekt' && d) {
@@ -20740,7 +20764,14 @@ const SquadView = (() => {
         if (e.blind && !e.n && lucky) diceFx(T - 120 * k, ux, uy - 10, k);
         if (e.res === 'miss' || e.res === 'whiff') {
           const end = b && b.e === e && b.end;
-          if (end && b.endKind === 'sand') {
+          if (e.ngmi) {
+            // NGMI off the Lucky Wheel (engine 23): it was never going to land
+            if (!e.n) {
+              label(T, 'NGMI', '#FF5C77', dx, top, true);
+              addParts(6, ux, uy - 12, ['#FF5C77', '#B8324A'], 0.03, 0.0003, 420 * k, T, true, [Math.PI * 0.3, Math.PI * 0.7]);
+            }
+            sfx('miss');
+          } else if (end && b.endKind === 'sand') {
             // thud: the arrow sticks in a sandbag in a puff of sand
             label(T, 'COVER', OC.skL, dx, top);
             addParts(9, end[0], end[1] - 1, [OC.skL, OC.sk, OC.skD, '#FFF3D6'], 0.05, 0.00028, 420 * k, T, true, [Math.PI * 0.95, Math.PI * 2.05]);
@@ -20750,11 +20781,6 @@ const SquadView = (() => {
             label(T, 'MISS', '#D9CDEA', dx, top);
             addParts(7, end[0], end[1], ['#FFFFFF', '#FFF3B0', colors.gold], 0.08, 0.0003, 260 * k, T, true);
             addParts(4, end[0], end[1], [OC.wdL, OC.wd], 0.05, 0.0004, 320 * k, T);
-            sfx('miss');
-          } else if (P.S.ngmiE === e) {
-            // NGMI off the Lucky Wheel (engine 23): it was never going to land
-            label(T, 'NGMI', '#FF5C77', dx, top, true);
-            addParts(6, ux, uy - 12, ['#FF5C77', '#B8324A'], 0.03, 0.0003, 420 * k, T, true, [Math.PI * 0.3, Math.PI * 0.7]);
             sfx('miss');
           } else {
             label(T, 'MISS', '#D9CDEA', dx, top);
@@ -22183,9 +22209,16 @@ const SquadView = (() => {
       }
       // a card off the wheel lands: what it does to a whole squad, or a Blub's bags
       case 'wcard': {
-        memePop(e.to, 'w:' + e.id, false);
         const mates = U.filter((v) => v.alive && !v.gone && v.team === e.to);
         const [mx, my] = midOf(mates);
+        if (e.fizzle) {
+          // nothing left for it to do: it goes up in a puff
+          label(T, 'FIZZLE', '#C9C9D6', mx, above(my - 30), true);
+          addParts(10, mx, my - 36, ['#C9C9D6', '#FFFFFF', '#6E6E80'], 0.05, -0.00006, 520 * k, T, true);
+          sfx('miss');
+          return;
+        }
+        memePop(e.to, 'w:' + e.id, false);
         if (e.id === 'wagmi') {
           mates.forEach((v, n) => {
             const [vx, vy] = centreOf(v);
@@ -22220,7 +22253,7 @@ const SquadView = (() => {
           d.hop = { kind: 'toss', t0: T, dur: 160 * k, h: 1 };
           addParts(8, dx, dy + 6, ['#FFE3EA', '#E9A2B6', '#D9A05B'], 0.05, 0.0003, 380 * k, T, true, [Math.PI, Math.PI * 2]);
           label(T, 'BAGHOLDER', '#FF5C77', dx, dy - 26, true);
-          label(T + 140 * k, '-' + SE.RULES.bagMove + ' MOVE', '#FF9AA8', dx, dy - 16, true);
+          label(T + 140 * k, '-' + (e.lost || SE.RULES.bagMove) + ' MOVE', '#FF9AA8', dx, dy - 16, true);
           sfx('thud');
         } else if (e.id === 'gas') {
           label(T, 'GAS FEES', '#FF5C77', mx, above(my - 30), true);
@@ -25026,7 +25059,7 @@ const SquadView = (() => {
       nerf: {
         paper: `Their Blub that has done the most damage runs for ${s(R.paperTurns, 'turn')}.`,
         gas: `${R.gasHp} HP from every one of their Blubs (never below 1).`,
-        bagholder: `Their hardest hitter up close carries the bags: ${s(R.bagMove, 'step')} less.`,
+        bagholder: `Their hardest hitter up close carries the bags: up to ${s(R.bagMove, 'step')} less.`,
         jeet: `The captain loses its +${R.captainHp} HP and calls no command.`,
         rekt: `A red crate on their healthiest Blub: ${R.rektHp} damage (never below 1 HP).`,
         ngmi: R.ngmiMiss === 1 ? 'Their next attack always misses.' : `Their next ${R.ngmiMiss} attacks always miss.`,
@@ -26096,7 +26129,7 @@ const SquadView = (() => {
     if (SE.WHEEL_GREENS) {
       const R = SE.RULES;
       const of = (list, ids) => ids.map((id) => list.find((v) => v[0] === id)).filter(Boolean);
-      section(o.wheelGreenTitle || 'Lucky Wheel: green cards', of(SE.BUFFS, SE.WHEEL_GREENS), 'buff', `On turn ${R.wheelEvery}, ${R.wheelEvery * 2} and ${R.wheelEvery * 3} a wheel comes down beside each squad and its captain spins it (its Gambler, if it has one). ${R.wheelGreen} wedges of ${SE.WHEEL.length} are green: a card for your squad. The rest are red: a card against theirs. Never the same card twice in a round, and only one that can do something right now.`);
+      section(o.wheelGreenTitle || 'Lucky Wheel: green cards', of(SE.BUFFS, SE.WHEEL_GREENS), 'buff', `On turn ${R.wheelEvery}, ${R.wheelEvery * 2} and ${R.wheelEvery * 3} a wheel comes down beside each squad and its captain spins it (its Gambler, while that is still standing). ${R.wheelGreen} wedges of ${SE.WHEEL.length} are green: a card for your squad. The rest are red: a card against theirs. Never the same card twice in a round, and only one that can do something right now.`);
       section(o.wheelRedTitle || 'Lucky Wheel: red cards', of(SE.NERFS, SE.WHEEL_REDS), 'nerf');
     }
     else {
