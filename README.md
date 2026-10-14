@@ -1,22 +1,22 @@
 # $BLUB: test phase
 
-A look at the $BLUB website while it is being built. Blub is a small blue
+A look at the $BLUB fan game while it is being built. Blub is a small blue
 block from The Sift, the pink dimension.
 
 **Open it: https://dieshott.github.io/blub-demo/**
 
-- Make a team of 5 Blubs in the Blub Maker: names, looks, personalities and
-  battle builds. Your captain wears the crown.
-- Play Blub Jump for play-BLUB and spend it in the shop.
-- Build a squad in the Squad Arena (the Duel Hall): give each of your five
-  Blubs a role, a weapon, gear, a power and a start tile, rename them right
-  in the builder, and dig in two objects of your trench kit (sandbags, a
-  watchtower, barbed wire, a mortar, a foxhole, pop mines or an ammo crate).
-  Then fight 5 vs 5 against bot squads on a 15x15 arena, with a new arena and
-  a random power-up every round. Or watch two bot squads fight.
+- **Team**: make a team of 5 Blubs (names, looks, personalities), then give
+  each one a playstyle, weapon, gear, power, training and tactic, set up the
+  formation with two objects of the trench kit, pick the captain's command and
+  keep three strategies.
+- **Practice**: a guided first match, practice against bot squads and bot
+  shows: 5 vs 5 on a 15x15 arena, a new arena every round.
+- **Rankings**: the weekly league (played in your browser here), the 18 ranks
+  from Bronze Shrimp to Gold Whale and the duel season.
+- **The coin**: live market numbers from DexScreener.
 
 Test phase: everything runs in your browser and nothing is stored on a
-server. Wallet sign-in, the shared Meadow and online duels open at launch.
+server. Wallet sign-in, online duels and the weekly league open at launch.
 
-Prices and figures on the page are simulated examples. Not financial advice.
-Not affiliated with Microsoft, Mojang or Minecraft.
+A fan game for the fanbase, free to play. $BLUB has no intrinsic value and
+nothing here is financial advice.
