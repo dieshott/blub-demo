@@ -5970,6 +5970,15 @@ const RULES = lock({
   // else one from close by. It fires a blob of blue slime: rayRange tiles, needs a
   // clear line, rayDmg, and raySplash on every enemy beside the one it hits.
   rayRange: 5, rayDmg: 9, raySplash: 2,
+  // Coin Flip: a golden coin for the Blub nearest the crate (never the Boom Pack). It
+  // keeps it for when it is in trouble: right after a hit leaves it at coinAt% HP or
+  // less (or at the start of turn coinBy at the latest) it flips it. Heads (a Blub's
+  // head): a doppelganger of it joins the squad beside it, full HP, the same build (no
+  // trench job), coinHp more HP than its Blub and a bubble shield: a golden double.
+  // Tails: the Blub that flipped it is out of the round. Each as likely, from the
+  // chest's own stream. Knocked out before it has flipped it, it flips it as it goes
+  // down: heads still brings its double; tails changes nothing any more.
+  coinAt: 35, coinBy: 8, coinHp: 12,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6279,6 +6288,7 @@ const NERFS = lock([
 // of these, each as likely; both squads may get the same one). It comes down on the
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. As the fight starts its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -6646,7 +6656,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   if (spin)
     for (const t of [0, 1]) {
       const squad = U.filter((u) => u.team === t);
-      const cap = squad.find((u) => u.id % TEAM === 0);
+      const cap = squad.find((u) => u.id === t * TEAM);
       // WAGMI: the whole squad turns up tougher
       if (meme[t].buff === 'wagmi')
         for (const u of squad) {
@@ -6722,6 +6732,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // the Blub each golden drop is meant for (null: whoever is nearest the crate)
   function goldBy(t, g, at) {
     const squad = U.filter((u) => u.team === t);
+    // the Coin Flip: the Blub nearest the crate that does not carry the Boom Pack (a tie,
+    // the lower unit)
+    if (g === 'coin') return squad.filter((u) => !WEAPON_STATS[u.wpn].boom).sort((a, b) => cheb(a.x, a.y, at[0], at[1]) - cheb(b.x, b.y, at[0], at[1]) || a.id - b.id)[0] || null;
     // the Ray Gun: a Blub that fights from mid range (reach 3-4), else long range (5 and
     // more), else close by (a Builder with its Build Hammer after the rest; never the
     // Boom Pack); among them the nearest to the crate, a tie the lower unit
@@ -6761,7 +6774,27 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (by && meme[t].nerf === 'rekt') by.hp = Math.max(1, by.hp - RULES.rektHp);
       if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
     }
-  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
+  // ---- the Coin Flip's doppelganger (engine 22): it waits on the bench from the start
+  // (not alive, nowhere on the board), so the round's units are the same from its first
+  // event to its last, for the page too; heads puts it on the board. Its id comes after
+  // the ten. A copy of the Blub that flips: its picks (a Builder's own weapon instead of
+  // its Build Hammer; a sword for a Boom Pack), no trench job, not the captain.
+  const coins = [null, null];
+  if (spin)
+    for (const t of [0, 1]) {
+      const by = crates[t] && crates[t].by;
+      if (meme[t].gold !== 'coin' || !by) continue;
+      const s = (t ? sqB : sqA).units[by.id - t * TEAM];
+      const job = s.pow === 'builder' || s.pow === 'miner' || s.pow === 'digger';
+      const pow = job ? '' : s.pow;
+      const st = unitStats({ ...s, pow }, false, false);
+      const wpn = WEAPON_STATS[s.wpn].boom ? 'sword' : s.wpn;
+      const v = { ...by, id: U.length, wpn, pow, engineer: false, crew: false, hp: st.max + RULES.coinHp, max: st.max + RULES.coinHp, bubble: true, alive: false, bench: true, of: by.id };
+      U.push(v);
+      stats.push({ dmg: 0, kills: 0, healed: 0, taken: 0 });
+      coins[t] = { by, v, done: false };
+    }
+  const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id === u.team * TEAM, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble, ...(u.bench ? { bench: 1, of: u.of } : {}) }));
   // ---- the golden drop (engine 22): what is in each squad's crate goes to the Blub
   // that opens it. It is given here, after `start`, so the squad sheet the view starts
   // from is the squad before the crate; the 'perk' event carries what changed.
@@ -6811,7 +6844,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     push({ t: 'yield', u: wet.map((u) => u.id), amt: wet.map((u, i) => Math.min(u.max - u.hp, misty ? pay[i] - (pay[i] >> 1) : pay[i])) });
     wet.forEach((u, i) => heal(u, pay[i], 'pool'));
   }
-  const living = [U.filter((u) => u.team === 0), U.filter((u) => u.team === 1)];
+  const living = [U.filter((u) => u.team === 0 && u.alive), U.filter((u) => u.team === 1 && u.alive)];
   // the captain's command of each squad, whether it was called, and the one in force
   const cmdOf = [sqA, sqB].map((sq) => (sq && has(COMMANDS, sq.cmd) ? sq.cmd : ''));
   const called = [false, false];
@@ -6930,6 +6963,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     occ[idx(d.x, d.y)] = -1;
     if (by) stats[by.id].kills++;
     push({ t: 'ko', u: d.id, by: by ? by.id : -1 });
+    // the golden coin still in its paws (engine 22): it flips it as it goes down
+    if (coins[d.team] && coins[d.team].by === d && !coins[d.team].done) flipCoins(d.team, true);
     // a Green Candle's rider knocked out: the candle dumps (engine 19)
     if (d.ride) dump(d.ride);
     lastBoom(d);
@@ -6965,6 +7000,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // Paper Hands: the first of the squad to fall under paperAt% loses its nerve
     // a Miner hurt to tunnelAt% or less tunnels away on its next turn
     if (d.alive && d.pow === 'miner' && !d.tunneled && d.hp * 100 <= d.max * RULES.tunnelAt) d.tunnel = 1;
+    // in trouble with the golden coin (engine 22): it flips it
+    if (d.alive && coins[d.team]) coinHurt(d);
     // (never the Blub up in the Diamond Hand: diamond hands, engine 21)
     if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && !anchored(d) && d.hp * 100 < d.max * RULES.paperAt) {
       meme[d.team].paper = 1;
@@ -8121,7 +8158,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function doAct(u, turn) {
     u.moved = false;
     // the captain's command ends where it started: at the captain's next turn
-    const cap = u.id % TEAM === 0;
+    const cap = u.id === u.team * TEAM;
     if (cap && orders[u.team] && !orders[u.team].done && orders[u.team].turn < turn) endOrder(u.team);
     startOfTurn(u, turn);
     usePowers(u, turn);
@@ -8931,8 +8968,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (const u of hit) if (!u.hp) knockOut(u, null);
     for (const u of hit) afterHit(u);
     if (!standing(0) && !standing(1)) {
-      const maxA = U.reduce((s, u) => s + (u.team === 0 ? u.max : 0), 0);
-      const maxB = U.reduce((s, u) => s + (u.team === 1 ? u.max : 0), 0);
+      const maxA = U.reduce((s, u) => s + (u.team === 0 && !u.bench ? u.max : 0), 0);
+      const maxB = U.reduce((s, u) => s + (u.team === 1 && !u.bench ? u.max : 0), 0);
       const a = pre[0] * maxB;
       const b = pre[1] * maxA;
       over = a !== b ? (a > b ? 0 : 1) : cnt[0] !== cnt[1] ? (cnt[0] > cnt[1] ? 0 : 1) : r() < 0.5 ? 0 : 1;
@@ -9440,6 +9477,64 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     for (let c = goal; c >= 0 && c !== start; c = prev[c]) path.unshift(c);
     return path.slice(0, run).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]);
   }
+  // ---- the Coin Flip (engine 22): flipped as the fight starts. Heads: the doppelganger
+  // comes off the bench onto the free tile nearest its Blub (ring by ring, team B's on
+  // the board turned round). Tails: its Blub is out of the round (not knocked out: no
+  // totem, tent or blast comes of it).
+  function freeNear(x0, y0, flip) {
+    for (let d = 1; d < SIZE; d++)
+      for (let k = 0; k < (2 * d + 1) * (2 * d + 1); k++) {
+        const s = 2 * d + 1;
+        let dx = (k % s) - d;
+        let dy = Math.floor(k / s) - d;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+        if (flip) {
+          dx = -dx;
+          dy = -dy;
+        }
+        if (putDown(x0 + dx, y0 + dy) && freeFloor(idx(x0 + dx, y0 + dy))) return [x0 + dx, y0 + dy];
+      }
+    return null;
+  }
+  // its Blub hurt badly enough: flip it now (from afterHit), or by coinBy anyway
+  function coinHurt(d) {
+    const c = coins[d.team];
+    if (c && c.by === d && !c.done && d.alive && d.hp * 100 <= d.max * RULES.coinAt) flipCoins(d.team);
+  }
+  function flipCoins(only, fall) {
+    for (const c of coins) {
+      if (!c || c.done || (over >= 0 && !fall) || (only != null && c.v.team !== only)) continue;
+      const u = c.by;
+      if (!u.alive && !fall) continue;
+      c.done = true;
+      const heads = cr() < 0.5;
+      const to = heads ? freeNear(u.x, u.y, u.team === 1) : null;
+      // flipped as it goes down: heads still brings its double, tails is nothing more
+      if (fall && (!heads || !to || over >= 0)) {
+        push({ t: 'coin', u: u.id, heads: heads ? 1 : 0, fall: 1 });
+        continue;
+      }
+      if (heads && to) {
+        const v = c.v;
+        v.x = to[0];
+        v.y = to[1];
+        v.home = to.slice();
+        v.alive = true;
+        v.bench = false;
+        occ[idx(v.x, v.y)] = v.id;
+        living[v.team].push(v);
+        push({ t: 'coin', u: u.id, heads: 1, c: v.id, to, ...(fall ? { fall: 1 } : {}) });
+        continue;
+      }
+      push({ t: 'coin', u: u.id, heads: heads ? 1 : 0 });
+      if (heads) continue;
+      u.alive = false;
+      u.hp = 0;
+      living[u.team] = living[u.team].filter((w) => w !== u);
+      occ[idx(u.x, u.y)] = -1;
+      checkOver();
+    }
+  }
   // let out of its cage as the fight starts
   function unleash() {
     for (const g of dogs) {
@@ -9771,6 +9866,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function runEvents(turn) {
     // the golden drops that start as the fight does (engine 22)
     if (turn === 1) unleash();
+    if (turn >= RULES.coinBy) flipCoins();
     memeTurn(turn);
     claimTurn(turn);
     rugTurn(turn);
@@ -9829,8 +9925,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const hp = [sum(0), sum(1)];
   if (over < 0) {
     reason = 'time';
-    const maxA = U.filter((u) => u.team === 0).reduce((s, u) => s + u.max, 0);
-    const maxB = U.filter((u) => u.team === 1).reduce((s, u) => s + u.max, 0);
+    const maxA = U.filter((u) => u.team === 0 && !u.bench).reduce((s, u) => s + u.max, 0);
+    const maxB = U.filter((u) => u.team === 1 && !u.bench).reduce((s, u) => s + u.max, 0);
     const a = hp[0] * maxB;
     const b = hp[1] * maxA;
     if (a !== b) over = a > b ? 0 : 1;
@@ -12458,6 +12554,61 @@ const SquadView = (() => {
       }
       return g;
     }],
+    // The Coin Flip's coin (engine 22): 16 across, turning. 0 heads (a Blub's head stamped
+    // in it), 1-2 heads turning away, 3 edge on, 4-5 tails turning in, 6 tails (the $ of
+    // $BLUB).
+    flipcoin: [7, 16, (i) => {
+      let g = FG.grid(16);
+      const w = [6.6, 4.9, 2.7, 0.9, 2.7, 4.9, 6.6][i];
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) {
+          const dx = (x + 0.5 - 8) / Math.max(0.6, w);
+          const dy = (y + 0.5 - 8) / 6.6;
+          if (dx * dx + dy * dy <= 1) FG.put(g, x, y, '1');
+        }
+      g = FG.volume(g, '1', 'gold');
+      if (i === 3) return FG.outline(g);
+      // the rim, a ring a pixel in
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) {
+          const dx = (x + 0.5 - 8) / Math.max(0.6, w - 1);
+          const dy = (y + 0.5 - 8) / 5.6;
+          if (g[y][x] !== '.' && dx * dx + dy * dy > 1) g[y][x] = x < 8 ? 'Y' : 'o';
+        }
+      // the face, squeezed as the coin turns
+      const sx = (x) => Math.round(8 + (x - 8) * (w / 6.6));
+      const put = (x, y, c) => FG.put(g, sx(x), y, c);
+      if (i <= 2) {
+        // a Blub's head: ears, the block of it, two eyes
+        for (const [x, y] of [[5, 4], [10, 4], [5, 5], [6, 5], [9, 5], [10, 5]]) put(x, y, 'A');
+        for (let x = 5; x <= 10; x++) {
+          put(x, 6, 'A');
+          put(x, 11, 'A');
+        }
+        for (let y = 7; y <= 10; y++) {
+          put(4, y, 'A');
+          put(11, y, 'A');
+        }
+        put(6, 8, 'A');
+        put(9, 8, 'A');
+        put(7, 10, 'o');
+        put(8, 10, 'o');
+        put(6, 7, 'w');
+      } else {
+        // the $
+        for (const [x, y] of [[8, 3], [6, 4], [7, 4], [8, 4], [9, 4], [10, 4], [5, 5], [8, 5], [5, 6], [8, 6], [6, 7], [7, 7], [8, 7], [9, 7], [8, 8], [10, 8], [8, 9], [11, 9], [5, 10], [6, 10], [7, 10], [8, 10], [9, 10], [10, 10], [8, 11]]) put(x, y, 'A');
+        put(6, 5, 'w');
+      }
+      return FG.outline(g);
+    }],
+    // its icon: the coin at twice the size, heads up, with a glint
+    gb_coin: [1, 32, () => {
+      const f = FX_ART.flipcoin[2](0);
+      const g = FG.grid(32);
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) g[y][x] = f[y >> 1][x >> 1];
+      for (const [x, y] of [[27, 3], [26, 4], [27, 4], [28, 4], [27, 5], [4, 26], [5, 27], [3, 27]]) FG.put(g, x, y, 'w');
+      return g;
+    }],
     // the Ray Gun's icon: the gun side on, pointing right and up a little, chrome with
     // gold fins and three blue rings round its barrel, a blob of slime on its way out
     gb_raygun: [1, 32, () => {
@@ -12842,6 +12993,10 @@ const SquadView = (() => {
         const call = nameOf('cmd', e.cmd).replace(/!$/, '');
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
+      // the Coin Flip (engine 22)
+      case 'coin':
+        if (e.fall) return e.heads ? u + ' flips the coin as it goes down: HEADS! Its double takes its place.' : u + ' flips the coin as it goes down: tails. Nothing left to lose.';
+        return e.heads ? u + ' flips the coin: HEADS! A doppelganger joins the fight.' : u + ' flips the coin: TAILS! It flips itself right out of the round.';
       // the Ray Gun's slime (engine 22)
       case 'goo':
         return e.res === 'absorb' ? 'The slime pops ' + d + "'s bubble." : 'The slime splashes ' + d + ': -' + e.dmg + '.';
@@ -13905,6 +14060,9 @@ const SquadView = (() => {
     // trot home and sitting down
     // the Ray Gun (engine 22): a charge at the muzzle, then the slime a tile every rayTile
     rayCharge: 120, rayTile: 55,
+    // the Coin Flip (engine 22): the flick at coinFlick, the coin up and down, and on the
+    // floor at coinHit; as its Blub goes down, the short one
+    coin: 4500, coinHit: 2350, coinFlick: 450, coinFall: 3400, coinFallHit: 1450,
     unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
@@ -13961,7 +14119,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  const KEEP_TIME = new Set(['coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -14181,6 +14339,15 @@ const SquadView = (() => {
         if (t === 'ride') {
           parent = add({ kind: 'ride', dur: e.id === 'diamond' ? MS.dride : MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           pos[e.u] = e.at.slice();
+          return;
+        }
+        // the Coin Flip (engine 22): a scene of its own, the result on the floor at contact
+        if (t === 'coin') {
+          parent = null;
+          const hit = e.fall ? MS.coinFallHit : MS.coinHit;
+          add({ kind: 'coin', dur: e.fall ? MS.coinFall : MS.coin, contact: hit, list: [{ ei: i, off: hit }], e, actors: e.fall ? [] : [e.u] });
+          if (e.heads && e.c != null) pos[e.c] = e.to.slice();
+          if (!e.heads && !e.fall) pos[e.u] = null;
           return;
         }
         // the Shiba Inu (engine 22): out of its cage, a run and a bite, the trot home
@@ -14446,7 +14613,8 @@ const SquadView = (() => {
     return {
       u: R.start.map((s) => ({
         id: s.u, team: s.team, side: sideOf(s.team), cap: s.cap, cls: s.cls, wpn: s.wpn, gear: s.gear, pow: s.pow, tac: s.tac,
-        x: s.x, y: s.y, hp: s.hp, max: s.max, alive: true, st: { bubble: !!s.bubble }, held: null,
+        // (the Coin Flip's doppelganger waits on the bench: engine 22)
+        x: s.x, y: s.y, hp: s.hp, max: s.max, alive: !s.bench, bench: !!s.bench, of: s.of, st: { bubble: !!s.bubble }, held: null,
         face: 1, mv: null, atk: null, flash: -1e9, hpFrom: s.hp, hpT: -1e9, hop: null, koT: -1e9, nap: -1e9, hurt: -1e9, mark: -1e9,
         dug: onTile('trench', s.x, s.y), ammo: nearCrate(s.team, s.x, s.y), riseT: -1e9, jerk: null,
       })),
@@ -14648,10 +14816,33 @@ const SquadView = (() => {
             u.wasWpn = u.wpn;
             u.wpn = 'raygun';
           }
+          if (e.id === 'coin') u.st.coin = true;
         }
         // the Shiba Inu, in its cage where the crate came down
         if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
         break;
+      // the Coin Flip (engine 22): heads, the double comes off the bench; tails, its Blub
+      // is gone (as it goes down, nothing more happens to it)
+      case 'coin': {
+        const u = U[e.u];
+        delete u.st.coin;
+        u.coinT = 0;
+        if (e.heads && e.c != null) {
+          const v = U[e.c];
+          v.alive = true;
+          v.bench = false;
+          v.x = e.to[0];
+          v.y = e.to[1];
+          v.dug = false;
+        } else if (!e.heads && !e.fall) {
+          u.alive = false;
+          u.hp = 0;
+          u.st = {};
+          u.dug = false;
+          u.flipped = true;
+        }
+        break;
+      }
       // the Shiba Inu (engine 22): out of its cage, where it runs to, home
       case 'unleash':
       case 'dogrun':
@@ -14859,8 +15050,9 @@ const SquadView = (() => {
     rugged: [['f.f.f', 'rrrrr', 'ryRyr', 'rrrrr', 'f.f.f'], { f: '#FFF3B0', r: '#B8324A', y: '#FFD447', R: '#E2566E' }],
     // engine 22: the golden drop
     hardhat: [['.....', '.yYy.', 'yyYyy', 'ooooo', '.....'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12' }],
+    coin: [['.ooo.', 'oYyyo', 'oyAyo', 'oyyyo', '.ooo.'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12', A: '#8A5C06' }],
   };
-  const STATUS_NAME = { hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -15336,6 +15528,12 @@ const SquadView = (() => {
     }
     drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
     const S = P.spr[u.id];
+    // the Coin Flip's doppelganger (engine 22): a golden double, a gold edge round it
+    if (u.of != null && !u.bench) {
+      x.globalAlpha = P.calm ? 0.6 : 0.45 + 0.25 * Math.sin(now / 260);
+      x.drawImage(S.line.gold, ox - 1, oy - 1);
+      x.globalAlpha = 1;
+    }
     const spr = S.get(u.face, moodOf(u, t, now));
     const flashing = !P.calm && t - u.flash >= 0 && t - u.flash < 70 * P.speed;
     const img = flashing ? S.white : spr;
@@ -15349,6 +15547,17 @@ const SquadView = (() => {
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
     // lasting looks
+    // the golden coin (engine 22) in its paw, glinting, till it flips it
+    if (u.st.coin && !(u.coinT > t)) {
+      const s = u.face > 0 ? -1 : 1;
+      const cx0 = ox + 8 + s * 8;
+      x.fillStyle = INK;
+      x.fillRect(cx0 - 2, oy + 13, 5, 5);
+      x.fillStyle = '#FFD447';
+      x.fillRect(cx0 - 1, oy + 14, 3, 3);
+      x.fillStyle = !P.calm && Math.floor(now / 160) % 8 === 0 ? '#FFFFFF' : '#FFF3B0';
+      x.fillRect(cx0 - 1, oy + 14, 1, 1);
+    }
     // the Big Gun Blueprint's golden hard hat (engine 22), once it has landed on its head
     if (u.st.hardhat && !(u.hatT > t)) drawHat(x, ox + 2, oy + 2, !P.calm && Math.floor(now / 140) % 12 === 0);
     // slimed by the Ray Gun (engine 22): blue goo on its head, running down, for a while
@@ -17869,6 +18078,25 @@ const SquadView = (() => {
   function goldReveal(e, T, k, cx, cy, until, trip, open) {
     const u = e.u >= 0 ? P.S.u[e.u] : null;
     if (!u) return;
+    // the Coin Flip: the coin springs out of the crate, spinning, and into its Blub's paw
+    if (e.id === 'coin') {
+      const fly = 560 * k;
+      const t0 = T + open + 80 * k;
+      u.coinT = P.calm || !trip ? 0 : t0 + fly;
+      if (!trip || P.calm) return;
+      addFx(t0, fly, (x, kk, el) => {
+        const ub = u._b;
+        const ex = ub ? ub.ox + 8 + (u.face > 0 ? -8 : 8) : trip.at[0];
+        const ey = ub ? ub.oy + 15 : trip.at[1];
+        const X = Math.round(lerp(cx, ex, kk));
+        const Y = Math.round(lerp(cy - 14, ey, kk) - Math.sin(kk * Math.PI) * 26);
+        const f = [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1][Math.floor(el / (45 * k)) % 12];
+        x.drawImage(fxFrame('flipcoin', f), X - 8, Y - 8);
+      });
+      atClock(t0 + fly, () => sfx('gem'));
+      label(t0 + fly + 60 * k, 'COIN FLIP', '#FFD447', trip.at[0], trip.at[1] - 34, true);
+      return;
+    }
     // the Ray Gun: it floats up out of the crate, glowing, spins and drops into its
     // Blub's paws; its old weapon goes in the crate
     if (e.id === 'raygun') {
@@ -18019,6 +18247,141 @@ const SquadView = (() => {
       d.gooT = t1;
       hold(40);
     });
+  }
+  // The Coin Flip (engine 22). The camera comes in close; its Blub flicks the coin up
+  // with a PING and it goes up out of sight, turning over and over, the camera
+  // following it up and back down; it slows as it falls (the clock too), hits the
+  // floor in front of its Blub, rolls on its edge, wobbles and falls flat. HEADS: a
+  // gold flash and its double steps out of it. TAILS: its Blub comes apart. Flipped as
+  // its Blub goes down, the coin pops out of where it fell.
+  function coinBeat(b, T, k) {
+    if (b.kind !== 'coin') return false;
+    const e = b.e;
+    const u = P.S.u[e.u];
+    if (!u) return true;
+    const fall = !!e.fall;
+    const [ux, uy] = u._b && !fall ? [u._b.ox + 8, u._b.oy + 13] : tileC(u.x, u.y);
+    const face = u.face > 0 ? 1 : -1;
+    const hit = T + b.contact;
+    const flick = T + (fall ? 200 : MS.coinFlick) * k;
+    const air = Math.max(1, hit - flick);
+    const top = fall ? 40 : 66;
+    // where it lands: on the floor a little in front of its Blub
+    const lx = Math.round(ux + face * 9);
+    const ly = Math.round(uy + 5);
+    const coinAt = (t) => {
+      const f = clamp((t - flick) / air, 0, 1);
+      return [lerp(ux + face * 6, lx, f), lerp(uy + 1, ly, f) - 4 * top * f * (1 - f), f];
+    };
+    u.coinT = 1e12;
+    closeUp(T, b.dur, ux, uy - 16, { follow: (t) => [ux, Math.min(uy - 4, (coinAt(t)[1] + uy) / 2 - 4)], slow: [hit - 520 * k, hit + 160 * k], f: 0.35 });
+    if (!fall) {
+      u.hop = { kind: 'toss', t0: flick - 90 * k, dur: 200 * k, h: 3 };
+      label(flick, 'PING', '#FFF3B0', ux + face * 8, uy - 10, false);
+    }
+    atClock(flick, () => sfx('click'));
+    // the coin: in its paw, then in the air turning over and over (slower as it comes
+    // down), its shadow on the floor; then down, rolling, wobbling, flat
+    const SPIN = [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1];
+    const res = e.heads ? 0 : 6;
+    addFx(T, b.dur, (x, kk, el) => {
+      const t = T + el;
+      if (t < flick) {
+        if (!fall) x.drawImage(fxFrame('flipcoin', 3), Math.round(ux + face * 8 - 8), Math.round(uy - 6));
+        return;
+      }
+      if (t < hit) {
+        const [cx, cy, f] = coinAt(t);
+        // its shadow: smaller the higher it is
+        blob(x, lx, ly + 2, Math.max(1, Math.round(4 - (ly - cy) / 22)), 1, '#1B1229', 0.3);
+        const rate = 40 * k * (1 + f * f * 3);
+        const fr = SPIN[Math.floor((t - flick) / rate) % 12];
+        x.drawImage(fxFrame('flipcoin', fr), Math.round(cx - 8), Math.round(cy - 8));
+        // a glint off it now and then
+        if (fr === 0 || fr === 6) {
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(Math.round(cx - 4), Math.round(cy - 5), 1, 3);
+          x.fillRect(Math.round(cx - 5), Math.round(cy - 4), 3, 1);
+        }
+        return;
+      }
+      // down: a roll on its edge, a wobble that dies away, flat on its face
+      const e2 = t - hit;
+      const roll = 260 * k;
+      const wob = 520 * k;
+      let fr = res;
+      let dy = 0;
+      if (e2 < roll) {
+        fr = [3, 2, 3, 4][Math.floor(e2 / (65 * k)) % 4];
+        dy = -Math.round(Math.sin((e2 / roll) * Math.PI) * 4);
+      } else if (e2 < roll + wob) {
+        const w = 1 - (e2 - roll) / wob;
+        fr = Math.floor((e2 - roll) / (90 * k)) & 1 ? (e.heads ? 1 : 5) : res;
+        dy = w > 0.5 ? -1 : 0;
+      }
+      blob(x, lx, ly + 2, 5, 1, '#1B1229', 0.3);
+      x.drawImage(fxFrame('flipcoin', fr), lx - 8, ly - 8 + dy);
+    });
+    atClock(hit, () => {
+      sfx('block');
+      addParts(6, lx, ly + 2, ['#FFE3EA', '#E9A2B6'], 0.04, 0.0002, 300, hit, false, [Math.PI, Math.PI * 2]);
+    });
+    // the verdict, once it lies flat
+    const flat = hit + 820 * k;
+    atClock(flat, () => {
+      sfx(e.heads ? 'power' : 'ko');
+      flash(flat);
+      hold(110);
+    });
+    label(flat, e.heads ? 'HEADS!' : 'TAILS!', e.heads ? '#FFD447' : '#FF5C77', lx, ly - 18, true, 2);
+    ringFx(flat, lx, ly, 460 * k, e.heads ? '#FFD447' : '#FF5C77', 3, 20, true, 0.6);
+    if (e.heads && e.c != null) {
+      // the double: out of its Blub in a flash of gold, onto its own tile
+      const v = P.S.u[e.c];
+      const [tx, ty] = tileC(e.to[0], e.to[1]);
+      const from = fall ? scr(e.to[0], e.to[1]) : scr(u.x, u.y);
+      // (on the board from the coin's landing on, but out of sight till the verdict)
+      v.air = [hit, flat + 120 * k];
+      v.mv = { pts: [from, scr(e.to[0], e.to[1])], t0: flat + 120 * k, step: 360 * k, dur: 360 * k, high: 6 };
+      v.face = face;
+      v.hop = { kind: 'toss', t0: flat + 120 * k, dur: 360 * k, h: 6 };
+      addParts(24, tx, ty - 6, ['#FFD447', '#FFF3B0', '#FFFFFF', '#C98A12'], 0.09, 0.0002, 760 * k, flat + 120 * k, true);
+      ringFx(flat + 480 * k, tx, ty + 4, 420 * k, '#FFD447', 3, 16, true, 0.5);
+      label(flat + 520 * k, 'DOPPELGANGER!', '#FFD447', tx, ty - 30, true);
+    } else if (!e.heads && !fall) {
+      // its Blub comes apart: white, then pixel by pixel, gone in a puff
+      const S2 = P.spr[u.id];
+      const img = S2.get(face, 'o');
+      // (it is off the board from the coin's landing: drawn here till it is gone)
+      const pre = flat - hit;
+      const gone = 900 * k;
+      addFx(hit, pre + gone, (x, kk, el) => {
+        const X = Math.round(ux - 8);
+        const Y = Math.round(uy - 13);
+        if (el < pre) {
+          x.drawImage(S2.get(face, 'n'), X, Y);
+          return;
+        }
+        const e3 = el - pre;
+        if (e3 < gone * 0.2) {
+          x.drawImage(Math.floor(e3 / (60 * k)) & 1 ? S2.white : img, 0, 0, 16, 20, X, Y, 16, 20);
+          return;
+        }
+        // dissolve: an ordered pattern eats the sprite, the pixels it takes drift up
+        const g = (e3 / gone - 0.2) / 0.8;
+        const ctx = x;
+        ctx.save();
+        ctx.beginPath();
+        for (let py = 0; py < 20; py += 2)
+          for (let px = 0; px < 16; px += 2) if (FG.BAYER[((py >> 1) & 3) * 4 + ((px >> 1) & 3)] / 16 >= g) ctx.rect(X + px, Y + py - Math.round(g * 6), 2, 2);
+        ctx.clip();
+        ctx.drawImage(img, X, Y - Math.round(g * 6));
+        ctx.restore();
+      });
+      addParts(20, ux, uy - 4, ['#FFFFFF', '#FFD447', '#C9C9D6'], 0.03, -0.00012, 1000 * k, flat + 200 * k, true, [-Math.PI, 0]);
+      label(flat + 520 * k, 'ELIMINATED', '#FF5C77', ux, uy - 34, true);
+    }
+    return true;
   }
   // the Shiba Inu's scenes: the cage bursts, a run and a bite, the trot home
   function dogBeat(b, T, k) {
@@ -18268,6 +18631,7 @@ const SquadView = (() => {
     if (P.calm) return;
     if (b.kind === 'rocket') return rocketScene(b, T, k);
     if (dogBeat(b, T, k)) return;
+    if (coinBeat(b, T, k)) return;
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
     if (worksBeat(b, T, k)) return;
@@ -21510,7 +21874,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -21630,6 +21994,26 @@ const SquadView = (() => {
         R.list.append(b);
         R.rows.push({ id, b, hp, bar, sts, key: '' });
       }
+      // the Coin Flip's doppelganger (engine 22): a row of its own, shown once it comes
+      for (const s of P.bench || []) {
+        if (s.team !== team) continue;
+        const b = el('button', 'sqv-r dbl');
+        b.type = 'button';
+        const pic = el('span', 'sqv-rp');
+        pic.append(unitCanvas(P.looks[s.of], s.wpn, { px: 2, cls: s.cls, face: side === 'you' ? 1 : -1 }));
+        const txt = el('span', 'sqv-rt');
+        const hp = el('span', 'sqv-hp');
+        const barO = el('span', 'sqv-hb');
+        const bar = el('i', '');
+        barO.append(bar);
+        const sts = el('span', 'sqv-st');
+        txt.append(el('b', '', P.names[s.u]), hp, barO, sts);
+        b.append(pic, txt);
+        b.onclick = () => inspect(s.of);
+        b.hidden = true;
+        R.list.append(b);
+        R.rows.push({ id: s.u, b, hp, bar, sts, key: '', dbl: true });
+      }
     });
   }
   function updateRosters() {
@@ -21647,13 +22031,15 @@ const SquadView = (() => {
       R.rows.forEach((r) => {
         const u = S.u[r.id];
         if (u.alive) alive[u.side]++;
-        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem', 'hardhat'].filter((s) => u.st[s]);
+        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem', 'hardhat', 'coin'].filter((s) => u.st[s]);
         // the trench kit: dug into a foxhole, extra ammo from the crate
         if (u.alive && u.dug) sts.push('dug');
         if (u.alive && u.ammo) sts.push('ammo');
         if (u.alive && u.gone) sts.push('rugged');
         const acting = P.actors.includes(r.id) && P.phase === 'round';
-        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting, u.fell, u.tent, u.moon, u.pit].join('|');
+        // the doppelganger's row only once it has come off the bench (engine 22)
+        if (r.dbl) r.b.hidden = !!u.bench;
+        const key = [u.hp, u.max, u.alive, sts.join(), u.held, acting, u.fell, u.tent, u.moon, u.pit, u.flipped].join('|');
         if (key === r.key) return;
         r.key = key;
         r.hp.textContent = '';
@@ -21664,6 +22050,7 @@ const SquadView = (() => {
         else if (u.tent) r.hp.append(el('span', 'long', 'In the tent'), el('span', 'short', 'TENT'));
         else if (u.moon) r.hp.append(el('span', 'long', 'On the moon'), el('span', 'short', 'MOON'));
         else if (u.pit) r.hp.append(el('span', 'long', 'In a pit'), el('span', 'short', 'PIT'));
+        else if (u.flipped) r.hp.append(el('span', 'long', 'Flipped away'), el('span', 'short', 'TAILS'));
         else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
         r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
         r.b.classList.toggle('ko', !u.alive);
@@ -21682,8 +22069,9 @@ const SquadView = (() => {
         r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : u.tent ? 'in the Field Hospital' : u.moon ? 'gone to the moon' : u.pit ? 'fallen into a pit' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
       }),
     );
-    D.you.cnt.textContent = alive.you + '/5';
-    D.them.cnt.textContent = alive.rival + '/5';
+    // (with a doppelganger on the board, out of six: engine 22)
+    D.you.cnt.textContent = alive.you + '/' + D.you.rows.filter((r) => !r.b.hidden).length;
+    D.them.cnt.textContent = alive.rival + '/' + D.them.rows.filter((r) => !r.b.hidden).length;
   }
   // a roster tap: light the unit up on the board for 1.5 s and show its build
   function inspect(id) {
@@ -21987,6 +22375,19 @@ const SquadView = (() => {
     P.map = r.map;
     setupObjs(r.R);
     P.S = freshState(r.R, P.sideOf);
+    // the Coin Flip's doppelganger (engine 22): its Blub's look, its name with a II; and
+    // the rosters again when the doubles on the bench are not last round's
+    const bench = r.R.start.filter((s) => s.bench);
+    for (const s of bench) {
+      P.names[s.u] = String(P.names[s.of] || 'Blub').slice(0, 16) + ' II';
+      if (P.spr) P.spr[s.u] = P.spr[s.of];
+    }
+    const bk = bench.map((s) => s.u + ':' + s.of).join();
+    if ((P.benchKey || '') !== bk && P.spr && D.you && D.you.list) {
+      P.benchKey = bk;
+      P.bench = bench;
+      buildRosters();
+    }
     // units hop in from the back rows first
     const order = P.S.u.map((u) => u).sort((a, b) => {
       const [, ay] = scr(a.x, a.y);
@@ -22829,6 +23230,7 @@ const SquadView = (() => {
       },
       // the golden drop (engine 22)
       gold: {
+        coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Tails: that Blub is out.`,
         raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
         shiba: `Let out as the fight starts: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
         blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
