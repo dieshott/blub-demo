@@ -886,6 +886,18 @@ body.no-scroll{overflow:hidden}
 .sqv-pu.perk.good .sqv-pk{color:#9FE3A8}.sqv-pu.perk.bad .sqv-pk{color:#FF9AA8}
 /* engine 22: the golden drop */
 .sqv-pu.perk.gold{box-shadow:inset 4px 0 0 #FFD447}.sqv-pu.perk.gold .sqv-pk{color:#FFD447}
+/* what is in the match (the golden drops, the Lucky Wheel's cards): small in the top
+   right corner of the arena, opened on demand */
+.sqv-drops{position:absolute;top:6px;right:6px;line-height:1.3;display:flex;flex-direction:column;align-items:flex-end;gap:4px;max-width:calc(100% - 12px)}
+.sqv-drops[hidden]{display:none}
+.sqv-dbtn{display:flex;gap:6px;align-items:center;font-family:var(--f-display);font-size:8px;line-height:1;color:#FFD447;background:#1b1129;border:2px solid #000;box-shadow:inset 0 0 0 2px #C98A12;padding:6px 8px;cursor:pointer}
+.sqv-dbtn:hover,.sqv-dbtn:focus-visible{box-shadow:inset 0 0 0 2px #FFD447;outline:none}
+.sqv-dbtn.new{animation:sqvPing .5s steps(2) 3}
+@keyframes sqvPing{50%{box-shadow:inset 0 0 0 2px #fff;color:#fff}}
+.sqv-dlist{display:flex;flex-direction:column;gap:4px;width:min(300px,100%);max-height:min(60vh,420px);overflow:auto;background:#1b1129;border:2px solid #000;padding:4px;box-shadow:4px 4px 0 rgba(0,0,0,.45)}
+.sqv-dlist[hidden]{display:none}
+.sqv-dlist .sqv-pu{padding:4px 6px}
+.sqv-dlist .sqv-pd{font-size:15px}
 .sqv-bp{display:flex;gap:14px;font-family:var(--f-data);font-size:19px;line-height:1}
 .sqv-bp .you{color:var(--you-l)}.sqv-bp .rival{color:#FFB08A}
 /* the guided first match: a card just above the controls that tells what goes on,
@@ -20284,6 +20296,16 @@ const SquadView = (() => {
   function showPerkBanner() {
     const ch = P.rd.R.chest;
     if (!ch) return;
+    // (engine 23, the owner: what came out of the crates goes to the small Drops list
+    // in the top right, opened on demand; the screen reader still hears it now)
+    if (SE.WHEEL) {
+      // the round's banner makes way as the crates open, as it did for the big one
+      D.ban.className = 'sqv-ban';
+      const mine = ch.teams[P.me];
+      const mk = mine.gold ? 'gold' : mine.buff ? 'buff' : 'nerf';
+      if (mine[mk]) say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
+      return;
+    }
     const b2 = D.ban;
     b2.textContent = '';
     const golden = ch.teams.some((m) => m.gold);
@@ -23394,6 +23416,20 @@ const SquadView = (() => {
     ban.setAttribute('aria-hidden', 'true');
     const pop = el('div', 'sqv-pop');
     pop.setAttribute('aria-hidden', 'true');
+    // what is in the match, small in the top right and opened on demand (the owner,
+    // engine 23: in place of the golden drop's big banner over the arena)
+    const drops = el('div', 'sqv-drops');
+    const dBtn = el('button', 'sqv-dbtn');
+    dBtn.type = 'button';
+    const dList = el('div', 'sqv-dlist');
+    dList.hidden = true;
+    drops.append(dBtn, dList);
+    drops.hidden = true;
+    dBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      dropsOpen = !dropsOpen;
+      if (P) updateDrops();
+    };
     const card = el('div', 'sqv-card');
     card.hidden = true;
     // on the board while a clip is recorded
@@ -23401,7 +23437,7 @@ const SquadView = (() => {
     recTag.hidden = true;
     recTag.setAttribute('aria-hidden', 'true');
     recTag.append(el('i', ''), el('b', '', 'REPLAY'));
-    stage.append(cv, ticker, ban, pop, card, recTag);
+    stage.append(cv, ticker, ban, pop, drops, card, recTag);
     wrap.append(stage);
 
     const ctl = el('div', 'sqv-ctl');
@@ -23460,7 +23496,7 @@ const SquadView = (() => {
       /* sound is optional */
     }
 
-    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bShare, them, you, wrap, stage, cv, ticker, ban, pop, card, recTag, tour, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
+    D = { root, colL, colR, bar, pips, title, turn, score, scY, scR, close, bShare, them, you, wrap, stage, cv, ticker, ban, pop, drops, dBtn, dList, card, recTag, tour, ctl, prog, row, bPlay, bPrev, bNext, speeds, bSkip, bEnd, bMore, opts, bCalm, bShake, bChest, bTempo, bSnd, logBox, over, live };
 
     close.onclick = () => finish();
     bShare.onclick = () => openShare();
@@ -23885,9 +23921,72 @@ const SquadView = (() => {
       }
     });
   }
+  // The Drops list: the golden drops once their crates are open, and the Lucky Wheel's
+  // cards as they are dealt (green ones with the squad they are for, red ones with the
+  // squad they hit). Shut it is one small button with the count, which flashes when
+  // something new comes in; open, a row for each with what it does. Open or shut stays
+  // as the viewer left it.
+  let dropsOpen = false;
+  function updateDrops() {
+    const S = P.S;
+    if (!S || !D || !D.drops) return;
+    const ch = P.rd && P.rd.R && P.rd.R.chest;
+    const items = [];
+    if (ch && ch.teams)
+      for (const side of ['you', 'rival']) {
+        const t = side === 'you' ? P.me : 1 - P.me;
+        const m = ch.teams[t];
+        if (!m || !S.perkSeen[t]) continue;
+        for (const kind of ['gold', 'buff', 'nerf']) if (m[kind]) items.push([side, kind, m[kind], kind === 'gold' ? 'golden drop' : kind]);
+      }
+    for (const e of P.rd.R.ev) if (e.t === 'wcard' && !e.fizzle && S.wseen[e.to + ':w:' + e.id]) items.push([P.sideOf(e.to), e.kind, e.id, e.kind === 'buff' ? 'green card' : 'red card']);
+    const key = P.ri + ':' + items.map((v) => v.join(':')).join('|') + (dropsOpen ? '+' : '-');
+    if (key === P.dropsKey) return;
+    const grew = P.dropsN != null && items.length > P.dropsN;
+    P.dropsKey = key;
+    P.dropsN = items.length;
+    D.drops.hidden = !items.length;
+    D.dBtn.textContent = '';
+    D.dBtn.append(el('span', '', 'DROPS ' + items.length), el('span', '', dropsOpen ? '-' : '+'));
+    D.dBtn.setAttribute('aria-expanded', String(dropsOpen));
+    D.dBtn.title = dropsOpen ? 'Hide the drops' : 'What is in this match: the golden drops and the Lucky Wheel cards';
+    if (grew && !P.seeking) {
+      D.dBtn.classList.remove('new');
+      void D.dBtn.offsetWidth;
+      D.dBtn.classList.add('new');
+    }
+    D.dList.hidden = !dropsOpen;
+    D.dList.textContent = '';
+    if (!dropsOpen) return;
+    // the round's power-up and weather first, to read again whenever
+    const R = P.rd.R;
+    if (R.powerup) {
+      const pc = el('div', 'sqv-pu');
+      const pt = el('div', '');
+      pt.append(el('span', 'sqv-pk', 'Power-up of the round'), el('strong', '', nameOf('item', R.powerup)), el('span', 'sqv-pd', descOf('item', R.powerup)));
+      pc.append(icon('item', R.powerup, 32), pt);
+      D.dList.append(pc);
+    }
+    if (R.weather && R.weather !== 'clear') {
+      const wc = el('div', 'sqv-pu sky ' + R.weather);
+      const wt = el('div', '');
+      wt.append(el('span', 'sqv-pk', 'Weather'), el('strong', '', nameOf('sky', R.weather)), el('span', 'sqv-pd', descOf('sky', R.weather)));
+      wc.append(el('i', 'sqv-sky ' + R.weather, R.weather === 'rain' ? '☂' : '≋'), wt);
+      D.dList.append(wc);
+    }
+    for (const [side, kind, id, src] of items) {
+      const row = el('div', 'sqv-pu perk ' + (kind === 'gold' ? 'gold' : kind === 'buff' ? 'good' : 'bad'));
+      row.append(icon(kind, id, 32));
+      const tx = el('div', '');
+      tx.append(el('span', 'sqv-pk', P.sideLabels[side] + ' · ' + src), el('strong', '', nameOf(kind, id)), el('span', 'sqv-pd', shortOf(kind, id)));
+      row.append(tx);
+      D.dList.append(row);
+    }
+  }
   function updateRosters() {
     const S = P.S;
     if (!S) return;
+    updateDrops();
     [[P.me, D.you], [1 - P.me, D.them]].forEach(([t, R]) => {
       for (const id in R.memeChips || {}) {
         if (id.startsWith('w:')) {
