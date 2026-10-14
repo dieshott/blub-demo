@@ -5988,6 +5988,18 @@ const RULES = lock({
   // it this turn, and has a slice (that is its turn); one that starts its turn beside it
   // pizzaHp or more down has one on its way. Eaten up, the box goes.
   pizzaTurn: 3, pizzaSlices: 6, pizzaHp: 8, pizzaAt: 60,
+  // Pump.fun Pill: a capsule like the Bonding Curve Nuke's pill, green and white. A Blub
+  // with a Trench Rifle takes it (one in Attack first, then the nearest the crate),
+  // else one with a Scope Rifle, else the squad's hardest hitter (no Boom Pack), and
+  // the crate has a rifle in it for the rage. It keeps it till an enemy is within
+  // pillNear tiles (or turn pillBy at the latest), then swallows it at the start of its
+  // turn and goes berserk: it rushes up to pillDash tiles into the enemy's ground, to
+  // where it sees the most of them, and sprays burst after burst (pillShot a bullet)
+  // at whatever it sees within pillRange, the weakest first, until it has done
+  // pillMin% to pillMax% of an average enemy's HP (the chest's stream says how much)
+  // or there is nobody left to shoot. Then the enemy best placed to do it shoots it
+  // down, one shot: no bubble, no totem.
+  pillNear: 6, pillBy: 4, pillSee: 2, pillDash: 8, pillRange: 6, pillShot: 2, pillMin: 80, pillMax: 180,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6297,6 +6309,7 @@ const NERFS = lock([
 // of these, each as likely; both squads may get the same one). It comes down on the
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
+  ['pill', 'Pump.fun Pill', `A green and white capsule, the Bonding Curve Nuke's little sister. Your rifle Blub takes it (else a Scope Rifle, else your hardest hitter, and it comes with a rifle). When the enemy comes within ${RULES.pillNear} tiles it swallows it and goes berserk: it rushes up to ${RULES.pillDash} tiles into their ground and sprays round after round until it has done ${RULES.pillMin}% to ${RULES.pillMax}% of a Blub's HP in damage. Then they shoot it down, one shot.`],
   ['pizza', 'Pizza Phone', `An old golden phone. As the fight starts your Blub calls for a pizza, and in turn ${RULES.pizzaTurn} a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad: a Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back for one, and one that starts its turn beside the box grabs one on its way.`],
   ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
@@ -6742,6 +6755,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // the Blub each golden drop is meant for (null: whoever is nearest the crate)
   function goldBy(t, g, at) {
     const squad = U.filter((u) => u.team === t);
+    // the Pump.fun Pill: a Trench Rifle (in Attack first), else a Scope Rifle, else the
+    // hardest hitter that carries no Boom Pack; a tie, the nearest the crate, the lower unit
+    if (g === 'pill') {
+      const band = (u) => (u.wpn === 'rifle' ? (u.stn === 'attack' ? 0 : 1) : u.wpn === 'scope' ? 2 : 3);
+      const hits = (u) => WEAPON_STATS[u.wpn].dmg * (WEAPON_STATS[u.wpn].hits || 1);
+      return squad.filter((u) => !WEAPON_STATS[u.wpn].boom).sort((a, b) => band(a) - band(b) || (band(a) === 3 ? hits(b) - hits(a) : 0) || cheb(a.x, a.y, at[0], at[1]) - cheb(b.x, b.y, at[0], at[1]) || a.id - b.id)[0] || null;
+    }
     // the Coin Flip: the Blub nearest the crate that does not carry the Boom Pack (a tie,
     // the lower unit)
     if (g === 'coin') return squad.filter((u) => !WEAPON_STATS[u.wpn].boom).sort((a, b) => cheb(a.x, a.y, at[0], at[1]) - cheb(b.x, b.y, at[0], at[1]) || a.id - b.id)[0] || null;
@@ -6829,6 +6849,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         } else u.engineer = true;
         goldOut[t] = { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, big: 1 } : {}) };
       }
+      // the Pump.fun Pill: it keeps it till it swallows it
+      if (g === 'pill') u.pill = 1;
       // the Ray Gun: in its paws instead of its own weapon (a Scope Rifle's aim goes with it)
       if (g === 'raygun') {
         goldOut[t] = { was: u.wpn };
@@ -8180,6 +8202,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     usePowers(u, turn);
     if (over >= 0 || !u.alive) return;
     if (cap && cmdOf[u.team] && !called[u.team] && !u.jeet) callOrder(u, turn);
+    // the Pump.fun Pill (engine 22): swallowed, it is its whole turn (and its last)
+    if (u.pill === 1 && pillTurn(u, turn)) return;
     // riding a Green Candle (engine 19): it stays up there and hits what it reaches (a
     // medic heals whom it reaches); up in the Diamond Hand (engine 21) it works the gun.
     // (Taken off it somehow, the thing it rode is done for, and it carries on as usual.)
@@ -9552,6 +9576,99 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       occ[idx(u.x, u.y)] = -1;
       checkOver();
     }
+  }
+  // in its sights from (x, y): within pillRange, a clear line
+  const pillSight = (u, x, y) => foes(u).filter((v) => cheb(x, y, v.x, v.y) <= RULES.pillRange && los(x, y, v.x, v.y));
+  // where its rush takes it: where it sees the most of them, deeper into their ground
+  // the better (c -1: where it stands); n, how many it sees from there
+  function pillSpot(u) {
+    const held = u.tangled >= now || foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1);
+    let n = pillSight(u, u.x, u.y).length;
+    let bs = n * 100 + ahead(u, u.y) * 3;
+    let best = -1;
+    if (held) return { c: -1, n, P: null };
+    const P = search(u, RULES.pillDash);
+    for (const c of seen(P)) {
+      if (trap(u, c)) continue;
+      const x = c % SIZE;
+      const y = (c - x) / SIZE;
+      const m = pillSight(u, x, y).length;
+      const s = m * 100 + ahead(u, y) * 3;
+      if (s > bs) {
+        bs = s;
+        best = c;
+        n = m;
+      }
+    }
+    return { c: best, n, P };
+  }
+  // ---- the Pump.fun Pill (engine 22). At the start of its turn, the enemy near enough
+  // (or by pillBy), its Blub swallows it: 'pill'. It rushes (a walk of up to pillDash),
+  // then 'burst' after 'burst' of 'pump' bullets, then 'oneshot' from the enemy that
+  // shoots it down, and 'pillend' with what it did.
+  function pillTurn(u, turn) {
+    if (u.pill !== 1 || u.ride || !foes(u).length) return false;
+    if (turn < RULES.pillBy && !foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= RULES.pillNear)) return false;
+    // (not before its rush can get pillSee of them in its sights, but by pillBy anyway)
+    if (turn < RULES.pillBy && pillSpot(u).n < RULES.pillSee) return false;
+    u.pill = 2;
+    const was = u.wpn;
+    u.wpn = 'rifle';
+    u.load = 0;
+    u.sight = -1;
+    const them = foes(u);
+    const avg = Math.round(them.reduce((s, v) => s + v.max, 0) / them.length);
+    const pct = RULES.pillMin + Math.floor(cr() * (RULES.pillMax - RULES.pillMin + 1));
+    let left = Math.max(1, Math.round((avg * pct) / 100));
+    push({ t: 'pill', u: u.id, at: [u.x, u.y], was, pct, budget: left });
+    const inSight = (x, y) => pillSight(u, x, y);
+    // the rush: where it sees the most of them, deeper into their ground the better
+    const sp = pillSpot(u);
+    if (sp.c >= 0) {
+      const mv = u.move;
+      u.move = RULES.pillDash;
+      walk(u, route(sp.P, sp.c));
+      u.move = mv;
+    }
+    // the spray: the weakest it sees first, a burst at a time, till it has done what
+    // the pill had in it (at most a dozen bursts)
+    let dealt = 0;
+    const hit = new Set();
+    for (let n = 0; n < 12 && left > 0 && u.alive && over < 0; n++) {
+      const list = inSight(u.x, u.y).sort((a, b) => a.hp - b.hp || cheb(u.x, u.y, a.x, a.y) - cheb(u.x, u.y, b.x, b.y) || a.id - b.id);
+      if (!list.length) break;
+      const d = list[0];
+      const shots = Math.min(4, Math.ceil(left / RULES.pillShot));
+      push({ t: 'burst', u: u.id, d: d.id, n: shots });
+      u.attacked = true;
+      for (let s = 0; s < shots && d.alive && over < 0 && left > 0; s++) {
+        const hp = d.hp;
+        const dmg = Math.min(RULES.pillShot, left);
+        pure(u, d, dmg, 'pump');
+        // a bubble eats a bullet for nothing; the pill still spent it
+        left -= dmg;
+        dealt += hp - d.hp;
+        hit.add(d.id);
+      }
+      checkOver();
+    }
+    // shot down: the enemy that can hit it from where it stands (the longest reach
+    // first), else the one with a clear line to it, else the nearest
+    if (u.alive && over < 0) {
+      const them2 = foes(u);
+      const reach = (v) => WEAPON_STATS[v.wpn].range;
+      const pick = them2.filter((v) => canHit(v, v.x, v.y, u)).sort((a, b) => reach(b) - reach(a) || a.id - b.id)[0] || them2.filter((v) => los(v.x, v.y, u.x, u.y)).sort((a, b) => reach(b) - reach(a) || cheb(a.x, a.y, u.x, u.y) - cheb(b.x, b.y, u.x, u.y) || a.id - b.id)[0] || them2.slice().sort((a, b) => cheb(a.x, a.y, u.x, u.y) - cheb(b.x, b.y, u.x, u.y) || a.id - b.id)[0];
+      if (pick) {
+        u.bubble = false;
+        u.totem = false;
+        pure(pick, u, u.hp, 'oneshot');
+        // that shot was its next move
+        if (pick.alive) pick.skip = 1;
+        checkOver();
+      }
+    }
+    push({ t: 'pillend', u: u.id, dealt, hit: hit.size, pct });
+    return true;
   }
   // ---- the Pizza Phone (engine 22): the call as the fight starts, the van on pizzaTurn
   // (a turn later when there is no room on its rows), and the slices
@@ -12692,6 +12809,41 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
+    // The Pump.fun Pill (engine 22): the capsule, 16 across, white at one end and green
+    // at the other with a seam between, turning over: 0 lying flat, 1 leaning up to the
+    // right, 2 standing, 3 leaning the other way.
+    pumppill: [4, 16, (i) => {
+      let g = FG.grid(16);
+      const a = [0, -Math.PI / 4, -Math.PI / 2, -(3 * Math.PI) / 4][i];
+      const ca = Math.cos(a);
+      const sa = Math.sin(a);
+      FG.line(g, 8 - ca * 4, 8 - sa * 4, 8 + ca * 4, 8 + sa * 4, 5.2, '1');
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) if (g[y][x] === '1' && (x + 0.5 - 8) * ca + (y + 0.5 - 8) * sa > 0) g[y][x] = '2';
+      g = FG.volume(g, '1', 'white');
+      g = FG.volume(g, '2', 'green');
+      // the seam
+      for (let y = 0; y < 16; y++)
+        for (let x = 0; x < 16; x++) if (g[y][x] !== '.' && Math.abs((x + 0.5 - 8) * ca + (y + 0.5 - 8) * sa) < 0.6) g[y][x] = 'q';
+      g = FG.outline(g);
+      FG.put(g, Math.round(8 - ca * 3 - sa * 1), Math.round(8 - sa * 3 + ca * 1 - 1), 'w');
+      return g;
+    }],
+    // its icon: the capsule at twice the size, leaning up, a green chart pumping up
+    // behind it, and a glint
+    gb_pill: [1, 32, () => {
+      let g = FG.grid(32);
+      // the chart: a line going up, two candles
+      FG.line(g, 3, 27, 11, 21, 1.4, 'q');
+      FG.line(g, 11, 21, 16, 23, 1.4, 'q');
+      FG.line(g, 16, 23, 28, 6, 1.4, 'q');
+      FG.line(g, 25, 5, 29, 5, 1.4, 'q');
+      FG.line(g, 29, 5, 29, 9, 1.4, 'q');
+      const f = FX_ART.pumppill[2](1);
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (f[y >> 1][x >> 1] !== '.') g[y][x] = f[y >> 1][x >> 1];
+      for (const [x, y] of [[5, 6], [4, 7], [5, 7], [6, 7], [5, 8]]) FG.put(g, x, y, 'w');
+      return g;
+    }],
     // The Pizza Phone's van (engine 22): an old white delivery van, side on, facing right,
     // 48 across, its wheels on row 41. Boxy, dented, rust on its sills, a red stripe, a
     // pizza on its side and a pizza slice on its roof. 0-1 driving (the wheels turning),
@@ -13211,6 +13363,17 @@ const SquadView = (() => {
         const call = nameOf('cmd', e.cmd).replace(/!$/, '');
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
+      // the Pump.fun Pill (engine 22)
+      case 'pill':
+        return u + ' swallows the Pump.fun Pill and goes BERSERK!';
+      case 'burst':
+        return '';
+      case 'pump':
+        return e.res === 'absorb' ? u + "'s spray pops " + d + "'s bubble." : u + ' sprays ' + d + ': -' + e.dmg + '.';
+      case 'oneshot':
+        return u + ' takes ' + d + ' down with one shot!';
+      case 'pillend':
+        return 'Pumped and dumped: ' + u + ' did ' + e.dealt + ' damage' + (e.hit > 1 ? ' to ' + e.hit + ' Blubs.' : '.');
       // the Pizza Phone (engine 22)
       case 'phone':
         return u + ' calls for a pizza: "One large, extra cheese, and step on it!"';
@@ -14170,7 +14333,7 @@ const SquadView = (() => {
       get,
       white,
       ghost: white,
-      line: { you: silhouette(mask, 16, 20, colors.you.fill, true), rival: silhouette(mask, 16, 20, colors.rival.fill, true), gold: silhouette(mask, 16, 20, colors.gold, true) },
+      line: { you: silhouette(mask, 16, 20, colors.you.fill, true), rival: silhouette(mask, 16, 20, colors.rival.fill, true), gold: silhouette(mask, 16, 20, colors.gold, true), pump: silhouette(mask, 16, 20, '#4BE08F', true) },
     };
   }
 
@@ -14293,6 +14456,10 @@ const SquadView = (() => {
     // the Pizza Phone (engine 22): the call; the van rolling in and stopping at vanStop,
     // the box out of its back and down at vanHit, and off it goes; a slice to eat
     phone: 1900, phoneHit: 1400, van: 3600, vanStop: 1250, vanHit: 1900, slice: 700, sliceHit: 380,
+    // the Pump.fun Pill (engine 22): up out of its paw and down its throat at pillHit;
+    // its rush a tile every rushTile; a burst a bullet every pumpGap; the one shot that
+    // brings it down, in at oneshotHit; and what it did, to read
+    pill: 2300, pillHit: 1050, rushTile: 60, burst: 300, burstHit: 110, pumpGap: 80, oneshot: 2600, oneshotHit: 1750, pillend: 2200,
     unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
@@ -14349,8 +14516,8 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
-  const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
+  const KEEP_TIME = new Set(['pill', 'burst', 'oneshot', 'pillend', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow || !!b.keep;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
   // Turns a round's events into beats on a clock. Each beat lists the events it applies and when.
@@ -14380,7 +14547,12 @@ const SquadView = (() => {
       let lastMove = null; // a move group that later moves of the same turn may join
       let pend = []; // knock-outs and revives wait until the hit that caused them is shown
       const aims = {}; // mortar -> its aim beat, until the shell lands
+      // the Pump.fun Pill (engine 22): from the gulp to the tally every beat keeps its
+      // time (the Blub on it: rager), its rush is a rush, its bullets ride on their burst
+      let rager = -1;
+      let lastBurst = null;
       const add = (b) => {
+        if (rager >= 0) b.keep = true;
         b.list = b.list || [];
         b.actors = b.actors || [];
         pre.forEach((ei) => {
@@ -14402,6 +14574,13 @@ const SquadView = (() => {
       const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
       ev.forEach((e, i) => {
         const t = e.t;
+        if (t === 'pill') rager = e.u;
+        // its bullets ride on their burst, whatever a hit set off in between
+        if (t === 'pump' && lastBurst) {
+          lastBurst.list.push({ ei: i, off: MS.burstHit + lastBurst.nb * MS.pumpGap });
+          lastBurst.nb++;
+          return;
+        }
         if (t === 'perk') {
           if (parent && parent.kind === 'perks') attachTo(parent, i);
           else parent = add({ kind: 'perks', dur: MS.perks, contact: MS.perksHit, list: [{ ei: i, off: MS.perksHit }], e });
@@ -14534,7 +14713,8 @@ const SquadView = (() => {
             lastMove.list.push({ ei: i, off: 0 });
             lastMove.steps = Math.max(lastMove.steps, len);
             lastMove.dur = lastMove.steps * MS.tile + MS.settle;
-          } else lastMove = add({ kind: 'move', steps: len, dur: len * MS.tile + MS.settle, contact: 0, list: [{ ei: i, off: 0 }] });
+          } else if (e.u === rager) lastMove = add({ kind: 'move', steps: len, dur: len * MS.rushTile + MS.settle, contact: 0, list: [{ ei: i, off: 0 }], rush: true });
+          else lastMove = add({ kind: 'move', steps: len, dur: len * MS.tile + MS.settle, contact: 0, list: [{ ei: i, off: 0 }] });
           pos[e.u] = e.path[len - 1].slice();
           return;
         }
@@ -14574,6 +14754,27 @@ const SquadView = (() => {
         if (t === 'ride') {
           parent = add({ kind: 'ride', dur: e.id === 'diamond' ? MS.dride : MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           pos[e.u] = e.at.slice();
+          return;
+        }
+        // the Pump.fun Pill (engine 22): the gulp, the bursts, the one shot, the tally
+        if (t === 'pill') {
+          parent = null;
+          add({ kind: 'pill', dur: MS.pill, contact: MS.pillHit, list: [{ ei: i, off: MS.pillHit }], e, actors: [e.u] });
+          return;
+        }
+        if (t === 'burst') {
+          parent = lastBurst = add({ kind: 'burst', dur: MS.burst + e.n * MS.pumpGap, contact: MS.burstHit, list: [{ ei: i, off: 0 }], e, actors: [e.u], nb: 0 });
+          return;
+        }
+        if (t === 'oneshot') {
+          parent = add({ kind: 'oneshot', dur: MS.oneshot, contact: MS.oneshotHit, list: [{ ei: i, off: MS.oneshotHit }], e, actors: [e.u] });
+          return;
+        }
+        if (t === 'pillend') {
+          parent = null;
+          add({ kind: 'pillend', dur: MS.pillend, contact: 0, list: [{ ei: i, off: 0 }], e });
+          rager = -1;
+          lastBurst = null;
           return;
         }
         // the Pizza Phone (engine 22): the call, the van with the box down at contact, a slice
@@ -14964,6 +15165,8 @@ const SquadView = (() => {
       case 'bullet':
       case 'bite':
       case 'goo':
+      case 'pump':
+      case 'oneshot':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
@@ -15067,9 +15270,16 @@ const SquadView = (() => {
           }
           if (e.id === 'coin') u.st.coin = true;
           if (e.id === 'pizza') u.st.phone = true;
+          if (e.id === 'pill') u.st.pill = true;
         }
         // the Shiba Inu, in its cage where the crate came down
         if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
+        break;
+      // the Pump.fun Pill (engine 22): down its throat, a rifle in its paws, berserk
+      case 'pill':
+        delete U[e.u].st.pill;
+        U[e.u].st.pumped = true;
+        U[e.u].wpn = 'rifle';
         break;
       // the Pizza Phone (engine 22): on the phone, the box down, a slice eaten
       case 'phone':
@@ -15314,8 +15524,10 @@ const SquadView = (() => {
     // engine 22: the golden drop
     hardhat: [['.....', '.yYy.', 'yyYyy', 'ooooo', '.....'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12' }],
     coin: [['.ooo.', 'oYyyo', 'oyAyo', 'oyyyo', '.ooo.'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12', A: '#8A5C06' }],
+    pill: [['...gg', '..ggg', '.wgg.', 'www..', 'ww...'], { g: '#4FB36B', w: '#FFFFFF' }],
+    pumped: [['.g.g.', 'ggggg', 'gwgwg', 'ggggg', '.g.g.'], { g: '#4BE08F', w: '#FF2E4C' }],
   };
-  const STATUS_NAME = { coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -15428,7 +15640,16 @@ const SquadView = (() => {
   function closeUp(t0, dur, cx, cy, o) {
     if (!P || P.calm || P.speed >= 4 || P.seeking) return;
     const opt = o || {};
-    if (P.shots.some((v) => t0 < v.t1 + 300 && t0 + dur > v.t0)) return;
+    // the golden drop's big scenes (engine 22) cut in over a shot that is still running
+    // or just ended: that one ends where this one starts
+    if (opt.force)
+      P.shots = P.shots.filter((v) => {
+        if (!(t0 < v.t1 + 300 && t0 + dur > v.t0)) return true;
+        if (v.t0 >= t0) return false;
+        v.t1 = Math.min(v.t1, t0);
+        return true;
+      });
+    if (P.shots.some((v) => t0 < v.t1 + (opt.force ? 0 : 300) && t0 + dur > v.t0)) return;
     P.shots.push({ t0, t1: t0 + dur, cx, cy, follow: opt.follow || null });
     if (opt.slow) P.slows.push({ t0: opt.slow[0], t1: opt.slow[1], f: opt.f || 0.35 });
   }
@@ -15791,6 +16012,13 @@ const SquadView = (() => {
     }
     drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
     const S = P.spr[u.id];
+    // on the Pump.fun Pill (engine 22): a green edge flickering round it, shaking with it
+    if (u.st.pumped && !P.calm) {
+      x.globalAlpha = 0.55 + 0.45 * (Math.floor(now / 70) & 1);
+      x.drawImage(S.line.pump, ox - 1 + ((now >> 5) & 1), oy - 1);
+      x.globalAlpha = 1;
+      ox += Math.floor(now / 45) & 1 ? 1 : 0;
+    }
     // the Coin Flip's doppelganger (engine 22): a golden double, a gold edge round it
     if (u.of != null && !u.bench) {
       x.globalAlpha = P.calm ? 0.6 : 0.45 + 0.25 * Math.sin(now / 260);
@@ -15810,6 +16038,25 @@ const SquadView = (() => {
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
     // lasting looks
+    // on the Pump.fun Pill (engine 22): eyes gone red, green sparks off it
+    if (u.st.pumped) {
+      x.fillStyle = '#FF2E4C';
+      x.fillRect(ox + 4, oy + 9, 3, 2);
+      x.fillRect(ox + 9, oy + 9, 3, 2);
+      x.fillStyle = '#FFFFFF';
+      x.fillRect(ox + 5 + (Math.floor(now / 90) & 1), oy + 9, 1, 1);
+      x.fillRect(ox + 10 + (Math.floor(now / 90) & 1), oy + 9, 1, 1);
+      if (!P.calm) {
+        const q = Math.floor(now / 60) % 6;
+        x.fillStyle = q & 1 ? '#4BE08F' : '#D6F5DD';
+        x.fillRect(ox + [1, 14, 3, 12, 0, 15][q], oy + [4, 6, 1, 2, 9, 11][q], 1, 2);
+      }
+    }
+    // the capsule in its paw till it swallows it (engine 22)
+    if (u.st.pill && !(u.pillT > t)) {
+      const s = u.face > 0 ? -1 : 1;
+      x.drawImage(fxFrame('pumppill', 1), ox + 8 + s * 8 - 8, oy + 15 - 8);
+    }
     // the Pizza Phone's golden handset (engine 22): at its side till it calls, then at its
     // ear for the call
     if ((u.st.phone && !(u.phoneT > t)) || (u.callT && t >= u.callT[0] && t < u.callT[1])) {
@@ -18358,6 +18605,26 @@ const SquadView = (() => {
   function goldReveal(e, T, k, cx, cy, until, trip, open) {
     const u = e.u >= 0 ? P.S.u[e.u] : null;
     if (!u) return;
+    // the Pump.fun Pill: the capsule floats up out of the crate, turning over, and drops
+    // into its Blub's paw; a little green chart pumps up over it
+    if (e.id === 'pill') {
+      const fly = 560 * k;
+      const t0 = T + open + 100 * k;
+      u.pillT = P.calm || !trip ? 0 : t0 + fly;
+      if (!trip || P.calm) return;
+      addFx(t0, fly, (x, kk, el) => {
+        const ub = u._b;
+        const ex = ub ? ub.ox + 8 + (u.face > 0 ? -8 : 8) : trip.at[0];
+        const ey = ub ? ub.oy + 15 : trip.at[1];
+        const X = Math.round(lerp(cx, ex, kk));
+        const Y = Math.round(lerp(cy - 16, ey, kk) - Math.sin(kk * Math.PI) * 22);
+        x.drawImage(fxFrame('pumppill', Math.floor(el / (60 * k)) % 4), X - 8, Y - 8);
+      });
+      addParts(10, cx, cy - 14, ['#4BE08F', '#D6F5DD', '#FFFFFF'], 0.05, -0.00004, 700 * k, t0, false, [-Math.PI, 0]);
+      atClock(t0 + fly, () => sfx('gem'));
+      label(t0 + fly + 60 * k, 'PUMP.FUN PILL', '#4BE08F', trip.at[0], trip.at[1] - 34, true);
+      return;
+    }
     // the Pizza Phone: the golden phone rings in the crate, and up it comes into its
     // Blub's paws, ringing all the way
     if (e.id === 'pizza') {
@@ -18549,6 +18816,264 @@ const SquadView = (() => {
       hold(40);
     });
   }
+  // ---- the Pump.fun Pill (engine 22). One long close-up from the gulp to the tally:
+  // the capsule flips up out of its paw and down its throat (GULP), a flash, the pill's
+  // green fire round it and PUMP IT!, a chart pumping up behind it; its rush; burst after
+  // burst, tracers to its target and wild ones all round, cases flying; then the camera
+  // swings to the enemy that takes it down and rides the one shot in (each weapon its
+  // own: a scope's glint and a headshot, a golden arrow, a giant bubble, a thrown
+  // sword or hammer spinning in), the hit, and what it did: PUMPED AND DUMPED.
+  const KILL_WORD = { scope: 'HEADSHOT', rifle: 'TAKEDOWN', bow: 'BULLSEYE', wand: 'POP!', raygun: 'SPLAT!', sword: 'SLICED', daggers: 'STABBED', spear: 'SKEWERED', hammer: 'BONK!', tool: 'BONK!', boom: 'KABOOM' };
+  function pillBeat(b, T, k) {
+    const e = b.e;
+    const S = P.S;
+    if (b.kind === 'pill') {
+      const u = S.u[e.u];
+      if (!u) return true;
+      const B = P.rd.beats;
+      const end = B.find((v) => v.kind === 'pillend' && v.t > b.t && v.e.u === e.u);
+      const t1 = end ? end.t + end.dur : T + b.dur;
+      const shot = B.find((v) => v.kind === 'oneshot' && v.t > b.t && v.e.d === e.u && (!end || v.t < end.t));
+      P.rage = { u: e.u, shot, last: centreOf(u) };
+      // the camera: on the raging Blub, and along the one shot as it flies
+      closeUp(T, t1 - T, ...P.rage.last, {
+        follow: (t) => {
+          const R = P.rage;
+          if (R && R.shot && R.fly && t >= R.fly[0] && t < R.fly[1]) return R.fly[2](t);
+          if (R && !R.shot && R.done) return R.last;
+          if (R && R.killer && t >= R.shot.t && t < R.fly[0]) {
+            const kb = S.u[R.killer];
+            return kb && kb._b ? [kb._b.ox + 8, kb._b.oy + 10] : R.last;
+          }
+          const ub = u._b;
+          if (ub && R) R.last = [ub.ox + 8, ub.oy + 10];
+          return R ? R.last : [0, 0];
+        },
+        slow: [T + b.contact - 260 * k, T + b.contact + 160 * k],
+        f: 0.4,
+        force: true,
+      });
+      // the capsule: flipped up out of its paw, turning, and into its open mouth
+      const hit = T + b.contact;
+      const up = T + 260 * k;
+      u.pillT = 1e12;
+      addFx(T, hit - T, (x, kk, el) => {
+        const ub = u._b;
+        if (!ub) return;
+        const s = u.face > 0 ? -1 : 1;
+        const t = T + el;
+        const px0 = ub.ox + 8 + s * 8;
+        const py0 = ub.oy + 15;
+        if (t < up) {
+          x.drawImage(fxFrame('pumppill', 1), px0 - 8, py0 - 8);
+          return;
+        }
+        const f = (t - up) / (hit - up);
+        const X = Math.round(lerp(px0, ub.ox + 8, f));
+        const Y = Math.round(lerp(py0, ub.oy + 13, f) - Math.sin(f * Math.PI) * 26);
+        x.drawImage(fxFrame('pumppill', Math.floor((t - up) / (70 * k)) % 4), X - 8, Y - 8);
+      });
+      // its mouth open for it
+      u.hurt = hit - 240 * k;
+      atClock(up, () => sfx('click'));
+      label(hit, 'GULP', '#D6F5DD', centreOf(u)[0], centreOf(u)[1] - 22, true);
+      atClock(hit, () => {
+        sfx('power');
+        flash(hit);
+        shake(hit);
+        hold(120);
+      });
+      // the green fire and the chart pumping up behind it
+      ringFx(hit + 100 * k, centreOf(u)[0], centreOf(u)[1] + 4, 520 * k, '#4BE08F', 3, 22, true, 0.6);
+      addParts(26, centreOf(u)[0], centreOf(u)[1], ['#4BE08F', '#D6F5DD', '#1E5B33', '#FFFFFF'], 0.1, -0.0002, 700 * k, hit + 80 * k, true);
+      label(hit + 260 * k, 'PUMP IT!', '#4BE08F', centreOf(u)[0], centreOf(u)[1] - 30, true, 2);
+      addFx(hit + 200 * k, T + b.dur - hit - 200 * k + 100, (x, kk) => {
+        const ub = u._b;
+        if (!ub) return;
+        const X0 = ub.ox - 14;
+        const Y0 = ub.oy + 6;
+        const n = Math.max(1, Math.floor(kk * 12));
+        x.fillStyle = '#4BE08F';
+        for (let q = 0; q < n; q++) {
+          const y = Math.round(-q * 1.6 - Math.sin(q * 1.7) * 2);
+          x.fillRect(X0 + q * 4, Y0 + y, 3, 1);
+          x.fillRect(X0 + q * 4 + 1, Y0 + y - 2, 1, 5);
+        }
+      });
+      return true;
+    }
+    if (b.kind === 'burst') {
+      const u = S.u[e.u];
+      const d = S.u[e.d];
+      if (!u || !d) return true;
+      const [ux, uy] = centreOf(u);
+      const [dx, dy] = centreOf(d);
+      faceTo(u, dx);
+      const len = Math.hypot(dx - ux, dy - uy) || 1;
+      u.atk = { t0: T, dur: b.dur, contact: b.contact, c1: b.contact, rel: Math.round(b.contact * 0.6), gap: Math.round(MS.pumpGap * k), kind: 'ranged', w: 'rifle', nx: (dx - ux) / len, ny: (dy - uy) / len, dir: dir8(dx - ux, dy - uy) };
+      const words = ['BRRRT', 'RATATAT', 'PEW PEW', 'BRRAP'];
+      label(T + 40 * k, words[(e.u + Math.round(T / 97)) % 4], '#4BE08F', ux, uy - 26, false);
+      for (let s = 0; s < e.n; s++) {
+        const st = T + (MS.burstHit + s * MS.pumpGap) * k;
+        atClock(st, () => sfx('shot'));
+        gunShot(st, u, d, [-2, 2, 0, 1][s % 4], [1, -1, 0, 2][s % 4], k, false);
+        // a wild one: off somewhere, a spark where it hits the floor
+        const a = hash(T, s, e.u) * Math.PI * 2;
+        const wx = Math.round(ux + Math.cos(a) * 34);
+        const wy = Math.round(uy + Math.sin(a) * 24);
+        gunShot(st + 30 * k, u, { _b: { ox: wx - 8, oy: wy - 12 } }, 0, 0, k, false);
+        addParts(3, wx, wy, ['#FFD447', '#FFFFFF'], 0.04, 0.0003, 260 * k, st + 60 * k, false);
+        // a case kicked out of it
+        addParts(1, ux - (u.face > 0 ? 3 : -3), uy - 2, ['#FFD447'], 0.07, 0.0006, 420 * k, st, false, u.face > 0 ? [Math.PI * 1.05, Math.PI * 1.35] : [Math.PI * 1.65, Math.PI * 1.95]);
+      }
+      shake(T + MS.burstHit * k);
+      return true;
+    }
+    if (b.kind === 'oneshot') {
+      // e.u: the enemy that brings it down; e.d: the Blub on the pill
+      const kl = S.u[e.u];
+      const d = S.u[e.d];
+      if (!kl || !d) return true;
+      const [kx, ky] = centreOf(kl);
+      const [dx, dy] = centreOf(d);
+      const w = kl.wpn;
+      const hit = T + b.contact;
+      const aim = T + 650 * k;
+      const fly0 = w === 'scope' || w === 'rifle' ? hit - 280 * k : hit - 700 * k;
+      const arc = ['sword', 'daggers', 'spear', 'hammer', 'tool', 'boom', 'bow'].includes(w) ? 16 : w === 'wand' ? 4 : 0;
+      const at = (t) => {
+        const f = clamp((t - fly0) / (hit - fly0), 0, 1);
+        return [lerp(kx, dx, f), lerp(ky - 2, dy, f) - Math.sin(f * Math.PI) * arc];
+      };
+      if (P.rage) {
+        P.rage.killer = e.u;
+        P.rage.shot = b;
+        P.rage.fly = [fly0, hit + 200 * k, (t) => (t < hit ? at(t) : [dx, dy])];
+      }
+      faceTo(kl, dx);
+      P.slows.push({ t0: fly0, t1: hit + 140 * k, f: 0.3 });
+      // it takes aim: a glint off its weapon, a red dot on the Blub
+      addFx(aim - 300 * k, fly0 - aim + 300 * k, (x, kk, el) => {
+        const kb = kl._b;
+        if (!kb) return;
+        const s = Math.floor(el / (80 * k)) & 1;
+        x.fillStyle = '#FFFFFF';
+        x.fillRect(kb.ox + 8 + kl.face * 7, kb.oy + 8 - s, 1, 3 + s * 2);
+        x.fillRect(kb.ox + 7 + kl.face * 7 - s, kb.oy + 9, 3 + s * 2, 1);
+        const db = d._b;
+        if (db && (w === 'scope' || w === 'rifle' || w === 'bow')) {
+          x.fillStyle = '#FF2E4C';
+          x.fillRect(db.ox + 7, db.oy + 7, 2, 2);
+        }
+      });
+      if (w === 'scope') label(aim, 'GOT YOU', '#FF5C77', kx, ky - 24, false);
+      // the one shot itself
+      addFx(fly0, hit - fly0, (x, kk, el) => {
+        const t = fly0 + el;
+        const [X0, Y0] = at(t);
+        const X = Math.round(X0);
+        const Y = Math.round(Y0);
+        if (w === 'scope' || w === 'rifle') {
+          // a streak of light with a long trail, three of them for a rifle
+          for (let j = 0; j < (w === 'rifle' ? 3 : 1); j++) {
+            const [ax, ay] = at(t - j * 50 * k);
+            const [bx, by] = at(t - j * 50 * k - 90 * k);
+            const n = Math.max(2, Math.round(Math.hypot(ax - bx, ay - by)));
+            for (let q = 0; q <= n; q++) {
+              x.fillStyle = q > n - 3 ? '#FFFFFF' : q > n / 2 ? '#FFF3B0' : '#FFD447';
+              x.fillRect(Math.round(lerp(bx, ax, q / n)), Math.round(lerp(by, ay, q / n)), 1, 1);
+            }
+          }
+        } else if (w === 'bow') {
+          const [bx, by] = at(t - 40 * k);
+          const vx = X0 - bx;
+          const vy = Y0 - by;
+          const vl = Math.hypot(vx, vy) || 1;
+          x.fillStyle = '#FFD447';
+          for (let q = 1; q <= 6; q++) x.fillRect(Math.round(X0 - (vx / vl) * q), Math.round(Y0 - (vy / vl) * q), 1, 1);
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(X, Y, 2, 2);
+          addParts(1, X, Y, ['#FFD447', '#FFF3B0'], 0.01, 0.0002, 300 * k, t, false);
+        } else if (w === 'wand') {
+          const r = 4 + Math.round(kk * 5);
+          x.fillStyle = '#BDE7FF';
+          for (let q = 0; q < 28; q++) {
+            const a2 = (q / 28) * Math.PI * 2;
+            x.fillRect(Math.round(X + Math.cos(a2) * r), Math.round(Y + Math.sin(a2) * r), 1, 1);
+          }
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(X - r + 2, Y - r + 2, 2, 1);
+        } else if (w === 'raygun') {
+          ditherRect(x, X - 8, Y - 8, 17, 17, '#86CBF3', 0.4);
+          x.fillStyle = INK;
+          x.fillRect(X - 5, Y - 4, 11, 9);
+          x.fillStyle = '#3E86C9';
+          x.fillRect(X - 4, Y - 3, 9, 7);
+          x.fillStyle = '#86CBF3';
+          x.fillRect(X - 3, Y - 2, 6, 4);
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(X - 2, Y - 2, 2, 1);
+        } else if (w === 'boom') {
+          x.fillStyle = INK;
+          x.fillRect(X - 3, Y - 3, 7, 7);
+          x.fillStyle = '#3A3A4A';
+          x.fillRect(X - 2, Y - 2, 5, 5);
+          x.fillStyle = Math.floor(el / 40) & 1 ? '#FFD447' : '#FF8A3D';
+          x.fillRect(X, Y - 5, 1, 2);
+        } else {
+          // its weapon, thrown: spinning end over end
+          drawArmsDir(x, ARMS_SPR[w] ? w : 'sword', X, Y, Math.floor(el / (45 * k)) % 8);
+        }
+      });
+      atClock(fly0, () => sfx(w === 'scope' ? 'snipe' : w === 'rifle' ? 'shot' : 'zap'));
+      atClock(hit, () => {
+        sfx('ko');
+        flash(hit);
+        shake(hit);
+        hold(220);
+      });
+      // the hit: white, thrown back, pill shards and all
+      d.hurl = hit;
+      ringFx(hit, dx, dy, 460 * k, '#FFFFFF', 3, 24, false, 0.8);
+      addParts(22, dx, dy - 4, ['#4BE08F', '#FFFFFF', '#D6F5DD', '#FF5C77'], 0.12, 0.0005, 700 * k, hit, true);
+      label(hit + 60 * k, KILL_WORD[w] || 'ONE SHOT', '#FFFFFF', dx, dy - 30, true, 2);
+      return true;
+    }
+    if (b.kind === 'pillend') {
+      // the tally: over where it fell, a chart that pumps and then dumps, and what it did
+      const d = S.u[e.u];
+      const R = P.rage;
+      const [cx, cy] = R ? R.last : d ? centreOf(d) : [CW / 2, CH / 2];
+      // (the camera stays where it fell till the shot is over)
+      if (R) {
+        R.shot = null;
+        R.done = true;
+      }
+      atClock(T + b.dur, () => {
+        if (P.rage === R) P.rage = null;
+      });
+      addFx(T, b.dur, (x, kk, el) => {
+        const X0 = Math.round(cx - 26);
+        const Y0 = Math.round(cy - 6);
+        // the band behind it
+        ditherRect(x, X0 - 12, Y0 - 34, 76, 46, '#120A1C', 0.85);
+        // the chart: up and up, then straight down
+        const n = Math.min(14, Math.floor(el / (60 * k)));
+        for (let q = 0; q < n; q++) {
+          const y = q < 10 ? -q * 2 - (q % 3) : -20 + (q - 9) * 7;
+          x.fillStyle = q < 10 ? '#4BE08F' : '#FF5C77';
+          x.fillRect(X0 + q * 4, Y0 + y, 3, 2);
+        }
+        if (el > 500 * k) {
+          x.drawImage(pxText('PUMPED AND DUMPED', '#4BE08F', 1), X0 - 10, Y0 - 32);
+          x.drawImage(pxText('DEALT ' + e.dealt + ' DMG', '#FFD447', 1), X0 - 4, Y0 + 4);
+        }
+      });
+      atClock(T + 500 * k, () => sfx('read'));
+      return true;
+    }
+    return false;
+  }
   // ---- the Pizza Phone (engine 22)
   function drawPizza(x, z, now) {
     const [cx, cy] = tileC(z.x, z.y);
@@ -18640,7 +19165,7 @@ const SquadView = (() => {
       };
       const fr = (t) => (t >= tStop + 150 * k && t < tGo ? 2 : Math.floor(t / 70) & 1);
       const img = (i) => (face > 0 ? fxFrame('van', i) : vanFlip(i));
-      closeUp(T, b.dur, stopX, gy - 18, { follow: (t) => [clamp(vx(t), 30, CW - 30), gy - 22], slow: [T + b.contact - 200 * k, T + b.contact + 120 * k], f: 0.45 });
+      closeUp(T, b.dur, stopX, gy - 18, { follow: (t) => [clamp(vx(t), 30, CW - 30), gy - 22], slow: [T + b.contact - 200 * k, T + b.contact + 120 * k], f: 0.45, force: true });
       addFx(T, b.dur, (x, kk, el) => {
         const t = T + el;
         const X = Math.round(vx(t));
@@ -18738,7 +19263,7 @@ const SquadView = (() => {
       return [lerp(ux + face * 6, lx, f), lerp(uy + 1, ly, f) - 4 * top * f * (1 - f), f];
     };
     u.coinT = 1e12;
-    closeUp(T, b.dur, ux, uy - 16, { follow: (t) => [ux, Math.min(uy - 4, (coinAt(t)[1] + uy) / 2 - 4)], slow: [hit - 520 * k, hit + 160 * k], f: 0.35 });
+    closeUp(T, b.dur, ux, uy - 16, { follow: (t) => [ux, Math.min(uy - 4, (coinAt(t)[1] + uy) / 2 - 4)], slow: [hit - 520 * k, hit + 160 * k], f: 0.35, force: true });
     if (!fall) {
       u.hop = { kind: 'toss', t0: flick - 90 * k, dur: 200 * k, h: 3 };
       label(flick, 'PING', '#FFF3B0', ux + face * 8, uy - 10, false);
@@ -19097,6 +19622,7 @@ const SquadView = (() => {
     if (dogBeat(b, T, k)) return;
     if (coinBeat(b, T, k)) return;
     if (pizzaBeat(b, T, k)) return;
+    if (pillBeat(b, T, k)) return;
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
     if (worksBeat(b, T, k)) return;
@@ -19440,7 +19966,8 @@ const SquadView = (() => {
     if (e.t === 'move' && !P.seeking) {
       const u = U[e.u];
       const pts = [scr(u.x, u.y)].concat(e.path.map((p) => scr(p[0], p[1])));
-      const step = MS.tile * k;
+      // (on the Pump.fun Pill, engine 22: a rush)
+      const step = (u.st.pumped ? MS.rushTile : MS.tile) * k;
       if (!P.calm) {
         u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
         const [lx, ly] = pts[pts.length - 1];
@@ -20416,6 +20943,26 @@ const SquadView = (() => {
           addParts(1, gx - face * 3, gy - 2, ['#FFD447'], 0.07, 0.0006, 420 * k, st, false, face > 0 ? [Math.PI * 1.05, Math.PI * 1.35] : [Math.PI * 1.65, Math.PI * 1.95]);
         }
         shake(T + MS.sprayHit * k);
+        return;
+      }
+      // the Pump.fun Pill's bullets (engine 22), and the one shot that brings it down
+      case 'pump': {
+        const d = U[e.d];
+        const [dx, dy] = centreOf(d);
+        if (e.res === 'absorb') {
+          label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
+          return;
+        }
+        d.hurt = T;
+        d.flash = T;
+        label(T, String(e.dmg), '#4BE08F', dx + ((e.hp % 3) - 1) * 5, dy - 14, false);
+        addParts(4, dx, dy - 4, ['#4BE08F', '#FFFFFF', '#FFD447'], 0.05, 0.0003, 280 * k, T, false);
+        return;
+      }
+      case 'oneshot': {
+        const d = U[e.d];
+        d.hurt = T;
+        d.flash = T;
         return;
       }
       // a round of it, on the Blub it sprays
@@ -22339,7 +22886,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -22496,7 +23043,7 @@ const SquadView = (() => {
       R.rows.forEach((r) => {
         const u = S.u[r.id];
         if (u.alive) alive[u.side]++;
-        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem', 'hardhat', 'coin'].filter((s) => u.st[s]);
+        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem', 'hardhat', 'coin', 'pill', 'pumped'].filter((s) => u.st[s]);
         // the trench kit: dug into a foxhole, extra ammo from the crate
         if (u.alive && u.dug) sts.push('dug');
         if (u.alive && u.ammo) sts.push('ammo');
@@ -23695,6 +24242,7 @@ const SquadView = (() => {
       },
       // the golden drop (engine 22)
       gold: {
+        pill: `Your rifle Blub swallows it as the enemy comes: it rushes in and sprays ${R.pillMin}-${R.pillMax}% of a Blub's HP, then is shot down.`,
         pizza: `Your Blub calls for pizza: in turn ${R.pizzaTurn} a van drops a box on your rows, ${R.pizzaSlices} slices of ${R.pizzaHp} HP for the whole squad.`,
         coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Tails: that Blub is out.`,
         raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
