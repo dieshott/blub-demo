@@ -5965,6 +5965,11 @@ const RULES = lock({
   // turn is over. After shibaBites bites it has had its fill and trots back to its Blub.
   // It is far too quick for anybody to hit.
   shibaRun: 6, shibaDmg: 3, shibaBites: 5, shibaShake: 15,
+  // Ray Gun (the one from Black Ops 2): a Blub that fights from mid range (a wand or a
+  // rifle) trades its weapon for it, else one from long range (a bow or a Scope Rifle),
+  // else one from close by. It fires a blob of blue slime: rayRange tiles, needs a
+  // clear line, rayDmg, and raySplash on every enemy beside the one it hits.
+  rayRange: 5, rayDmg: 9, raySplash: 2,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6087,9 +6092,14 @@ const WEAPON_STATS = lock({
   boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
   // tool: not a pick: what a Builder fights with, whatever weapon it was given
   tool: { range: 1, dmg: RULES.toolDmg, hands: 1, tool: 1 },
+  // goo: the Ray Gun out of the golden crate (engine 22, no pick either): its slime
+  // splashes on the enemies beside its target
+  raygun: { range: RULES.rayRange, dmg: RULES.rayDmg, hands: 1, los: 1, goo: 1 },
 });
 // the Builder's Build Hammer, named like a weapon (it is no pick of its own)
 const TOOL = lock(['tool', 'Build Hammer', `A Builder's own: it fights with this whatever weapon it was given. Melee, ${RULES.toolDmg} damage.`]);
+// the golden drop's Ray Gun (engine 22), named like a weapon (it is no pick of its own)
+const RAYGUN = lock(['raygun', 'Ray Gun', `Out of the golden crate. Range ${RULES.rayRange}, needs a clear line of sight. A blob of blue slime: ${RULES.rayDmg} damage, and ${RULES.raySplash} on every enemy beside its target.`]);
 const GEAR = lock([
   ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
   ['boots', 'Cloud Boots', '+1 move and a little extra dodge.'],
@@ -6269,6 +6279,7 @@ const NERFS = lock([
 // of these, each as likely; both squads may get the same one). It comes down on the
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
+  ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. As the fight starts its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
 ]);
@@ -6709,8 +6720,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // fight (goldBy); otherwise the squad's Blub nearest to it (a tie: the lower unit).
   const crates = [null, null];
   // the Blub each golden drop is meant for (null: whoever is nearest the crate)
-  function goldBy(t, g) {
+  function goldBy(t, g, at) {
     const squad = U.filter((u) => u.team === t);
+    // the Ray Gun: a Blub that fights from mid range (reach 3-4), else long range (5 and
+    // more), else close by (a Builder with its Build Hammer after the rest; never the
+    // Boom Pack); among them the nearest to the crate, a tie the lower unit
+    if (g === 'raygun') {
+      const band = (u) => {
+        const W0 = WEAPON_STATS[u.wpn];
+        return W0.boom ? 9 : W0.tool ? 3 : W0.range >= 3 && W0.range <= 4 ? 0 : W0.range >= 5 ? 1 : 2;
+      };
+      return squad.slice().sort((a, b) => band(a) - band(b) || cheb(a.x, a.y, at[0], at[1]) - cheb(b.x, b.y, at[0], at[1]) || a.id - b.id)[0] || null;
+    }
     // the Big Gun Blueprint: a Blub with no trench job and no Boom Pack (not a Medic
     // while there is anybody else), nearest to the squad's own Builder when it has one,
     // else the one that hits least hard; a tie, the lower unit
@@ -6735,7 +6756,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         }
       const at = free.length ? free[Math.floor(cr() * free.length)] : null;
       const squad = U.filter((u) => u.team === t);
-      const by = !at ? null : goldBy(t, meme[t].gold) || squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a));
+      const by = !at ? null : goldBy(t, meme[t].gold, at) || squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a));
       crates[t] = { at, by };
       if (by && meme[t].nerf === 'rekt') by.hp = Math.max(1, by.hp - RULES.rektHp);
       if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
@@ -6761,6 +6782,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           meme[t].big = true;
         } else u.engineer = true;
         goldOut[t] = { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, big: 1 } : {}) };
+      }
+      // the Ray Gun: in its paws instead of its own weapon (a Scope Rifle's aim goes with it)
+      if (g === 'raygun') {
+        goldOut[t] = { was: u.wpn };
+        u.wpn = 'raygun';
+        u.load = 0;
+        u.sight = -1;
       }
     }
   push({ t: 'round', n: round + 1, theme, weather, powerup, chest: spin });
@@ -6799,7 +6827,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const friends = (u) => living[u.team].filter((v) => v !== u);
   const W = (u) => WEAPON_STATS[u.wpn];
   // arrows and bullets are 'ranged' (cover stops them alike), bubbles 'magic'
-  const kindOf = (u) => (u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || W(u).gun ? 'ranged' : 'melee');
+  const kindOf = (u) => (u.wpn === 'wand' ? 'magic' : u.wpn === 'bow' || W(u).gun || W(u).goo ? 'ranged' : 'melee');
   // a Brawler's bonus is for what it swings or stabs with
   const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && !WEAPON_STATS[v.wpn].boom;
   // the blast a Boom Pack carries: beside it, and a tile farther
@@ -7224,6 +7252,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     u.pending = 0;
     u.amb = 0;
+    // the Ray Gun's slime (engine 22) splashes on every enemy beside the one it hit
+    if (landed && w.goo) {
+      for (const v of foes(u).slice()) if (v !== d && v.alive && over < 0 && cheb(v.x, v.y, d.x, d.y) <= 1) pure(u, v, RULES.raySplash, 'goo');
+      checkOver();
+      return;
+    }
     if (!landed || u.wpn !== 'hammer') return;
     // the hammer: splash on the enemies around the target, then knock it back
     for (const v of foes(u).slice()) if (v !== d && v.alive && over < 0 && cheb(v.x, v.y, d.x, d.y) <= 1) pure(u, v, w.splash, 'splash');
@@ -10111,7 +10145,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -10167,7 +10201,7 @@ const SquadView = (() => {
 
   // catalog names always come from the engine
   const CATS = {
-    cls: SE.PLAYSTYLES, wpn: SE.TOOL ? SE.WEAPONS.concat([SE.TOOL]) : SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
+    cls: SE.PLAYSTYLES, wpn: SE.TOOL ? SE.WEAPONS.concat([SE.TOOL], SE.RAYGUN ? [SE.RAYGUN] : []) : SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
     obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], gold: SE.GOLDS || [], cmd: SE.COMMANDS || [], sky: SE.WEATHER || [],
   };
   const entry = (kind, id) => (CATS[kind] || []).find((x) => x[0] === id) || null;
@@ -10201,6 +10235,11 @@ const SquadView = (() => {
       'nNn', 'nwn', 'nNn', '.n.', '.N.', '.n.', '.N.', '.n.'] };
   // what a Builder fights with (engine 9): its mallet, the Build Hammer
   if (!ARMS_SPR.tool) ARMS_SPR.tool = ARMS_SPR.mallet;
+  // the Ray Gun (engine 22, the golden drop): chrome, with gold fins, its coils glowing
+  // blue and the red emitter at the tip, held muzzle up like the rest
+  if (!ARMS_SPR.raygun)
+    ARMS_SPR.raygun = { g: [2, 10], pal: { R: '#FF5C77', k: '#2B2B36', b: '#86CBF3', B: '#3E86C9', I: '#E8F6FF', y: '#FFD447', o: '#C98A12', S: '#EEEEF5', s: '#8C8CA0', x: '#3A3A4A' }, rows: [
+      '..R..', '.kRk.', '.bIb.', '.kBk.', '.bIb.', 'yoSoy', 'yySsy', '.SSs.', '.Sss.', '.kxk.', '..xk.', '..xk.'] };
   // a gem and a stone, as a Miner digs them up and carries them
   const GEM_ROWS = ['..w..', '.lbb.', 'lbbBb', '.bBB.', '..B..'];
   const STONE_ROWS = ['.sss.', 'sSSss', 'ssxss', '.sxs.'];
@@ -12419,6 +12458,36 @@ const SquadView = (() => {
       }
       return g;
     }],
+    // the Ray Gun's icon: the gun side on, pointing right and up a little, chrome with
+    // gold fins and three blue rings round its barrel, a blob of slime on its way out
+    gb_raygun: [1, 32, () => {
+      let g = FG.grid(32);
+      // the body: a fat round chamber at the back, the barrel narrowing to the emitter
+      FG.disc(g, 11, 15, 6.5, '1');
+      FG.poly(g, [[11, 10], [24, 12], [24, 17], [11, 20]], '1');
+      // the grip, raked back
+      FG.poly(g, [[7, 18], [12, 18], [10, 28], [5, 28]], '2');
+      g = FG.volume(g, '1', 'white');
+      g = FG.volume(g, '2', 'iron');
+      // gold fins top and bottom of the chamber
+      FG.poly(g, [[7, 9], [13, 9], [10, 4], [6, 5]], '3');
+      FG.poly(g, [[13, 20], [18, 19], [16, 24], [13, 24]], '3');
+      g = FG.volume(g, '3', 'gold');
+      // three blue rings round the barrel, the emitter at the tip
+      for (const x of [15, 18, 21]) for (let y = 11; y <= 18; y++) if (g[y][x] !== '.') FG.put(g, x, y, y < 14 ? 'l' : 'b');
+      FG.disc(g, 25, 14.5, 2.4, 'r');
+      FG.put(g, 24, 13, 'F');
+      g = FG.outline(g);
+      // the slime blob leaving it, and drops
+      FG.disc(g, 29, 9, 2.6, 'b');
+      FG.put(g, 28, 8, 'u');
+      FG.put(g, 27, 12, 'b');
+      FG.put(g, 30, 13, 'B');
+      // a glint on the chamber
+      FG.put(g, 9, 12, 'w');
+      FG.put(g, 10, 11, 'w');
+      return g;
+    }],
     gb_shiba: [1, 32, () => {
       // the icon: the Shiba's head, scowling, in a gold-topped cage
       let g = FG.grid(32);
@@ -12773,6 +12842,9 @@ const SquadView = (() => {
         const call = nameOf('cmd', e.cmd).replace(/!$/, '');
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
+      // the Ray Gun's slime (engine 22)
+      case 'goo':
+        return e.res === 'absorb' ? 'The slime pops ' + d + "'s bubble." : 'The slime splashes ' + d + ': -' + e.dmg + '.';
       // the Shiba Inu (engine 22)
       case 'unleash':
         return u + ' opens the cage: the Shiba Inu is loose!';
@@ -13831,6 +13903,8 @@ const SquadView = (() => {
     // the Shiba Inu (engine 22): its cage rattling till the door bursts at unleashHit;
     // a run a tile every dogTile and the bite at dogBiteHit after it gets there; the
     // trot home and sitting down
+    // the Ray Gun (engine 22): a charge at the muzzle, then the slime a tile every rayTile
+    rayCharge: 120, rayTile: 55,
     unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
@@ -13957,7 +14031,7 @@ const SquadView = (() => {
         // events that ride on the beat that caused them
         const p = parent;
         if (p) {
-          if ((t === 'splash' || t === 'knock' || t === 'bump') && p.kind === 'attack') {
+          if ((t === 'splash' || t === 'knock' || t === 'bump' || t === 'goo') && p.kind === 'attack') {
             attachTo(p, i);
             if (t === 'knock' && e.to) pos[e.d] = e.to.slice();
             return;
@@ -14078,7 +14152,8 @@ const SquadView = (() => {
           // a bullet is there almost as it leaves; the Scope Rifle takes a breath first
           const gun = GUNS.has(e.w);
           const wind = e.w === 'scope' ? MS.scopeWind : MS.rWind;
-          const contact = gun ? wind + 50 : ranged ? MS.rWind + MS.perTile * dist : MS.mHit;
+          // (the Ray Gun's slime, engine 22: a charge, then a blob slower than an arrow)
+          const contact = gun ? wind + 50 : e.w === 'raygun' ? MS.rWind + MS.rayCharge + MS.rayTile * dist : ranged ? MS.rWind + MS.perTile * dist : MS.mHit;
           parent = add({ kind: 'attack', dur: e.w === 'scope' ? MS.scopeShot : ranged ? Math.max(MS.ranged, contact + 160) : MS.melee, contact, c1: contact, rel: wind, list: [{ ei: i, off: contact }], e });
           return;
         }
@@ -14471,6 +14546,7 @@ const SquadView = (() => {
       case 'singed':
       case 'bullet':
       case 'bite':
+      case 'goo':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
@@ -14568,6 +14644,10 @@ const SquadView = (() => {
             u.hp = e.hp;
           }
           if (e.id === 'blueprint') u.st.hardhat = true;
+          if (e.id === 'raygun') {
+            u.wasWpn = u.wpn;
+            u.wpn = 'raygun';
+          }
         }
         // the Shiba Inu, in its cage where the crate came down
         if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
@@ -15090,7 +15170,8 @@ const SquadView = (() => {
 
   // ---- drawing one frame
   function drawWeapon(x, u, ox, oy, pose, t) {
-    const w = u.wpn;
+    // (the Ray Gun only once its Blub has it out of the crate: engine 22)
+    const w = u.wasWpn && u.rayT > t ? u.wasWpn : u.wpn;
     if (!ARMS_SPR[w]) return;
     const face = u.face;
     const hx = face > 0 ? ox + 15 : ox;
@@ -15155,6 +15236,19 @@ const SquadView = (() => {
       const back = w === 'rifle' ? kick(a.c1) + kick(a.c1 + gap) + kick(a.c1 + 2 * gap) : kick(a.c1);
       const [kx, ky] = fwd(back);
       drawArmsDir(x, w, hx + kx, hy - 2 + ky, d);
+    } else if (w === 'raygun') {
+      // the Ray Gun (engine 22): aimed, its coil glowing brighter as it charges, a kick
+      const kick = e > a.contact - (a.contact - a.rel) && e < a.contact - (a.contact - a.rel) + 90 ? -2 : 0;
+      const [kx, ky] = fwd(kick);
+      drawArmsDir(x, w, hx + kx, hy - 2 + ky, d);
+      if (e < a.rel + 120) {
+        const [tx, ty] = fwd(10);
+        const r = Math.min(2, Math.floor(e / 60));
+        x.fillStyle = Math.floor(e / 50) & 1 ? '#E8F6FF' : '#86CBF3';
+        x.fillRect(hx + tx - r, hy - 3 + ty - r, r * 2 + 1, r * 2 + 1);
+        x.fillStyle = '#FFFFFF';
+        x.fillRect(hx + tx, hy - 3 + ty, 1, 1);
+      }
     } else if (w === 'bow') {
       drawArmsDir(x, w, hx, hy - 2, d);
       if (e < a.rel) {
@@ -15257,6 +15351,25 @@ const SquadView = (() => {
     // lasting looks
     // the Big Gun Blueprint's golden hard hat (engine 22), once it has landed on its head
     if (u.st.hardhat && !(u.hatT > t)) drawHat(x, ox + 2, oy + 2, !P.calm && Math.floor(now / 140) % 12 === 0);
+    // slimed by the Ray Gun (engine 22): blue goo on its head, running down, for a while
+    if (u.gooT != null && t >= u.gooT && t - u.gooT < 1600 * Math.max(1, P.speed / 2)) {
+      const ge = (t - u.gooT) / Math.max(1, P.speed / 2);
+      x.globalAlpha = ge > 1200 ? 1 - (ge - 1200) / 400 : 1;
+      x.fillStyle = '#3E86C9';
+      x.fillRect(ox + 3, oy + 5, 10, 2);
+      x.fillStyle = '#86CBF3';
+      x.fillRect(ox + 4, oy + 4, 8, 2);
+      for (const [dx, n] of [[4, 3], [7, 6], [10, 4], [12, 2]]) {
+        const l = Math.min(n + 4, Math.round(n * Math.min(1, ge / 500)) + Math.floor(ge / 300));
+        x.fillStyle = '#86CBF3';
+        x.fillRect(ox + dx, oy + 6, 1, l);
+        x.fillStyle = '#3E86C9';
+        x.fillRect(ox + dx, oy + 6 + l, 1, 1);
+      }
+      x.fillStyle = '#E8F6FF';
+      x.fillRect(ox + 5, oy + 4, 2, 1);
+      x.globalAlpha = 1;
+    }
     if (u.st.feather) {
       const k = Math.floor(now / 200) & 1;
       x.fillStyle = '#FFFFFF';
@@ -17756,6 +17869,33 @@ const SquadView = (() => {
   function goldReveal(e, T, k, cx, cy, until, trip, open) {
     const u = e.u >= 0 ? P.S.u[e.u] : null;
     if (!u) return;
+    // the Ray Gun: it floats up out of the crate, glowing, spins and drops into its
+    // Blub's paws; its old weapon goes in the crate
+    if (e.id === 'raygun') {
+      const fly = 520 * k;
+      const t0 = T + open + 100 * k;
+      u.rayT = P.calm || !trip ? 0 : t0 + fly;
+      if (!trip || P.calm) return;
+      addFx(t0, fly, (x, kk) => {
+        const ub = u._b;
+        const ex = ub ? ub.ox + 8 + (u.face > 0 ? 7 : -7) : trip.at[0];
+        const ey = ub ? ub.oy + 14 : trip.at[1] - 6;
+        const X = Math.round(lerp(cx, ex, kk * kk));
+        const Y = Math.round(lerp(cy - 16, ey, kk * kk) - Math.sin(Math.min(1, kk * 1.4) * Math.PI) * 18);
+        drawArmsDir(x, 'raygun', X, Y, (6 + Math.floor(kk * 16)) % 8);
+        // a blue glow round it
+        x.globalAlpha = 0.5;
+        x.fillStyle = '#86CBF3';
+        x.fillRect(X - 1, Y - 12, 1, 1);
+        x.fillRect(X + 3, Y - 8, 1, 1);
+        x.fillRect(X - 4, Y - 5, 1, 1);
+        x.globalAlpha = 1;
+      });
+      addParts(10, cx, cy - 14, ['#86CBF3', '#E8F6FF', '#3E86C9'], 0.05, -0.00004, 700 * k, t0, false, [-Math.PI, 0]);
+      atClock(t0 + fly, () => sfx('zap'));
+      label(t0 + fly + 60 * k, 'RAY GUN', '#86CBF3', trip.at[0], trip.at[1] - 34, true);
+      return;
+    }
     // the Shiba Inu: the crate flies apart in planks of gold, and there is the cage,
     // the dog in it barking its head off
     if (e.id === 'shiba') {
@@ -17823,6 +17963,62 @@ const SquadView = (() => {
         }
       });
     }
+  }
+  // The Ray Gun's shot (engine 22): a wobbling blob of blue slime with a bright core,
+  // dripping as it flies; on a hit it bursts in a splat of goo, and the slime runs down
+  // its target for a while (u.gooT)
+  function slimeShot(t0, t1, u, ux, uy, tx, ty, hit, d, k) {
+    const dur = Math.max(60, t1 - t0);
+    sfx('zap');
+    const at = (kk) => [lerp(ux, tx, kk), lerp(uy - 3, ty, kk) - Math.sin(kk * Math.PI) * 4];
+    // the drops it sheds on the way, falling as it flies on
+    for (let q = 0; q < 5; q++) addParts(1, ...at(q / 5), ['#86CBF3', '#3E86C9'], 0.01, 0.0005, 380 * k, t0 + (dur * q) / 5, false, [Math.PI * 0.4, Math.PI * 0.6]);
+    addFx(t0, dur, (x, kk, el) => {
+      const [X0, Y0] = at(kk);
+      const X = Math.round(X0);
+      const Y = Math.round(Y0);
+      // squashed along its flight, wobbling
+      const wob = Math.floor(el / 45) & 1;
+      const sx = 4 + wob;
+      const sy = 4 - wob;
+      // a cold glow round it
+      ditherRect(x, X - 7, Y - 7, 15, 15, '#86CBF3', 0.35);
+      x.fillStyle = INK;
+      x.fillRect(X - sx, Y - sy + 1, sx * 2 + 1, sy * 2 - 1);
+      x.fillRect(X - sx + 1, Y - sy, sx * 2 - 1, sy * 2 + 1);
+      x.fillStyle = '#1B4E7A';
+      x.fillRect(X - sx + 1, Y - sy + 1, sx * 2 - 1, sy * 2 - 1);
+      x.fillStyle = '#3E86C9';
+      x.fillRect(X - sx + 1, Y - sy + 1, sx * 2 - 2, sy * 2 - 2);
+      x.fillStyle = '#86CBF3';
+      x.fillRect(X - sx + 2, Y - sy + 1, sx * 2 - 4, sy * 2 - 3);
+      x.fillStyle = '#E8F6FF';
+      x.fillRect(X - 1, Y - 2, 2, 2);
+      x.fillStyle = '#FFFFFF';
+      x.fillRect(X - 1, Y - 2, 1, 1);
+    });
+    if (!hit) {
+      addParts(8, tx, ty, ['#86CBF3', '#3E86C9'], 0.05, 0.0004, 380 * k, t1, false);
+      return;
+    }
+    // the splat: goo flies off in arcs, a puddle of it on the floor that slowly soaks
+    // away, a ring, and SPLAT
+    addParts(22, tx, ty, ['#86CBF3', '#3E86C9', '#E8F6FF', '#1B4E7A'], 0.1, 0.0006, 620 * k, t1, true);
+    ringFx(t1, tx, ty + 4, 380 * k, '#86CBF3', 3, 18, true, 0.5);
+    addFx(t1, 1800 * k, (x, kk) => {
+      const r = Math.round(7 + Math.min(1, kk * 6) * 3);
+      x.globalAlpha = kk > 0.6 ? (1 - kk) / 0.4 : 1;
+      blob(x, tx, ty + 6, r, 2, '#3E86C9', 0.85);
+      blob(x, tx - 1, ty + 5, r - 3, 1, '#86CBF3', 0.9);
+      x.fillStyle = '#E8F6FF';
+      x.fillRect(tx - 3, ty + 5, 2, 1);
+      x.globalAlpha = 1;
+    }, true);
+    label(t1 + 30 * k, 'SPLAT!', '#86CBF3', tx, ty - 22, true, 2);
+    atClock(t1, () => {
+      d.gooT = t1;
+      hold(40);
+    });
   }
   // the Shiba Inu's scenes: the cage bursts, a run and a bite, the trot home
   function dogBeat(b, T, k) {
@@ -18191,7 +18387,8 @@ const SquadView = (() => {
           oy = b.end[1] - dy;
         }
         const travel = b.contact - b.rel;
-        if (GUNS.has(e.w)) gunShot(T + b.contact - 50 * k, u, d, ox, oy, k, e.w === 'scope');
+        if (e.w === 'raygun') slimeShot(T + b.rel + MS.rayCharge * k, T + b.contact, u, ux, uy, dx + ox, dy + oy, e.res !== 'miss' && e.res !== 'absorb', d, k);
+        else if (GUNS.has(e.w)) gunShot(T + b.contact - 50 * k, u, d, ox, oy, k, e.w === 'scope');
         else if (e.kind === 'ranged') {
           // shots from up on a watchtower start higher and lob down
           const arc = 4 + len / 8 + (u._b && u._b.lift >= TOWER_LIFT ? 7 : 0);
@@ -18624,8 +18821,14 @@ const SquadView = (() => {
       case 'blasted':
       case 'cannonball':
       case 'bite':
+      case 'goo':
       case 'bump': {
         const d = U[e.d];
+        if (e.t === 'goo' && e.res !== 'absorb') {
+          const [gx, gy] = centreOf(d);
+          addParts(8, gx, gy, ['#86CBF3', '#3E86C9', '#E8F6FF'], 0.06, 0.0004, 420 * k, T, false);
+          atClock(T, () => (d.gooT = T));
+        }
         const [dx, dy] = centreOf(d);
         const top = (d._b ? d._b.oy : dy - 13) - 2;
         if (e.t === 'cannonball') {
@@ -21307,7 +21510,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -22626,6 +22829,7 @@ const SquadView = (() => {
       },
       // the golden drop (engine 22)
       gold: {
+        raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
         shiba: `Let out as the fight starts: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
         blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
       },
