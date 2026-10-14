@@ -13379,7 +13379,48 @@ const SquadView = (() => {
       x.fillRect(1, 1, 10, 10);
       x.drawImage(pxText('?', '#FFF6F8', 1), 3, 2);
     }
+    // the green and red cards (the Lucky Wheel's, engine 23) come as badges
+    if (rows && rows.length === 32 && (kind === 'buff' || kind === 'nerf')) c = perkBadge(c, kind === 'nerf');
     iconCache.set(key, c);
+    return c;
+  }
+  // A card's badge: a round plate with a rim in its colour (green for you, red for
+  // them), lit from the top left, a glow of that colour behind the art, dithered out
+  // to the edge; the art on it as a sticker, a light edge all round it and its shadow
+  // down and to the right; and a glint at the top right.
+  function perkBadge(art, red) {
+    const n = 32;
+    const a = art.getContext('2d').getImageData(0, 0, n, n).data;
+    const on = (px, py) => px >= 0 && py >= 0 && px < n && py < n && a[(py * n + px) * 4 + 3] > 0;
+    const R = red ? ['#FFD3DD', '#E2566E', '#8A2236'] : ['#D6F5DD', '#4FB36B', '#1E5B33'];
+    const glow = red ? '#B8324A' : '#2F7D46';
+    const c = canvas(n, n);
+    const x = c.getContext('2d');
+    const dot = (px, py, col) => {
+      x.fillStyle = col;
+      x.fillRect(px, py, 1, 1);
+    };
+    for (let py = 0; py < n; py++)
+      for (let px = 0; px < n; px++) {
+        const dx = px - 15.5;
+        const dy = py - 15.5;
+        const r = Math.hypot(dx, dy);
+        if (r > 15.6) continue;
+        if (r > 14.6) dot(px, py, INK);
+        else if (r > 13.2) dot(px, py, dx + dy < -7 ? R[0] : dx + dy > 7 ? R[2] : R[1]);
+        else if (r > 12.4) dot(px, py, INK);
+        else dot(px, py, FG.BAYER[(py & 3) * 4 + (px & 3)] / 16 < (1 - r / 12.4) * 0.8 ? glow : '#1B1229');
+      }
+    // the sticker's light edge, and its shadow
+    const sil = new Set();
+    for (let py = 0; py < n; py++)
+      for (let px = 0; px < n; px++) if (on(px, py) || on(px - 1, py) || on(px + 1, py) || on(px, py - 1) || on(px, py + 1)) sil.add(py * n + px);
+    const inSil = (px, py) => px >= 0 && py >= 0 && px < n && py < n && sil.has(py * n + px);
+    for (let py = 0; py < n; py++) for (let px = 0; px < n; px++) if (!inSil(px, py) && inSil(px - 1, py - 1)) dot(px, py, '#0E0818');
+    for (let py = 0; py < n; py++) for (let px = 0; px < n; px++) if (inSil(px, py) && !on(px, py)) dot(px, py, '#FFF6F8');
+    x.drawImage(art, 0, 0);
+    // the glint
+    for (const [px, py, col] of [[26, 5, '#FFFFFF'], [25, 5, R[0]], [27, 5, R[0]], [26, 4, R[0]], [26, 6, R[0]], [29, 9, '#FFFFFF']]) dot(px, py, col);
     return c;
   }
   // An icon canvas shown at px CSS pixels (default 24). The 12x12 set keeps the
