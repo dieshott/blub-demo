@@ -5952,10 +5952,19 @@ const RULES = lock({
   // gets a golden hard hat on top of its own power (+workHp HP) and keeps its weapon.
   // With the squad's own Builder beside it the two build a 3x3 Big Gun together, each
   // of them a stage a turn (bigBuild stages), then a wall of three sandbags; on its own
-  // it builds the 2x2 cannon. The Big Gun fires every bigReload turns at the nearest
-  // enemy it can see within bigRange: bigDmg, and bigSplash on every enemy beside it
-  // (a blind miss still splashes where the ball comes down). It has bigHp.
-  bigBuild: 4, bigReload: 2, bigRange: 6, bigDmg: 10, bigSplash: 3, bigHp: 36,
+  // it builds the 2x2 cannon, out of the blueprint's kit: prefabBuild stages instead of
+  // cannonBuild. The Big Gun fires every bigReload turns at the nearest enemy it can see
+  // within bigRange: bigDmg, and bigSplash on every enemy beside it (a blind miss still
+  // splashes where the ball comes down). It has bigHp.
+  bigBuild: 4, bigReload: 2, bigRange: 6, bigDmg: 12, bigSplash: 4, bigHp: 36, prefabBuild: 2,
+  // Shiba Inu: a cage with a very angry Shiba Inu in it. Its Blub lets it out as the
+  // fight starts, and at the end of every turn it runs up to shibaRun tiles (round
+  // anything solid, past any Blub) at the enemy its squad is going for: the one Focus
+  // fire marked, else the one its squad went for last, else the nearest to it. Beside
+  // it, it bites: shibaDmg, and the bitten Blub dodges shibaShake% less till its next
+  // turn is over. After shibaBites bites it has had its fill and trots back to its Blub.
+  // It is far too quick for anybody to hit.
+  shibaRun: 6, shibaDmg: 3, shibaBites: 5, shibaShake: 15,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6260,6 +6269,7 @@ const NERFS = lock([
 // of these, each as likely; both squads may get the same one). It comes down on the
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
+  ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. As the fight starts its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
 ]);
 const CHEST_SALT = 4; // the chest's random stream
@@ -7071,7 +7081,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const pool = tiles[c] === WATER ? RULES.poolDodge : 0;
       // the Scope Rifle's shot was aimed at this one for a whole turn
       const dodge = w.cycle ? Math.floor((d.dodge * RULES.scopeDodge) / 100) : d.dodge;
-      if (r() * 100 < Math.floor((Math.max(0, Math.min(45, dodge + extra) - pool) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
+      // bitten by a Shiba Inu (engine 22): shaken, it dodges less
+      const shook = d.shaken >= now ? RULES.shibaShake : 0;
+      if (r() * 100 < Math.floor((Math.max(0, Math.min(45, dodge + extra) - pool - shook) * (laserOn(d) ? RULES.laserDodge : 100)) / 100)) res = 'miss';
     }
     // the FUD cloud: a swing taken from inside it goes wide far more often. A Bubble
     // Wand still never misses, because that is the whole of what it is for.
@@ -7179,6 +7191,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const dc = decoyFor(u);
     if (dc) return hitDecoy(u, dc);
     const meant = d;
+    // the enemy its squad went for last: the Shiba Inu's (engine 22)
+    aimAt[u.team] = meant.id;
     d = shieldedBy(u, d);
     const gd = d === meant ? -1 : meant.id;
     // the first arrow or bullet at a Blub by its squad's Smoke Pot is lost in the smoke
@@ -8515,7 +8529,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const [x, y] = xyOf(c);
       if (Math.abs(y - ty) > 1 || occ[c] >= 0) continue;
       const sc = Math.abs(y - ty) * 100 + Math.abs(x - u.x) * 4 + Math.abs(x - 7);
-      if (sc >= bs || !cannonSpot(u, x, y)) continue;
+      // (with the Blueprint's second Builder, engine 22: a tile the Big Gun fits beside)
+      if (sc >= bs || !(meme[u.team].big ? bigSpot(u, x, y) : cannonSpot(u, x, y))) continue;
       best = c;
       bs = sc;
     }
@@ -8526,19 +8541,19 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // The Big Gun Blueprint (engine 22): the Big Gun is a 3x3 block laid out like the
   // cannon (beside its Builder, its front row facing the other side, room in front of it
   // for a wall of three), its three front tiles the muzzle. Null when none fits.
-  function bigSpot(u) {
+  function bigSpot(u, ux = u.x, uy = u.y) {
     const s = u.team ? -1 : 1;
     let best = null;
     let bs = -1e9;
     for (let k = 0; k < N; k++) {
       const a = u.team ? N - 1 - k : k;
       const [ax, ay] = xyOf(a);
-      if (!inside(ax + 2 * s, ay + 2 * s) || Math.abs(ax - u.x) > 3 || Math.abs(ay - u.y) > 3) continue;
+      if (!inside(ax + 2 * s, ay + 2 * s) || Math.abs(ax - ux) > 3 || Math.abs(ay - uy) > 3) continue;
       const cells = [];
       for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) cells.push(idx(ax + dx * s, ay + dy * s));
-      if (!cells.some((c) => cheb(u.x, u.y, ...xyOf(c)) <= 1) || cells.includes(idx(u.x, u.y))) continue;
+      if (!cells.some((c) => cheb(ux, uy, ...xyOf(c)) <= 1) || cells.includes(idx(ux, uy))) continue;
       const front = inside(ax, ay - s) ? [0, 1, 2].map((dx) => idx(ax + dx * s, ay - s)) : [];
-      const back = s * (ay - u.y);
+      const back = s * (ay - uy);
       const score = (front.length && front.every(freeFloor) ? 100 : 0) + Math.max(-1, Math.min(1, back)) * 10 - Math.abs(ax + s - 7);
       if (score <= bs || !canBuild(cells)) continue;
       best = { cells, muzzle: cells.slice(0, 3), front, big: 1 };
@@ -8571,7 +8586,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       const spot = (meme[u.team].big && crewOf(u.team).length >= 2 && bigSpot(u)) || cannonSpot(u);
       if (!spot) return false;
       const big = !!spot.big;
-      w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0, big, of: big ? RULES.bigBuild : RULES.cannonBuild, max: big ? RULES.bigHp : RULES.cannonHp };
+      // (the Blueprint's 2x2 comes out of its kit: fewer stages)
+      const of = big ? RULES.bigBuild : meme[u.team].gold === 'blueprint' ? RULES.prefabBuild : RULES.cannonBuild;
+      w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0, big, of, max: big ? RULES.bigHp : RULES.cannonHp };
       works.push(w);
       for (const c of w.cells) {
         tiles[c] = SAND;
@@ -9333,6 +9350,95 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     props.push({ id: e.id, c, x, y, was, team: -1, hp: 0, since: 0, size: 0, holder: -1, rider: -1, down: false });
   }
   if (props.length) push({ t: 'props', list: props.map((p) => ({ id: p.id, at: [p.x, p.y], hp: p.hp })) });
+  // ---- Shiba Inu (engine 22, the golden drop). Its cage stands where its crate came
+  // down; its Blub lets it out as the fight starts (turn 1), and from then on it runs
+  // and bites at the end of every turn (RULES.shiba*). It is no Blub: it stands on no
+  // tile as far as anybody else is concerned, springs nothing and nothing hits it.
+  const aimAt = [-1, -1];
+  const dogs = [0, 1].map((t) => (meme[t].gold === 'shiba' && crates[t] && crates[t].at && crates[t].by ? { team: t, x: crates[t].at[0], y: crates[t].at[1], by: crates[t].by, bites: 0, out: false, done: false } : null));
+  // its way to a tile beside `d` (the board turned round for team B, like everywhere):
+  // round anything solid, past Blubs, never squeezing diagonally between two solid
+  // things; a free tile beside it before one with a Blub on it. Up to `run` steps.
+  function dogPath(g, tx, ty, run) {
+    const flip = g.team === 1;
+    const prev = new Int16Array(N).fill(-2);
+    const start = idx(g.x, g.y);
+    prev[start] = -1;
+    const q = [start];
+    let goal = -1;
+    let fall = -1;
+    for (let h = 0; h < q.length && goal < 0; h++) {
+      const c = q[h];
+      const x = c % SIZE;
+      const y = (c - x) / SIZE;
+      const d = cheb(x, y, tx, ty);
+      if (d === 1) {
+        if (occ[c] < 0) goal = c;
+        else if (fall < 0) fall = c;
+      }
+      for (let k = 0; k < 9; k++) {
+        const kk = flip ? 8 - k : k;
+        const dx = (kk % 3) - 1;
+        const dy = Math.floor(kk / 3) - 1;
+        const nx = x + dx;
+        const ny = y + dy;
+        if ((!dx && !dy) || !inside(nx, ny)) continue;
+        const n = idx(nx, ny);
+        if (prev[n] !== -2 || solidTile(tiles[n]) || !canStep(tiles, x, y, nx, ny)) continue;
+        if (nx === tx && ny === ty) continue;
+        prev[n] = c;
+        q.push(n);
+      }
+    }
+    if (goal < 0) goal = fall;
+    if (goal < 0) {
+      // nowhere beside it: as close as it gets
+      let bd = cheb(g.x, g.y, tx, ty);
+      for (const c of q) {
+        const dd = cheb(c % SIZE, (c - (c % SIZE)) / SIZE, tx, ty);
+        if (dd < bd) {
+          bd = dd;
+          goal = c;
+        }
+      }
+    }
+    const path = [];
+    for (let c = goal; c >= 0 && c !== start; c = prev[c]) path.unshift(c);
+    return path.slice(0, run).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]);
+  }
+  // let out of its cage as the fight starts
+  function unleash() {
+    for (const g of dogs) {
+      if (!g || g.out) continue;
+      g.out = true;
+      push({ t: 'unleash', team: g.team, at: [g.x, g.y], u: g.by.id });
+    }
+  }
+  // its run and its bite, at the end of a turn
+  function dogTurn(g) {
+    if (!g || !g.out || g.done || over >= 0) return;
+    const them = living[1 - g.team];
+    if (!them.length) return;
+    let d = null;
+    if (ordered(g.team, 'focus')) d = them.find((v) => v.id === orders[g.team].mark) || null;
+    if (!d && aimAt[g.team] >= 0) d = them.find((v) => v.id === aimAt[g.team]) || null;
+    if (!d) d = them.slice().sort((a, b) => cheb(a.x, a.y, g.x, g.y) - cheb(b.x, b.y, g.x, g.y) || a.hp - b.hp || a.id - b.id)[0];
+    const path = cheb(g.x, g.y, d.x, d.y) === 1 && occ[idx(g.x, g.y)] < 0 ? [] : dogPath(g, d.x, d.y, RULES.shibaRun);
+    if (path.length) [g.x, g.y] = path[path.length - 1];
+    push({ t: 'dogrun', team: g.team, path, d: d.id });
+    if (cheb(g.x, g.y, d.x, d.y) !== 1) return;
+    g.bites++;
+    pure(g.by, d, RULES.shibaDmg, 'bite');
+    if (d.alive) d.shaken = now + 1;
+    checkOver();
+    if (g.bites < RULES.shibaBites || over >= 0) return;
+    // had its fill: back to its Blub (or where it last stood), and that is that
+    g.done = true;
+    const home = g.by.alive ? g.by : null;
+    const back = home ? dogPath(g, home.x, home.y, SIZE * 2) : [];
+    if (back.length) [g.x, g.y] = back[back.length - 1];
+    push({ t: 'dogdone', team: g.team, path: back, u: g.by.id });
+  }
   const owned = (id, team) => props.find((p) => p.id === id && p.team === team && !p.down);
   // Diamond Hands (engine 21): the Blub up in the hand holds on, whatever comes: it is
   // never frozen, trapped, knocked back or shoved
@@ -9629,6 +9735,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
   }
   function runEvents(turn) {
+    // the golden drops that start as the fight does (engine 22)
+    if (turn === 1) unleash();
     memeTurn(turn);
     claimTurn(turn);
     rugTurn(turn);
@@ -9675,6 +9783,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         if (checkOver()) break;
       }
     }
+    // the Shiba Inus run and bite at the end of the turn (engine 22)
+    for (const g of dogs) if (over < 0) dogTurn(g);
     // a command whose captain did not get to its next turn ends with that turn
     for (const t of [0, 1]) if (orders[t] && !orders[t].done && turn >= orders[t].turn + 1) endOrder(t);
     // shells fired this turn land at its end (those still in the air)
@@ -10704,6 +10814,8 @@ const SquadView = (() => {
       iron: ['K', 'x', 's', 'S', 'z'],
       // clear diamond: white to the palest blue, blue in its shadows
       ice: ['B', 'l', 'u', 'W', 'w'],
+      // a Shiba Inu's coat (engine 22): rust in the shadow to apricot in the light
+      fur: ['J', 'J', 'f', 'L', 'L'],
     },
     // Material is laid down in a digit, which no ramp ever writes, and lit after:
     // lighting a letter that an earlier lighting pass already wrote would light it
@@ -12177,6 +12289,174 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
+    // The Shiba Inu (engine 22, the golden drop): 20 across, side on, facing right, its
+    // feet on row 17. A fox-red coat, the cream markings a Shiba has (cheeks, muzzle,
+    // throat and belly, the underside of its curled tail, white socks), pricked ears,
+    // and the scowl of a dog that has been in a cage for far too long.
+    // 0 stands and growls, 1-2 runs (stretched out, gathered), 3 bites (lunging, jaws
+    // wide), 4 barks (head up), 5 sits pleased with itself, tongue out.
+    shiba: [6, 20, (i) => {
+      let g = FG.grid(20);
+      const ell = (cx, cy, rx, ry, c) => {
+        for (let y = 0; y < 20; y++)
+          for (let x = 0; x < 20; x++) {
+            const dx = (x + 0.5 - cx) / rx;
+            const dy = (y + 0.5 - cy) / ry;
+            if (dx * dx + dy * dy <= 1) FG.put(g, x, y, c);
+          }
+      };
+      const run = i === 1 || i === 2;
+      const lunge = i === 3;
+      const sit = i === 5;
+      const up = i === 4 ? -1 : lunge ? 1 : 0; // the head: raised to bark, down to bite
+      const hx = lunge ? 15.4 : 14.6;
+      const hy = 8 + up + (sit ? -1 : 0);
+      // the body, and the head on it
+      if (sit) {
+        ell(9.5, 12.5, 4.2, 4, '1');
+        ell(7.5, 14.6, 4, 2.4, '1');
+      } else ell(run ? 8.6 : 9, 12 + (lunge ? 0.4 : 0), run ? 6 : 5.4, 3.1, '1');
+      ell(hx, hy, 3.3, 3.1, '1');
+      // ears, pricked (flat back while it runs)
+      const ears = run ? [[[hx - 2.6, hy - 1.4], [hx - 1.2, hy - 4.6], [hx - 0.2, hy - 2.2]], [[hx - 0.6, hy - 2.5], [hx + 0.8, hy - 5.6], [hx + 2, hy - 2.2]]]
+        : [[[hx - 2.4, hy - 1.6], [hx - 1.8, hy - 5.4], [hx - 0.1, hy - 2.6]], [[hx + 0.2, hy - 2.7], [hx + 1.4, hy - 6.2], [hx + 2.6, hy - 2]]];
+      for (const e of ears) FG.poly(g, e, '1');
+      // the snout
+      ell(hx + 3.1, hy + 1 + (i === 4 ? -0.6 : 0), 1.9, 1.35, '1');
+      // the legs: four, as it stands, runs or sits
+      const legs = sit ? [[5.2, 15, 5.2, 17], [11, 13, 11, 17], [12.6, 13, 12.6, 17]]
+        : i === 1 ? [[3, 13, 1.4, 16.6], [5.6, 13.4, 4.4, 17], [12.4, 13, 14.6, 16.4], [14, 12.6, 16.6, 15.2]]
+          : i === 2 ? [[5.2, 13.4, 6.8, 16.8], [6.6, 13.4, 8.4, 16.4], [11.4, 13.4, 10.2, 16.8], [12.8, 13.4, 11.8, 16.6]]
+            : [[4.6, 13.4, 4.4, 17], [6.4, 13.6, 6.6, 17], [12.2, 13.6, 12.6, 17], [13.8, 13.4, 14.6, 17]];
+      for (const [x0, y0, x1, y1] of legs) FG.line(g, x0, y0, x1, y1, 1.6, '2');
+      // the tail, curled up over its back
+      const tx = sit ? 3.6 : run ? 2.4 : 3.2;
+      const ty = sit ? 12 : run ? 8.4 : 8.6;
+      FG.ring(g, tx, ty, 2.6, 1.7, '3');
+      FG.line(g, tx + 1.6, ty + 2, tx + 3.2, ty + 3.2, 1.6, '3');
+      g = FG.volume(g, '1', 'fur');
+      g = FG.volume(g, '2', 'fur');
+      g = FG.volume(g, '3', 'fur');
+      // the cream: throat and belly, cheek and muzzle, tail underside, socks
+      for (let y = 0; y < 20; y++)
+        for (let x = 0; x < 20; x++) {
+          const c = g[y][x];
+          if (c === '.' || c === 'k') continue;
+          const belly = !sit && y >= 13 && x >= 5 && x <= 13 && c !== 'J';
+          const chest = (sit ? x >= 10 && y >= 10 && y <= 14 : x >= 11 && x <= 13 && y >= 11 && y <= 13);
+          const muzzle = x >= hx + 1 && y >= hy + 0.6;
+          const sock = y >= 16;
+          const tailIn = Math.hypot(x + 0.5 - tx, y + 0.5 - ty) < 1.4;
+          if (belly || chest || muzzle || sock || tailIn) g[y][x] = y >= 16 || (muzzle && y > hy + 1.6) ? 'e' : 'W';
+        }
+      // inside the ears
+      for (const e of ears) FG.put(g, Math.round(e[1][0] - 0.2), Math.round(e[1][1] + 1.6), 'e');
+      g = FG.outline(g);
+      // the face: an eye under a scowling brow, the nose
+      const ex = Math.round(hx + 0.6);
+      const ey = Math.round(hy - 0.4);
+      FG.put(g, ex, ey, sit ? 'k' : 'k');
+      if (!sit) {
+        FG.put(g, ex - 1, ey - 1, 'J');
+        FG.put(g, ex, ey - 1, 'J');
+        FG.put(g, ex + 1, ey, 'J');
+      } else FG.put(g, ex, ey - 1, 'k');
+      const nx = Math.min(19, Math.round(hx + 4.6));
+      const ny = Math.round(hy + (i === 4 ? 0 : 0.6));
+      FG.put(g, nx, ny, 'k');
+      // the mouth: bared teeth, jaws wide to bite or bark, a tongue when it is happy
+      const my = ny + 2;
+      if (lunge || i === 4) {
+        for (let x = Math.round(hx + 1); x <= nx; x++) {
+          FG.put(g, x, my - 1, 'w');
+          FG.put(g, x, my, 'r');
+          FG.put(g, x, my + 1, x % 2 ? 'w' : 'K');
+        }
+      } else if (sit) {
+        FG.put(g, nx - 1, my, 'F');
+        FG.put(g, nx - 1, my + 1, 'r');
+      } else {
+        for (let x = Math.round(hx + 1.6); x <= nx - 1; x++) FG.put(g, x, my - 1, x % 2 ? 'w' : 'k');
+      }
+      return g;
+    }],
+    // the Shiba's cage, 24 across, its foot on row 22: an iron cage with a gold top and
+    // a gold padlock, its door the front bars. 0 shut; 1 the door burst open and hanging
+    // off, the padlock gone. The Shiba is drawn inside before the bars go over it.
+    cage: [2, 24, (i) => {
+      let g = FG.grid(24);
+      // floor plate and roof
+      for (let x = 2; x <= 21; x++) {
+        FG.put(g, x, 21, '1');
+        FG.put(g, x, 22, '1');
+      }
+      for (let x = 2; x <= 21; x++) for (const y of [3, 4]) FG.put(g, x, y, '2');
+      g = FG.volume(g, '1', 'iron');
+      g = FG.volume(g, '2', 'gold');
+      // the handle on top
+      FG.ring(g, 12, 3, 2.6, 1, 'o');
+      for (let x = 9; x <= 15; x++) if (g[3][x] === 'o') g[3][x] = 'y';
+      // the corner posts
+      for (const x of [2, 21]) for (let y = 5; y <= 20; y++) FG.put(g, x, y, x === 2 ? 'S' : 's');
+      g = FG.outline(g);
+      // the bars, thin and not outlined, so what is inside shows between them
+      const shut = i === 0;
+      for (const x of [6, 10, 14, 18]) {
+        if (!shut && (x === 10 || x === 14)) continue;
+        for (let y = 5; y <= 20; y++) FG.put(g, x, y, y === 5 ? 'x' : x < 12 ? 'S' : 's');
+      }
+      if (shut) {
+        // the padlock on the door
+        FG.ring(g, 12, 11, 1.5, 0.8, 'S');
+        for (let y = 11; y <= 14; y++) for (let x = 11; x <= 13; x++) FG.put(g, x, y, y === 11 ? 'Y' : 'y');
+        FG.put(g, 12, 13, 'A');
+        for (let x = 10; x <= 14; x++) FG.put(g, x, 15, 'k');
+      } else {
+        // the door swung out, hanging off its hinge, bent
+        FG.line(g, 9, 6, 2.5, 9, 1, 's');
+        FG.line(g, 9, 6, 7, 20, 1, 'S');
+        FG.line(g, 12.5, 5.5, 9, 20.5, 1, 's');
+      }
+      return g;
+    }],
+    gb_shiba: [1, 32, () => {
+      // the icon: the Shiba's head, scowling, in a gold-topped cage
+      let g = FG.grid(32);
+      const ell = (cx, cy, rx, ry, c) => {
+        for (let y = 0; y < 32; y++)
+          for (let x = 0; x < 32; x++) {
+            const dx = (x + 0.5 - cx) / rx;
+            const dy = (y + 0.5 - cy) / ry;
+            if (dx * dx + dy * dy <= 1) FG.put(g, x, y, c);
+          }
+      };
+      ell(16, 18, 8.5, 7.5, '1');
+      FG.poly(g, [[8, 14], [9, 3], [14, 11]], '1');
+      FG.poly(g, [[18, 11], [23, 3], [24, 14]], '1');
+      g = FG.volume(g, '1', 'fur');
+      // cream cheeks and muzzle
+      ell(16, 22.5, 6.2, 3.8, '2');
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (g[y][x] === '2') g[y][x] = y > 23 ? 'e' : 'W';
+      FG.poly(g, [[10, 12], [10.5, 6], [13, 11]], 'e');
+      FG.poly(g, [[19, 11], [22, 6], [22, 12]], 'e');
+      g = FG.outline(g);
+      // a scowl: eyes under brows that meet in the middle, a black nose, teeth bared
+      for (const [x, y] of [[11, 17], [12, 17], [11, 18], [12, 18], [20, 17], [21, 17], [20, 18], [21, 18]]) FG.put(g, x, y, 'k');
+      FG.put(g, 12, 17, 'w');
+      FG.put(g, 20, 17, 'w');
+      for (const [x, y] of [[9, 14], [10, 14], [11, 15], [12, 15], [13, 16], [23, 14], [22, 14], [21, 15], [20, 15], [19, 16]]) FG.put(g, x, y, 'k');
+      for (let x = 15; x <= 17; x++) {
+        FG.put(g, x, 20, 'k');
+        FG.put(g, x, 21, x === 16 ? 'k' : '.');
+      }
+      FG.put(g, 16, 21, 'k');
+      for (let x = 12; x <= 20; x++) FG.put(g, x, 24, x % 2 ? 'w' : 'k');
+      // the cage over it: gold roof, iron bars
+      for (let x = 2; x <= 29; x++) for (const y of [1, 2]) FG.put(g, x, y, y === 1 ? 'Y' : 'o');
+      for (const x of [3, 28]) for (let y = 3; y <= 30; y++) FG.put(g, x, y, 's');
+      for (let x = 2; x <= 29; x++) FG.put(g, x, 30, 'x');
+      return g;
+    }],
     // The golden drop's icons (engine 22), 32 across like the chest's.
     // The Big Gun Blueprint: a golden hard hat sitting on a rolled-out blueprint with
     // the Big Gun drawn on it in white.
@@ -12339,6 +12619,7 @@ const SquadView = (() => {
     nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ', singed: 'The Lambo’s crash finishes off ',
 
     sniped: 'The Sniper Bot takes out ',
+    bite: 'The Shiba Inu takes down ',
     crashed: 'The Lambo crash finishes off ',
     gas: 'Gas fees finish off ',
     blasted: 'The Boom Pack knocks out ',
@@ -12492,6 +12773,15 @@ const SquadView = (() => {
         const call = nameOf('cmd', e.cmd).replace(/!$/, '');
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
+      // the Shiba Inu (engine 22)
+      case 'unleash':
+        return u + ' opens the cage: the Shiba Inu is loose!';
+      case 'dogrun':
+        return e.path.length ? 'The Shiba Inu goes for ' + d + '!' : '';
+      case 'bite':
+        return e.res === 'absorb' ? 'The Shiba Inu pops ' + d + "'s bubble." : 'The Shiba Inu bites ' + d + ': -' + e.dmg + '!';
+      case 'dogdone':
+        return e.path.length ? 'The Shiba Inu has had its fill and trots back to ' + u + '. Good boy.' : 'The Shiba Inu has had its fill and sits down, very pleased with itself.';
       case 'perk':
         if (e.kind === 'gold') return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '!' : lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '.';
         return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
@@ -13538,6 +13828,10 @@ const SquadView = (() => {
     // the memepowers in the fight
     // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
     pick: 1500, pickHit: 1150,
+    // the Shiba Inu (engine 22): its cage rattling till the door bursts at unleashHit;
+    // a run a tile every dogTile and the bite at dogBiteHit after it gets there; the
+    // trot home and sitting down
+    unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
     perks: 4000, perksHit: 1300,
@@ -13593,7 +13887,7 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  const KEEP_TIME = new Set(['unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -13690,6 +13984,11 @@ const SquadView = (() => {
             return;
           }
           if (t === 'fog' && p.kind === 'mist') {
+            attachTo(p, i);
+            return;
+          }
+          // the Shiba Inu's bite rides on its run (engine 22)
+          if (t === 'bite' && p.kind === 'dogrun') {
             attachTo(p, i);
             return;
           }
@@ -13807,6 +14106,20 @@ const SquadView = (() => {
         if (t === 'ride') {
           parent = add({ kind: 'ride', dur: e.id === 'diamond' ? MS.dride : MS.ride, contact: MS.rideHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           pos[e.u] = e.at.slice();
+          return;
+        }
+        // the Shiba Inu (engine 22): out of its cage, a run and a bite, the trot home
+        if (t === 'unleash') {
+          parent = add({ kind: 'unleash', dur: MS.unleash, contact: MS.unleashHit, list: [{ ei: i, off: MS.unleashHit }], e });
+          return;
+        }
+        if (t === 'dogrun') {
+          const run = e.path.length * MS.dogTile;
+          parent = add({ kind: 'dogrun', dur: run + MS.dogBite, contact: run + MS.dogBiteHit, list: [{ ei: i, off: 0 }], e });
+          return;
+        }
+        if (t === 'dogdone') {
+          parent = add({ kind: 'dogdone', dur: e.path.length * MS.dogTrot + MS.dogSit, contact: 0, list: [{ ei: i, off: 0 }], e });
           return;
         }
         // the Diamond Hand's gun (engine 21): its bullets ride on the burst, one after
@@ -14075,6 +14388,8 @@ const SquadView = (() => {
       works: {},
       // the Diggers' pits (engine 10): { x, y, team, open }
       pits: [],
+      // the golden drop (engine 22): the Shiba Inus, by team
+      dogs: {},
     };
   }
   function fold(S, e) {
@@ -14155,6 +14470,7 @@ const SquadView = (() => {
       case 'slam':
       case 'singed':
       case 'bullet':
+      case 'bite':
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
@@ -14253,7 +14569,20 @@ const SquadView = (() => {
           }
           if (e.id === 'blueprint') u.st.hardhat = true;
         }
+        // the Shiba Inu, in its cage where the crate came down
+        if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
         break;
+      // the Shiba Inu (engine 22): out of its cage, where it runs to, home
+      case 'unleash':
+      case 'dogrun':
+      case 'dogdone': {
+        const g = S.dogs[e.team];
+        if (!g) break;
+        if (e.t === 'unleash') g.caged = false;
+        if (e.t === 'dogdone') g.done = true;
+        if (e.path && e.path.length) [g.x, g.y] = e.path[e.path.length - 1];
+        break;
+      }
       // a one-shot memepower spent, for its chip in the roster
       case 'airdrop':
       case 'snipe':
@@ -15944,7 +16273,8 @@ const SquadView = (() => {
     const big = !!wk.big;
     const W = big ? 48 : 32;
     const max = wk.max || SE.RULES.cannonHp;
-    const stage = clamp(wk.stage, 1, big ? 4 : 3);
+    // its last stage looks done whatever it counts to (the Blueprint's kit has fewer)
+    const stage = wk.of && wk.stage >= wk.of ? (big ? 4 : 3) : clamp(wk.stage, 1, big ? 4 : 3);
     const ov = P.ov['cannon' + wk.id];
     // knocked about (engine 15): its HP over it once it has lost some; out of action it
     // sits dark and smoking
@@ -17022,6 +17352,7 @@ const SquadView = (() => {
       if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
+      for (const id in S.dogs) if (dogPos(S.dogs[id], t).row === r) drawDog(x, S.dogs[id], t, now);
       for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
       for (const id in S.works) if (cannonRow(S.works[id]) === r) drawCannon(x, S.works[id], t);
       for (const p of S.pits) if (scr(p.x, p.y)[1] === r) drawPit(x, p, t);
@@ -17379,7 +17710,8 @@ const SquadView = (() => {
         }
         return;
       }
-      x.drawImage(fxFrame('airdrop', 7), cx - 16, cy - 24);
+      // (the Shiba's crate flies apart: engine 22)
+      if (e.id !== 'shiba') x.drawImage(fxFrame('airdrop', 7), cx - 16, cy - 24);
       const e2 = el - open;
       const up = Math.min(1, e2 / (380 * k));
       const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
@@ -17424,6 +17756,23 @@ const SquadView = (() => {
   function goldReveal(e, T, k, cx, cy, until, trip, open) {
     const u = e.u >= 0 ? P.S.u[e.u] : null;
     if (!u) return;
+    // the Shiba Inu: the crate flies apart in planks of gold, and there is the cage,
+    // the dog in it barking its head off
+    if (e.id === 'shiba') {
+      const g = P.S.dogs[e.team];
+      if (!g) return;
+      g.showT = T + open;
+      g.face = scr(e.at[0], e.at[1])[1] > (N - 1) / 2 ? 1 : -1;
+      if (P.calm) return;
+      addParts(16, cx, cy - 8, ['#FFD447', '#C98A12', '#FFF3B0', '#8A5C06'], 0.11, 0.0005, 620 * k, T + open, true);
+      atClock(T + open, () => shake(T + open));
+      for (let j = 0; j < 3; j++) {
+        const t0 = T + open + (260 + j * 520) * k;
+        label(t0, j === 1 ? 'GRRRR!' : 'WOOF!', '#FF8A3D', cx + (j - 1) * 6, cy - 36, j === 1, j === 1 ? 2 : 1);
+        atClock(t0, () => sfx('crit'));
+      }
+      return;
+    }
     // the Big Gun Blueprint: the golden hard hat flies out and lands on its Blub's head,
     // and the blueprint unrolls over the crate, the gun drawn on it in white
     if (e.id === 'blueprint') {
@@ -17474,6 +17823,162 @@ const SquadView = (() => {
         }
       });
     }
+  }
+  // the Shiba Inu's scenes: the cage bursts, a run and a bite, the trot home
+  function dogBeat(b, T, k) {
+    const e = b.e;
+    if (b.kind !== 'unleash' && b.kind !== 'dogrun' && b.kind !== 'dogdone') return false;
+    const g = P.S.dogs[e.team];
+    if (!g) return true;
+    // (the beat starts before its event moves the dog: where it ends up)
+    const end = e.path && e.path.length ? e.path[e.path.length - 1] : [g.x, g.y];
+    const [cx, cy] = tileC(end[0], end[1]);
+    if (b.kind === 'unleash') {
+      // its Blub turns the key; the cage rattles harder and harder, the padlock pops,
+      // the door bursts off and out it comes, flying
+      const u = P.S.u[e.u];
+      if (u) P.actors = [e.u];
+      g.rattleT = T + 200 * k;
+      g.cageT = T + b.contact + 600 * k;
+      const hit = T + b.contact;
+      label(T + 120 * k, 'CLICK', '#FFD447', cx, cy - 30, false);
+      atClock(T + 300 * k, () => sfx('click'));
+      atClock(hit, () => {
+        sfx('crit');
+        shake(hit);
+        flash(hit);
+        hold(60);
+      });
+      addParts(6, cx, cy - 6, ['#FFD447', '#C98A12'], 0.09, 0.0006, 520 * k, hit, true, [-Math.PI * 0.9, -Math.PI * 0.1]);
+      ringFx(hit, cx, cy, 380 * k, '#FF8A3D', 3, 18, true, 0.6);
+      for (const s of [-1, 1]) addFx(hit, 500 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (5 + (el * 0.03) / k)), cy - 6));
+      label(hit + 40 * k, 'WOOF!', '#FF8A3D', cx, cy - 34, true, 2);
+      // the leap out of the cage, over its door (drawn here, not on its tile)
+      g.leap = [hit, hit + 380 * k];
+      addFx(hit, 380 * k, (x, kk) => {
+        if (P.calm) return;
+        const [sx, sy] = scr(g.x, g.y);
+        x.drawImage(dogFrame(1, g.face), Math.round(sx * TILE + 8 - 10 + g.face * kk * 6), Math.round(TOP + sy * TILE + 14 - 17 - Math.sin(kk * Math.PI) * 14));
+      });
+      addFx(g.cageT, 480 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), cx - 8, cy - 12));
+      return true;
+    }
+    if (b.kind === 'dogrun') {
+      const d = P.S.u[e.d];
+      const hit = T + b.contact;
+      g.biteT = e.path.length || d ? hit : null;
+      if (!d) return true;
+      // a speed line or two behind it while it runs
+      if (e.path.length)
+        addFx(T, e.path.length * MS.dogTile * k, (x, kk, el) => {
+          const p = dogPos(g, T + el);
+          if (!p.moving) return;
+          const X = Math.round(p.sx * TILE + 8);
+          const Y = Math.round(TOP + p.sy * TILE + 6 - p.hop);
+          x.fillStyle = '#FFFFFF';
+          for (let q = 0; q < 3; q++) x.fillRect(X - (g.face || 1) * (10 + q * 3), Y + q * 3, 4 - q, 1);
+        });
+      // the chomp: teeth closing on the target, a CHOMP, the target jolted
+      addFx(hit - 60 * k, 260 * k, (x, kk) => {
+        const db = d._b;
+        if (!db) return;
+        const X = db.ox + 8;
+        const Y = db.oy + 12;
+        const gap = Math.round((1 - Math.min(1, kk * 3)) * 5);
+        x.fillStyle = '#FFFFFF';
+        for (let q = -2; q <= 2; q++) {
+          x.fillRect(X + q * 2 - 1, Y - 2 - gap, 1, 2);
+          x.fillRect(X + q * 2, Y + 1 + gap, 1, 2);
+        }
+        x.fillStyle = INK;
+        x.fillRect(X - 6, Y - 3 - gap, 12, 1);
+        x.fillRect(X - 6, Y + 3 + gap, 12, 1);
+      });
+      label(hit, 'CHOMP!', '#FF8A3D', cx + (g.face || 1) * 6, cy - 26, false);
+      atClock(hit, () => sfx('crit'));
+      return true;
+    }
+    // home: a happy trot back, hearts, and it sits down for good
+    const sat = T + e.path.length * MS.dogTrot * k;
+    label(sat + 100 * k, 'GOOD BOY', '#FFD447', cx, cy - 26, true);
+    addParts(5, cx, cy - 14, ['#FF5C77', '#FF9AA8'], 0.03, -0.00006, 900 * k, sat + 100 * k, false, [-Math.PI * 0.8, -Math.PI * 0.2]);
+    return true;
+  }
+  // ---- the Shiba Inu (engine 22). Where it is drawn: on its tile, or along its run
+  function dogPos(g, t) {
+    let [sx, sy] = scr(g.x, g.y);
+    let moving = false;
+    let hop = 0;
+    const m = g.mv;
+    if (m && !P.calm) {
+      const e = t - m.t0;
+      if (e < 0) [sx, sy] = m.pts[0];
+      else if (e < m.dur) {
+        const k = Math.min(m.pts.length - 2, Math.floor(e / m.step));
+        const f = (e - k * m.step) / m.step;
+        const a = m.pts[k];
+        const b = m.pts[k + 1];
+        sx = lerp(a[0], b[0], f);
+        sy = lerp(a[1], b[1], f);
+        hop = Math.sin(Math.PI * f) * (m.trot ? 2 : 4);
+        moving = true;
+      } else g.mv = null;
+    }
+    return { sx, sy, moving, hop: Math.round(hop), row: clamp(Math.round(sy), 0, N - 1) };
+  }
+  function drawDog(x, g, t, now) {
+    const p = dogPos(g, t);
+    // still in the crate till it is opened
+    if (g.showT > t) return;
+    const cx = Math.round(p.sx * TILE + 8);
+    const gy = Math.round(TOP + p.sy * TILE + 14);
+    const face = g.face || 1;
+    const calm = P.calm;
+    // its frame: running, biting, barking, sitting, or standing there growling
+    let fr = 0;
+    let dx = 0;
+    if (g.done && !p.moving) fr = 5;
+    else if (p.moving) fr = g.mv && g.mv.trot ? (Math.floor(t / 120) & 1 ? 1 : 2) : Math.floor(t / 60) & 1 ? 1 : 2;
+    else if (g.biteT != null && t >= g.biteT - 90 && t < g.biteT + 220) {
+      fr = 3;
+      dx = t < g.biteT ? 1 : 4;
+    } else if (!calm && (now + g.team * 700) % 2600 < 260) fr = 4;
+    const caged = g.caged || (g.cageT != null && t < g.cageT);
+    blob(x, cx, gy, 7, 2, '#1B1229', 0.28);
+    if (caged) {
+      // in its cage: it bounces off the bars now and then, and the cage shakes
+      const mad = !calm && (now + g.team * 500) % 1400 < 300;
+      const sh = (g.rattleT != null && t >= g.rattleT && t < g.cageT) || mad ? (Math.floor(now / 50) & 1 ? 1 : -1) : 0;
+      const open = !g.caged;
+      if (!open) x.drawImage(dogFrame(mad ? 4 : 0, face), cx - 10 + sh, gy - 17 - (mad ? 2 : 0));
+      x.drawImage(fxFrame('cage', open ? 1 : 0), cx - 12 + sh, gy - 21);
+    }
+    // (shut in, it was drawn behind the bars; in the air out of it, by its leap)
+    if (g.caged) return;
+    if (g.leap && t >= g.leap[0] && t < g.leap[1]) return;
+    x.drawImage(dogFrame(fr, face), cx - 10 + face * dx, gy - 17 - p.hop);
+    // dust kicked up as it runs
+    if (p.moving && !calm && Math.floor(t / 70) % 3 === 0) {
+      x.fillStyle = '#FFE3EA';
+      x.fillRect(cx - face * 7, gy - 1, 2, 1);
+      x.fillRect(cx - face * 9, gy - 2, 1, 1);
+    }
+  }
+  // a frame of the dog facing left or right (the art faces right)
+  const dogCache = new Map();
+  function dogFrame(i, face) {
+    const key = i + ':' + face;
+    let c = dogCache.get(key);
+    if (c) return c;
+    const src = fxFrame('shiba', i);
+    if (face > 0) return src;
+    c = canvas(20, 20);
+    const x = c.getContext('2d');
+    x.translate(20, 0);
+    x.scale(-1, 1);
+    x.drawImage(src, 0, 0);
+    dogCache.set(key, c);
+    return c;
   }
   // the golden hard hat (engine 22): a dome with a brim and a ridge, 11 across
   function drawHat(x, X, Y, glint) {
@@ -17566,6 +18071,7 @@ const SquadView = (() => {
     }
     if (P.calm) return;
     if (b.kind === 'rocket') return rocketScene(b, T, k);
+    if (dogBeat(b, T, k)) return;
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
     if (worksBeat(b, T, k)) return;
@@ -17948,6 +18454,20 @@ const SquadView = (() => {
     }
     // the Boom Pack's Blub is gone in its own blast
     if (e.t === 'blowup' && live) U[e.u].air = [T, 1e12];
+    // the Shiba Inu runs from where it stood (engine 22); a bite that knocks a Blub out
+    // is the dog's doing, not its Blub's
+    if ((e.t === 'dogrun' || e.t === 'dogdone') && S.dogs[e.team]) {
+      const g = S.dogs[e.team];
+      if (e.path.length && live) {
+        const step = (e.t === 'dogrun' ? MS.dogTile : MS.dogTrot) * k;
+        const pts = [scr(g.x, g.y)].concat(e.path.map((p) => scr(p[0], p[1])));
+        g.mv = { pts, t0: T, step, dur: step * e.path.length, trot: e.t === 'dogdone' };
+      }
+      const to = e.t === 'dogrun' ? U[e.d] : U[e.u];
+      const [ex] = e.path.length ? scr(...e.path[e.path.length - 1]) : scr(g.x, g.y);
+      if (to) g.face = scr(to.x, to.y)[0] >= ex ? 1 : -1;
+    }
+    if (e.t === 'bite' && !e.hp) P.cause[e.d] = 'bite';
     fold(S, e);
     if (e.t === 'ko') {
       const u = U[e.u];
@@ -18103,6 +18623,7 @@ const SquadView = (() => {
       case 'zap':
       case 'blasted':
       case 'cannonball':
+      case 'bite':
       case 'bump': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
@@ -20249,7 +20770,7 @@ const SquadView = (() => {
   }
 
   // a knock-out without an attacker: say what did it (the mist, a shell, a mine, the wire)
-  const koEv = (e) => (e.t === 'ko' && e.by < 0 && P.cause[e.u] && P.cause[e.u] !== 'fog' ? { ...e, why: P.cause[e.u] } : e);
+  const koEv = (e) => (e.t === 'ko' && P.cause[e.u] === 'bite' ? { ...e, by: -1, why: 'bite' } : e.t === 'ko' && e.by < 0 && P.cause[e.u] && P.cause[e.u] !== 'fog' ? { ...e, why: P.cause[e.u] } : e);
   // calm markers: a shell's target (red corners), where it landed (a red cross), a mine (pink)
   const MARKS = {};
   function markImg(kind) {
@@ -20786,7 +21307,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -22105,6 +22626,7 @@ const SquadView = (() => {
       },
       // the golden drop (engine 22)
       gold: {
+        shiba: `Let out as the fight starts: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
         blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
       },
     };
