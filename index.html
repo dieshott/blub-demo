@@ -5964,12 +5964,12 @@ const RULES = lock({
   // it, it bites: shibaDmg, and the bitten Blub dodges shibaShake% less till its next
   // turn is over. After shibaBites bites it has had its fill and trots back to its Blub.
   // It is far too quick for anybody to hit.
-  shibaRun: 6, shibaDmg: 3, shibaBites: 5, shibaShake: 15,
+  shibaRun: 6, shibaDmg: 3, shibaBites: 4, shibaShake: 15,
   // Ray Gun (the one from Black Ops 2): a Blub that fights from mid range (a wand or a
   // rifle) trades its weapon for it, else one from long range (a bow or a Scope Rifle),
   // else one from close by. It fires a blob of blue slime: rayRange tiles, needs a
   // clear line, rayDmg, and raySplash on every enemy beside the one it hits.
-  rayRange: 5, rayDmg: 9, raySplash: 2,
+  rayRange: 5, rayDmg: 8, raySplash: 2,
   // Coin Flip: a golden coin for the Blub nearest the crate (never the Boom Pack). It
   // keeps it for when it is in trouble: right after a hit leaves it at coinAt% HP or
   // less (or at the start of turn coinBy at the latest) it flips it. Heads (a Blub's
@@ -5978,7 +5978,7 @@ const RULES = lock({
   // Tails: the Blub that flipped it is out of the round. Each as likely, from the
   // chest's own stream. Knocked out before it has flipped it, it flips it as it goes
   // down: heads still brings its double; tails changes nothing any more.
-  coinAt: 35, coinBy: 8, coinHp: 12,
+  coinAt: 35, coinBy: 8, coinHp: 18,
   // Pizza Phone: an old golden phone for the Blub nearest the crate. As the fight starts
   // it calls for a pizza, and on turn pizzaTurn a white delivery van that has seen
   // better days comes along the squad's back edge and puts the box down on a free tile
@@ -13373,7 +13373,7 @@ const SquadView = (() => {
       case 'oneshot':
         return u + ' takes ' + d + ' down with one shot!';
       case 'pillend':
-        return 'Pumped and dumped: ' + u + ' did ' + e.dealt + ' damage' + (e.hit > 1 ? ' to ' + e.hit + ' Blubs.' : '.');
+        return u + ' did ' + e.dealt + ' damage on the pill' + (e.hit > 1 ? ' to ' + e.hit + ' Blubs.' : '.');
       // the Pizza Phone (engine 22)
       case 'phone':
         return u + ' calls for a pizza: "One large, extra cheese, and step on it!"';
@@ -14458,8 +14458,8 @@ const SquadView = (() => {
     phone: 1900, phoneHit: 1400, van: 3600, vanStop: 1250, vanHit: 1900, slice: 700, sliceHit: 380,
     // the Pump.fun Pill (engine 22): up out of its paw and down its throat at pillHit;
     // its rush a tile every rushTile; a burst a bullet every pumpGap; the one shot that
-    // brings it down, in at oneshotHit; and what it did, to read
-    pill: 2300, pillHit: 1050, rushTile: 60, burst: 300, burstHit: 110, pumpGap: 80, oneshot: 2600, oneshotHit: 1750, pillend: 2200,
+    // brings it down, in at oneshotHit; and the damage it did, to read
+    pill: 2300, pillHit: 1050, rushTile: 60, burst: 300, burstHit: 110, pumpGap: 80, oneshot: 2600, oneshotHit: 1750, pillend: 1600,
     unleash: 1800, unleashHit: 950, dogTile: 75, dogBite: 520, dogBiteHit: 170, dogTrot: 140, dogSit: 900,
     // each squad's perk coming down in its crate as the round starts, and time to read it
     // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
@@ -15544,9 +15544,10 @@ const SquadView = (() => {
   function fxOK(important) {
     return important || P.speed < 4;
   }
-  function addFx(t0, dur, draw, under) {
+  // (top: over the HP bars too, for what has to be read: engine 22)
+  function addFx(t0, dur, draw, under, top) {
     if (P.fx.length > 140) P.fx.shift();
-    P.fx.push({ t0, dur, draw, under: !!under });
+    P.fx.push({ t0, dur, draw, under: !!under, top: !!top });
   }
   // Play an effect's frames over `dur`, centred on a point. Frames are drawn at
   // their own size and never scaled by a fraction: half a pixel of blur undoes the
@@ -18233,7 +18234,7 @@ const SquadView = (() => {
     drawCurve(x, t, now);
     drawSights(x, now);
     drawPacks(x, now);
-    for (const f of P.fx) if (!f.under && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
+    for (const f of P.fx) if (!f.under && !f.top && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
     drawShells(x, t, now, false);
     P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
     for (let i = P.parts.length - 1; i >= 0; i--) {
@@ -18293,6 +18294,7 @@ const SquadView = (() => {
       x.drawImage(n.img, n.x, Math.round(n.y - (8 * e) / dur));
     }
     x.globalAlpha = 1;
+    for (const f of P.fx) if (f.top && t >= f.t0 && t - f.t0 <= f.dur) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
     P.nums = P.nums.filter((n) => t - n.t0 < 600 * Math.max(1, P.speed / 2));
     x.setTransform(1, 0, 0, 1, 0, 0);
     const fe = t - P.flashT;
@@ -18822,7 +18824,7 @@ const SquadView = (() => {
   // burst, tracers to its target and wild ones all round, cases flying; then the camera
   // swings to the enemy that takes it down and rides the one shot in (each weapon its
   // own: a scope's glint and a headshot, a golden arrow, a giant bubble, a thrown
-  // sword or hammer spinning in), the hit, and what it did: PUMPED AND DUMPED.
+  // sword or hammer spinning in), the hit, and the damage it did.
   const KILL_WORD = { scope: 'HEADSHOT', rifle: 'TAKEDOWN', bow: 'BULLSEYE', wand: 'POP!', raygun: 'SPLAT!', sword: 'SLICED', daggers: 'STABBED', spear: 'SKEWERED', hammer: 'BONK!', tool: 'BONK!', boom: 'KABOOM' };
   function pillBeat(b, T, k) {
     const e = b.e;
@@ -19040,7 +19042,7 @@ const SquadView = (() => {
       return true;
     }
     if (b.kind === 'pillend') {
-      // the tally: over where it fell, a chart that pumps and then dumps, and what it did
+      // the damage it did, big, over where it fell
       const d = S.u[e.u];
       const R = P.rage;
       const [cx, cy] = R ? R.last : d ? centreOf(d) : [CW / 2, CH / 2];
@@ -19052,24 +19054,9 @@ const SquadView = (() => {
       atClock(T + b.dur, () => {
         if (P.rage === R) P.rage = null;
       });
-      addFx(T, b.dur, (x, kk, el) => {
-        const X0 = Math.round(cx - 26);
-        const Y0 = Math.round(cy - 6);
-        // the band behind it
-        ditherRect(x, X0 - 12, Y0 - 34, 76, 46, '#120A1C', 0.85);
-        // the chart: up and up, then straight down
-        const n = Math.min(14, Math.floor(el / (60 * k)));
-        for (let q = 0; q < n; q++) {
-          const y = q < 10 ? -q * 2 - (q % 3) : -20 + (q - 9) * 7;
-          x.fillStyle = q < 10 ? '#4BE08F' : '#FF5C77';
-          x.fillRect(X0 + q * 4, Y0 + y, 3, 2);
-        }
-        if (el > 500 * k) {
-          x.drawImage(pxText('PUMPED AND DUMPED', '#4BE08F', 1), X0 - 10, Y0 - 32);
-          x.drawImage(pxText('DEALT ' + e.dealt + ' DMG', '#FFD447', 1), X0 - 4, Y0 + 4);
-        }
-      });
-      atClock(T + 500 * k, () => sfx('read'));
+      const img = pxText('DEALT ' + e.dealt + ' DMG', '#FFD447', 2);
+      addFx(T + 200 * k, b.dur - 200 * k, (x) => x.drawImage(img, Math.round(cx - img.width / 2), Math.round(cy - 34)), false, true);
+      atClock(T + 200 * k, () => sfx('read'));
       return true;
     }
     return false;
@@ -24541,7 +24528,14 @@ const SquadView = (() => {
   }
   function totals() {
     const t = [...Array(10)].map(() => ({ dmg: 0, kills: 0, healed: 0, taken: 0 }));
-    P.rounds.forEach((r) => r.R.stats.forEach((s, i) => ['dmg', 'kills', 'healed', 'taken'].forEach((k) => (t[i][k] += s[k]))));
+    P.rounds.forEach((r) =>
+      r.R.stats.forEach((s, i) => {
+        // a Coin Flip doppelganger's (engine 22) counts for the Blub it is a double of
+        const of = i < 10 ? i : (r.R.start[i] || {}).of;
+        if (of == null || !t[of]) return;
+        ['dmg', 'kills', 'healed', 'taken'].forEach((k) => (t[of][k] += s[k]));
+      }),
+    );
     return t;
   }
   // the MVP: damage + 10 x knock-outs + healed + taken / 2, from the winning side
