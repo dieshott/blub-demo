@@ -785,7 +785,7 @@ body.no-scroll{overflow:hidden}
 /* the round's buff and nerf: a chip each, green and red, that pops when it goes off */
 .sqv-rm{display:none}
 .sqv-mc{display:inline-flex;padding:2px;background:#2B1D3F;border:2px solid #000;box-shadow:inset 0 -3px 0 var(--mc,#4BE08F)}
-.sqv-mc.nerf{--mc:#E2566E}
+.sqv-mc.nerf{--mc:#E2566E}.sqv-mc.gold{--mc:#FFD447}
 .sqv-mc.used{filter:grayscale(1);opacity:.45}
 .sqv-mc.popped{animation:sqv-mcpop .7s steps(7,end)}
 @keyframes sqv-mcpop{0%{transform:translateY(0);outline:2px solid #FFF3B0}30%{transform:translateY(-6px);outline:2px solid #FFF3B0}60%{transform:translateY(0)}80%{transform:translateY(-2px)}100%{transform:translateY(0);outline:0 solid transparent}}
@@ -884,6 +884,8 @@ body.no-scroll{overflow:hidden}
 .sqv-pu.perk.good{box-shadow:inset 4px 0 0 #4FB36B}
 .sqv-pu.perk.bad{box-shadow:inset 4px 0 0 #E2566E}
 .sqv-pu.perk.good .sqv-pk{color:#9FE3A8}.sqv-pu.perk.bad .sqv-pk{color:#FF9AA8}
+/* engine 22: the golden drop */
+.sqv-pu.perk.gold{box-shadow:inset 4px 0 0 #FFD447}.sqv-pu.perk.gold .sqv-pk{color:#FFD447}
 .sqv-bp{display:flex;gap:14px;font-family:var(--f-data);font-size:19px;line-height:1}
 .sqv-bp .you{color:var(--you-l)}.sqv-bp .rival{color:#FFB08A}
 /* the guided first match: a card just above the controls that tells what goes on,
@@ -1210,7 +1212,7 @@ body.no-scroll{overflow:hidden}
 .sqx-h{margin:0 0 10px;font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.5;color:#FFD447;text-shadow:2px 2px 0 #000}
 .sqx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
 .sqx-card{display:flex;gap:12px;align-items:flex-start;padding:8px;background:#1B1129;border:3px solid #000;box-shadow:inset 0 -4px 0 var(--xc,#FFD447)}
-.sqx-card.buff{--xc:#4BE08F}.sqx-card.nerf{--xc:#E2566E}
+.sqx-card.buff{--xc:#4BE08F}.sqx-card.nerf{--xc:#E2566E}.sqx-card.gold{--xc:#FFD447}
 .sqx-cv{flex:none;width:144px;height:144px;image-rendering:pixelated;border:2px solid #000;background:#000}
 .sqx-tx{min-width:0;display:flex;flex-direction:column;gap:6px}
 .sqx-tx b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.5;color:#fff}
@@ -5797,7 +5799,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 21;
+const SQUAD_ENGINE = 22;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -5818,7 +5820,7 @@ function rng(seed) {
   };
 }
 // every round has its own random streams: 1 the arena, 2 the fight, 3 the power-up,
-// 4 the chest (preRoll: which events fall, where and when, and each team's buff and nerf)
+// 4 the chest (preRoll: which events fall, where and when, and each team's golden drop)
 function subSeed(seed, round, salt) {
   let h = (seed | 0) ^ Math.imul(round + 1, 0x9e3779b1) ^ Math.imul(salt, 0x85ebca77);
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
@@ -5944,6 +5946,16 @@ const RULES = lock({
   ngmiMiss: 1, // NGMI: the squad's first attacks that always miss
   bagMove: 1,
   rektHp: 5,
+  // ---- the golden drop (engine 22, the owner: one golden crate a squad a round, in
+  // place of the green buff and the red nerf; GOLDS). Whoever opens it gets what is in it.
+  // Big Gun Blueprint: a Blub with no trench job (no Builder, Miner, Digger or Boom Pack)
+  // gets a golden hard hat on top of its own power (+workHp HP) and keeps its weapon.
+  // With the squad's own Builder beside it the two build a 3x3 Big Gun together, each
+  // of them a stage a turn (bigBuild stages), then a wall of three sandbags; on its own
+  // it builds the 2x2 cannon. The Big Gun fires every bigReload turns at the nearest
+  // enemy it can see within bigRange: bigDmg, and bigSplash on every enemy beside it
+  // (a blind miss still splashes where the ball comes down). It has bigHp.
+  bigBuild: 4, bigReload: 2, bigRange: 6, bigDmg: 10, bigSplash: 3, bigHp: 36,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -6225,9 +6237,9 @@ const EVENT_STATS = lock({
   ape: { turn: 0, contested: 1, spots: 'line' },
   exit: { turn: 0, spots: 'mid' },
 });
-// Each squad gets one perk a round, drawn on its own: green (a buff) or red (a nerf),
-// each as likely, and then any of the six, each as likely. Both squads may well
-// end up with the same one.
+// Up to engine 21 each squad got one perk a round, green (a buff) or red (a nerf).
+// Engine 22 (the owner) drops a golden crate instead (GOLDS); these stay in the
+// catalog for the text of older replays, and no longer fall.
 const BUFFS = lock([
   ['airdrop', 'Airdrop', `Somewhere between turn ${RULES.airdropFrom} and ${RULES.airdropTo} the weakest Blub gets ${RULES.airdropHp} HP and its power back.`],
   ['sniper', 'Sniper Bot', `One shot of ${RULES.sniperDmg} damage on the first enemy that uses a power.`],
@@ -6243,6 +6255,12 @@ const NERFS = lock([
   ['jeet', 'Jeet', `The captain jeets: it loses its +${RULES.captainHp} HP and calls no command this round.`],
   ['rekt', 'Rekt', `The Blub that opens the crate starts ${RULES.rektHp} HP down.`],
   ['ngmi', 'NGMI', `The squad’s first ${RULES.ngmiMiss === 1 ? 'attack always misses' : RULES.ngmiMiss + ' attacks always miss'}.`],
+]);
+// The golden drop (engine 22): one golden crate a squad a round, drawn on its own (any
+// of these, each as likely; both squads may get the same one). It comes down on the
+// squad's own rows as the round starts, and the Blub it is meant for opens it.
+const GOLDS = lock([
+  ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
 ]);
 const CHEST_SALT = 4; // the chest's random stream
 // What the chest's own effects need to roll (which Blub gets Rekt, and so on) comes
@@ -6603,7 +6621,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // match with the chest off rolls bit for bit the same, and balance can compare them.
   const spin = chest ? chestSpin(seed, round) : null;
   const cr = rng(subSeed(seed, round, EFFECT_SALT));
-  const meme = [0, 1].map((t) => (spin ? { buff: spin.teams[t].buff, nerf: spin.teams[t].nerf, turn: spin.teams[t].turn, opened: 0 } : { buff: null, nerf: null, turn: 0, opened: 0 }));
+  const meme = [0, 1].map((t) => (spin ? { buff: spin.teams[t].buff, nerf: spin.teams[t].nerf, gold: spin.teams[t].gold || null, turn: spin.teams[t].turn, opened: 0 } : { buff: null, nerf: null, gold: null, turn: 0, opened: 0 }));
   if (spin)
     for (const t of [0, 1]) {
       const squad = U.filter((u) => u.team === t);
@@ -6675,12 +6693,27 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   let item = null; // {item, x, y}
   let over = -1;
   let now = 0; // the turn being played, for the memepowers that only last a while
-  // Each squad's perk for the round comes down in a crate (green a buff, red a nerf)
+  // Each squad's perk for the round comes down in a crate (engine 22: a golden one)
   // on a free tile of the rows it deployed on, never on an object: where, the chest's
-  // stream decides. The squad's Blub nearest to it (a tie: the lower unit) goes to
-  // open it before the fight, and a perk that lands on one Blub lands on that one:
-  // Rekt turns it up hurt, Bagholder takes a step off it.
+  // stream decides. The Blub its golden drop is meant for goes to open it before the
+  // fight (goldBy); otherwise the squad's Blub nearest to it (a tie: the lower unit).
   const crates = [null, null];
+  // the Blub each golden drop is meant for (null: whoever is nearest the crate)
+  function goldBy(t, g) {
+    const squad = U.filter((u) => u.team === t);
+    // the Big Gun Blueprint: a Blub with no trench job and no Boom Pack (not a Medic
+    // while there is anybody else), nearest to the squad's own Builder when it has one,
+    // else the one that hits least hard; a tie, the lower unit
+    if (g === 'blueprint') {
+      const free = squad.filter((u) => u.pow !== 'builder' && u.pow !== 'miner' && u.pow !== 'digger' && !WEAPON_STATS[u.wpn].boom);
+      const pool = free.some((u) => u.cls !== 'sweet') ? free.filter((u) => u.cls !== 'sweet') : free;
+      const lead = squad.find((u) => u.engineer);
+      const hits = (u) => WEAPON_STATS[u.wpn].dmg * (WEAPON_STATS[u.wpn].hits || 1);
+      const gap = (u) => (lead ? cheb(u.x, u.y, lead.x, lead.y) : 0);
+      return pool.slice().sort((a, b) => gap(a) - gap(b) || hits(a) - hits(b) || a.id - b.id)[0] || null;
+    }
+    return null;
+  }
   if (spin)
     for (const t of [0, 1]) {
       const rows = t === 0 ? [SIZE - 1, SIZE - 2, SIZE - 3] : [0, 1, 2];
@@ -6692,18 +6725,40 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         }
       const at = free.length ? free[Math.floor(cr() * free.length)] : null;
       const squad = U.filter((u) => u.team === t);
-      const by = at ? squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a)) : null;
+      const by = !at ? null : goldBy(t, meme[t].gold) || squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a));
       crates[t] = { at, by };
       if (by && meme[t].nerf === 'rekt') by.hp = Math.max(1, by.hp - RULES.rektHp);
       if (by && meme[t].nerf === 'bagholder') by.move = Math.max(1, by.move - RULES.bagMove);
     }
   const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id % TEAM === 0, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble }));
+  // ---- the golden drop (engine 22): what is in each squad's crate goes to the Blub
+  // that opens it. It is given here, after `start`, so the squad sheet the view starts
+  // from is the squad before the crate; the 'perk' event carries what changed.
+  const goldOut = [{}, {}];
+  if (spin)
+    for (const t of [0, 1]) {
+      const g = meme[t].gold;
+      const u = crates[t].by;
+      if (!g || !u) continue;
+      if (g === 'blueprint') {
+        // a golden hard hat: a Builder too, its own weapon kept. With the squad's
+        // Builder still to build its cannon, the two build the Big Gun together.
+        const lead = U.find((v) => v.team === t && v.engineer);
+        u.max += RULES.workHp;
+        u.hp += RULES.workHp;
+        if (lead) {
+          u.crew = true;
+          meme[t].big = true;
+        } else u.engineer = true;
+        goldOut[t] = { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, big: 1 } : {}) };
+      }
+    }
   push({ t: 'round', n: round + 1, theme, weather, powerup, chest: spin });
   if (spin)
     for (const t of [0, 1]) {
       const m = meme[t];
-      const kind = m.buff ? 'buff' : 'nerf';
-      push({ t: 'perk', team: t, kind, id: m[kind], at: crates[t].at, u: crates[t].by ? crates[t].by.id : -1 });
+      const kind = m.gold ? 'gold' : m.buff ? 'buff' : 'nerf';
+      push({ t: 'perk', team: t, kind, id: m[kind], at: crates[t].at, u: crates[t].by ? crates[t].by.id : -1, ...goldOut[t] });
     }
 
   // the Liquidity Pool pays out at the start of a turn, to everyone standing in it
@@ -8076,7 +8131,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     // a Builder's works come first while nobody is in its reach (its squad's cannon,
     // and the wall in front of it)
-    if (u.engineer && engineer(u)) return;
+    if ((u.engineer || u.crew) && engineer(u)) return;
     // the Digger: back from out there once its cloud lifts, out there with its grenade,
     // or a pit
     if (u.pow === 'digger' && (fallBack(u) || sneak(u) || digPit(u))) return;
@@ -8444,7 +8499,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.exposed = now;
     u.exposedPct = RULES.buildTake;
     u.attacked = true;
-    push({ t: 'craft', u: u.id, what, w: w.id, stage, of, cells: cells.map(xyOf), face: u.team ? 1 : -1 });
+    push({ t: 'craft', u: u.id, what, w: w.id, stage, of, cells: cells.map(xyOf), face: u.team ? 1 : -1, ...(w.big ? { big: 1 } : {}) });
   }
   // The cannon goes up a little way out (engine 13): before it lays one out, its Builder
   // walks to its squad's cannonRow (a row either side will do; the nearest column it can
@@ -8468,18 +8523,55 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     walk(u, route(P, best));
     return true;
   }
+  // The Big Gun Blueprint (engine 22): the Big Gun is a 3x3 block laid out like the
+  // cannon (beside its Builder, its front row facing the other side, room in front of it
+  // for a wall of three), its three front tiles the muzzle. Null when none fits.
+  function bigSpot(u) {
+    const s = u.team ? -1 : 1;
+    let best = null;
+    let bs = -1e9;
+    for (let k = 0; k < N; k++) {
+      const a = u.team ? N - 1 - k : k;
+      const [ax, ay] = xyOf(a);
+      if (!inside(ax + 2 * s, ay + 2 * s) || Math.abs(ax - u.x) > 3 || Math.abs(ay - u.y) > 3) continue;
+      const cells = [];
+      for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 3; dx++) cells.push(idx(ax + dx * s, ay + dy * s));
+      if (!cells.some((c) => cheb(u.x, u.y, ...xyOf(c)) <= 1) || cells.includes(idx(u.x, u.y))) continue;
+      const front = inside(ax, ay - s) ? [0, 1, 2].map((dx) => idx(ax + dx * s, ay - s)) : [];
+      const back = s * (ay - u.y);
+      const score = (front.length && front.every(freeFloor) ? 100 : 0) + Math.max(-1, Math.min(1, back)) * 10 - Math.abs(ax + s - 7);
+      if (score <= bs || !canBuild(cells)) continue;
+      best = { cells, muzzle: cells.slice(0, 3), front, big: 1 };
+      bs = score;
+    }
+    return best;
+  }
+  // the squad's Builders that build together: its own, and the Blueprint's second one
+  const crewOf = (team) => living[team].filter((v) => v.engineer || v.crew);
   function engineer(u) {
     let w = works.find((v) => v.team === u.team);
     // its cannon knocked about (engine 15): with nobody in its reach it patches it up
-    if (w && w.hp != null && w.hp <= RULES.cannonHp - RULES.cannonFix && !inReach(u).length) return mend(u, w);
-    if (w && w.stage >= RULES.cannonBuild && w.wall >= w.front.length) return false;
+    if (w && w.hp != null && w.hp <= w.max - RULES.cannonFix && !inReach(u).length) return mend(u, w);
+    if (w && w.stage >= w.of && w.wall >= w.front.length) return false;
     if (inReach(u).length) return false;
     if (!w) {
       if (now > RULES.cannonStart) return false;
+      // the Blueprint's second Builder leaves the laying out to the squad's own while it
+      // stands, and keeps close to it (within two tiles) till it has
+      if (u.crew && living[u.team].some((v) => v.engineer)) {
+        const lead = living[u.team].find((v) => v.engineer);
+        if (cheb(u.x, u.y, lead.x, lead.y) <= 2) return false;
+        const P = search(u, u.move, (x, y) => cheb(x, y, lead.x, lead.y) <= 2);
+        if (!P.found.length) return false;
+        walk(u, route(P, P.found[0]));
+        return true;
+      }
       if (walkOut(u)) return true;
-      const spot = cannonSpot(u);
+      // two Builders with the Blueprint lay out the Big Gun (the 2x2 cannon when it fits nowhere)
+      const spot = (meme[u.team].big && crewOf(u.team).length >= 2 && bigSpot(u)) || cannonSpot(u);
       if (!spot) return false;
-      w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0 };
+      const big = !!spot.big;
+      w = { id: works.length, team: u.team, u, ...spot, stage: 0, wall: 0, next: 0, big, of: big ? RULES.bigBuild : RULES.cannonBuild, max: big ? RULES.bigHp : RULES.cannonHp };
       works.push(w);
       for (const c of w.cells) {
         tiles[c] = SAND;
@@ -8487,13 +8579,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
       for (const c of w.cells) restep(c);
     }
-    if (w.stage < RULES.cannonBuild) {
+    // the Blueprint's second Builder goes to the works first (its turn)
+    if (gunGap(w, u.x, u.y) > 1) {
+      const P = search(u, u.move, (x, y) => gunGap(w, x, y) <= 1);
+      if (!P.found.length) return false;
+      walk(u, route(P, P.found[0]));
+      return true;
+    }
+    if (w.stage < w.of) {
       w.stage++;
-      if (w.stage === RULES.cannonBuild) {
+      if (w.stage === w.of) {
         w.next = now + 1;
-        w.hp = RULES.cannonHp;
+        w.hp = w.max;
       }
-      craftStep(u, 'cannon', w, w.stage, RULES.cannonBuild, w.cells);
+      craftStep(u, 'cannon', w, w.stage, w.of, w.cells);
       return true;
     }
     // the wall: a sandbag a turn where there is still room for it
@@ -8517,12 +8616,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       walk(u, route(P, P.found[0]));
       return true;
     }
-    w.hp = Math.min(RULES.cannonHp, w.hp + RULES.cannonFix);
+    w.hp = Math.min(w.max, w.hp + RULES.cannonFix);
     if (w.broken) {
       w.broken = false;
       w.next = Math.max(w.next, now + 1);
     }
-    craftStep(u, 'repair', w, w.hp, RULES.cannonHp, w.cells);
+    craftStep(u, 'repair', w, w.hp, w.max, w.cells);
     return true;
   }
   // a finished cannon fires by itself: at the nearest enemy (then the most hurt) it can
@@ -8530,8 +8629,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // (engine 13): under a cloud, at an enemy in one or behind one, it fires blind and hits
   // blindHit% of the time; a miss lands on a tile beside that enemy.
   function fireCannon(w, turn) {
-    if (w.stage < RULES.cannonBuild || w.broken || turn < w.next) return;
-    const cannonReach = RULES.cannonRange;
+    if (w.stage < w.of || w.broken || turn < w.next) return;
+    // the Big Gun (engine 22) reaches farther and splashes
+    const cannonReach = w.big ? RULES.bigRange : RULES.cannonRange;
     let best = null;
     let bd = 99;
     for (const v of living[1 - w.team]) {
@@ -8548,7 +8648,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       }
     }
     if (!best) return;
-    w.next = turn + RULES.cannonReload;
+    w.next = turn + (w.big ? RULES.bigReload : RULES.cannonReload);
+    const bg = w.big ? { big: 1 } : null;
+    // the Big Gun's shell bursts on whoever stands beside where it comes down
+    const burst = (x0, y0, skip) => {
+      if (!w.big) return;
+      for (const v of living[1 - w.team].slice()) if (v !== skip && v.alive && over < 0 && cheb(v.x, v.y, x0, y0) <= 1) pure(w.u, v, RULES.bigSplash, 'cannonball');
+    };
     const m = w.muzzle.slice().sort((p, q) => cheb(...xyOf(p), best.x, best.y) - cheb(...xyOf(q), best.x, best.y) || (w.team ? q - p : p - q))[0];
     const [mx, my] = xyOf(m);
     const blind = clouds > 0 && (w.cells.some((c) => smokeT[c]) || smokeT[idx(best.x, best.y)] > 0 || smoked(mx, my, best.x, best.y));
@@ -8562,11 +8668,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           if ((dx || dy) && inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)])) near.push([x, y]);
         }
       const at = near.length ? near[Math.floor(r() * near.length)] : [best.x, best.y];
-      push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at, blind: 1, miss: 1 });
+      push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at, blind: 1, miss: 1, ...bg });
+      burst(at[0], at[1], null);
+      checkOver();
       return;
     }
-    push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at: [best.x, best.y], ...(blind ? { blind: 1 } : {}) });
-    pure(w.u, best, RULES.cannonDmg, 'cannonball');
+    push({ t: 'cannon', u: w.u.id, w: w.id, from: [mx, my], d: best.id, at: [best.x, best.y], ...(blind ? { blind: 1 } : {}), ...bg });
+    const [bx, by] = [best.x, best.y];
+    pure(w.u, best, w.big ? RULES.bigDmg : RULES.cannonDmg, 'cannonball');
+    burst(bx, by, best);
     checkOver();
   }
   // Builder: with nobody in its reach and barricades left to put up, it builds one
@@ -9871,15 +9981,9 @@ function chestSpin(seed, round = 0) {
     return ev;
   });
 
-  // one buff and one nerf per squad, drawn on their own: both may get the same
-  const teams = [0, 1].map(() => {
-    const green = r() < 0.5;
-    const buff = green ? one(BUFFS) : null;
-    const nerf = green ? null : one(NERFS);
-    const t = { buff, nerf, turn: 0 };
-    if (buff === 'airdrop') t.turn = RULES.airdropFrom + Math.floor(r() * (RULES.airdropTo - RULES.airdropFrom + 1));
-    return t;
-  });
+  // one golden drop per squad, drawn on its own: both may get the same (engine 22: the
+  // green buff and the red nerf no longer fall; buff and nerf stay empty)
+  const teams = [0, 1].map(() => ({ buff: null, nerf: null, gold: one(GOLDS), turn: 0 }));
 
   // The bands, from the same stream so every replay scrolls the same cards past.
   // Each band draws the way the thing itself falls, so nothing shows up more often
@@ -9897,7 +10001,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -9954,7 +10058,7 @@ const SquadView = (() => {
   // catalog names always come from the engine
   const CATS = {
     cls: SE.PLAYSTYLES, wpn: SE.TOOL ? SE.WEAPONS.concat([SE.TOOL]) : SE.WEAPONS, gear: SE.GEAR, pow: SE.POWERS, tac: SE.TACTICS, item: SE.POWERUPS, theme: SE.THEMES,
-    obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], cmd: SE.COMMANDS || [], sky: SE.WEATHER || [],
+    obj: SE.OBJECTS || [], ev: SE.EVENTS || [], buff: SE.BUFFS || [], nerf: SE.NERFS || [], gold: SE.GOLDS || [], cmd: SE.COMMANDS || [], sky: SE.WEATHER || [],
   };
   const entry = (kind, id) => (CATS[kind] || []).find((x) => x[0] === id) || null;
   const nameOf = (kind, id) => (entry(kind, id) || [id, String(id || '')])[1];
@@ -11228,36 +11332,51 @@ const SquadView = (() => {
     // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
     // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
     // and the Airdrop buff itself), 2-3 the same in red (a nerf).
-    airdrop: [6, 32, (j) => {
+    // Engine 22: 6-8 the golden drop: a crate of solid gold with a white star on its
+    // face, under a gold and white canopy; 6 coming down, 7 landed with the lid sprung,
+    // 8 landed shut.
+    airdrop: [9, 32, (j) => {
       let g = FG.grid(32);
       // 0-1 green, 2-3 red: falling, then landed with the lid sprung; 4-5 landed shut
+      const gold = j >= 6;
       const red = j === 2 || j === 3 || j === 5;
-      const i = j >= 4 ? 2 : j % 2;
+      const i = j >= 8 ? 2 : gold ? j - 6 : j >= 4 ? 2 : j % 2;
       const [c1, c2] = red ? ['r', 'F'] : ['g', 'G'];
       const cy = i === 0 ? 20 : 22; // the crate's top
       // the crate, its planks and the cross
       for (let y = cy; y < cy + 9; y++) for (let x = 11; x <= 20; x++) FG.put(g, x, y, '1');
       g = FG.volume(g, '1', 'gold');
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) g[y][x] = { w: 'N', Y: 'N', y: 'n', o: 'n', A: 'x' }[g[y][x]] || g[y][x];
-      for (let x = 11; x <= 20; x++) {
-        FG.put(g, x, cy + 3, 'x');
-        FG.put(g, x, cy + 6, 'x');
+      if (gold) {
+        // gold all through: dark bands for the planks, and the star
+        for (let x = 11; x <= 20; x++) {
+          FG.put(g, x, cy + 3, 'A');
+          FG.put(g, x, cy + 6, 'A');
+        }
+        const star = ['....w....', '...wYw...', 'wwwYYYwww', '.wYYYYYw.', '..wYYYw..', '.wYw.wYw.', '.w.....w.'];
+        star.forEach((row, dy) => [...row].forEach((c, dx) => c !== '.' && FG.put(g, 11 + dx, cy + 1 + dy, c)));
+        FG.put(g, 15, cy + 4, 'w');
+      } else {
+        for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) g[y][x] = { w: 'N', Y: 'N', y: 'n', o: 'n', A: 'x' }[g[y][x]] || g[y][x];
+        for (let x = 11; x <= 20; x++) {
+          FG.put(g, x, cy + 3, 'x');
+          FG.put(g, x, cy + 6, 'x');
+        }
+        for (let y = cy + 1; y < cy + 8; y++) for (const x of [15, 16]) FG.put(g, x, y, y === cy + 4 || y === cy + 5 ? c2 : c1);
+        for (const x of [13, 14, 17, 18]) for (const y of [cy + 4, cy + 5]) FG.put(g, x, y, c1);
       }
-      for (let y = cy + 1; y < cy + 8; y++) for (const x of [15, 16]) FG.put(g, x, y, y === cy + 4 || y === cy + 5 ? c2 : c1);
-      for (const x of [13, 14, 17, 18]) for (const y of [cy + 4, cy + 5]) FG.put(g, x, y, c1);
       if (i === 0) {
         // the canopy, striped, and its four lines down to the crate
         for (let x = 3; x <= 28; x++) {
           const dx = (x - 15.5) / 12.5;
           const top = Math.round(4 + dx * dx * 5);
-          for (let y = top; y <= top + 3 - (Math.abs(dx) > 0.85 ? 1 : 0); y++) FG.put(g, x, y, Math.floor((x - 3) / 4) % 2 ? 'W' : red ? 'F' : 'G');
+          for (let y = top; y <= top + 3 - (Math.abs(dx) > 0.85 ? 1 : 0); y++) FG.put(g, x, y, Math.floor((x - 3) / 4) % 2 ? 'W' : gold ? (y === top ? 'Y' : 'y') : red ? 'F' : 'G');
         }
         g = FG.outline(g);
-        for (const [x0, x1] of [[4, 11], [11, 13], [20, 18], [27, 20]]) FG.line(g, x0, 10, x1, cy, 0.8, 'S');
+        for (const [x0, x1] of [[4, 11], [11, 13], [20, 18], [27, 20]]) FG.line(g, x0, 10, x1, cy, 0.8, gold ? 'Y' : 'S');
         return g;
       }
       // landed: shut, or the lid sprung open on one side
-      if (i === 1) FG.line(g, 11, cy - 1, 18, cy - 5, 1.6, 'N');
+      if (i === 1) FG.line(g, 11, cy - 1, 18, cy - 5, 1.6, gold ? 'y' : 'N');
       g = FG.outline(g);
       return g;
     }],
@@ -11982,6 +12101,106 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
+    // The Big Gun (engine 22, the Big Gun Blueprint): a 3x3 field gun, 48 across. A
+    // heavy iron bed with gold rivets on two wheels of gold-bound wood, and a fat barrel
+    // in iron with gold bands and a muzzle brake. Four stages as it goes up (0 the
+    // scaffold and the planks, 1 the bed and wheels, 2 the barrel's breech, 3 done),
+    // 0-3 pointing up the screen, 4-7 down it.
+    biggun: [8, 48, (i) => {
+      let g = FG.grid(48);
+      const st = i % 4;
+      const down = i >= 4;
+      // the bed: wider towards the back, as seen from above and behind
+      for (let y = 17; y <= 41; y++) {
+        if (st === 0 && y % 5 === 4) continue;
+        const f = (y - 17) / 24;
+        for (let x = Math.round(11 - f * 3); x <= Math.round(36 + f * 3); x++) FG.put(g, x, y, '1');
+      }
+      g = FG.volume(g, '1', st === 0 ? 'wood' : 'iron');
+      if (st === 0) {
+        // the scaffold: four poles and a crossbar, planks waiting on the floor
+        for (const x of [9, 38]) FG.line(g, x, 9, x, 43, 1.4, 'n');
+        FG.line(g, 9, 12, 38, 12, 1.4, 'N');
+        FG.line(g, 9, 12, 20, 24, 1, 'a');
+        FG.line(g, 38, 12, 27, 24, 1, 'a');
+        for (let x = 1; x <= 10; x++) FG.put(g, x, 45, 'n');
+        for (let x = 37; x <= 46; x++) FG.put(g, x, 46, 'N');
+        for (let x = 3; x <= 11; x++) FG.put(g, x, 44, 'i');
+        return FG.outline(g);
+      }
+      // gold rivets along the bed's edges
+      for (let y = 20; y <= 38; y += 6) {
+        FG.put(g, 13 - Math.round(((y - 17) / 24) * 3), y, 'Y');
+        FG.put(g, 34 + Math.round(((y - 17) / 24) * 3), y, 'y');
+      }
+      // the wheels, wood bound in gold, a gold hub
+      for (const cx of [8, 39]) FG.disc(g, cx, 31, 8.5, '2');
+      g = FG.volume(g, '2', 'wood');
+      for (const cx of [8, 39]) {
+        FG.ring(g, cx, 31, 8.5, 1.6, 'o');
+        for (let a = 0; a < 4; a++) {
+          const r = (a * Math.PI) / 4;
+          FG.line(g, cx - Math.cos(r) * 6, 31 - Math.sin(r) * 6, cx + Math.cos(r) * 6, 31 + Math.sin(r) * 6, 1, 'a');
+        }
+        FG.disc(g, cx, 31, 2.2, 'y');
+        FG.put(g, cx - 1, 30, 'Y');
+      }
+      if (st === 1) return FG.outline(g);
+      // the barrel: the breech (stage 2), or the whole length (3)
+      const top = st === 2 ? (down ? 24 : 15) : down ? 14 : 3;
+      const bot = st === 2 ? (down ? 33 : 28) : down ? 45 : 32;
+      for (let y = top; y <= bot; y++) for (let x = 17; x <= 30; x++) FG.put(g, x, y, '3');
+      // the breech's round back
+      FG.disc(g, 23.5, down ? top + 1 : bot - 1, 7.5, '3');
+      if (st === 3) {
+        // the muzzle brake: a wider block at the end with slots in its sides
+        const my = down ? 41 : 1;
+        for (let y = my; y <= my + 5; y++) for (let x = 15; x <= 32; x++) FG.put(g, x, y, '3');
+      }
+      g = FG.volume(g, '3', 'iron');
+      // gold bands round the barrel
+      const bands = st === 3 ? (down ? [20, 28, 36] : [10, 18, 26]) : down ? [28] : [20];
+      for (const by of bands) for (let x = 17; x <= 30; x++) {
+        FG.put(g, x, by, x < 21 ? 'Y' : 'y');
+        FG.put(g, x, by + 1, x < 21 ? 'y' : 'o');
+      }
+      if (st === 3) {
+        const my = down ? 41 : 1;
+        for (const sy of [my + 2, my + 3]) {
+          FG.put(g, 15, sy, 'K');
+          FG.put(g, 32, sy, 'K');
+        }
+        if (down) {
+          FG.disc(g, 23.5, 44, 3.6, 'K');
+          FG.disc(g, 23.5, 44, 1.8, 'k');
+        } else for (let x = 19; x <= 28; x++) FG.put(g, x, 1, 'K');
+      }
+      return FG.outline(g);
+    }],
+    // The golden drop's icons (engine 22), 32 across like the chest's.
+    // The Big Gun Blueprint: a golden hard hat sitting on a rolled-out blueprint with
+    // the Big Gun drawn on it in white.
+    gb_blueprint: [1, 32, () => {
+      let g = FG.grid(32);
+      // the blueprint, a little tilted, a roll at each end
+      FG.poly(g, [[3, 15], [27, 11], [29, 27], [5, 30]], '1');
+      g = FG.volume(g, '1', 'blue');
+      for (const [x0, y0, x1, y1] of [[2, 14, 5, 31], [26, 10, 30, 28]]) FG.line(g, x0 + 1, y0 + 1, x1 - 1, y1 - 1, 3, 'l');
+      // the gun on it in white lines: the bed, two wheels, the barrel
+      FG.line(g, 10, 24, 22, 22, 1, 'u');
+      FG.line(g, 14, 23, 20, 15, 1.6, 'w');
+      FG.ring(g, 10, 25, 2.6, 1, 'u');
+      FG.ring(g, 22, 23, 2.6, 1, 'u');
+      for (let x = 7; x <= 24; x += 3) FG.put(g, x, 28 - Math.round((x - 7) / 6), 'b');
+      // the golden hard hat over it all
+      FG.poly(g, [[8, 12], [11, 4], [16, 2], [21, 4], [24, 12]], '2');
+      g = FG.volume(g, '2', 'gold');
+      FG.line(g, 5, 12, 27, 12, 2.2, 'o');
+      FG.line(g, 16, 3, 16, 11, 1.4, 'Y');
+      FG.put(g, 12, 6, 'w');
+      FG.put(g, 13, 5, 'w');
+      return FG.outline(g);
+    }],
     cloud: [4, 48, (i) => {
       let g = FG.grid(48);
       const w = Math.sin(i * 1.6) * 1.5;
@@ -12009,6 +12228,9 @@ const SquadView = (() => {
   Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
   // and Diamond Hands' is its hand of diamond, waiting (engine 21)
   Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
+  // the golden drop's icons come out of the forge too (engine 22): FX_ART.gb_<id>
+  ICONS.gold = {};
+  for (const [id] of SE.GOLDS || []) Object.defineProperty(ICONS.gold, id, { enumerable: true, get: () => (FX_ART['gb_' + id] ? FX_ART['gb_' + id][2](0).map((r) => r.join('')) : null) });
   // frame `i` of an effect, painted once and kept
   function fxFrame(id, i) {
     const key = id + ':' + i;
@@ -12234,14 +12456,15 @@ const SquadView = (() => {
       case 'craft':
         if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
         if (e.what === 'repair') return u + ' patches up the cannon (' + e.stage + '/' + e.of + ' HP).';
+        if (e.big) return e.stage === 1 ? u + ' starts building the Big Gun.' : e.stage >= e.of ? u + ' finishes the Big Gun: it is ready to fire!' : u + ' works on the Big Gun.';
         return e.stage === 1 ? u + ' starts building a cannon.' : e.stage >= e.of ? u + ' finishes the cannon: it is ready to fire!' : u + ' works on the cannon.';
       // engine 15: the cannon knocked about, by a blast or a fighter's blows
       case 'cannonhit':
         return (e.src === 'blast' ? 'The blast knocks the cannon about' : u + ' hits the cannon') + ': -' + e.dmg + (e.down ? '. It is out of action!' : ' (' + e.hp + ' HP left).');
       case 'cannon':
         // engine 13: smoke throws it off, and it fires blind
-        if (e.miss) return 'BOOM! ' + u + "'s cannon fires blind through the smoke and misses " + d + '.';
-        return 'BOOM! ' + u + "'s cannon fires " + (e.blind ? 'blind through the smoke at ' : 'at ') + d + '.';
+        if (e.miss) return 'BOOM! ' + u + "'s " + (e.big ? 'Big Gun' : 'cannon') + ' fires blind through the smoke and misses ' + d + '.';
+        return (e.big ? 'KA-BOOM! ' : 'BOOM! ') + u + "'s " + (e.big ? 'Big Gun' : 'cannon') + ' fires ' + (e.blind ? 'blind through the smoke at ' : 'at ') + d + '.';
       case 'cannonball':
         return e.res === 'absorb' ? 'The cannonball pops ' + d + "'s bubble." : 'The cannonball hits ' + d + ': -' + e.dmg + '.';
       case 'dig': {
@@ -12270,6 +12493,7 @@ const SquadView = (() => {
         return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
       }
       case 'perk':
+        if (e.kind === 'gold') return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '!' : lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '.';
         return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
       case 'pick':
         return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
@@ -13961,7 +14185,11 @@ const SquadView = (() => {
       }
       // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
       case 'craft':
-        if (e.what === 'cannon') S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face, ...(e.stage >= e.of ? { hp: SE.RULES.cannonHp } : {}) };
+        if (e.what === 'cannon') {
+          // the Big Gun (engine 22): 3x3, and more HP
+          const max = e.big ? SE.RULES.bigHp : SE.RULES.cannonHp;
+          S.works[e.w] = { id: e.w, team: Math.floor(e.u / SE.TEAM), cells: e.cells, stage: e.stage, of: e.of, face: e.face, big: !!e.big, max, ...(e.stage >= e.of ? { hp: max } : {}) };
+        }
         else if (e.what === 'repair') {
           // patched up (engine 15): back in action as soon as it has HP
           const w = S.works[e.w];
@@ -14016,6 +14244,15 @@ const SquadView = (() => {
       // a squad's perk for the round, out of its crate
       case 'perk':
         S.perkSeen[e.team] = true;
+        // the golden drop (engine 22): what it gives the Blub that opens it
+        if (e.kind === 'gold' && e.u >= 0) {
+          const u = U[e.u];
+          if (e.max != null) {
+            u.max = e.max;
+            u.hp = e.hp;
+          }
+          if (e.id === 'blueprint') u.st.hardhat = true;
+        }
         break;
       // a one-shot memepower spent, for its chip in the roster
       case 'airdrop':
@@ -14211,8 +14448,10 @@ const SquadView = (() => {
     honey: [['.yyy.', 'yYyyy', 'yyyoy', '.yoy.', '..o..'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12' }],
     laser: [['.....', 'rr.rr', 'rw.rw', '.....', '.....'], { r: '#FF2E4C', w: '#FFFFFF' }],
     rugged: [['f.f.f', 'rrrrr', 'ryRyr', 'rrrrr', 'f.f.f'], { f: '#FFF3B0', r: '#B8324A', y: '#FFD447', R: '#E2566E' }],
+    // engine 22: the golden drop
+    hardhat: [['.....', '.yYy.', 'yyYyy', 'ooooo', '.....'], { y: '#FFD447', Y: '#FFF3B0', o: '#C98A12' }],
   };
-  const STATUS_NAME = { dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { hardhat: 'golden hard hat: a Builder too', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -14687,6 +14926,8 @@ const SquadView = (() => {
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
     // lasting looks
+    // the Big Gun Blueprint's golden hard hat (engine 22), once it has landed on its head
+    if (u.st.hardhat && !(u.hatT > t)) drawHat(x, ox + 2, oy + 2, !P.calm && Math.floor(now / 140) % 12 === 0);
     if (u.st.feather) {
       const k = Math.floor(now / 200) & 1;
       x.fillStyle = '#FFFFFF';
@@ -15694,32 +15935,51 @@ const SquadView = (() => {
     const sy = Math.min(...sc.map((p) => p[1]));
     // on screen it points up when its squad's way forward is up the screen
     const up = wk.face * (P.flip ? -1 : 1) < 0;
-    return { px: sx * TILE, py: TOP + sy * TILE, up, row: sy + 1 };
+    return { px: sx * TILE, py: TOP + sy * TILE, up, row: sy + (wk.big ? 2 : 1) };
   }
   const cannonRow = (wk) => cannonBox(wk).row;
   function drawCannon(x, wk, t) {
     const { px, py, up } = cannonBox(wk);
-    const stage = clamp(wk.stage, 1, 3);
+    // the Big Gun (engine 22): three tiles across, four stages
+    const big = !!wk.big;
+    const W = big ? 48 : 32;
+    const max = wk.max || SE.RULES.cannonHp;
+    const stage = clamp(wk.stage, 1, big ? 4 : 3);
     const ov = P.ov['cannon' + wk.id];
     // knocked about (engine 15): its HP over it once it has lost some; out of action it
     // sits dark and smoking
-    if (wk.hp != null && wk.hp < SE.RULES.cannonHp) {
-      const bw = 20;
-      const fill = Math.round((bw * wk.hp) / SE.RULES.cannonHp);
+    if (wk.hp != null && wk.hp < max) {
+      const bw = big ? 32 : 20;
+      const fill = Math.round((bw * wk.hp) / max);
+      const bx = px + (W - bw) / 2 - 1;
       x.fillStyle = INK;
-      x.fillRect(px + 5, py - 4, bw + 2, 4);
+      x.fillRect(bx, py - 4, bw + 2, 4);
       x.fillStyle = '#3E2C58';
-      x.fillRect(px + 6, py - 3, bw, 2);
-      x.fillStyle = wk.hp * 2 > SE.RULES.cannonHp ? '#FFD447' : '#FF5C77';
-      x.fillRect(px + 6, py - 3, fill, 2);
+      x.fillRect(bx + 1, py - 3, bw, 2);
+      x.fillStyle = wk.hp * 2 > max ? '#FFD447' : '#FF5C77';
+      x.fillRect(bx + 1, py - 3, fill, 2);
     }
     if (wk.broken) {
-      ditherRect(x, px + 3, py + 6, 26, 20, '#1B1229', 0.45);
-      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + 8 + j * 8, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
+      ditherRect(x, px + 3, py + 6, W - 6, W - 12, '#1B1229', 0.45);
+      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + W / 2 - 8 + (j * 2 - 1) * 4, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
     }
     const fe = ov && ov.fireT != null && !P.calm ? t - ov.fireT : -1;
-    const kick = fe >= 0 && fe < 160 ? (fe < 60 ? 2 : 1) * (up ? 1 : -1) : 0;
-    blob(x, px + 16, py + 29, 15, 3, '#1B1229', 0.3);
+    const kick = fe >= 0 && fe < (big ? 240 : 160) ? (fe < 60 ? (big ? 3 : 2) : 1) * (up ? 1 : -1) : 0;
+    blob(x, px + W / 2, py + W - 3, W / 2 - 1, 3, '#1B1229', 0.3);
+    if (big) {
+      x.drawImage(fxFrame('biggun', (up ? 0 : 4) + stage - 1), px, py + kick);
+      if (stage >= 4) {
+        const T = colors[P.sideOf(wk.team)];
+        const by = py + kick + (up ? 14 : 32);
+        x.fillStyle = T.line;
+        x.fillRect(px + 18, by, 12, 2);
+        x.fillStyle = T.fill;
+        x.fillRect(px + 18, by, 12, 1);
+        x.fillStyle = T.light;
+        x.fillRect(px + 18, by, 3, 1);
+      }
+      return;
+    }
     x.drawImage(fxFrame('cannon', (up ? 0 : 3) + stage - 1), px, py + kick);
     if (stage >= 3) {
       const T = colors[P.sideOf(wk.team)];
@@ -15784,8 +16044,10 @@ const SquadView = (() => {
       const box = wk ? cannonBox(wk) : null;
       const up = box ? box.up : true;
       const [fx0, fy0] = tileC(e.from[0], e.from[1]);
-      const mx = box ? box.px + 16 : fx0;
-      const my = box ? box.py + (up ? 2 : 28) : fy0;
+      // (the Big Gun's muzzle is the middle of its three tiles: engine 22)
+      const half = e.big ? 24 : 16;
+      const mx = box ? box.px + half : fx0;
+      const my = box ? box.py + (up ? 2 : half * 2 - 3) : fy0;
       const d = S.u[e.d];
       // a blind shot that misses (engine 13) comes down on the tile beside its enemy
       const [tx, ty] = e.miss ? tileC(e.at[0], e.at[1]) : centreOf(d);
@@ -15805,6 +16067,47 @@ const SquadView = (() => {
       });
       for (const s of [-1, 1]) addFx(T + 40 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8 + s * (3 + (el * 0.02) / k)), Math.round(my - 8 + (up ? -1 : 1) * ((el * 0.01) / k))));
       const len = Math.hypot(tx - mx, ty - my);
+      // the Big Gun (engine 22): a fat gold-banded shell on a high arc, a shockwave and
+      // a ring of fire where it lands, the board shaking under it
+      if (e.big) {
+        addFx(T, 220 * k, (x, kk) => {
+          x.fillStyle = kk < 0.3 ? '#FFFFFF' : '#FFD447';
+          x.fillRect(mx - 5, my - 5, 11, 11);
+          x.fillStyle = '#FF8A3D';
+          x.fillRect(mx - 2, my - 9, 5, 19);
+          x.fillRect(mx - 9, my - 2, 19, 5);
+        });
+        addParts(14, mx, my, ['#FFD447', '#FF8A3D', '#FFF3B0'], 0.09, 0.0002, 360 * k, T, true);
+        addFx(T, b.contact, (x, kk) => {
+          const X = Math.round(lerp(mx, tx, kk));
+          const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (12 + len / 5));
+          x.fillStyle = INK;
+          x.fillRect(X - 3, Y - 2, 7, 5);
+          x.fillRect(X - 2, Y - 3, 5, 7);
+          x.fillStyle = '#3A3A4A';
+          x.fillRect(X - 2, Y - 2, 5, 5);
+          x.fillStyle = '#FFD447';
+          x.fillRect(X - 2, Y, 5, 1);
+          x.fillStyle = '#C9C9D6';
+          x.fillRect(X - 2, Y - 2, 1, 1);
+          // a smoky trail
+          if (!P.calm) for (let q = 1; q <= 3; q++) {
+            const k2 = Math.max(0, kk - q * 0.04);
+            x.fillStyle = q === 1 ? '#C9C9D6' : '#6E6E80';
+            x.fillRect(Math.round(lerp(mx, tx, k2)), Math.round(lerp(my, ty - 2, k2) - Math.sin(Math.PI * k2) * (12 + len / 5)), 2, 2);
+          }
+        });
+        atClock(T + b.contact, () => {
+          flash(T + b.contact);
+          hold(70);
+        });
+        ringFx(T + b.contact, tx, ty, 420 * k, '#FFD447', 4, 26, true, 0.6);
+        ringFx(T + b.contact + 60 * k, tx, ty, 360 * k, '#FF8A3D', 3, 18, true, 0.6);
+        for (const [ox, oy] of [[-12, 0], [12, 0], [0, -8], [0, 8]]) addFx(T + b.contact, 480 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(tx - 8 + ox * (0.4 + kk)), Math.round(ty - 8 + oy * (0.4 + kk))));
+        addParts(16, tx, ty, ['#FFD447', '#FF8A3D', '#3A3A4A', '#FFF3B0'], 0.1, 0.0004, 520 * k, T + b.contact, true);
+        label(T + b.contact + 40 * k, 'KA-BOOM', '#FFD447', tx, ty - 30, true, 2);
+        return true;
+      }
       addFx(T, b.contact, (x, kk) => {
         const X = Math.round(lerp(mx, tx, kk));
         const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (5 + len / 9));
@@ -17030,6 +17333,8 @@ const SquadView = (() => {
   // Each squad's perk comes down on its own side as the round starts: a crate on a
   // parachute, green for a buff and red for a nerf, swaying down onto the tile of
   // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
+  // Engine 22: a golden crate under a gold canopy, a beam of light following it down
+  // and gold glitter falling off it.
   function perkFall(b, T, k) {
     if (P.calm) return;
     const HIT = MS.perksHit * k;
@@ -17037,8 +17342,18 @@ const SquadView = (() => {
       const e = P.rd.R.ev[it.ei];
       if (!e || e.t !== 'perk' || !e.at) continue;
       const [cx, cy] = tileC(e.at[0], e.at[1]);
-      const fr = e.kind === 'buff' ? 0 : 2;
+      const gold = e.kind === 'gold';
+      const fr = gold ? 6 : e.kind === 'buff' ? 0 : 2;
       addFx(T, HIT, (x, kk) => blob(x, cx, cy + 6, Math.round(3 + kk * 6), 1, '#1B1229', 0.12 + kk * 0.25), true);
+      if (gold) {
+        // the beam: a column of gold light onto the tile, brightest as it lands
+        addFx(T, HIT + 260 * k, (x, kk) => {
+          const a = Math.min(1, kk * 2.2) * (kk > 0.85 ? (1 - kk) / 0.15 : 1);
+          ditherRect(x, cx - 7, 0, 14, cy + 6, '#FFD447', 0.16 * a);
+          ditherRect(x, cx - 3, 0, 6, cy + 6, '#FFF3B0', 0.22 * a);
+        }, true);
+        for (let q = 0; q < 6; q++) addParts(2, cx, TOP + ((cy - TOP) * q) / 6, ['#FFD447', '#FFF3B0', '#FFFFFF'], 0.03, 0.00012, 700 * k, T + (HIT * q) / 6, false);
+      }
       addFx(T, HIT, (x, kk, el) => {
         const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
         x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
@@ -17046,16 +17361,161 @@ const SquadView = (() => {
     }
     sfx('read');
   }
+  // The golden crate (engine 22): it lands shut with a glint running over it; the Blub
+  // it is meant for walks over and prises the lid, and it bursts open in a shower of
+  // gold with a beam straight up, the drop's card rising out of it to hang there till
+  // the fight starts; then what is in it does its own little scene (goldReveal).
+  function goldCrate(e, T, k, cx, cy, until, trip, open) {
+    const ic = iconSrc('gold', e.id);
+    addFx(T, until, (x, kk, el) => {
+      if (el < open) {
+        const pry = el > open - 160 * k && !P.calm ? (Math.floor(el / (40 * k)) % 2 ? 1 : -1) : 0;
+        x.drawImage(fxFrame('airdrop', 8), cx - 16 + pry, cy - 24);
+        // a glint running over the lid now and then
+        const g = P.calm ? -1 : (el / (90 * k)) % 14;
+        if (g >= 0 && g < 6) {
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(cx - 4 + Math.floor(g * 1.6), cy - 2 - Math.floor(g), 1, 2);
+        }
+        return;
+      }
+      x.drawImage(fxFrame('airdrop', 7), cx - 16, cy - 24);
+      const e2 = el - open;
+      const up = Math.min(1, e2 / (380 * k));
+      const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
+      const iy = Math.round(cy - 22 - up * 20 + bob);
+      // its card: gold, with a white rim that glints
+      x.fillStyle = INK;
+      x.fillRect(cx - 18, iy - 2, 36, 36);
+      x.fillStyle = '#C98A12';
+      x.fillRect(cx - 17, iy - 1, 34, 34);
+      x.fillStyle = '#FFD447';
+      x.fillRect(cx - 17, iy - 1, 34, 2);
+      x.fillRect(cx - 17, iy - 1, 2, 34);
+      x.drawImage(ic, cx - 16, iy);
+      if (!P.calm && Math.floor(e2 / (120 * k)) % 9 === 0) {
+        x.fillStyle = '#FFFFFF';
+        x.fillRect(cx + 12, iy - 4, 1, 5);
+        x.fillRect(cx + 10, iy - 2, 5, 1);
+      }
+    });
+    for (const s of [-1, 1])
+      addFx(T, 480 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), cy - 8));
+    sfx('block');
+    // the lid gives: a beam straight up, a ring and a shower of gold
+    addFx(T + open, 900 * k, (x, kk) => {
+      const a = kk < 0.15 ? kk / 0.15 : 1 - (kk - 0.15) / 0.85;
+      ditherRect(x, cx - 6, 0, 12, cy - 6, '#FFD447', 0.35 * a);
+      ditherRect(x, cx - 2, 0, 4, cy - 6, '#FFFFFF', 0.4 * a);
+    }, true);
+    ringFx(T + open, cx, cy - 8, 520 * k, '#FFD447', 3, 22, false, 0.7);
+    addParts(22, cx, cy - 12, ['#FFD447', '#FFF3B0', '#FFFFFF', '#C98A12'], 0.09, 0.00028, 820 * k, T + open, true);
+    atClock(T + open, () => {
+      sfx('power');
+      flash(T + open);
+    });
+    if (trip) {
+      label(T + open + 80 * k, nameOf('gold', e.id).toUpperCase(), '#FFD447', trip.at[0], trip.at[1] - 26, true);
+      addParts(10, trip.at[0], trip.at[1] - 8, ['#FFD447', '#FFF3B0', '#FFFFFF'], 0.05, -0.00008, 700 * k, T + open + 60 * k, false, [-Math.PI, 0]);
+    }
+    goldReveal(e, T, k, cx, cy, until, trip, open);
+  }
+  // what each golden drop does as it comes out of its crate
+  function goldReveal(e, T, k, cx, cy, until, trip, open) {
+    const u = e.u >= 0 ? P.S.u[e.u] : null;
+    if (!u) return;
+    // the Big Gun Blueprint: the golden hard hat flies out and lands on its Blub's head,
+    // and the blueprint unrolls over the crate, the gun drawn on it in white
+    if (e.id === 'blueprint') {
+      const fly = 420 * k;
+      const t0 = T + open + 120 * k;
+      u.hatT = P.calm || !trip ? 0 : t0 + fly;
+      if (trip && !P.calm) {
+        addFx(t0, fly, (x, kk) => {
+          const ub = u._b;
+          const ex = ub ? ub.ox + 8 : trip.at[0];
+          const ey = ub ? ub.oy + 3 : trip.at[1] - 12;
+          const X = Math.round(lerp(cx, ex, kk));
+          const Y = Math.round(lerp(cy - 14, ey, kk) - Math.sin(kk * Math.PI) * 22);
+          drawHat(x, X - 5, Y - 2, Math.floor(kk * 8) % 2);
+        });
+        atClock(t0 + fly, () => sfx('gem'));
+        addParts(8, trip.at[0], trip.at[1] - 16, ['#FFD447', '#FFFFFF'], 0.05, 0.0002, 400 * k, t0 + fly, true);
+        label(t0 + fly + 60 * k, '+' + SE.RULES.workHp + ' HP', '#4BE08F', trip.at[0], trip.at[1] - 34, true);
+      }
+      addFx(T + open + 200 * k, Math.max(0, until - open - 200 * k), (x, kk, el) => {
+        if (P.calm) return;
+        // the blueprint unrolling: wider every frame, then held
+        const w = Math.round(Math.min(1, el / (300 * k)) * 30);
+        if (w < 4) return;
+        const x0 = cx - (w >> 1);
+        const y0 = cy - 62;
+        x.fillStyle = INK;
+        x.fillRect(x0 - 1, y0 - 1, w + 2, 18);
+        x.fillStyle = '#3E86C9';
+        x.fillRect(x0, y0, w, 16);
+        x.fillStyle = '#BDE7FF';
+        x.fillRect(x0, y0, 2, 16);
+        x.fillRect(x0 + w - 2, y0, 2, 16);
+        if (w >= 30) {
+          // the Big Gun in white lines: bed, wheels, barrel
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(x0 + 8, y0 + 10, 14, 1);
+          x.fillRect(x0 + 13, y0 + 3, 4, 7);
+          x.fillRect(x0 + 12, y0 + 2, 6, 1);
+          for (const wx of [x0 + 6, x0 + 21]) {
+            x.fillRect(wx, y0 + 9, 3, 1);
+            x.fillRect(wx, y0 + 12, 3, 1);
+            x.fillRect(wx - 1, y0 + 10, 1, 2);
+            x.fillRect(wx + 3, y0 + 10, 1, 2);
+          }
+          x.fillStyle = '#86CBF3';
+          for (let q = 0; q < 28; q += 3) x.fillRect(x0 + 1 + q, y0 + 14, 1, 1);
+        }
+      });
+    }
+  }
+  // the golden hard hat (engine 22): a dome with a brim and a ridge, 11 across
+  function drawHat(x, X, Y, glint) {
+    x.fillStyle = INK;
+    x.fillRect(X + 2, Y - 1, 7, 1);
+    x.fillRect(X + 1, Y, 9, 1);
+    x.fillRect(X - 1, Y + 3, 13, 2);
+    x.fillRect(X, Y + 1, 11, 2);
+    x.fillStyle = '#C98A12';
+    x.fillRect(X, Y + 3, 11, 1);
+    x.fillStyle = '#FFD447';
+    x.fillRect(X + 2, Y, 7, 1);
+    x.fillRect(X + 1, Y + 1, 9, 2);
+    x.fillStyle = '#FFF3B0';
+    x.fillRect(X + 5, Y, 1, 3);
+    x.fillRect(X + 2, Y + 1, 1, 1);
+    if (glint) {
+      x.fillStyle = '#FFFFFF';
+      x.fillRect(X + 3, Y, 1, 1);
+    }
+  }
   // The round card turns into the perks: each squad's, its colour, what it does.
   function showPerkBanner() {
     const ch = P.rd.R.chest;
     if (!ch) return;
     const b2 = D.ban;
     b2.textContent = '';
-    b2.append(el('b', 'sqv-bh', 'AIRDROP · ROUND ' + (P.ri + 1)));
+    const golden = ch.teams.some((m) => m.gold);
+    b2.append(el('b', 'sqv-bh', (golden ? 'GOLDEN DROP · ROUND ' : 'AIRDROP · ROUND ') + (P.ri + 1)));
     for (const side of ['rival', 'you']) {
       const t = side === 'you' ? P.me : 1 - P.me;
       const m = ch.teams[t];
+      // the golden drop (engine 22)
+      if (m.gold) {
+        const row = el('div', 'sqv-pu perk gold');
+        row.append(icon('gold', m.gold, 32));
+        const tx = el('div', '');
+        tx.append(el('span', 'sqv-pk', P.sideLabels[side] + ' · golden drop'), el('strong', '', nameOf('gold', m.gold)), el('span', 'sqv-pd', shortOf('gold', m.gold)));
+        row.append(tx);
+        b2.append(row);
+        continue;
+      }
       const kind = m.buff ? 'buff' : 'nerf';
       const row = el('div', 'sqv-pu perk ' + (kind === 'buff' ? 'good' : 'bad'));
       row.append(icon(kind, m[kind], 32));
@@ -17066,7 +17526,7 @@ const SquadView = (() => {
     }
     b2.className = 'sqv-ban on perks';
     const mine = ch.teams[P.me];
-    const mk = mine.buff ? 'buff' : 'nerf';
+    const mk = mine.gold ? 'gold' : mine.buff ? 'buff' : 'nerf';
     say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
   }
   // a beat starts: poses, reticles, telegraphs and beams that lead up to the event
@@ -18511,11 +18971,13 @@ const SquadView = (() => {
         memePop(e.team, e.id, false);
         if (!e.at) return;
         const [cx, cy] = tileC(e.at[0], e.at[1]);
-        const red = e.kind === 'nerf';
         const until = Math.max(0, (P.rd.fightAt || T) - T);
-        const ic = iconSrc(e.kind, e.id);
         const trip = crateTrip(e, T, until, k);
         const open = trip ? trip.open : 0;
+        // the golden drop (engine 22): a scene of its own
+        if (e.kind === 'gold') return goldCrate(e, T, k, cx, cy, until, trip, open);
+        const red = e.kind === 'nerf';
+        const ic = iconSrc(e.kind, e.id);
         addFx(T, until, (x, kk, el) => {
           if (el < open) {
             // shut, with a wobble once the Blub gets its paws on the lid
@@ -20388,13 +20850,13 @@ const SquadView = (() => {
       R.meme.hidden = !m;
       if (!m) return;
       R.meme.hidden = false;
-      for (const kind of ['buff', 'nerf']) {
+      for (const kind of ['buff', 'nerf', 'gold']) {
         const id = m[kind];
         if (!id) continue;
         const c = el('span', 'sqv-mc ' + kind);
         c.append(icon(kind, id, 32));
         c.title = nameOf(kind, id) + ': ' + descOf(kind, id);
-        c.setAttribute('aria-label', (kind === 'buff' ? 'Buff ' : 'Nerf ') + nameOf(kind, id));
+        c.setAttribute('aria-label', (kind === 'buff' ? 'Buff ' : kind === 'gold' ? 'Golden drop ' : 'Nerf ') + nameOf(kind, id));
         R.meme.append(c);
         R.memeChips[id] = c;
       }
@@ -20461,7 +20923,7 @@ const SquadView = (() => {
       R.rows.forEach((r) => {
         const u = S.u[r.id];
         if (u.alive) alive[u.side]++;
-        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem'].filter((s) => u.st[s]);
+        const sts = ['frozen', 'trapped', 'honey', 'paper', 'laser', 'rage', 'bubble', 'blade', 'feather', 'totem', 'hardhat'].filter((s) => u.st[s]);
         // the trench kit: dug into a foxhole, extra ammo from the crate
         if (u.alive && u.dug) sts.push('dug');
         if (u.alive && u.ammo) sts.push('ammo');
@@ -21641,6 +22103,10 @@ const SquadView = (() => {
         rekt: `One Blub starts ${R.rektHp} HP down.`,
         ngmi: R.ngmiMiss === 1 ? 'The first attack always misses.' : `The first ${R.ngmiMiss} attacks always miss.`,
       },
+      // the golden drop (engine 22)
+      gold: {
+        blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
+      },
     };
     return (T[kind] && T[kind][id]) || descOf(kind, id);
   }
@@ -22683,8 +23149,12 @@ const SquadView = (() => {
       root.append(sec);
     };
     section(o.eventsTitle || 'Chest events', SE.EVENTS, 'ev');
-    section(o.buffsTitle || 'Buffs', SE.BUFFS, 'buff');
-    section(o.nerfsTitle || 'Nerfs', SE.NERFS, 'nerf');
+    // engine 22: the golden drop took the place of the buffs and nerfs
+    if (SE.GOLDS) section(o.goldsTitle || 'Golden drops', SE.GOLDS, 'gold');
+    else {
+      section(o.buffsTitle || 'Buffs', SE.BUFFS, 'buff');
+      section(o.nerfsTitle || 'Nerfs', SE.NERFS, 'nerf');
+    }
     host.append(root);
     const paint = (cd, t) => {
       const x = cd.x;
