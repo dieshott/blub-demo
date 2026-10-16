@@ -5,7 +5,7 @@ block from The Sift, the pink dimension.
 
 **Open it: https://dieshott.github.io/blub-demo/**
 
-- **Team**: make a team of 5 Blubs (names, looks, personalities), then give
+- **Team**: make a team of 5 Blubs (names and looks), then give
   each one a playstyle, weapon, gear, power, training and tactic, set up the
   formation with two objects of the trench kit, pick the captain's command and
   keep three strategies.

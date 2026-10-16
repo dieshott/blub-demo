@@ -119,10 +119,35 @@ p{margin:0}
 .nav .wrap{display:flex;align-items:center;gap:20px;padding-block:10px}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:14px;text-decoration:none;color:var(--blub-2)}
 .logo canvas{width:32px;height:30px}
-.nav ul{display:flex;gap:18px;list-style:none;margin:0 0 0 auto;padding:0;font-family:var(--f-display);font-size:10px;white-space:nowrap}
-.nav ul a{text-decoration:none;color:var(--ink-soft)}
-.nav ul a:hover{color:var(--pink)}
-.nav-cta{display:flex;gap:8px}
+.nav-cta{display:flex;gap:8px;align-items:center;margin-left:auto}
+/* About Blub: a button in the Blub's own blue whose menu holds the home page's parts. A mouse
+   opens it by hovering, a tap or the keyboard by clicking (aria-expanded); Escape, a pick or a
+   click elsewhere closes it. On a phone the menu spans the bar. */
+.nav .wrap{position:relative}
+.nav-about{position:relative}
+.nav .btn.nav-ab{gap:8px;line-height:inherit;align-self:stretch}
+/* the Blub on the button only on a phone, where it stands in for the logo: the header keeps one Blub */
+.nav-ab [data-ic]{display:none}
+.nav-ab [data-ic] canvas{width:20px;height:20px;filter:drop-shadow(2px 0 0 var(--ink)) drop-shadow(-2px 0 0 var(--ink)) drop-shadow(0 2px 0 var(--ink)) drop-shadow(0 -2px 0 var(--ink))}
+.nav-caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor}
+.nav-about.open .nav-caret{transform:rotate(180deg)}
+.nav-about.open .nav-ab{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
+.nav-menu{display:none;position:absolute;top:100%;left:0;z-index:50;width:370px;padding-top:10px}
+.nav-about.open .nav-menu{display:block}
+@media (hover:hover){.nav-about:hover:not(.shut) .nav-menu{display:block}}
+.nav-menu ul{list-style:none;margin:0;padding:6px;background:var(--paper);border:3px solid #000;box-shadow:6px 6px 0 rgba(0,0,0,.35)}
+.nav-menu a{display:grid;grid-template-columns:24px 1fr;column-gap:12px;align-items:center;padding:9px 10px;color:var(--ink);text-decoration:none}
+.nav-menu a [data-ic]{grid-row:span 2;justify-content:center}
+.nav-menu a [data-ic] canvas{width:24px;height:24px}
+.nav-menu b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.6}
+.nav-menu small{font-family:var(--f-body);font-size:15px;line-height:1.2;color:#6D5D86}
+.nav-menu a:hover,.nav-menu a:focus-visible{background:var(--blub-2)}
+.nav-menu a:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+@media (max-width:700px){.nav-about{position:static}.nav-menu{left:12px;right:12px;width:auto}}
+/* a phone: the About button is the Blub with its caret and takes the logo's place (Home is in
+   its menu); on the smallest phones Buy waits in the menu too ($BLUB, live) */
+@media (max-width:440px){.nav .logo{display:none}.nav-abt{display:none}.nav-ab [data-ic]{display:inline-flex}.nav-cta{flex:1;justify-content:space-between}.nav .btn.nav-ab{gap:6px;padding-inline:9px}.nav-menu{left:10px;right:10px}}
+@media (max-width:400px){.nav-cta .btn.pink{display:none}}
 /* the wallet button: "Connect wallet", or your address with a green light; narrower, just its icon */
 .btn.wbtn{--bg:#EDE7FF;--hi:#FFFFFF;--lo:#A99CC9;gap:8px}
 .wbtn-on{width:10px;height:10px;flex:none;background:var(--up);border:2px solid var(--ink)}
@@ -133,15 +158,11 @@ p{margin:0}
 .wbtn-rk canvas{width:16px;height:16px}
 @media (max-width:860px){.wbtn-t{display:none}.nav .btn.wbtn{gap:4px}}
 .nav .btn[aria-current="page"]{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
-/* the text links make room for the five buttons (the wallet's one says "Connect wallet" up to 1240px) */
-@media (max-width:1240px){.nav ul{display:none}.nav-cta{margin-left:auto}}
 /* narrower: smaller buttons, the logo without its name, and "Buy $BLUB" says just "Buy";
    on a phone "Rankings" says "Rank" */
 @media (max-width:700px){.logo span{display:none}.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
 @media (max-width:440px){.nav-long{display:none}.nav .wrap{gap:10px}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
-/* a moderator has a sixth button (Admin): no text links at all, and on a phone Buy makes room */
-.nav:has(#navAdmin:not([hidden])) ul{display:none}
-.nav:has(#navAdmin:not([hidden])) .nav-cta{margin-left:auto}
+/* a moderator has a sixth button (Admin): on a phone Buy makes room */
 @media (max-width:700px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
 
 /* ---------- hero ---------- */
@@ -406,12 +427,10 @@ footer{background:var(--pink);position:relative;padding-block:0 40px}
 .wfine:empty{display:none}
 .wfine b{font-family:var(--f-data);font-size:19px;font-weight:400}
 
-/* ---------- a modal keeps the page still (the hall); the Maker's personalities ---------- */
+/* ---------- a modal keeps the page still (the hall); the Maker's personality line ---------- */
 body.no-scroll{overflow:hidden}
-.styles{display:flex;flex-wrap:wrap;gap:6px}
-.styles button{font-family:var(--f-display);font-size:10px;min-height:40px;padding:8px 9px;background:var(--ink-2);color:var(--ink-soft);border:3px solid #000;cursor:pointer}
-.styles button[aria-checked="true"]{background:var(--pink);color:var(--ink)}
-.style-desc{min-height:2.6em}
+.mk-mood{min-height:2.6em}
+.mk-mood b{color:var(--pink)}
 
 /* ---------- the Blub Maker (moved into the team page's Looks tab) ---------- */
 .maker{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start}
@@ -1082,7 +1101,6 @@ body.no-scroll{overflow:hidden}
 .sq-nmsg.ok{color:#9FF5C4}.sq-nmsg.bad{color:#FFB3C0}.sq-nmsg.local{color:var(--gold)}
 .sq-chips{display:flex;align-items:center;justify-content:center;gap:6px 12px;flex-wrap:wrap;margin-top:2px}
 .sq-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-display);font-size:9px;line-height:1;color:var(--ink);background:var(--gold);border:3px solid #000;padding:4px 8px 4px 4px;box-shadow:inset -3px -3px 0 #C98A12,inset 3px 3px 0 #FFF3B0}
-.sq-fitc{font-style:normal;color:#C2185B;font-family:var(--f-data);font-size:17px;line-height:.6}
 .sq-hpmv{font-family:var(--f-data);font-size:20px;line-height:1;color:var(--sq-soft)}
 .sq-hpmv b{font-weight:400;color:#fff}
 /* from 600: the name in the middle, the role chip on its left and HP/Move on its right */
@@ -1112,7 +1130,6 @@ body.no-scroll{overflow:hidden}
 .sq-part[aria-selected="true"] .k{color:#6B4A00}
 .sq-part[aria-selected="true"] b{color:var(--ink)}
 .sq-part.warn::after{content:"";position:absolute;right:-6px;top:-6px;width:12px;height:12px;background:#FF5C77;border:3px solid #000}
-.sq-part .sq-fit{right:4px;top:2px;font-size:16px}
 .sq-part:focus-visible,.sq-fv:focus-visible,.sq-ch:focus-visible,.sq-role:focus-visible,.sq-kc:focus-visible,.sq-pm:focus-visible,.sq-seg button:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 7px #000}
 .sq-figbox{display:grid;place-items:center;min-width:0}
 .sq-fig{--fs:4;display:block;width:calc(24px * var(--fs));height:calc(40px * var(--fs));image-rendering:pixelated;border:3px solid #000;box-shadow:0 0 0 2px var(--sq-hi),5px 5px 0 rgba(0,0,0,.4)}
@@ -1210,10 +1227,8 @@ body.no-scroll{overflow:hidden}
 @media (max-width:420px){.sq-role{gap:7px;padding:6px 7px}.sq-role .sq-ic{width:22px!important;height:22px!important}.sq-rt small{font-size:17px}}
 .sq-role[aria-checked="true"],.sq-ch[aria-checked="true"],.sq-seg [aria-checked="true"],.sq-pick[aria-checked="true"]{background:var(--gold);color:var(--ink);box-shadow:inset 3px 3px 0 #FFF3B0,inset -3px -3px 0 #C98A12}
 .sq-role[aria-checked="true"] small{color:#5B3F00}
-/* the role that suits the Blub's personality */
-.sq-fit{position:absolute;right:5px;top:4px;font-style:normal;font-family:var(--f-data);font-size:18px;line-height:1;color:#FF8FA3;text-shadow:2px 2px 0 #000}
-.sq-role[aria-checked="true"] .sq-fit,.sq-part[aria-selected="true"] .sq-fit{color:#C2185B;text-shadow:none}
-.sq-mood{color:#FFC4D1}
+/* the personality that comes with a role */
+.sq-mood{color:#FFC4D1}.sq-mood b{color:#FF8FA3;font-weight:400}
 .sq-lock{position:absolute;inset:6px;background:linear-gradient(45deg,transparent 45%,#FF5C77 45%,#FF5C77 55%,transparent 55%)}
 .sq-seg{display:flex;flex-wrap:wrap;gap:6px}
 .sq-seg button{font-family:var(--f-display);font-size:9px;line-height:1.4;min-height:44px;padding:8px 11px;background:var(--sq-panel2);color:#D6F2EE;border:3px solid #000;cursor:pointer;box-shadow:inset 3px 3px 0 #24525A,inset -3px -3px 0 #0A1C20}
@@ -1234,7 +1249,7 @@ body.no-scroll{overflow:hidden}
 
 /* under the tray: the captain line and the way to the Blub Maker */
 .sq-who{display:flex;flex-direction:column;gap:4px}
-@media (min-width:980px){.sq-who{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px}.sq-who .sq-warn{flex:1 0 100%}.sq-who .sq-wline{flex:1 1 0;min-width:0}.sq-who .sq-mlink{align-self:center}}
+@media (min-width:980px){.sq-who{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px}.sq-who .sq-warn,.sq-who .sq-tip{flex:1 0 100%}.sq-who .sq-wline{flex:1 1 0;min-width:0}.sq-who .sq-mlink{align-self:center}}
 .sq-mlink{align-self:flex-start;min-height:44px;display:inline-flex;align-items:center;font-family:var(--f-data);font-size:20px;line-height:1.1;color:var(--gold);text-decoration:underline;text-underline-offset:3px}
 .sq-mlink:hover{color:#FFF3B0}
 .sq-mlink:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
@@ -1937,16 +1952,19 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&d.local.saved))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">8c873ff · 14 Oct 2026</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span>Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
-    <ul>
-      <li><a href="#top" data-nav="">Home</a></li>
-      <li><a href="#sift">About Blub</a></li>
-      <li><a href="#tokenomics">Tokenomics</a></li>
-    </ul>
-    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-rk" id="walletBtnRk" aria-hidden="true" hidden></span><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
+    <div class="nav-cta"><div class="nav-about" id="navAbout"><button type="button" class="btn small nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub"><i data-ic="blub" aria-hidden="true"></i><span class="nav-abt">About Blub</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
+      <li><a href="#top" data-nav=""><i data-ic="coral" aria-hidden="true"></i><b>Home</b><small>The start of the page</small></a></li>
+      <li><a href="#sift"><i data-ic="blub" aria-hidden="true"></i><b>Meet Blub</b><small>Blub, The Sift and why fans built a game</small></a></li>
+      <li><a href="#game"><i data-ic="people" aria-hidden="true"></i><b>Squad Arena</b><small>The game in five chapters</small></a></li>
+      <li><a href="#how"><i data-ic="play" aria-hidden="true"></i><b>Start in four moves</b><small>From your team to the weekly league</small></a></li>
+      <li><a href="#pair"><i data-ic="coin" aria-hidden="true"></i><b>$BLUB, live</b><small>Market cap, chart and where to buy</small></a></li>
+      <li><a href="#tokenomics"><i data-ic="stock" aria-hidden="true"></i><b>Tokenomics</b><small>From launch to the community take-over</small></a></li>
+      <li><a href="#roadmap"><i data-ic="rocket" aria-hidden="true"></i><b>Roadmap</b><small>Achievements to unlock, up to 2027</small></a></li>
+    </ul></div></div><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-rk" id="walletBtnRk" aria-hidden="true" hidden></span><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
   </div>
 </nav>
 
@@ -2165,8 +2183,7 @@ body.no-scroll{overflow:hidden}
       <canvas id="mkCv" width="64" height="56" aria-label="Preview of your Blub. Click to make it jump."></canvas>
       <div class="plate" id="mkPlate">Nameless</div>
       <div class="name-row"><label for="mkName">Name</label><input id="mkName" maxlength="14" autocomplete="off" spellcheck="false" placeholder="e.g. Bloop"><button type="button" class="btn small" id="mkRandom">Surprise me</button></div>
-      <div class="styles" id="mkStyles" role="radiogroup" aria-label="Personality"></div>
-      <p class="note dark style-desc" id="mkStyleDesc"></p>
+      <p class="note dark mk-mood" id="mkMood"></p>
       <button type="button" class="btn gold" id="mkSave">Save team</button>
       <p class="note dark" id="mkMsg" aria-live="polite"></p>
     </div>
@@ -2924,16 +2941,18 @@ CAT.forEach(c => c.items.forEach(([id, , p]) => { PRICE[c.k + ':' + id] = p; }))
 const DEF = {tint:'blauw', eyes:'rond', ears:'kort', pattern:'geen', hat:'geen', acc:'geen'};
 const COMBOS = CAT.reduce((a, c) => a * c.items.length, 1);
 const NAMES = ['Bloop','Blubby','Pixel','Coral','Splash','Bubbles','Nugget','Cloudy','Cubey','Plop','Freckle','Droplet'];
-// Personalities change how a Blub looks, walks, meets others and fights.
+// A personality comes with the role a Blub plays (a Brawler is fierce, a Medic sweet, ...;
+// the ids are the roles' own): it touches the face (brows, blush, sleepy eyes) and the
+// Maker's idle moves, and is never picked by itself. The 4th field is the role's name.
 const STYLE_LIST = [
-  ['fierce', 'Fierce', 'Bold and loud, always first in. Suits a Brawler.'],
-  ['sweet', 'Sweet', 'Hugs every Blub it meets. Suits a Medic.'],
-  ['playful', 'Playful', 'Always bouncing and dancing. Suits a Skirmisher.'],
-  ['sleepy', 'Sleepy', 'Naps a lot, and nothing moves it. Suits a Guardian.'],
-  ['cheeky', 'Cheeky', 'Sneaks up and pranks other Blubs. Suits a Trickster.'],
+  ['fierce', 'Fierce', 'Bold and loud, always first in.', 'Brawler'],
+  ['sweet', 'Sweet', 'Hugs every Blub it meets.', 'Medic'],
+  ['playful', 'Playful', 'Always bouncing and dancing.', 'Skirmisher'],
+  ['sleepy', 'Sleepy', 'Naps a lot, and nothing moves it.', 'Guardian'],
+  ['cheeky', 'Cheeky', 'Sneaks up and pranks other Blubs.', 'Trickster'],
 ];
 const STYLE = Object.create(null);
-STYLE_LIST.forEach(([id, n, d]) => { STYLE[id] = {n, d}; });
+STYLE_LIST.forEach(([id, n, d, r]) => { STYLE[id] = {n, d, r}; });
 const cleanStyle = v => (typeof v === 'string' && STYLE[v]) ? v : 'playful';
 // The captain's crown.
 const CROWN = {pal:{y:'#FFD447', Y:'#FFF3B0', r:'#E2566E', o:'#C98A12'}, rows:['y..y..y','yy.y.yy','yyyyyyy','yrYyYry','ooooooo']};
@@ -3356,6 +3375,7 @@ async function persistMe(){
     // never save over your team mates before they are known
     if (S.saved && !S.squad) await loadTeam();
     if (S.saved && !S.squad){ status('Your team is still loading. Try again in a moment.'); return false; }
+    withRoles();
     try {
       const r = await API.save(S.name, S.look, cleanStyle(S.style), cleanBuild(S.build, S.style), S.squad, S.stratsOut || undefined, S.player);
       const rec = cleanRec(S.addr, r && r.blub);
@@ -3366,19 +3386,36 @@ async function persistMe(){
     } catch (e){ apiFail(e); return false; }
   }
   if (S.mode === 'guest' || S.mode === 'boot'){ Wallet.prompt('Connect a Solana wallet to save your Blub.'); return false; }
-  S.saved = true; saveLocal(); heroHello();
+  withRoles(); S.saved = true; saveLocal(); heroHello();
   return true;
 }
 // without a server the team stays in this browser (older fields there, such as coins, are left alone)
 function saveLocal(){ lsPatch({local:{squad:S.squad, saved:S.mode === 'local' && S.saved, name:S.name, look:S.look, style:S.style, build:S.build, player:S.player}}); }
+// A change in the Blub Maker is your team at once (the hall, practice, this browser) while no
+// team saved on the server stands against it: without a server, signed out, or before a
+// wallet's first save. A saved team changes with Save only; till then the change waits on this
+// device, marked with the saved team it was made to (teamBase), and comes back after a reload.
+function canLive(){ return S.mode === 'local' || S.mode === 'guest' || (S.mode === 'wallet' && S.loaded && !S.saved); }
+// A Blub's personality comes with its role in the active strategy (the hall tells the roles
+// through SquadNet.roles): every save of the team takes it along, with no command of its own.
+function setRoles(list){
+  if (!Array.isArray(list) || list.length !== 5 || !list.every(s => typeof s === 'string' && STYLE[s])) return;
+  S.roles = list.slice(); Maker.roles(S.roles);
+}
+function withRoles(){
+  if (!S.roles) return;
+  S.style = S.roles[0];
+  S.squad = cleanSquad(S.squad, myId() || 'local', S.style).map((m, i) => ({...m, style: S.roles[i + 1]}));
+}
+function teamBase(){ const r = S.mode === 'wallet' && S.saved ? S.docs.get(S.addr) : null; return r ? S.addr + '@' + r.updated : ''; }
 function setTxt(id, v){ const e = document.getElementById(id); if (e) e.textContent = v; }
 // the hero greets a returning visitor by the captain's name: as text, the hero only ever shows the blue Blub
 function heroHello(){ const n = S.saved ? cleanName(S.name) : ''; setTxt('heroBack', 'Welcome back to The Sift' + ([...n].length > 1 ? ', ' + n : '') + '.'); }
 
 /* =====================================================================
    MAKER: the Blub Maker, on the team page's Looks tab (src/squad/hall.js
-   moves its panel there): names, looks and personalities of your team of
-   5. Every part is free to wear.
+   moves its panel there): names and looks of your team of 5. Every part
+   is free to wear, and looks never change how a Blub fights.
    ===================================================================== */
 const Maker = (() => {
   const cv = $('#mkCv'), x = cv.getContext('2d'), tabs = $('#mkTabs'), tiles = $('#mkTiles'), nameIn = $('#mkName'), plate = $('#mkPlate'), msg = $('#mkMsg'), saveBtn = $('#mkSave');
@@ -3395,7 +3432,7 @@ const Maker = (() => {
   function loadMember(i){
     sel = i; const m = team[i];
     look = {...m.look}; style = cleanStyle(m.style); build = cleanBuild(m.build, style); nameIn.value = m.name; plate.textContent = m.name || 'Nameless';
-    renderStyles(); renderTiles(); renderTeam(); kick();
+    mood(); renderTiles(); renderTeam(); kick();
   }
   function renderTeam(){
     if (!team) return;
@@ -3422,16 +3459,6 @@ const Maker = (() => {
     msg.textContent = (team[0].name || 'This Blub') + ' is your captain now. Save the team to keep it.';
     loadMember(0); draft();
   };
-  const stylesBox = $('#mkStyles');
-  function renderStyles(){
-    stylesBox.textContent = '';
-    STYLE_LIST.forEach(([id, n]) => {
-      const b = el('button', '', n); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(style === id));
-      b.onclick = () => { if (style === id) return; if (sameBuild(build, SIGNATURE[style])) build = cleanBuild(null, id); style = id; dirty = true; jv = -2.4; renderStyles(); draft(); kick(); };
-      stylesBox.append(b);
-    });
-    setTxt('mkStyleDesc', STYLE[style].d);
-  }
   CAT.forEach(c => {
     const b = el('button', '', c.n); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(c.k === cat));
     b.onclick = () => { cat = c.k; tabs.querySelectorAll('button').forEach(z => z.setAttribute('aria-selected', String(z === b))); renderTiles(); };
@@ -3449,7 +3476,37 @@ const Maker = (() => {
   }
   function burst(n){ for (let i = 0; i < n; i++) P.add({x:32, y:22, vx:(Math.random() - .5) * 2.4, vy:-1 - Math.random() * 1.6, g:.08, life:50 + Math.random() * 20, c:['#FFD447','#FF5C77','#86CBF3','#FFFFFF','#8BE5DB'][i % 5], s:1}); kick(); }
   function pick(v){ look[cat] = v; dirty = true; jv = -2.2; msg.textContent = ''; renderTiles(); draft(); kick(); }
-  function draft(){ stash(); renderTeam(); lsPatch({draft:{team, sel}}); }
+  // every change is kept on this device at once (with the saved team it was made to: it
+  // comes back onto that one only), and is your team at once where canLive() says so
+  function draft(){
+    stash(); renderTeam(); lsPatch({draft:{team, sel, base: teamBase()}});
+    if (S.saved && !canLive()) saveBtn.textContent = 'Save changes';
+    clearTimeout(liveT); liveT = setTimeout(live, 250);
+  }
+  let liveT = 0;
+  // the team in the Maker becomes your team in this browser: the hall, practice and the
+  // browser's own copy show it (a name shorter than 2 characters waits)
+  function live(){
+    clearTimeout(liveT); liveT = 0;
+    if (!team || !canLive()) return;
+    const was = savedTeam(), next = team.map((m, i) => ({name: [...cleanName(m.name)].length > 1 ? cleanName(m.name) : was[i].name, look: wearable(cleanLook(m.look)), style: cleanStyle(m.style), build: cleanBuild(m.build, m.style)}));
+    if (JSON.stringify(next) !== JSON.stringify(was)){
+      const cap = next[0];
+      S.name = cap.name; S.look = cap.look; S.style = cap.style; S.build = cap.build; S.squad = next.slice(1);
+      heroHello(); SquadHall.render();
+    }
+    if (S.mode === 'local') saveLocal();
+  }
+  // the team as it is saved, and the Maker's team: the same names and looks?
+  const sameTeam = (a, b) => JSON.stringify(a.map(m => [cleanName(m.name), cleanLook(m.look)])) === JSON.stringify(b.map(m => [cleanName(m.name), cleanLook(m.look)]));
+  // a Blub's personality comes with its role in the active strategy (SquadNet.roles)
+  let roles = null;
+  const moodBox = $('#mkMood');
+  function fitRoles(){ if (team && roles) team.forEach((m, i) => { if (STYLE[roles[i]]) m.style = roles[i]; }); }
+  function mood(){
+    const s = STYLE[style]; moodBox.textContent = '';
+    moodBox.append(el('b', '', s.n), ', like every ' + s.r + ': ' + s.d.charAt(0).toLowerCase() + s.d.slice(1) + ' The personality comes with the role picked in Skills.');
+  }
   nameIn.addEventListener('input', () => { plate.textContent = cleanName(nameIn.value) || 'Nameless'; dirty = true; draft(); });
   nameIn.addEventListener('blur', () => { nameIn.value = cleanName(nameIn.value); });
   nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
@@ -3476,7 +3533,7 @@ const Maker = (() => {
     const bad = team.findIndex(m => [...cleanName(m.name)].length < 2);
     if (bad >= 0){ if (bad !== sel) loadMember(bad); msg.textContent = 'Give every Blub in your team a name of at least 2 characters.'; nameIn.focus(); return; }
     if (S.mode === 'boot'){ msg.textContent = 'Your team is still loading.'; return; }
-    if (S.mode === 'guest'){ Wallet.prompt('Connect a Solana wallet to save your Blub.'); return; }
+    if (S.mode === 'guest'){ Wallet.prompt('Your team is kept in this browser. Connect a Solana wallet to save it for duels and the league.'); return; }
     saving = true; saveBtn.disabled = true; lastSave = Date.now();
     const first = !S.saved, cap = team[0];
     S.name = cap.name; S.look = {...cap.look}; S.style = cap.style; S.build = cleanBuild(cap.build, cap.style);
@@ -3484,7 +3541,7 @@ const Maker = (() => {
     const ok = await persistMe();
     saving = false; saveBtn.disabled = false;
     if (ok){
-      dirty = false; saveBtn.textContent = 'Save';
+      dirty = false; saveBtn.textContent = 'Save'; lsPatch({draft: null});
       msg.textContent = first ? 'Your team is saved, with ' + cap.name + ' as its captain.' : 'Saved.';
       if (first){ achieve('born', 'Achievement unlocked!', 'First Blub Born', 'heart'); burst(30); }
       SquadHall.render();
@@ -3493,14 +3550,21 @@ const Maker = (() => {
   }
   function adopt(force){
     if (dirty && !force) return;
-    team = savedTeam(); loadMember(sel);
-    saveBtn.textContent = S.saved ? 'Save' : 'Save team';
+    team = savedTeam(); fitRoles(); dirty = false; msg.textContent = '';
+    // changes this device made to this same saved team, not saved yet, come back
+    const d = (lsGet() || {}).draft;
+    if (S.saved && d && typeof d.base === 'string' && d.base === teamBase()) loadDraft(d);
+    else loadMember(sel);
+    saveBtn.textContent = !S.saved ? 'Save team' : dirty && !canLive() ? 'Save changes' : 'Save';
+    if (dirty && !canLive()) msg.textContent = 'Your changes that were not saved yet are back. Save the team to keep them.';
+    live();
   }
   function loadDraft(d){
     if (!d || typeof d !== 'object') return;
     const one = m => { const st = cleanStyle(m && m.style); return {name: cleanName(m && m.name), look: cleanLook(m && m.look), style: st, build: cleanBuild(m && m.build, st)}; };
     // a draft from before teams held one Blub: it becomes the captain
     team = Array.isArray(d.team) && d.team.length === 5 ? d.team.map(one) : [one(d), ...savedTeam().slice(1)];
+    fitRoles(); dirty = !sameTeam(team, savedTeam());
     loadMember(Number.isInteger(d.sel) && d.sel >= 0 && d.sel < 5 ? d.sel : 0);
   }
   function frame(){
@@ -3530,16 +3594,25 @@ const Maker = (() => {
   function kick(){ if (!raf && vis) raf = requestAnimationFrame(frame); }
   // the panel lives on the team page now: on screen is all that counts
   new IntersectionObserver(es => { vis = es[0].isIntersecting; kick(); }).observe(cv);
-  team = savedTeam(); renderTiles(); renderStyles(); renderTeam();
+  team = savedTeam(); renderTiles(); renderTeam();
   return {
-    adopt, loadDraft, save,
+    adopt, loadDraft, save, live,
+    // the roles of the active strategy changed: so do the personalities (not a change to save by itself)
+    roles(list){
+      roles = list.slice(); if (!team) return;
+      stash(); fitRoles(); style = cleanStyle(team[sel].style); build = cleanBuild(team[sel].build, style);
+      mood(); renderTeam(); kick();
+      if (dirty) lsPatch({draft:{team, sel, base: teamBase()}});
+      live();
+    },
     // the Squad Arena hall renamed a Blub: the team bar follows, unsaved looks stay
     renameMember(i, nm){
       if (!team || !team[i]) return;
       if (i === sel){ nameIn.value = nm; plate.textContent = nm; }
       team[i] = {...team[i], name: nm}; renderTeam();
       if (!S.saved) dirty = true;
-      if (dirty) lsPatch({draft:{team, sel}});
+      if (dirty) lsPatch({draft:{team, sel, base: teamBase()}});
+      live();
     },
   };
 })();
@@ -3595,6 +3668,8 @@ const SquadNet = {
   cancel: async id => (await API.duelCancel(id)).duel,
   // the hall renames Blub i of your team: the same save as the Blub Maker (1 command)
   rename: (i, name) => (renameJob = renameJob.then(() => renameOne(i, name), () => renameOne(i, name))),
+  // the roles of your active strategy, captain first: the Blubs' personalities follow them
+  roles: list => setRoles(list),
   // your three strategies as your wallet keeps them ({a, s, at}), or null
   strats: () => (S.mode === 'wallet' && S.strats ? {a: S.strats.a, s: S.strats.s, at: S.teamAt} : null),
   // a wallet's first save of its team (the Blub Maker's Save team, 1 command): the hall
@@ -3643,7 +3718,7 @@ async function renameOne(i, name){
     Maker.renameMember(i, v);
   };
   put(nm);
-  if (!S.saved){ heroHello(); return {ok: true, local: true, note: 'Save your team (Looks, Save team) to keep it'}; }
+  if (!S.saved){ heroHello(); return {ok: true, local: true, note: S.mode === 'guest' ? 'Kept in this browser. Connect a wallet and save your team to duel with it' : 'Kept in this browser. Save your team (Looks, Save team) to finish it'}; }
   const gap = 1500 - (Date.now() - renameAt);
   if (gap > 0) await new Promise(ok => setTimeout(ok, gap));
   renameAt = Date.now();
@@ -3696,7 +3771,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 21;
+const SQUAD_ENGINE = 26;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -3740,13 +3815,19 @@ const RULES = lock({
   extraAction: 25, // Tricksters: chance of a second action
   guardianSoak: 1, // Guardians: allies next to them take this much less
   doze: 2, // Guardians left alone heal this much a turn
-  medicHeal: 10, // Medics heal this much instead of attacking...
+  medicHeal: 8, // Medics heal this much instead of attacking...
   medicAt: 60, // ...an ally at this share of HP or less (one Medic heal per Blub per turn)
+  // No turn goes to waste (engine 25): a Blub that did nothing on its turn gets ready. A Medic
+  // tends the most hurt ally in its reach (+readyTend at any HP), a shooter takes aim (its next
+  // hit this round does readyAim more), anyone else braces (every hit does readyBrace less till
+  // its next turn)
+  readyTend: 3, readyAim: 2, readyBrace: 2,
   keepUp: 2, // closing in, a Blub stays within this many tiles of an ally
   bowAim: 1, // Skirmishers (trained archers): a bow that did not move this turn
   potionAt: 40, potionHeal: 6,
   napAt: 30, napHeal: 8,
-  rageAt: 70, rageDmg: 4,
+  // Rage Mode (engine 26): the full rageDmg on close-up blows (reach 1-2), rageShot on shots
+  rageAt: 70, rageDmg: 4, rageShot: 2,
   stormDmg: 2, stormRange: 6, stormTurn: 4,
   freezeTurn: 2, freezeRange: 5,
   pillowAt: 60, pillowHeal: 4, pillowEvery: 3,
@@ -3846,12 +3927,12 @@ const RULES = lock({
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
-  scopeDmg: 13, scopeDodge: 50,
+  scopeDmg: 16, scopeDodge: 50,
   // Boom Pack: boomDmg on every enemy beside it and boomRing one tile farther; its
   // Blub carries boomHp less HP and boomMove less move. It only goes off when that is
   // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
   // knock-out), or just boomLast once its Blub is down to half or the mist is in
-  boomDmg: 22, boomRing: 8, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
+  boomDmg: 19, boomRing: 7, boomHp: 12, boomMove: 1, boomKo: 10, boomWorth: 28, boomLast: 12,
   // ...and it goes for those that dig in and hold first (engine 15): a Builder, Digger
   // or Miner, a Scope Rifle or a Blub on a watchtower caught in the blast is worth
   // boomDef more, and so is the other side's cannon (what the blast takes off it)
@@ -3859,7 +3940,12 @@ const RULES = lock({
   // ---- the captain's command (COMMANDS): once a round, on the captain's own turn when
   // it fits; it holds till the captain's next turn (with the captain down, till the end
   // of the next turn). Charge! from cmdNear tiles off.
-  chargeMove: 1, chargeDmg: 1, holdSoak: 2, focusDmg: 1, digDodge: 15, cmdNear: 7,
+  // Engine 26: each command for its plan. Charge! is the fighters' command (reach 2 or less):
+  // chargeMove, chargeDodge and chargeDmg ride on each fighter till its first blow. Hold the
+  // line soaks only Blubs on Defend or next to the squad's kit (its objects, sandbags and
+  // barricades); Focus fire's bonus is for shots (reach 3 or more), once an attack like the
+  // other bonuses; Dig in's dodge is for Blubs on Evade
+  chargeMove: 2, chargeDmg: 2, chargeDodge: 20, holdSoak: 3, focusDmg: 2, digDodge: 30, cmdNear: 7,
   // Builder: up to buildMax barricades a round (one a turn for the whole squad), beside
   // allies that hold their ground with an enemy within buildNear tiles (shooters and
   // medics, and anyone in a fight); building leaves it buildTake% easier to hurt till
@@ -3876,7 +3962,7 @@ const RULES = lock({
   // (the ball lands beside the enemy otherwise). That Builder fights with its Build
   // Hammer (toolDmg), whatever weapon it was given; another Builder of the squad keeps
   // its weapon and puts up barricades.
-  cannonBuild: 3, cannonStart: 3, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10,
+  cannonBuild: 2, cannonStart: 2, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10,
   // Engine 15: the finished cannon has cannonHp. Blasts and the blows of the other
   // side's fighters (from right beside it) knock it about; at 0 it is out of action
   // till its Builder has patched it up, cannonFix a turn (it goes to it with nobody in
@@ -3911,6 +3997,11 @@ const RULES = lock({
   // falls back when one comes closer, and hits from such a tile (or anything already
   // locked in a fight with its squad).
   holdRow: 6, midBand: 2, evadeGap: 3,
+  // Screens (engine 26): an enemy that steps next to a Guardian, or next to a Blub on Control
+  // standing on its ground, stops there. Control catches it as well, and so does a Guardian
+  // when the enemy meant to walk on past it: till the end of its next turn it cannot move or
+  // dodge and takes screenTake% more from every hit.
+  screenTake: 25,
   // How many Blubs of a squad may have a power (engine 14, the owner's call: never a
   // squad of five Diggers): the trench jobs and the Freeze Ray once, the rest twice
   powMax: { freeze: 1, storm: 2, rage: 2, nap: 2, bubble: 2, builder: 1, digger: 1, miner: 1 },
@@ -3924,10 +4015,10 @@ const RULES = lock({
 
 // ---- catalog: [id, name, description]; numbers below.
 const PLAYSTYLES = lock([
-  ['fierce', 'Brawler', `Charges straight in: quick on its feet, and +${RULES.brawlerMelee} damage with melee weapons.`],
-  ['sleepy', 'Guardian', `Big and sturdy. Allies next to it take ${RULES.guardianSoak} less damage, and it takes the arrows meant for them. Enemies next to it cannot move. Dozes back ${RULES.doze} HP when left alone.`],
+  ['fierce', 'Brawler', `Charges straight in: quick on its feet, +${RULES.brawlerMelee} damage with melee weapons, and barbed wire never tangles it (it loses the wire's ${RULES.wireDmg} HP and walks on).`],
+  ['sleepy', 'Guardian', `Big and sturdy. Allies next to it take ${RULES.guardianSoak} less damage, and it takes the arrows meant for them. Enemies that step next to it stop there and cannot move on; one that meant to walk on past it is caught as well: till the end of its next turn it cannot dodge and takes ${RULES.screenTake}% more from every hit. Dozes back ${RULES.doze} HP when left alone.`],
   ['playful', 'Skirmisher', `Quick and slippery. With a ranged weapon it steps back a tile from enemies before it shoots, and a bow it does not move with does +${RULES.bowAim}.`],
-  ['sweet', 'Medic', `Heals an ally at ${RULES.medicAt}% HP or less within 2 tiles for ${RULES.medicHeal} instead of attacking (never the same one twice in a row; one Medic heal per Blub per turn).`],
+  ['sweet', 'Medic', `Heals an ally at ${RULES.medicAt}% HP or less within 2 tiles for ${RULES.medicHeal} instead of attacking (never the same one twice in a row; one Medic heal per Blub per turn). With nothing else to do, it tends the most hurt ally within reach: +${RULES.readyTend}.`],
   ['cheeky', 'Trickster', `Hunts the back line. Its first close-up hit each round does +${RULES.tricksterOpener}, and it sometimes acts twice.`],
 ]);
 const STYLE_STATS = lock({
@@ -3981,7 +4072,7 @@ const capped = (list) => list.map(([id, n, t]) => [id, n, t + (RULES.powMax[id] 
 const POWERS = lock(capped([
   ['freeze', 'Freeze Ray', `From turn ${RULES.freezeTurn}: freezes the most dangerous enemy in sight within ${RULES.freezeRange} tiles for a turn.`],
   ['storm', 'Pixel Storm', `Lightning on a 3x3 patch of enemies within ${RULES.stormRange} tiles: ${RULES.stormDmg} damage each.`],
-  ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage for the rest of the round.`],
+  ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage on close-up blows (+${RULES.rageShot} on shots) for the rest of the round.`],
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
   ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
@@ -3991,7 +4082,7 @@ const POWERS = lock(capped([
 const TACTICS = lock([
   ['nearest', 'Nearest', 'Attacks whoever is closest.'],
   ['weakest', 'Finisher', 'Goes for the enemy with the least HP left.'],
-  ['strongest', 'Giant Slayer', 'Goes for the enemy that hits hardest.'],
+  ['strongest', 'Giant Slayer', 'Goes for the enemy in reach that hits hardest for the HP it has left; with none in reach, the nearest.'],
   ['backline', 'Backline', 'Hunts archers, wand users and medics first.'],
   ['protect', 'Bodyguard', 'Attacks whoever is closest to your most hurt ally.'],
 ]);
@@ -3999,16 +4090,16 @@ const TACTICS = lock([
 // defend, the middle, or keep out of trouble). A squad saved without one attacks.
 const STANCES = lock([
   ['attack', 'Attack', 'Goes after its target and fights wherever it finds it.'],
-  ['hold', 'Defend', 'Holds your own half: it fights whatever comes onto it and never chases past the middle. Strong behind wire, pits and a cannon.'],
-  ['middle', 'Control', `Takes the middle and holds it: it fights from the ${2 * RULES.midBand + 1} middle rows and does not chase out of them.`],
+  ['hold', 'Defend', 'Holds your own half: it fights whatever comes onto it and never chases past the middle. Best for shooters and on a watchtower: a fighter on Defend rarely gets a hit in.'],
+  ['middle', 'Control', `Takes the middle and holds it: it fights from the ${2 * RULES.midBand + 1} middle rows and does not chase out of them. An enemy that steps next to it there is caught: till the end of its next turn it cannot move or dodge and takes ${RULES.screenTake}% more from every hit.`],
   ['evade', 'Evade', `Keeps out of the brawl: it stays ${RULES.evadeGap} tiles from every enemy where it can, falls back when one comes closer, and hits from there, or whoever is already locked in a fight with your squad. Good for shooters, medics and sneaky blades.`],
 ]);
 // [id, name, description]: what the captain calls to its squad, once a round
 const COMMANDS = lock([
-  ['charge', 'Charge!', `When the squad closes in: every Blub moves ${RULES.chargeMove} tile farther till the captain’s next turn, and its next hit does +${RULES.chargeDmg}.`],
-  ['hold', 'Hold the line', `When the fight reaches two of the squad: every Blub takes ${RULES.holdSoak} less from every hit till the captain’s next turn.`],
-  ['focus', 'Focus fire', `When two or more of the squad can get at the same enemy: it is marked, everyone goes for it, and hits on it do +${RULES.focusDmg} till the captain’s next turn.`],
-  ['dig', 'Dig in', `When an enemy can hit one of the squad: every Blub dodges ${RULES.digDodge}% more till the captain’s next turn.`],
+  ['charge', 'Charge!', `When the squad closes in, the fighters (reach 2 or less) charge: till its first blow each moves ${RULES.chargeMove} tiles farther and dodges arrows and bullets ${RULES.chargeDodge}% more, and that blow does +${RULES.chargeDmg} and goes through braces and sandbags. Shooters stay where they shoot from.`],
+  ['hold', 'Hold the line', `When the fight reaches two of the squad: every Blub on Defend or next to the squad’s kit (its objects, sandbags and barricades) takes ${RULES.holdSoak} less from every hit till the captain’s next turn; the others nothing.`],
+  ['focus', 'Focus fire', `When two or more of the squad can get at the same enemy: it is marked, everyone goes for it, and shots at it (bows, wands and guns) do +${RULES.focusDmg} till the captain’s next turn; blows nothing extra.`],
+  ['dig', 'Dig in', `When an enemy can hit one of the squad: every Blub on Evade dodges ${RULES.digDodge}% more till the captain’s next turn; the others no more than usual.`],
 ]);
 const TRAINING = lock([
   ['pow', 'Power', '+8% per point to hit 2 harder'],
@@ -4035,9 +4126,9 @@ const POWERUP_TURN = 3;
 // where it is placed, in that row), `solid` when nobody can walk there, `stand`
 // when a Blub may start on it, `out` when it may lie in no man's land.
 const OBJECTS = lock([
-  ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit, and one right behind it dodges arrows ${RULES.sandCover}% more.`],
+  ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit (not from a fighter's charging blow), and one right behind it dodges arrows ${RULES.sandCover}% more.`],
   ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
-  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit.`],
+  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit. A Brawler tears through: it loses the ${RULES.wireDmg} HP and walks on.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
   ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
@@ -4276,11 +4367,14 @@ function cleanSquad(raw) {
 // POW_SPARE with room; the Blubs listed first keep theirs. For squads saved or built
 // before the caps (engine 14), and for squads filled in from the role presets.
 const POW_SPARE = lock(['rage', 'nap', 'bubble', 'storm', 'freeze', 'builder', 'miner', 'digger']);
+// (engine 26: Rage Mode's bonus is half on shots, so a shooter's spare is a bubble or a nap first)
+const POW_SPARE_SHOT = lock(['bubble', 'nap', 'storm', 'rage', 'freeze', 'builder', 'miner', 'digger']);
+const spareFor = (u) => (WEAPON_STATS[u.wpn] && WEAPON_STATS[u.wpn].range >= 3 ? POW_SPARE_SHOT : POW_SPARE);
 function capPowers(units) {
   const n = {};
   const room = (p) => (n[p] || 0) < (RULES.powMax[p] || TEAM);
   for (const u of units) {
-    if (!room(u.pow)) u.pow = POW_SPARE.find(room) || u.pow;
+    if (!room(u.pow)) u.pow = spareFor(u).find(room) || u.pow;
     n[u.pow] = (n[u.pow] || 0) + 1;
   }
   return units;
@@ -4569,7 +4663,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   const objsOut = objs.map((o) => ({ id: o.id, team: o.team, k: o.k, at: o.at.slice(), cells: o.cells.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) }));
   const stats = U.map(() => ({ dmg: 0, kills: 0, healed: 0, taken: 0 }));
   const ev = [];
-  const push = loud ? (e) => ev.push(e) : () => {};
+  // the Blub whose turn it is, marked busy by anything it does itself (engine 25: no turn
+  // goes to waste); what happens to it, or what its gear does by itself, does not count
+  let actor = null;
+  const NOT_DONE = { act: 1, skip: 1, status: 1, turn: 1, ready: 1 };
+  const BY_ITSELF = { doze: 1, pillow: 1, potion: 1, nap: 1 };
+  const did = (e) => {
+    if (actor && e.u === actor.id && !NOT_DONE[e.t] && !(e.t === 'heal' && BY_ITSELF[e.src])) actor.busy = true;
+  };
+  const push = loud ? (e) => { did(e); ev.push(e); } : did;
   let work = 0; // tiles searched and lines traced: what the fight cost to work out
   let item = null; // {item, x, y}
   let over = -1;
@@ -4827,19 +4929,19 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // damage from an object (wire, mine, shell): only a bubble stops it
   // `o` is whatever threw it, when there is one: a blast out of the chest belongs
   // to no squad and no object, and comes in without one.
-  function hurt(d, dmg, kind, o) {
+  function hurt(d, dmg, kind, o, more) {
     if (!d.alive) return;
     const from = o ? o.id : -1;
     if (d.bubble) {
       d.bubble = false;
-      push({ t: kind, o: from, d: d.id, dmg: 0, hp: d.hp, res: 'absorb' });
+      push({ t: kind, o: from, d: d.id, dmg: 0, hp: d.hp, res: 'absorb', ...more });
       return;
     }
     dmg = Math.min(d.hp, dmg);
     d.hp -= dmg;
     d.hurt = true;
     stats[d.id].taken += dmg;
-    push({ t: kind, o: from, d: d.id, dmg, hp: d.hp, res: 'hit' });
+    push({ t: kind, o: from, d: d.id, dmg, hp: d.hp, res: 'hit', ...more });
     if (!d.hp) knockOut(d, null);
     else afterHit(d);
   }
@@ -4851,6 +4953,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
         const y = d.y + dy;
         if ((dx || dy) && inside(x, y) && sandT[idx(x, y)] === d.team + 1) return true;
       }
+    return false;
+  }
+  // next to one of its own squad's trench-kit objects (Hold the line)
+  function byKit(d) {
+    for (const o of objs) if (o.team === d.team) for (const c of o.cells) if (cheb(d.x, d.y, c % SIZE, (c - (c % SIZE)) / SIZE) <= 1) return true;
     return false;
   }
   // a sandbag right next to the target, between it and the shooter
@@ -4885,10 +4992,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const blind = blindFrom(u, u.x, u.y, d) ? 1 : 0;
     // tangled in barbed wire (engine 15) it cannot dodge
     const tg = d.tangled >= now ? 1 : 0;
+    // caught by a Control screen (engine 26): no dodging either
+    const cg = d.caught >= now ? 1 : 0;
     if (w.whiff && r() * 100 < w.whiff) res = 'whiff';
     else if (blind) {
       if (r() * 100 >= RULES.blindHit) res = 'miss';
-    } else if (!w.sure && !tg) {
+    } else if (!w.sure && !tg && !cg) {
       // cover from a bush (1), sandbags (2), a foxhole (3) or a watchtower (4).
       // A bush hides a Blub from everything that can miss; the rest only stop arrows.
       // (Smoke Goggles see through the leaves.)
@@ -4903,13 +5012,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
           extra = RULES.sandCover;
           cover = 2;
         }
+        // a fighter charging in under Charge! (engine 26) weaves through arrows and bullets
+        if (d.charged) extra += RULES.chargeDodge;
         if (towerT[c] === d.team + 1) {
           extra += RULES.towerDodge;
           cover = 4;
         }
       }
       // Dig in! (the captain's command): everyone dodges more
-      if (ordered(d.team, 'dig')) extra += RULES.digDodge;
+      if (ordered(d.team, 'dig') && d.stn === 'evade') extra += RULES.digDodge;
       // the Laser Eyes Totem's Blub dodges only so well, staring like that
       // the Liquidity Pool's impermanent loss: whoever stands in it dodges less
       const pool = tiles[c] === WATER ? RULES.poolDodge : 0;
@@ -4936,9 +5047,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     // the attack's bonuses ride on its first hit that lands
     // Pump: while the candle is still green, the whole squad swings harder
     const pump = meme[u.team].buff === 'pump' && now && now <= RULES.pumpTurns ? RULES.pumpDmg : 0;
-    // Focus fire (the captain's command): hits on the marked enemy do more
-    const focus = ordered(u.team, 'focus') && orders[u.team].mark === d.id ? RULES.focusDmg : 0;
-    let dmg = Math.max(1, w.dmg + u.pending + pump + focus + propBonus(u));
+    // took aim on a turn it had nothing else to do (engine 25)
+    const aim = u.aim ? RULES.readyAim : 0;
+    u.aim = false;
+    let dmg = Math.max(1, w.dmg + u.pending + pump + propBonus(u) + aim);
     const amb = u.amb;
     u.pending = 0;
     u.amb = 0;
@@ -4968,15 +5080,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     if (d.guard && r() * 100 < d.guard) dmg = Math.max(1, dmg - 2);
     if (guardedBy(d)) dmg = Math.max(1, dmg - RULES.guardianSoak);
-    if (RULES.sandSoak && bySand(d)) dmg = Math.max(1, dmg - RULES.sandSoak);
+    // a fighter's blow under Charge! (engine 26) goes through sandbags and a brace
+    const breach = u.charged && w.range <= 2;
+    if (RULES.sandSoak && bySand(d) && !breach) dmg = Math.max(1, dmg - RULES.sandSoak);
     // Hold the line (the captain's command): every hit does less
-    if (ordered(d.team, 'hold')) dmg = Math.max(1, dmg - RULES.holdSoak);
+    if (ordered(d.team, 'hold') && (d.stn === 'hold' || bySand(d) || byKit(d))) dmg = Math.max(1, dmg - RULES.holdSoak);
+    // braced on its last turn (engine 25)
+    if (d.brace && !breach) dmg = Math.max(1, dmg - RULES.readyBrace);
     if (copiumOn(d)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
     // just landed off the catapult, or building: wide open
     const exp = d.exposed === now ? 1 : 0;
     if (exp) dmg += Math.ceil((dmg * d.exposedPct) / 100);
     // ...and takes wireTake% more
     if (tg) dmg += Math.ceil((dmg * RULES.wireTake) / 100);
+    else if (cg) dmg += Math.ceil((dmg * RULES.screenTake) / 100);
     dmg = Math.min(d.hp, dmg);
     d.hp -= dmg;
     d.hurt = true;
@@ -5033,8 +5150,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const w = W(u);
     const hits = w.hits || 1;
     // bonuses count once per attack, also for the two dagger stabs
-    let bonus = u.blade + (u.rage ? RULES.rageDmg : 0) + (brawly(u) ? RULES.brawlerMelee : 0) + (bannerNear(u) ? 1 : 0);
+    let bonus = u.blade + (u.rage ? (w.range <= 2 ? RULES.rageDmg : RULES.rageShot) : 0) + (brawly(u) ? RULES.brawlerMelee : 0) + (bannerNear(u) ? 1 : 0);
     if (w.range >= 3 && onTower(u, u.x, u.y)) bonus += RULES.towerDmg;
+    // Focus fire (the captain's command): a shot at the marked enemy does more
+    if (w.range >= 3 && ordered(u.team, 'focus') && orders[u.team].mark === d.id) bonus += RULES.focusDmg;
     bonus += u.ammo;
     if (u.power && r() * 100 < u.power) bonus += 2;
     // the Trickster's opener is a close-up trick; a bow that did not move takes aim
@@ -5054,6 +5173,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     }
     u.pending = 0;
     u.amb = 0;
+    // the charge ends with the blow it carried (engine 26)
+    if (u.charged) {
+      u.move -= RULES.chargeMove;
+      u.charged = false;
+    }
     if (!landed || u.wpn !== 'hammer') return;
     // the hammer: splash on the enemies around the target, then knock it back
     for (const v of foes(u).slice()) if (v !== d && v.alive && over < 0 && cheb(v.x, v.y, d.x, d.y) <= 1) pure(u, v, w.splash, 'splash');
@@ -5116,7 +5240,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // and only walks over one when there is no other way.
   const known = (u, c) => (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || c === honey;
   const stepCost = (c) => (tiles[c] === WATER ? 2 : 1);
-  const planCost = (u, c) => stepCost(c) + (wireT[c] >= 0 && wireT[c] !== u.team ? RULES.wireAvoid : 0) + (meme[u.team].buff === 'alpha' && known(u, c) ? RULES.wireAvoid : 0);
+  // a Brawler (engine 26) charges straight through the other side's wire
+  const planCost = (u, c) => stepCost(c) + (wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce' ? RULES.wireAvoid : 0) + (meme[u.team].buff === 'alpha' && known(u, c) ? RULES.wireAvoid : 0);
   const sCost = new Int16Array(N).fill(-1);
   const sPrev = new Int16Array(N).fill(-1);
   let touched = [];
@@ -5171,7 +5296,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   // walk along a path as far as the move points go, ending on a free tile;
   // returns true if it moved. `note`: an event that says why, told just before the move
   // the other side's wire or live mine on a free tile stops a walk there
-  const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team) || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || cats.includes(c));
+  // screens (engine 26, RULES.screenTake): Guardians, and Blubs on Control on their ground
+  const onScreen = (v) => v.stn === 'middle' && inZone(v, v.y);
+  const screened = (u, c) => {
+    const x = c % SIZE;
+    const y = (c - x) / SIZE;
+    return foes(u).some((v) => cheb(x, y, v.x, v.y) <= 1 && (v.cls === 'sleepy' || onScreen(v)));
+  };
+  const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce') || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || cats.includes(c));
   function walk(u, path, note) {
     let spent = 0;
     let n = 0;
@@ -5180,13 +5312,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       if (spent + sc > u.move) break;
       spent += sc;
     }
+    // cut short by a screen while it meant to walk on (engine 26)
+    let cut = false;
     for (let k = 0; k < n; k++)
-      if (trap(u, path[k])) {
+      if (trap(u, path[k]) || screened(u, path[k])) {
+        cut = k + 1 < n && !trap(u, path[k]);
         n = k + 1;
         break;
       }
     while (n > 0 && occ[path[n - 1]] >= 0) n--;
     if (!n) return false;
+    // a Brawler tears through the other side's wire (engine 26): it loses the wire's HP once and walks on
+    const torn = u.cls === 'fierce' ? path.slice(0, n).find((c) => wireT[c] >= 0 && wireT[c] !== u.team) : undefined;
     const end = path[n - 1];
     occ[idx(u.x, u.y)] = -1;
     u.x = end % SIZE;
@@ -5195,7 +5332,17 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     u.moved = true;
     if (note) push(note);
     if (loud) push({ t: 'move', u: u.id, path: path.slice(0, n).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
+    if (torn !== undefined) {
+      hurt(u, RULES.wireDmg, 'snag', objs.find((o) => o.k === 'wire' && o.cells.includes(torn)), { torn: 1 });
+      if (!u.alive) return true;
+    }
     arrive(u);
+    // caught by a screen: next to a Blub on Control on its ground, or stopped by a Guardian on
+    // its way past: stuck and wide open till the end of its next turn
+    if (u.alive && over < 0 && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 1 && (onScreen(v) || (cut && v.cls === 'sleepy')))) {
+      u.caught = now + 1;
+      push({ t: 'status', u: u.id, s: 'caught', on: true });
+    }
     return true;
   }
   // where a Blub ends a step: the power-up, the other side's wire, a mine
@@ -5203,7 +5350,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const c = idx(u.x, u.y);
     if (item && item.x === u.x && item.y === u.y) pickUp(u);
     if (!u.alive || over >= 0) return;
-    if (wireT[c] >= 0 && wireT[c] !== u.team) {
+    if (wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce') {
       hurt(u, RULES.wireDmg, 'snag', objs.find((o) => o.k === 'wire' && o.cells.includes(c)));
       // tangled (engine 15): stuck there, and wide open, till the end of its next turn
       if (u.alive) u.tangled = now + 1;
@@ -5269,7 +5416,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     const d = (v) => cheb(u.x, u.y, v.x, v.y);
     const by = (f) => list.slice().sort((a, b) => f(a, b) || d(a) - d(b) || a.id - b.id)[0];
     if (u.tac === 'weakest') return by((a, b) => a.hp - b.hp);
-    if (u.tac === 'strongest') return by((a, b) => punch(b) - punch(a) || b.hp - a.hp);
+    // Giant Slayer (engine 24): of the enemies it can reach this turn, the one that hits
+    // hardest for the HP it has left (punch / hp, compared crosswise to stay in integers);
+    // with none in reach it closes in on the nearest instead of running across the field
+    if (u.tac === 'strongest') {
+      const near = list.filter((v) => d(v) <= u.move + W(u).range);
+      if (!near.length) return by(() => 0);
+      list = near;
+      return by((a, b) => punch(b) * a.hp - punch(a) * b.hp);
+    }
     if (u.tac === 'backline') {
       const back = (v) => (WEAPON_STATS[v.wpn].range >= 3 || v.cls === 'sweet' ? 0 : 1);
       return by((a, b) => back(a) - back(b));
@@ -5811,6 +5966,26 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     if (u.alive && cheb(u.x, u.y, v.x, v.y) <= reach) mend();
     return true;
   }
+  // No turn goes to waste (engine 25): a Blub that did nothing on its turn gets ready (not
+  // one running scared with Paper Hands, or tangled in wire). A Medic tends the most hurt ally
+  // in its reach, at any HP; a shooter (reach 3 or more) takes aim; anyone else braces.
+  function ready(u, turn) {
+    // once a turn: a Trickster's second action does not get ready twice
+    if (u.paper >= turn || u.tangled >= turn || u.readyAt === turn) return;
+    u.readyAt = turn;
+    if (u.cls === 'sweet') {
+      const reach = u.gear === 'pillow' ? 3 : 2;
+      const v = friends(u).filter((f) => f.hp < f.max && cheb(u.x, u.y, f.x, f.y) <= reach).sort(byHurt)[0];
+      if (v && heal(v, RULES.readyTend, 'tend', u)) return;
+    }
+    if (W(u).range >= 3) {
+      u.aim = true;
+      push({ t: 'ready', u: u.id, k: 'aim' });
+      return;
+    }
+    u.brace = true;
+    push({ t: 'ready', u: u.id, k: 'brace' });
+  }
   // a guardian stays next to the most threatened ally when enemies come close
   function guardian(u) {
     const threatened = friends(u)
@@ -5910,7 +6085,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       push({ t: 'skip', u: u.id });
       return false;
     }
+    // a brace lasts till its next turn (a Trickster's second action keeps it)
+    if (!extra) u.brace = false;
+    actor = u;
+    u.busy = false;
     doAct(u, turn);
+    actor = null;
+    if (u.alive && over < 0 && !u.busy && !u.moved) ready(u, turn);
     u.immune = false;
     return true;
   }
@@ -5933,7 +6114,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
       return hitAround(u);
     }
     // tangled in barbed wire (engine 15): it goes nowhere, not even down a tunnel
-    const tangled = u.tangled >= turn;
+    const tangled = u.tangled >= turn || u.caught >= turn;
     // a Miner that was hit tunnels away to safety: its whole turn
     if (u.pow === 'miner' && u.tunnel && !tangled && burrow(u)) return;
     // Paper Hands: it runs for its own back rows, as far from the enemy as it can
@@ -6112,8 +6293,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
     called[u.team] = true;
     orders[u.team] = { cmd, turn, mark, done: false };
     // (the charge's hit rides on each Blub's next attack)
+    // Charge! is the fighters' command (engine 26): shooters stay where they shoot from
     if (cmd === 'charge')
       for (const a of mates) {
+        if (W(a).range > 2) continue;
         a.move += RULES.chargeMove;
         a.charged = true;
         a.chargeHit = RULES.chargeDmg;
@@ -6123,11 +6306,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = true) {
   function endOrder(team) {
     const o = orders[team];
     o.done = true;
-    for (const a of U)
-      if (a.team === team && a.charged) {
-        a.move -= RULES.chargeMove;
-        a.charged = false;
-      }
+    // (a fighter's charge runs on till its first blow: engine 26)
     push({ t: 'order', team, cmd: o.cmd, on: false });
   }
   // a Boom Pack knocked out right beside an enemy goes off as it falls
@@ -7796,7 +7975,7 @@ function chestSpin(seed, round = 0) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, POW_SPARE_SHOT, spareFor, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -10114,6 +10293,9 @@ const SquadView = (() => {
       // the trench arsenal
       case 'reload':
         return u + ' reloads the Scope Rifle.';
+      // no turn goes to waste (engine 25): with nothing else to do, a Blub gets ready
+      case 'ready':
+        return e.k === 'aim' ? u + ' takes aim: its next hit lands harder.' : u + ' braces for the next hit.';
       case 'scope':
         return u + ' takes aim at ' + d + '...';
       case 'arm':
@@ -10219,6 +10401,7 @@ const SquadView = (() => {
       case 'shell':
         return e.res === 'absorb' ? 'A mortar shell pops ' + d + "'s bubble." : 'Mortar shell! ' + d + ' loses ' + e.dmg + '.';
       case 'snag':
+        if (e.torn) return d + ' tears through the barbed wire (-' + e.dmg + ')' + (e.hp > 0 ? ' and keeps going.' : '.');
         return e.res === 'absorb' ? d + "'s bubble pops on the barbed wire." : d + ' is caught in the barbed wire (-' + e.dmg + ')' + (e.hp > 0 ? ': tangled, stuck and wide open till its next turn is over.' : '.');
       case 'boom':
         return 'A hidden pop mine goes off!';
@@ -10236,6 +10419,7 @@ const SquadView = (() => {
       case 'heal': {
         const src = e.src;
         if (src === 'medic') return u + ' heals ' + d + ' for ' + e.amt + '.';
+        if (src === 'tend') return u + ' tends to ' + d + ': +' + e.amt + '.';
         if (src === 'pillow') return u + "'s pillow fluffs " + d + ' back up: +' + e.amt + '.';
         if (src === 'potion') return d + ' drinks a Berry Potion: +' + e.amt + '.';
         if (src === 'nap') return d + ' naps and heals ' + e.amt + '.';
@@ -10265,7 +10449,8 @@ const SquadView = (() => {
         const S = {
           frozen: ' is frozen solid.', trapped: ' is trapped in a bubble.', rage: ' is raging: +' + SE.RULES.rageDmg + ' damage.', bubble: ' gets a bubble shield.',
           blade: "'s weapon gleams: +2 damage.", feather: ' feels light as a feather.', totem: ' carries the Sift Totem.',
-          honey: ' is glued in honey: no attacks for now.', paper: ' waves the white flag.', laser: ' gets the laser eyes: +' + SE.RULES.laserRange + ' reach, +' + SE.RULES.laserDmg + ' damage, half the dodge.',
+          honey: ' is glued in honey: no attacks for now.', paper: ' waves the white flag.',
+          caught: ' is caught by the screen: stuck and wide open till its next turn is over.', laser: ' gets the laser eyes: +' + SE.RULES.laserRange + ' reach, +' + SE.RULES.laserDmg + ' damage, half the dodge.',
         };
         return u + (S[e.s] || ' changes.');
       }
@@ -11176,6 +11361,8 @@ const SquadView = (() => {
     // the trench arsenal: a reload, an aim, the gap between a burst's shots, the Scope
     // Rifle's shot, the Boom Pack, a barricade going up, a dig, a gem handed over, a tunnel
     reload: 560, reloadHit: 300, scope: 820, scopeHit: 420, scopeShot: 1000, scopeWind: 460, burstGap: 110,
+    // a Blub getting ready (engine 25): it takes aim or braces
+    ready: 460, readyHit: 200,
     blowup: 1500, blowupHit: 600, build: 1000, buildHit: 680, dig: 800, digHit: 480, arm: 700, armHit: 260,
     deliver: 820, deliverHit: 500, burrow: 1150, burrowDown: 320, burrowUp: 880,
     // the captain calling its command
@@ -11517,7 +11704,7 @@ const SquadView = (() => {
           return;
         }
         // the trench arsenal: each a scene of its own, the event at its high point
-        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm' || t === 'craft') {
+        if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm' || t === 'craft' || t === 'ready') {
           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
           return;
         }
@@ -11761,6 +11948,8 @@ const SquadView = (() => {
           const u = U[i];
           // out of the wire once its next turn is over (engine 15)
           if (u.st && u.st.tangled && u.st.tangled < e.n) delete u.st.tangled;
+          // and out of a screen's grip (engine 26) the same way
+          if (u.st && u.st.caught && u.st.caught < e.n) delete u.st.caught;
           if (p) {
             u.x = p[0];
             u.y = p[1];
@@ -11833,7 +12022,7 @@ const SquadView = (() => {
         U[e.d].hp = e.hp;
         if (e.res === 'absorb') U[e.d].st.bubble = false;
         // tangled in the wire (engine 15) till its next turn is over
-        if (e.t === 'snag' && e.res === 'hit' && e.hp > 0) U[e.d].st.tangled = (S.turn || 0) + 1;
+        if (e.t === 'snag' && e.res === 'hit' && e.hp > 0 && !e.torn) U[e.d].st.tangled = (S.turn || 0) + 1;
         break;
       // the cannon knocked about (engine 15)
       case 'cannonhit': {
@@ -12022,7 +12211,9 @@ const SquadView = (() => {
         U[e.d].hp = e.hp;
         break;
       case 'status':
-        U[e.u].st[e.s] = !!e.on;
+        // caught by a screen (engine 26): till its next turn is over, like the wire
+        if (e.s === 'caught') U[e.u].st.caught = (S.turn || 0) + 1;
+        else U[e.u].st[e.s] = !!e.on;
         break;
       case 'pickup':
         S.item = null;
@@ -12668,6 +12859,14 @@ const SquadView = (() => {
       for (const bx of [2, 7, 12]) {
         x.fillRect(ox + bx, oy + 8, 1, 1);
         x.fillRect(ox + bx + 1, oy + 13, 1, 1);
+      }
+    }
+    // caught by a screen (engine 26): gold brackets close round it
+    if (u.st.caught) {
+      x.fillStyle = '#FFD447';
+      for (const [cx, cy, sx, sy] of [[-1, 1, 1, 1], [16, 1, -1, 1], [-1, 16, 1, -1], [16, 16, -1, -1]]) {
+        x.fillRect(ox + (sx > 0 ? cx : cx - 2), oy + cy, 3, 1);
+        x.fillRect(ox + cx, oy + (sy > 0 ? cy : cy - 2), 1, 3);
       }
     }
     // stuck in the Honeypot: honey over its head and running down it, two bees
@@ -16461,6 +16660,37 @@ const SquadView = (() => {
         sfx('reload');
         return;
       }
+      // no turn goes to waste (engine 25): a shooter takes aim (a glint, AIM), anyone else
+      // braces (a shell of light round it, BRACE)
+      case 'ready': {
+        const u = U[e.u];
+        const [ux, uy] = centreOf(u);
+        if (e.k === 'aim') {
+          const s = u.face > 0 ? 1 : -1;
+          addFx(T, 340 * k, (x, kk) => {
+            const r = Math.round(1 + Math.sin(kk * Math.PI) * 2);
+            x.fillStyle = '#FFF3B0';
+            x.fillRect(ux + 5 * s - r, uy - 3, r * 2 + 1, 1);
+            x.fillRect(ux + 5 * s, uy - 3 - r, 1, r * 2 + 1);
+          });
+          label(T, 'AIM', colors.gold, ux, above(uy - 22));
+          sfx('aim');
+          return;
+        }
+        addFx(T, 460 * k, (x, kk) => {
+          x.globalAlpha = 1 - kk;
+          x.fillStyle = '#9FD8FF';
+          const L = Math.round(ux - 9), R = Math.round(ux + 8), top = Math.round(uy - 12), bot = Math.round(uy + 7);
+          x.fillRect(L, top, R - L + 1, 1);
+          x.fillRect(L, bot, R - L + 1, 1);
+          x.fillRect(L, top, 1, bot - top + 1);
+          x.fillRect(R, top, 1, bot - top + 1);
+          x.globalAlpha = 1;
+        });
+        label(T, 'BRACE', '#9FD8FF', ux, above(uy - 22));
+        sfx('thud');
+        return;
+      }
       // it takes aim: a glint off the scope as it settles (the laser stays till the shot)
       case 'scope': {
         const u = U[e.u];
@@ -17513,7 +17743,7 @@ const SquadView = (() => {
           // the wire twangs where it caught the Blub, sparks fly, the Blub jerks to a stop
           const o = objById(e.o);
           if (o) ovOf(o.id).wob = { t0: T, x: dx };
-          if (e.res === 'hit' && e.hp > 0) label(T + 140 * k, 'TANGLED!', '#EEEEF5', dx, top - 9, true);
+          if (e.res === 'hit' && e.hp > 0) label(T + 140 * k, e.torn ? 'TORE THROUGH' : 'TANGLED!', '#EEEEF5', dx, top - 9, true);
           const fy = d._b ? d._b.fy : dy + 6;
           addParts(9, dx, fy - 5, ['#FFFFFF', '#FFF3B0', OC.wr], 0.085, 0.0003, 320 * k, T, true);
           const m = d.mv;
@@ -17570,7 +17800,7 @@ const SquadView = (() => {
             x.globalAlpha = 1;
           });
         }
-        if (e.src === 'medic' || e.src === 'pillow') {
+        if (e.src === 'medic' || e.src === 'pillow' || e.src === 'tend') {
           const u = U[e.u];
           const [ux, uy] = centreOf(u);
           addFx(T - 100 * k, 300 * k, (x, kk) => {
@@ -17605,6 +17835,7 @@ const SquadView = (() => {
           addParts(10, ux, uy, ['#FFFFFF', '#BDE7FF'], 0.04, 0, 300 * k, T);
           label(T, 'FROZEN', '#BDE7FF', ux, uy - 16);
         } else if (e.s === 'trapped') label(T + 1, 'TRAPPED', '#86CBF3', ux, uy - 22);
+        else if (e.s === 'caught') label(T + 1, 'CAUGHT', '#FFD447', ux, uy - 22);
         else if (e.s === 'blade') addParts(8, ux + u.face * 6, uy - 6, ['#5FE6D6', '#FFFFFF'], 0.05, 0, 300 * k, T);
         return;
       }
@@ -18223,7 +18454,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
+  const LOGGED = new Set(['ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'ready', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -20824,12 +21055,26 @@ const SquadHall = (() => {
     if (list && POW_MAX[u.pow] && list.filter(v => v.pow === u.pow).indexOf(u) >= POW_MAX[u.pow]) return POW[u.pow][1] + ' is ' + capWord(u.pow) + ', and others have it: pick another power.';
     return '';
   }
+  // soft tips from the balance runs (engine 24): set-ups that tend to lose. They never
+  // keep a squad from fighting (that is problem() above)
+  const fighterOnDefend = u => u.stn === 'hold' && u.cls !== 'sweet' && armsOf(u) !== 'tool' && E.WEAPON_STATS[u.wpn].range < 3;
+  const OUT_BEST = ['sandbags', 'wire', 'mines'];
+  const outTip = k => OBJ[k][1] + ' works best out in no man’s land: on your own rows it barely helps.';
+  function tips(d){
+    const out = [], u = d.units, xs = u.map(v => v.x);
+    const hold = u.map((v, i) => (fighterOnDefend(v) ? nameOf(i) : null)).filter(Boolean), many = hold.length > 1;
+    if (hold.length) out.push((many ? hold.slice(0, -1).join(', ') + ' and ' + hold[hold.length - 1] + ' fight' : hold[0] + ' fights') + ' up close on Defend and rarely get' + (many ? '' : 's') + ' a hit in: Attack suits a fighter.');
+    if (u.every(v => v.stn === 'evade')) out.push('All five on Evade: nobody holds the line. Put a fighter or two on Attack.');
+    if (Math.max(...xs) - Math.min(...xs) >= 12) out.push('Your Blubs start far apart and fight one at a time: keep them closer together.');
+    (d.objs || []).forEach(o => { if (OUT_BEST.includes(o.k) && o.y >= 12) out.push(outTip(o.k)); });
+    return out;
+  }
   const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}, x, y}; };
   // so many Blubs of a squad with a power (engine 14, E.RULES.powMax): is there room for
   // u to have it? And the one u wants if there is, else the first spare with room
   const POW_MAX = E.RULES.powMax || {};
   const powRoom = (units, u, id) => !POW_MAX[id] || units.filter(v => v !== u && v.pow === id).length < POW_MAX[id];
-  const fitPow = (units, u, want) => powRoom(units, u, want) ? want : ((E.POW_SPARE || E.POWERS.map(p => p[0])).find(id => powRoom(units, u, id)) || want);
+  const fitPow = (units, u, want) => powRoom(units, u, want) ? want : ((E.spareFor ? E.spareFor(u) : E.POW_SPARE || E.POWERS.map(p => p[0])).find(id => powRoom(units, u, id)) || want);
   const capWord = id => POW_MAX[id] === 1 ? 'one a squad' : POW_MAX[id] + ' a squad';
   function freeLook(r){
     const L = {};
@@ -20868,7 +21113,8 @@ const SquadHall = (() => {
     const order = units.map((u, i) => i).sort((a, b) => frontness(units[b]) - frontness(units[a]) || a - b);
     order.forEach((i, k) => { units[i].x = F[2][k][0]; units[i].y = F[2][k][1]; });
   }
-  // ---- your team of 5 as saved (captain first): names, looks and personalities.
+  // ---- your team of 5 as saved (captain first): names and looks (a personality is only a
+  // touch of the face: it never picks or changes a role).
   // Read again when the page calls render() (the team loaded, the Maker saved, a name
   // changed) and while the hall is in view (it is a local read: no network).
   const FILL = ['sleepy', 'fierce', 'playful', 'sweet', 'cheeky'];
@@ -20886,12 +21132,6 @@ const SquadHall = (() => {
   }
   const team = () => st.team || (st.team = readTeam());
   function refreshTeam(){ const t = readTeam(), was = JSON.stringify(st.team); st.team = t; return JSON.stringify(t) !== was; }
-  // a unit whose role the player never picked follows its Blub's personality
-  function followTeam(d){
-    let n = 0;
-    d.units.forEach((u, i) => { const s = team()[i].style; if (u.auto && u.cls !== s){ Object.assign(u, roleUnit(s, u.x, u.y), {auto: true}); u.pow = fitPow(d.units, u, u.pow); n++; } });
-    return n;
-  }
 
   /* ---------------------------------------------------------------
      the trench kit: up to OBJECTS_MAX different objects, dug in on the
@@ -20967,15 +21207,18 @@ const SquadHall = (() => {
   // cells nobody may start on: under solid objects and mines
   const blockedCells = d => d.objs.filter(o => !OST(o.k).stand).flatMap(o => cellsOf(o).map(([x, y]) => cellKey(x, y)));
 
-  // a captain's command that suits the squad: Focus fire for two shooters or more, Hold
-  // the line for two Guardians or more, else Charge!
+  // a captain's command that suits the squad's plan (engine 26: each command works for its
+  // own plan): Hold the line for two or more on Defend, Dig in for two or more on Evade,
+  // Focus fire for three or more shooters, else Charge! (for the fighters)
   function suggestCmd(units){
-    const shots = units.filter(u => E.WEAPON_STATS[u.wpn].range >= 3).length, guards = units.filter(u => u.cls === 'sleepy').length;
-    return shots >= 2 ? 'focus' : guards >= 2 ? 'hold' : 'charge';
+    const n = f => units.filter(f).length;
+    const shots = n(u => E.WEAPON_STATS[u.wpn].range >= 3), hold = n(u => u.stn === 'hold'), evade = n(u => u.stn === 'evade');
+    return hold >= 2 ? 'hold' : evade >= 2 ? 'dig' : shots >= 3 ? 'focus' : 'charge';
   }
   const CMD_OK = v => E.COMMANDS.some(c => c[0] === v);
   function defaultDraft(){
-    const units = E.capPowers(team().map(m => ({...roleUnit(m.style, 7, 12), auto: true})));
+    // a first squad: one of each role, whatever the Blubs look like
+    const units = E.capPowers(FILL.map(c => roleUnit(c, 7, 12)));
     applyForm(units, 'wedge');
     return {units, objs: suggestKit(units), cmd: suggestCmd(units)};
   }
@@ -20994,7 +21237,7 @@ const SquadHall = (() => {
       const P = ROLE[v.cls], t = v.trn && typeof v.trn === 'object' ? v.trn : {}, w = v.wpn === 'last' ? 'boom' : v.wpn, u = {cls: v.cls,
         wpn: WPN[w] ? w : P.wpn, gear: GEAR[v.gear] ? v.gear : P.gear, pow: POW[v.pow] ? v.pow : P.pow, tac: TAC[v.tac] ? v.tac : P.tac,
         // (a squad from before stances attacks, as it always did)
-        stn: STN[v.stn] ? v.stn : 'attack', trn: {}, x: v.x, y: v.y, auto: v.auto === true};
+        stn: STN[v.stn] ? v.stn : 'attack', trn: {}, x: v.x, y: v.y};
       let left = E.TRAIN_POINTS;
       E.TRAINING.forEach(([k]) => { const n = Math.min(E.TRAIN_MAX, Math.max(0, Math.floor(+t[k]) || 0), left); u.trn[k] = n; left -= n; });
       units.push(u);
@@ -21060,7 +21303,7 @@ const SquadHall = (() => {
     lsPatch({sqPresets: list, sqActive: a, sqSyncAt: srv.at || '', sqDirty: false});
     st.draft = fitted(list[a].d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {};
     lsPatch({sqDraft: st.draft});
-    keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); renderStrats();
+    keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); renderStrats(); tellRoles();
     return true;
   }
   // keep all three with the account (with the team, in the same save)
@@ -21124,8 +21367,7 @@ const SquadHall = (() => {
     R.stratChip.setAttribute('aria-label', 'Strategy ' + 'ABC'[a] + ': ' + slotName(a) + '. Show the strategies');
     renderSteps();
   }
-  // a saved squad with the roles that follow their Blub's personality brought up to date
-  const fitted = d => { const c = copyDraft(d); if (c) followTeam(c); return c; };
+  const fitted = d => copyDraft(d);
   function loadDraft(d, note){ st.draft = fitted(d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {}; changed(); say(R.barMsg, note || '', true); Sfx.play('click'); hop(-1); }
 
   // ---- how strong is a squad? 192 practice fights on fixed seeds against a fixed gauntlet
@@ -21402,7 +21644,7 @@ const SquadHall = (() => {
     R.stage.hidden = looks || plan; R.looks.hidden = !looks;
     R.zStrat.hidden = !plan; R.zField.hidden = !plan; R.zSheet.hidden = !plan;
     renderSteps();
-    R.tabNote.textContent = looks ? 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.' : plan ? 'Strategy: where everyone starts, the trench kit, the captain’s command and your three plans.' : 'Skills: how ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic, stance and training.';
+    R.tabNote.textContent = looks ? 'Looks: ' + nameOf(st.sel) + '’s name, colours and parts. Looks never change how a Blub fights.' : plan ? 'Strategy: where everyone starts, the trench kit, the captain’s command and your three plans.' : 'Skills: how ' + nameOf(st.sel) + ' fights: role, weapon, gear, power, tactic, stance and training.';
     if (looks) mountLooks();
     else if (plan){ paintBoard(); keepFocus(renderSheet); }
     else keepFocus(renderUnit);
@@ -21415,13 +21657,22 @@ const SquadHall = (() => {
   }
   function syncLooks(){
     if (st.tab !== 'looks' || !R.tabNote) return;
-    R.tabNote.textContent = 'Looks: how ' + nameOf(st.sel) + ' looks: name, colours, parts and personality.';
+    R.tabNote.textContent = 'Looks: ' + nameOf(st.sel) + '’s name, colours and parts. Looks never change how a Blub fights.';
     const b = document.querySelectorAll('#mkTeam [role="tab"]')[st.sel];
     if (b && b.getAttribute('aria-selected') !== 'true') b.click();
   }
   // the parts of the builder that show the picked Blub
   function renderUnit(){ renderFive(); renderStage(); renderChoices(); renderStats(); renderStrip(); renderSteps(); }
-  function changed(){ saveDraft(); keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); }
+  function changed(){ saveDraft(); keepFocus(() => { renderUnit(); renderKit(); }); paintBoard(); keepFocus(renderSheet); paintBar(); strengthSoon(); renderChalSquad(); tellRoles(); }
+  // a Blub's personality comes with the role it plays in the active strategy (a Brawler is
+  // fierce, a Medic sweet, ...: the roles' ids are the personalities'): the page keeps it with
+  // the team for the Blub Maker and the faces, and saves it with the team
+  function tellRoles(){
+    const list = st.draft ? st.draft.units.map(u => u.cls) : null, key = list ? list.join() : '';
+    if (!list || key === st.rolesKey) return;
+    st.rolesKey = key;
+    try { if (typeof SquadNet.roles === 'function') SquadNet.roles(list); } catch {}
+  }
   // the sheet's Edit buttons and the strip's Edit: that Blub's parts, in sight
   function editBlub(i){
     if (i !== st.sel) select(i);
@@ -21430,8 +21681,7 @@ const SquadHall = (() => {
     const t = R.figRow && R.figRow.querySelector('[data-k="part:' + st.part + '"]');
     if (t) try { t.focus({preventScroll: true}); } catch {}
   }
-  // auto: the unit keeps following its Blub's personality (its role's own build, untouched)
-  function setUnit(p, auto){ Object.assign(st.draft.units[st.sel], p, {auto: !!auto}); Sfx.play('click'); st.peek = null; changed(); figHop(); }
+  function setUnit(p){ Object.assign(st.draft.units[st.sel], p); Sfx.play('click'); st.peek = null; changed(); figHop(); }
 
   // ---- the five in a bar: captain first; arrow keys walk along it
   function renderFive(){
@@ -21541,7 +21791,7 @@ const SquadHall = (() => {
     R.nameIn.setAttribute('aria-label', 'Name of ' + (i ? 'team mate ' + i : 'your captain'));
     if (st.nameFor !== i){ st.nameFor = i; nameSay(''); }
     R.chips.textContent = '';
-    R.chips.append(h('span', {class: 'sq-chip'}, vIcon('cls', u.cls, 16), CLS[u.cls][1], u.cls === m.style ? h('i', {class: 'sq-fitc', title: 'Suits ' + m.name + '’s personality', 'aria-label': ', suits its personality'}, '♥') : null),
+    R.chips.append(h('span', {class: 'sq-chip'}, vIcon('cls', u.cls, 16), CLS[u.cls][1]),
       h('span', {class: 'sq-hpmv'}, 'HP ', h('b', null, String(S.max)), ' · Move ', h('b', null, String(S.move))));
     R.figCv.setAttribute('aria-label', m.name + ', ' + CLS[u.cls][1] + ' with ' + wpnName(u) + ', ' + GEAR[u.gear][1] + ' and ' + POW[u.pow][1]);
     drawFigure();
@@ -21552,7 +21802,6 @@ const SquadHall = (() => {
       const t = h('button', {type: 'button', role: 'tab', id: 'sqTab-' + p, class: 'sq-part' + (on ? ' on' : '') + (bad ? ' warn' : ''), 'aria-selected': String(on), 'aria-controls': 'sqTray', tabindex: on ? '0' : '-1', 'data-k': 'part:' + p,
         'aria-label': label + ': ' + val, onclick: () => openPart(p)}, ic, h('span', {class: 'k', 'aria-hidden': 'true'}, label), h('b', {'aria-hidden': 'true'}, val),
         h('span', {class: 'sq-psub' + (gold ? ' warn' : ''), 'aria-hidden': 'true', title: sub}, sub));
-      if (p === 'role' && u.cls === m.style) t.append(h('i', {class: 'sq-fit', 'aria-hidden': 'true'}, '♥'));
       (n < 4 ? R.partsL : R.partsR).append(t);
     });
     placeNotch();
@@ -21606,14 +21855,15 @@ const SquadHall = (() => {
   }
   // the description box: the hovered or focused choice, else the one picked
   function detail(box, p, id){
-    const i = st.sel, u = st.draft.units[i], m = team()[i];
+    const i = st.sel, u = st.draft.units[i];
     box.textContent = '';
     if (p === 'role'){
       const c = id || u.cls, P = ROLE[c], S = E.STYLE_STATS[c];
       box.append(h('p', {class: 'sq-chd-t'}, vIcon('cls', c, 20), h('b', null, CLS[c][1]), h('span', null, 'HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ' · Move ' + S.move)), h('p', {class: 'sq-desc'}, CLS[c][2]));
-      if (c === u.cls) box.append(h('p', {class: 'sq-chg now'}, u.auto ? 'Picked. It follows ' + m.name + '’s personality until you change a part.' : 'Picked.'));
+      if (c === u.cls) box.append(h('p', {class: 'sq-chg now'}, 'Picked.'));
+      // the personality that comes with the role (the Blub Maker shows it too)
+      if (STYLE[c]) box.append(h('p', {class: 'sq-desc sq-mood'}, h('b', null, STYLE[c].n), ', like every ' + CLS[c][1] + ': ' + STYLE[c].d.charAt(0).toLowerCase() + STYLE[c].d.slice(1)));
       else box.append(h('p', {class: 'sq-chg'}, [...changes(u, i, {cls: c, wpn: P.wpn, gear: P.gear, trn: P.trn}).slice(0, 4), 'fills in ' + [WPN[P.wpn][1], GEAR[P.gear][1], POW[P.pow][1], TAC[P.tac][1], STN[P.stn || 'attack'][1]].join(', ')].join(' · ')));
-      if (c === m.style) box.append(h('p', {class: 'sq-desc sq-mood'}, '♥ ' + m.name + ' is ' + (STYLE[c] ? STYLE[c].n.toLowerCase() : 'like that') + ', so ' + CLS[c][1] + ' suits it. Any role works.'));
       return;
     }
     const list = LISTS[p], kind = p, cur = p === 'stn' ? u.stn || 'attack' : u[p], c = id || cur, C = list.find(x => x[0] === c) || list[0], bad = why(p, C[0], u);
@@ -21662,13 +21912,12 @@ const SquadHall = (() => {
       b.addEventListener('blur', () => { if (st.peek === id) peek(null); });
     };
     if (p === 'role'){
-      const fit = m.style, g = h('div', {class: 'sq-roles', role: 'radiogroup', 'aria-label': 'Role for ' + m.name});
+      const g = h('div', {class: 'sq-roles', role: 'radiogroup', 'aria-label': 'Role for ' + m.name});
       ROLES.forEach(c => {
         const S = E.STYLE_STATS[c];
         const b = radio(g, c === u.cls, [vIcon('cls', c, 28), h('span', {class: 'sq-rt'}, h('b', null, CLS[c][1]), h('small', null, 'HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ' · Move ' + S.move))],
-          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: fitPow(st.draft.units, u, P.pow), tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}}, c === fit); },
-          {class: 'sq-role' + (c === fit ? ' fit' : ''), 'data-k': 'role:' + c, 'data-id': c, 'aria-describedby': 'sqChDesc', 'aria-label': CLS[c][1] + ', HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ', move ' + S.move + (c === fit ? '. Suits ' + m.name + '’s personality' : '')});
-        if (c === fit) b.append(h('i', {class: 'sq-fit', 'aria-hidden': 'true', title: 'Suits ' + m.name + '’s personality'}, '♥'));
+          () => { if (c === u.cls) return; const P = ROLE[c]; setUnit({cls: c, wpn: P.wpn, gear: P.gear, pow: fitPow(st.draft.units, u, P.pow), tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}}); },
+          {class: 'sq-role', 'data-k': 'role:' + c, 'data-id': c, 'aria-describedby': 'sqChDesc', 'aria-label': CLS[c][1] + ', HP ' + (S.hp + (i ? 0 : E.CAPTAIN_HP)) + ', move ' + S.move});
         hover(b, c);
       });
       fixTabStop(g); radioKeys(g);
@@ -21761,11 +22010,12 @@ const SquadHall = (() => {
     const bad = problem(u);
     R.who.textContent = '';
     if (bad) R.who.append(h('p', {class: 'sq-warn', role: 'status'}, bad));
+    else if (fighterOnDefend(u)) R.who.append(h('p', {class: 'sq-desc warn sq-tip'}, nameOf(i) + ' fights up close on Defend and rarely gets a hit in: Attack suits a fighter.'));
     R.who.append(h('p', {class: 'sq-desc sq-wline'}, whoText(i)), makerLink(i));
     steadyWho();
   }
   const whoText = i => (!i ? 'Your captain leads the squad: +' + E.CAPTAIN_HP + ' HP.' + (st.online && !captain().real ? ' Save your team in the Blub Maker to duel other wallets.' : '')
-    : 'Team mate ' + i + ' fights with its own name, look and personality.');
+    : 'Team mate ' + i + ' has its own name and look. Its role and build are picked here.');
   // the captain's line is longer than a team mate's: keep the room for the longer one, so
   // picking another Blub never moves the board below
   let whoKey = '', whoH = 0;
@@ -22374,6 +22624,7 @@ const SquadHall = (() => {
       const tw = k === 'tower' ? unitAt(o.x, o.y) : -1;
       box.append(h('p', {class: 'sq-kd-s'}, 'Dug in at ' + spotName(o) + '.' + (k === 'mines' ? ' Hidden from your rival until one goes off.' : '')));
       if (k === 'tower' && (tw < 0 || !shooter(d.units[tw]))) box.append(h('p', {class: 'sq-kd-s warn'}, tw < 0 ? 'Nobody stands on it yet: put a Blub with a bow or wand there.' : nameOf(tw) + ' has no bow or wand: only a shooter holds the tower.'));
+      if (OUT_BEST.includes(k) && o.y >= 12) box.append(h('p', {class: 'sq-kd-s warn'}, outTip(k)));
       box.append(h('p', {class: 'sq-kd-h'}, Tword() + ' it in the trench kit to take it out. Drag it on the board to move it.'));
       acts.append(button(st.place === k ? 'Done moving' : 'Move', st.place === k ? 'gold' : '', () => { if (st.place === k){ stopPlacing(); focusCur(); } else { pickObj(k); focusCur(); } }, {'data-k': 'objmv:' + k}),
         button('Take out', 'pink', () => { takeOut(k); const b = R.kitCards.querySelector('[data-k="obj:' + k + '"]'); if (b) try { b.focus({preventScroll: true}); } catch {} }, {'data-k': 'objrm:' + k}));
@@ -22431,7 +22682,8 @@ const SquadHall = (() => {
     const n = readyCount(d), row = (k, v, cls) => h('p', {class: 'sq-sline' + (cls ? ' ' + cls : '')}, h('span', null, k), ' ', h('b', null, v));
     R.sheetTeam.replaceChildren(h('span', {class: 'sq-lbl'}, 'Team'), row('Total HP', String(hp)),
       h('p', {class: 'sq-sline'}, h('span', null, 'Melee'), ' ', h('b', null, String(melee)), ' · ', h('span', null, 'Ranged'), ' ', h('b', null, String(ranged)), ' · ', h('span', null, 'Healing'), ' ', h('b', null, String(heal))),
-      row('Ready', n + '/5', n < 5 ? 'bad' : ''), row('Captain:', nameOf(0) + ' (+' + E.CAPTAIN_HP + ' HP)'));
+      row('Ready', n + '/5', n < 5 ? 'bad' : ''), row('Captain:', nameOf(0) + ' (+' + E.CAPTAIN_HP + ' HP)'),
+      ...tips(d).map(t => h('p', {class: 'sq-desc warn sq-tip'}, t)));
     // the kit card
     const kit = [h('span', {class: 'sq-lbl'}, 'Trench kit ', h('small', null, d.objs.length + '/' + KMAX))];
     if (d.objs.length) d.objs.forEach(o => kit.push(h('p', {class: 'sq-skit'}, objIcon(o.k, 16), h('span', null, h('b', null, OBJ[o.k][1]), h('small', null, spotName(o))))));
@@ -22441,7 +22693,7 @@ const SquadHall = (() => {
   // a squad in small: five faces and its objects
   function minis(d, cls){
     const box = h('span', {class: 'sq-minis' + (cls ? ' ' + cls : '')});
-    d.units.forEach((u, k) => box.append(face(lookOf(k), team()[k].style, 1)));
+    d.units.forEach((u, k) => box.append(face(lookOf(k), u.cls, 1)));
     if (d.objs && d.objs.length){ const ob = h('span', {class: 'sq-mobjs'}); d.objs.forEach(o => ob.append(objIcon(o.k, 14))); box.append(ob, h('span', {class: 'sr'}, ' with ' + d.objs.map(o => OBJ[o.k][1]).join(' and '))); }
     return box;
   }
@@ -24913,11 +25165,9 @@ const SquadHall = (() => {
     if (st.fr){ st.fr = null; if (R.kroot && !R.kroot.closest('main').hidden) loadFriends(true); else renderFriends(); }
     return true;
   }
-  // the team changed (loaded, or saved in the Blub Maker): names, looks, and the
-  // roles that still follow their Blub's personality
+  // the team changed (loaded, or changed in the Blub Maker): names and looks
   function teamChanged(){
     if (!refreshTeam()) return false;
-    if (followTeam(st.draft)) saveDraft();
     unitCache.clear(); st.rand = null;
     keepFocus(() => { renderUnit(); renderKit(); }); renderStrip(); paintBoard(); renderSheet(); paintBar(); strengthSoon(); renderChalSquad();
 
@@ -24928,7 +25178,7 @@ const SquadHall = (() => {
     if (st.ready) return;
     st.team = readTeam();
     st.draft = cleanDraft((lsGet() || {}).sqDraft) || defaultDraft();
-    if (followTeam(st.draft)) saveDraft();
+    tellRoles();
     // what is on the bench is the active strategy
     keepActive(true);
     if (!build()) return;
@@ -27573,6 +27823,20 @@ document.addEventListener('click', e => {
 });
 // the home page's "Watch a bot fight" buttons open a bot show in the Squad Arena
 document.querySelectorAll('[data-botshow]').forEach(b => { b.onclick = () => SquadHall.botShow(); });
+// the header's About Blub menu: hovering opens it for a mouse (CSS), a click for a tap or the
+// keyboard; a pick, Escape, a click elsewhere or focus moving on closes it (and a pick keeps
+// hovering from showing it again until the mouse has left)
+(() => {
+  const box = $('#navAbout'), btn = $('#navAboutBtn');
+  if (!box || !btn) return;
+  const set = on => { box.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); };
+  btn.onclick = () => set(!box.classList.contains('open'));
+  box.addEventListener('click', e => { if (e.target.closest('a')){ set(false); box.classList.add('shut'); } });
+  box.addEventListener('mouseleave', () => box.classList.remove('shut'));
+  box.addEventListener('focusout', e => { if (!box.contains(e.relatedTarget)) set(false); });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) set(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && box.classList.contains('open')){ set(false); btn.focus(); } });
+})();
 
 /* =====================================================================
    WALLET: sign in with a Solana wallet (Phantom, Solflare, Backpack).
@@ -27729,6 +27993,8 @@ async function pullMeadow(){
   // saved from another device: fetch the team again (rare)
   else if (mine && mine.updated !== S.teamAt && Date.now() - S.justSaved > 180000 && !teamFromCache(mine)) loadTeam();
   if (!mine && was) Maker.adopt();
+  // signed out, or a wallet that never saved: the Maker's team is yours in this browser
+  Maker.live();
   heroHello();
 }
 async function boot(){
