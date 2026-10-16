@@ -120,18 +120,19 @@ p{margin:0}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:14px;text-decoration:none;color:var(--blub-2)}
 .logo canvas{width:32px;height:30px}
 .nav-cta{display:flex;gap:8px;align-items:center;margin-left:auto}
-/* About Blub: a button in the Blub's own blue whose menu holds the home page's parts. A mouse
-   opens it by hovering, a tap or the keyboard by clicking (aria-expanded); Escape, a pick or a
-   click elsewhere closes it. On a phone the menu spans the bar. */
+/* About Blub (owner, 16 Oct 2026): the logo's Blub is the button, in its own shape and colour.
+   A mouse opens its menu with every part of the home page by hovering, a tap or the keyboard by
+   clicking (aria-expanded); Escape, a pick or a click elsewhere closes it. On a phone the menu
+   spans the bar. */
 .nav .wrap{position:relative}
 .nav-about{position:relative}
-.nav .btn.nav-ab{gap:8px;line-height:inherit;align-self:stretch}
-/* the Blub on the button only on a phone, where it stands in for the logo: the header keeps one Blub */
-.nav-ab [data-ic]{display:none}
-.nav-ab [data-ic] canvas{width:20px;height:20px;filter:drop-shadow(2px 0 0 var(--ink)) drop-shadow(-2px 0 0 var(--ink)) drop-shadow(0 2px 0 var(--ink)) drop-shadow(0 -2px 0 var(--ink))}
-.nav-caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor}
+.logo.nav-ab{background:none;border:0;margin:0;padding:4px 4px 4px 0;cursor:pointer}
+.logo.nav-ab canvas{width:40px;height:37px;transition:transform .12s steps(2)}
+.logo.nav-ab:hover canvas,.nav-about.open .logo.nav-ab canvas{transform:translateY(-3px)}
+.logo.nav-ab:active canvas{transform:translateY(1px)}
+.logo.nav-ab:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.nav-caret{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--blub)}
 .nav-about.open .nav-caret{transform:rotate(180deg)}
-.nav-about.open .nav-ab{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
 .nav-menu{display:none;position:absolute;top:100%;left:0;z-index:50;width:370px;padding-top:10px}
 .nav-about.open .nav-menu{display:block}
 @media (hover:hover){.nav-about:hover:not(.shut) .nav-menu{display:block}}
@@ -144,9 +145,8 @@ p{margin:0}
 .nav-menu a:hover,.nav-menu a:focus-visible{background:var(--blub-2)}
 .nav-menu a:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
 @media (max-width:700px){.nav-about{position:static}.nav-menu{left:12px;right:12px;width:auto}}
-/* a phone: the About button is the Blub with its caret and takes the logo's place (Home is in
-   its menu); on the smallest phones Buy waits in the menu too ($BLUB, live) */
-@media (max-width:440px){.nav .logo{display:none}.nav-abt{display:none}.nav-ab [data-ic]{display:inline-flex}.nav-cta{flex:1;justify-content:space-between}.nav .btn.nav-ab{gap:6px;padding-inline:9px}.nav-menu{left:10px;right:10px}}
+/* the smallest phones: Buy waits in the About menu ($BLUB, live) */
+@media (max-width:440px){.nav-menu{left:10px;right:10px}}
 @media (max-width:400px){.nav-cta .btn.pink{display:none}}
 /* the wallet button: "Connect wallet", or your address with a green light; narrower, just its icon */
 .btn.wbtn{--bg:#EDE7FF;--hi:#FFFFFF;--lo:#A99CC9;gap:8px}
@@ -1955,8 +1955,7 @@ body.no-scroll{overflow:hidden}
 <div class="demo-bar" role="note"><b>Test phase</b><span>Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
-    <a class="logo" href="#top"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span></a>
-    <div class="nav-cta"><div class="nav-about" id="navAbout"><button type="button" class="btn small nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub"><i data-ic="blub" aria-hidden="true"></i><span class="nav-abt">About Blub</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
+    <div class="nav-about" id="navAbout"><button type="button" class="logo nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub" title="About Blub"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
       <li><a href="#top" data-nav=""><i data-ic="coral" aria-hidden="true"></i><b>Home</b><small>The start of the page</small></a></li>
       <li><a href="#sift"><i data-ic="blub" aria-hidden="true"></i><b>Meet Blub</b><small>Blub, The Sift and why fans built a game</small></a></li>
       <li><a href="#game"><i data-ic="people" aria-hidden="true"></i><b>Squad Arena</b><small>The game in five chapters</small></a></li>
@@ -1964,7 +1963,8 @@ body.no-scroll{overflow:hidden}
       <li><a href="#pair"><i data-ic="coin" aria-hidden="true"></i><b>$BLUB, live</b><small>Market cap, chart and where to buy</small></a></li>
       <li><a href="#tokenomics"><i data-ic="stock" aria-hidden="true"></i><b>Tokenomics</b><small>From launch to the community take-over</small></a></li>
       <li><a href="#roadmap"><i data-ic="rocket" aria-hidden="true"></i><b>Roadmap</b><small>Achievements to unlock, up to 2027</small></a></li>
-    </ul></div></div><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-rk" id="walletBtnRk" aria-hidden="true" hidden></span><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
+    </ul></div></div>
+    <div class="nav-cta"><a class="btn small" href="#team" data-nav="team">Team</a><a class="btn small mint" href="#practice" data-nav="practice">Practice</a><a class="btn small gold" href="#rankings" data-nav="rankings" aria-label="Rankings"><span>Rank<span class="nav-long">ings</span></span></a><a class="btn small" href="#admin" data-nav="admin" id="navAdmin" hidden>Admin</a><a class="btn small pink" href="#swap">Buy<span class="nav-buy"> $BLUB</span></a><button type="button" class="btn small wbtn" id="walletBtn" aria-label="Connect wallet" hidden><i data-ic="wallet" aria-hidden="true"></i><span class="wbtn-rk" id="walletBtnRk" aria-hidden="true" hidden></span><span class="wbtn-t" id="walletBtnT">Connect wallet</span><span class="wbtn-on" id="walletBtnOn" aria-hidden="true" hidden></span></button></div>
   </div>
 </nav>
 
