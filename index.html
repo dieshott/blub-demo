@@ -8313,6 +8313,11 @@ const SquadView = (() => {
     c.width = w;
     c.height = h;
     if (cls) c.className = cls;
+    // in plain memory, never on the graphics card: a browser may throw a card's
+    // canvases away (a lost context: a driver hiccup, memory running short), and every
+    // cached sprite, word and frame would come back blank till the page is reloaded.
+    // They are all small pixel-art buffers, drawn in software as quick as anywhere.
+    c.getContext('2d', { willReadFrequently: true });
     return c;
   }
   function paintRows(x, rows, pal, ox, oy, s) {
@@ -12610,6 +12615,46 @@ const SquadView = (() => {
   function fxOK(important) {
     return important || P.speed < 4;
   }
+  // ---- A drawing step that throws must never take the arena with it (the owner: texts
+  // and things went invisible till a reload). The step is skipped, an effect that throws
+  // is dropped, the canvas state it may have left behind is put back, every frame starts
+  // from a clean canvas, and the error is reported once.
+  const faults = new Set();
+  function fault(err) {
+    const m = String((err && err.message) || err);
+    if (faults.has(m)) return;
+    if (faults.size > 50) faults.clear();
+    faults.add(m);
+    window.__sqvFaults = (window.__sqvFaults || 0) + 1;
+    try {
+      console.error('[arena]', err);
+    } catch (e) {
+      /* nothing to tell it to */
+    }
+  }
+  function guard(x, fn) {
+    x.save();
+    try {
+      fn();
+      return true;
+    } catch (err) {
+      fault(err);
+      return false;
+    } finally {
+      x.restore();
+    }
+  }
+  function drawFx(x, f, t) {
+    if (!guard(x, () => f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0))) f.dur = -1e9;
+  }
+  function freshCtx(x) {
+    if (typeof x.reset === 'function') x.reset();
+    else for (let i = 0; i < 64; i++) x.restore();
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalAlpha = 1;
+    x.globalCompositeOperation = 'source-over';
+    x.imageSmoothingEnabled = false;
+  }
   function addFx(t0, dur, draw, under) {
     if (P.fx.length > 140) P.fx.shift();
     P.fx.push({ t0, dur, draw, under: !!under });
@@ -14671,11 +14716,16 @@ const SquadView = (() => {
     const kd = drop >= 1 ? 1 : clamp(drop * N - r, 0, 1);
     if (kd <= 0) return;
     const dy = Math.round((1 - kd) * -18);
+    x.save();
     x.globalAlpha = kd;
     x.translate(0, dy);
-    draw();
-    x.translate(0, -dy);
-    x.globalAlpha = 1;
+    try {
+      draw();
+    } catch (err) {
+      fault(err);
+    } finally {
+      x.restore();
+    }
   }
   // A rectangle filled to `a` (0 to 1) with the ordered dither rather than drawn
   // see-through: rubber on the road, a mark wearing off.
@@ -14699,9 +14749,7 @@ const SquadView = (() => {
     const id = key + '|' + step;
     let c = ghostCache.get(id);
     if (c) return c;
-    c = document.createElement('canvas');
-    c.width = img.width;
-    c.height = img.height;
+    c = canvas(img.width, img.height);
     const g = c.getContext('2d');
     g.drawImage(img, 0, 0);
     const d = g.getImageData(0, 0, c.width, c.height);
@@ -15061,8 +15109,8 @@ const SquadView = (() => {
     if (shot && !P.buf) P.buf = canvas(CW, CH);
     const x = shot ? P.buf.getContext('2d') : P.ctx;
     const S = P.S;
-    x.setTransform(1, 0, 0, 1, 0, 0);
-    x.imageSmoothingEnabled = false;
+    freshCtx(x);
+    if (shot) freshCtx(P.ctx);
     x.fillStyle = '#120A1C';
     x.fillRect(0, 0, CW, CH);
     if (!P.map) return;
@@ -15108,7 +15156,7 @@ const SquadView = (() => {
       }
       drawCraters(x);
       drawSink(x, t, now);
-      for (const f of P.fx) if (f.under && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
+      for (const f of P.fx) if (f.under && t >= f.t0) drawFx(x, f, t);
       drawShells(x, t, now, true);
     }
     // rows, back to front: the row's blocks and objects first, then the units
@@ -15156,17 +15204,17 @@ const SquadView = (() => {
       if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
       for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
       for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
-      for (const w of S.walls) if (scr(w.x, w.y)[1] === r) drawWall(x, w);
-      for (const id in S.works) if (cannonRow(S.works[id]) === r) drawCannon(x, S.works[id], t);
-      for (const p of S.pits) if (scr(p.x, p.y)[1] === r) drawPit(x, p, t);
+      for (const w of S.walls) if (scr(w.x, w.y)[1] === r) guard(x, () => drawWall(x, w));
+      for (const id in S.works) if (cannonRow(S.works[id]) === r) guard(x, () => drawCannon(x, S.works[id], t));
+      for (const p of S.pits) if (scr(p.x, p.y)[1] === r) guard(x, () => drawPit(x, p, t));
       const ol = P.objRows[r];
-      if (ol) for (const o of ol) drawObj(x, o, 'back', t, now, intro);
+      if (ol) for (const o of ol) guard(x, () => drawObj(x, o, 'back', t, now, intro));
       const list = rows[r];
       if (list) {
         list.sort((a, b) => a[0] - b[0]);
-        for (const [, u] of list) drawUnit(x, u, t, now);
+        for (const [, u] of list) guard(x, () => drawUnit(x, u, t, now));
       }
-      if (ol) for (const o of ol) drawObj(x, o, 'front', t, now, intro);
+      if (ol) for (const o of ol) guard(x, () => drawObj(x, o, 'front', t, now, intro));
     }
     drawMist(x, t, now);
     // units with a block right in front of them get their outline drawn over it
@@ -15187,7 +15235,7 @@ const SquadView = (() => {
     drawCurve(x, t, now);
     drawSights(x, now);
     drawPacks(x, now);
-    for (const f of P.fx) if (!f.under && t >= f.t0) f.draw(x, clamp((t - f.t0) / f.dur, 0, 1), t - f.t0);
+    for (const f of P.fx) if (!f.under && t >= f.t0) drawFx(x, f, t);
     drawShells(x, t, now, false);
     P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
     for (let i = P.parts.length - 1; i >= 0; i--) {
@@ -15227,7 +15275,7 @@ const SquadView = (() => {
         x.fillRect(b.ox + 8, ay + 3, 1, 1);
       }
     }
-    if (!intro || t > P.rd.introLen - 400) for (const u of S.u) if (u.alive && !u.gone && !airborne(u, t)) drawBar(x, u, t);
+    if (!intro || t > P.rd.introLen - 400) for (const u of S.u) if (u.alive && !u.gone && !airborne(u, t)) guard(x, () => drawBar(x, u, t));
     // calm playback: this turn's results stay as markers
     for (const m of P.marks) {
       if (m.line) {
@@ -15882,6 +15930,10 @@ const SquadView = (() => {
     const U = S.u;
     const k = (b && b.k) || 1;
     const live = !P.seeking && !P.calm;
+    const before = U.map((u) => u.hp);
+    // (how an event looks must never keep it from happening: the looks are guarded, the
+    // fold that moves the state on is not)
+    try {
     if (e.t === 'move' && !P.seeking) {
       const u = U[e.u];
       const pts = [scr(u.x, u.y)].concat(e.path.map((p) => scr(p[0], p[1])));
@@ -15910,7 +15962,6 @@ const SquadView = (() => {
       P.curveDur = 1100 * k;
     }
     if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
-    const before = U.map((u) => u.hp);
     // what hurt a Blub last, for the line when it is knocked out without an attacker
     if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
     if (e.t === 'blowup') P.cause[e.u] = 'blowup';
@@ -15925,7 +15976,11 @@ const SquadView = (() => {
     }
     // the Boom Pack's Blub is gone in its own blast
     if (e.t === 'blowup' && live) U[e.u].air = [T, 1e12];
+    } catch (err) {
+      fault(err);
+    }
     fold(S, e);
+    try {
     if (e.t === 'ko') {
       const u = U[e.u];
       u.koT = T;
@@ -15954,6 +16009,9 @@ const SquadView = (() => {
     P.dirty = true;
     if (P.calm) return;
     fx(e, T, b, k);
+    } catch (err) {
+      fault(err);
+    }
   }
 
   function fx(e, T, b, k) {
@@ -19417,13 +19475,22 @@ const SquadView = (() => {
     P.raf = requestAnimationFrame(frame);
     const dt = Math.min(50, P.last ? now - P.last : 16);
     P.last = now;
-    if (!P.paused) advance(dt);
-    if (P.phase !== 'intro' || P.chestOnly || P.ic > 2600) render(now);
-    if (P.clip) clipTick();
-    flushSfx(now);
-    flushSay(now);
-    if (P.dirty || P.textDirty || P.phase === 'round') updateUi();
-    if (P.infoFor !== infoKey() && !D.infoBox.hidden) fillInfo();
+    // (each part on its own: one that throws never stops the others, nor the next frame)
+    const step = (fn) => {
+      try {
+        fn();
+      } catch (err) {
+        fault(err);
+      }
+    };
+    if (!P.paused) step(() => advance(dt));
+    if (!P) return;
+    if (P.phase !== 'intro' || P.chestOnly || P.ic > 2600) step(() => render(now));
+    if (P.clip) step(clipTick);
+    step(() => flushSfx(now));
+    step(() => flushSay(now));
+    if (P.dirty || P.textDirty || P.phase === 'round') step(updateUi);
+    step(() => P.infoFor !== infoKey() && !D.infoBox.hidden && fillInfo());
   }
   function advance(dt) {
     if (P.phase === 'intro') {
@@ -19445,8 +19512,12 @@ const SquadView = (() => {
     const Q = P.rd.Q;
     while (P.qi < Q.length && Q[P.qi].at <= P.clock) {
       const q = Q[P.qi++];
-      if (q.ei == null) beginBeat(q.b, q.at);
-      else applyEv(q.ei, q.at, q.b);
+      try {
+        if (q.ei == null) beginBeat(q.b, q.at);
+        else applyEv(q.ei, q.at, q.b);
+      } catch (err) {
+        fault(err);
+      }
     }
     placeMarks();
   }
