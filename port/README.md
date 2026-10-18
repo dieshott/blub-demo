@@ -120,3 +120,29 @@ wijzigingen eerst over naar de bron en sync pas daarna.
   gewrapt in een guard, en een fout in `follow` valt terug op het vaste punt. Een
   fout tijdens een close-up laat het veld dus niet meer leeg.
 - Een verborgen tab pauzeert ook de clip-opname.
+
+### 7. Het nieuwe kanon van de Builder
+- Een klassiek veldkanon in pixel art. In `index.html` staan de data in `CANNON_ART`
+  en de frames in `FX_ART.cannonC`/`cannonB`/`cannonW`/`cannonFx`/`cannonSmoke`/
+  `cannonShot`/`cannonUp`/`bigUp`. Het kanon heeft:
+  - een ijzeren loop met ringen, handvatten en een knop achteraan;
+  - een eiken onderstel met beslag;
+  - twee spaakwielen met ijzeren banden;
+  - een staart met handspaak, een kogelstapel en een kruitvat.
+- Het wordt in lagen getekend: onderstel, wielen, loop en de teamband (`gunLook`,
+  `gunHurt`, `gunKick`, `gunRoll`, `gunAim`, `drawBuild`, `partFoot`). Er zijn twee
+  schadebeelden (onder 2/3 en onder 1/3 HP) en een wrak.
+- Animaties:
+  - De lont vonkt tijdens het aanleggen en de loop draait naar zijn doel (tot ±40°).
+  - Bij het schot slaat de loop 3 px terug en rolt het onderstel met draaiende
+    wielen achteruit.
+  - Daarna volgen mondingsvuur in vier frames, een rookring, een rookpluimpje, en
+    een kogel met schaduw op de grond.
+  - Bij het bouwen vallen de onderdelen er stuk voor stuk in.
+  - Een treffer laat het kanon schudden, met splinters en vonken. Bij een
+    reparatie lost de schade op.
+  - De Big Gun krijgt dezelfde effecten.
+  - Bij "rustig" (reduced motion) blijft het kanon stilstaan.
+- `MS` kreeg alleen nieuwe sleutels (`gunKick`, `gunRoll`, `gunSmoke`, `gunWisp`,
+  `gunShake`, `gunFix`). Geen bestaande timing is veranderd. Gemeten tekenkosten:
+  1,12 ms per frame tegen 1,10 ms voorheen.

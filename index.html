@@ -9732,6 +9732,2270 @@ const SquadView = (() => {
     [[14, 17], [12, 21], [10, 24], [8, 27], [6, 28]],
     [[14, 15], [10, 16], [7, 14], [4, 15], [2, 13]],
   ];
+  // ---- The Builder's cannon (engine 9): a field gun. A dark iron barrel (base ring,
+  // reinforces, dolphins, touch-hole, a flared muzzle, the cascabel's knob) on an oak
+  // carriage (cheeks, a bracket trail with transoms, iron straps, a handspike, a plank
+  // the Builder nailed on), two big spoked wheels in iron tyres, a stack of round shot
+  // and a powder keg. Rows of palette letters (IP), '.' clear; a frame's ox, oy is where
+  // its top-left pixel goes from the top-left of the cannon's 32x32 footprint.
+  //   up / down    pointing away up the screen / at you, each with:
+  //     stage1, stage2, finished   the stages (finished: the whole gun at rest, no band);
+  //                                each with .parts (the same box, a digit a pixel: the
+  //                                part it belongs to, in the order they go up) and .names
+  //     props[h], carriage[h]      the gun's layers, knocked about h = 0, 1, 2
+  //     wheels.at   where each wheel's frame goes (left, right)
+  //     barrel      .pivot (the trunnions), .aims (degrees, + the muzzle to the right),
+  //                 .recoil.max, .frames[deg][h]: ox/oy, muzzle and vent (footprint
+  //                 terms), dir (the way it points), band (runs [x, y, w, 0 light /
+  //                 1 fill / 2 line] in footprint terms) and rows
+  //     broken      the wreck: a wheel off, the barrel knocked off its cradle
+  //     shadow      [cx, cy, rx, ry] on the floor; hpLift: its HP bar this far up
+  //   wheel        a wheel turning a quarter of a spoke a frame, both facings:
+  //                .frames[h][side][phase], .hub
+  //   fx           muzzleFlash.up/.down (28 square, anchor on the muzzle), smoke (24),
+  //                fuseSpark (8), ball, ballShadow
+  // (Built by a script from the 'field' design, with parts of 'trench' and 'blub'.)
+  const CANNON_ART = {
+    size: 32,
+    up: {
+      stage1: {
+        ox: -1,
+        oy: 0,
+        w: 34,
+        h: 31,
+        rows: [
+          '......................kkkkkkkk....',
+          '....................kkSzSSSSSskk..',
+          '..kkkkkkkkkkk......kSSNNNNNNNNNsk.',
+          '.kSiNNNNNNNNskkk..kSNNknknnknkNNsk',
+          '.ksnnnnannnnxkNnk.kSNnnnnaannnnnxk',
+          '..kkkkkkkkkkkiSnk.kSNNknknnknkNnxk',
+          '............kiNnk.kxsnNNnnnnnaaxxk',
+          '..kkkkk.....kinnk.kxxssssssssxxxKk',
+          '.kiiiiikkkkkkinnk.kkxxxxxxxxxxKKk.',
+          '.kannnniiiiiikNnk.kNkkKKKKKKKKkk..',
+          '.kkkkkknnnnnnkNnk.kNnnkkkkkkkk....',
+          '.knnnnnkkkkkkiNnk.kNnnk...........',
+          'kiiSNNNNNSNnkiSnk.kNNnk...........',
+          'knnnnnnnnnnakiNnk.kNNnk...........',
+          '.kiiSNNNNNSNnkNnk.kNSnk.S.........',
+          '.knnnnnnnnnnaknnk.kNNnk..x........',
+          '..kkkkkkkkkkkinnk.kNNnk...S.......',
+          '............kiNnk.kNNnk..x........',
+          '............kiNnk.kNnnk...........',
+          '............kiSnk.kNNnk...........',
+          '............kiNnk.kNNnk...........',
+          '............kkkkkkkkkkk.kkkk......',
+          '............kiSNNNNNSnkkiiNnk.....',
+          '....kkkk....knnnnnnnnnkkNNnnk.....',
+          '...kiNNik...kkkkkkkkkkkknnaak.....',
+          '..kiNkkNnk..kiNnk.kNnnk.kkkkNk....',
+          '..kNkkkkNk..kiNnk.kNNnk.....kNk...',
+          '..kNnkkiNk..kiNnk.kNNnk......kNk..',
+          '...knNNnkk..kiNnk.kNNnk.......kak.',
+          '....kkkkiNS..kkk..kNNnk........k..',
+          '...........x.......kkk............',
+        ],
+        parts: [
+          '......................66666666....',
+          '....................666666666666..',
+          '..55555555555......66666666666666.',
+          '.555555555555500..6666666666666666',
+          '.5555555555555000.6666666666666666',
+          '..555555555550000.6666666666666666',
+          '............00000.6666666666666666',
+          '..44444.....00000.6666666666666666',
+          '.4444444444440000.166666666666666.',
+          '.4444444444444000.11666666666666..',
+          '.3444444444444000.111166666666....',
+          '.3333334444440000.11111...........',
+          '33333333333330000.11111...........',
+          '33333333333330000.11111...........',
+          '.3333333333333000.11111.7.........',
+          '.3333333333333000.11111..7........',
+          '..333333333330000.11111...7.......',
+          '............00000.11111..7........',
+          '............00000.11111...........',
+          '............00000.11111...........',
+          '............00000.11111...........',
+          '............02222222221.7777......',
+          '............22222222222777777.....',
+          '....7777....22222222222777777.....',
+          '...777777...02222222221777777.....',
+          '..77777777..00000.11111.777777....',
+          '..77777777..00000.11111.....777...',
+          '..77777777..00000.11111......777..',
+          '...7777777..00000.11111.......777.',
+          '....7777777..000..11111........7..',
+          '...........7.......111............',
+        ],
+        names: [
+          'left',
+          'right',
+          'transom',
+          'pile',
+          'beam',
+          'axle',
+          'wheel',
+          'tools',
+        ],
+      },
+      stage2: {
+        ox: -12,
+        oy: 2,
+        w: 44,
+        h: 31,
+        rows: [
+          '................kkkkk..............kkkkk....',
+          '..kkkkkkkkkk...kSSSSSk...kk..kk...kSSSSSk...',
+          '.kzzzxKKxsxxk.kSSNNNSsk.kiikkNNk.kSSNNNSsk..',
+          '.kxxsxxKKKKKkkSNNkikNnskkiNkkNnkkSNNkikNnsk.',
+          '..ksSSsxxxKk.kSNkkikknskkSxkkxskkSNkkikknsk.',
+          '...kksxKKkk.kSNkikikiknskiNkkNnkSNkikikiknsk',
+          '.kkSzzSsssxkkSNkikikiknskiNkkNnkSNkikikiknsk',
+          'kiNkxsxKKKkNkSNkkSSskkaxkaassaakSNkkSSskkaxk',
+          'knnksSsxxKknkSNiiSKxNNaxkKaxxKakSNiiSKxNNaxk',
+          '.kkksSsxxKkkkSNkksxxkkaxkiNkkNnkSNkksxxkkaxk',
+          '...ksSsxxKk.ksNkNkNkNkaxkiNkkNnksNkNkNkNkaxk',
+          '...ksSsxxKk.ksnkNkNkNkaxkiNnnNnksnkNkNkNkaxk',
+          '...ksSsxxKk..ksnkkNkkaxkkiNNNNnkksnkkNkkaxk.',
+          '..kxssxKKKKk.ksnakNkaaxkkSxiNxskksnakNkaaxk.',
+          '.kksSzsxSxKkk.ksxaaaxxk.kiNNNNnk.ksxaaaxxk..',
+          'kzssSSsxxxKszk.kxxxxxk..kiNNNNnk..kxxxxxk...',
+          'kSxsSSsxxxKxSk..kkkkk...kiNNNNnk...kkkkk....',
+          '.kSSzSSsssxxk..........kiNnkkNNnk....kkkkkk.',
+          '..kxssxKKKKk...........kinnkkNNnk...kiNNNNnk',
+          '..ksSSsxxxKk...........kkknkkNnnk...kNiiKNnk',
+          '.kksSSoKxxKkk.........kiNnkNNNnnk...knNNNnak',
+          'kiksSSsxxxKknk.kkkk...kNSnkxxxsk....kSsssxxk',
+          'knkxssxKKKKkakkiNNik..kNNnknNNnk....kNiNnnak',
+          '.kSSzSSsssxxkkiNkkNnk.kNnnknNNnk....kNiNnnak',
+          '..kxssxKKKKk.kNkkkkNk.kNNnknNnnk....kNiNnnak',
+          '...kkkkkkkk..kNnkkiNk.kkknksssxkkkk.kSsssxxk',
+          '....kssxKk....knNNnkk.kNikkKKxkiiNNkknNnnaak',
+          '....kSzsKk.....kkkkiNkkankssssknnnak.kkkkkk.',
+          '....kSsxKk.............kkxxxxxxkkkk.........',
+          '.....kxKk................kkkkkk.............',
+          '......kk....................................',
+        ],
+        parts: [
+          '................11111..............22222....',
+          '..4444444444...1111111...00..00...2222222...',
+          '.444444444444.111111111.00000000.222222222..',
+          '.444444444444111111111110000000022222222222.',
+          '..4444444444.111111111110000000022222222222.',
+          '...44444444.11111111111110000002222222222222',
+          '.4444444444411111111111110000002222222222222',
+          '44444444444411111111111110000002222222222222',
+          '44444444444411111111111110000002222222222222',
+          '.4444444444411111111111110000002222222222222',
+          '...44444444.11111111111110000002222222222222',
+          '...44444444.11111111111110000002222222222222',
+          '...44444444..111111111110000000022222222222.',
+          '..4444444444.111111111110000000022222222222.',
+          '.444444444444.111111111.00000000.222222222..',
+          '44444444444444.1111111..00000000..2222222...',
+          '44444444444444..11111...00000000...22222....',
+          '.444444444444..........0000000000....333333.',
+          '..4444444444...........0000000000...33333333',
+          '..4444444444...........0000000000...33333333',
+          '.444444444444.........00000000000...33333333',
+          '44444444444444.3333...0000000000....33333333',
+          '44444444444444333333..0000000000....33333333',
+          '.44444444444433333333.0000000000....33333333',
+          '..4444444444.33333333.0000000000....33333333',
+          '...44444444..33333333.0000000000000.33333333',
+          '....444444....3333333.0000000000000033333333',
+          '....444444.....333333300000000000000.333333.',
+          '....444444.............000000000000.........',
+          '.....4444................000000.............',
+          '......44....................................',
+        ],
+        names: [
+          'carriage',
+          'wheelL',
+          'wheelR',
+          'keg',
+          'lying',
+        ],
+      },
+      finished: {
+        ox: 0,
+        oy: -5,
+        w: 32,
+        h: 37,
+        rows: [
+          '...........kkkkkkkkkk...........',
+          '..........kzzzxKKxsxxk..........',
+          '..........kxxsxxKKKKKk..........',
+          '...........ksSSsxxxKk...........',
+          '............kksxKKkk............',
+          '...........kSzzSsssxk...........',
+          '............kxsxKKKk............',
+          '....kkkkk...ksSsxxKk...kkkkk....',
+          '...kSSSSSk..ksSsxxKk..kSSSSSk...',
+          '..kSSNNNSsk.ksSsxxKk.kSSNNNSsk..',
+          '.kSNNkikNnskksSsxxKkkSNNkikNnsk.',
+          '.kSNkkikknskksSsxxKkkSNkkikknsk.',
+          'kSNkikikiknkxssxKKKKkNkikikiknsk',
+          'kSNkikikikkksSzsxSxKkkkikikiknsk',
+          'kSNkkSSskkzssSSsxxxKszkkSSskkaxk',
+          'kSNiiSKxNkSxsSSsxxxKxSkiSKxNNaxk',
+          'kSNkksxxkkkSSzSSsssxxkkksxxkkaxk',
+          'ksNkNkNkNkakxssxKKKKkNkNkNkNkaxk',
+          'ksnkNkNkNkaksSSsxxxKknkNkNkNkaxk',
+          '.ksnkkNkkaxksSSoKxxKksnkkNkkaxk.',
+          '.ksnakNkaaxksSSsxxxKksnakNkaaxk.',
+          '..ksxaaaxxkkxssxKKKKkksxaaaxxk..',
+          '...kxxxxxkkSSzSSsssxxkkxxxxxk...',
+          '....kkkkk..kxssxKKKKk..kkkkk....',
+          '...........kkkkkkkkkk....kkkkkk.',
+          '....kkk....kikssxKknk...kiNNNNnk',
+          '...kxsxk...kkkSzsKknk...kNiiKNnk',
+          '..kxszsxk.kiNkSsxKknk...knNNNnak',
+          '..kssSxxk.kNSnkxKksk....kSsssxxk',
+          '..kxsxxKkkkNNnkkkNnk....kNiNnnak',
+          '.kxkxxKksxkNnnknNNnk....kNiNnnak',
+          'kxszkkkszskNNnknNnnk....kNiNnnak',
+          'kssSxkssSxkkknksssxkkkk.kSsssxxk',
+          'kxsxxkxsxxkNikkKKxkiiNNkknNnnaak',
+          '.kxxKkkxxKkankssssknnnak.kkkkkk.',
+          '..kkk..kkk.kkxxxxxxkkkk.........',
+          '.............kkkkkk.............',
+        ],
+        parts: [
+          '...........4444444444...........',
+          '..........444444444444..........',
+          '..........444444444444..........',
+          '...........4444444444...........',
+          '............44444444............',
+          '...........4444444444...........',
+          '............44444444............',
+          '....11111...44444444...22222....',
+          '...1111111..44444444..2222222...',
+          '..111111111.44444444.222222222..',
+          '.111111111114444444422222222222.',
+          '.111111111114444444422222222222.',
+          '11111111111444444444422222222222',
+          '11111111114444444444442222222222',
+          '11111111144444444444444222222222',
+          '11111111144444444444444222222222',
+          '11111111114444444444442222222222',
+          '11111111111444444444422222222222',
+          '11111111111444444444422222222222',
+          '.111111111144444444442222222222.',
+          '.111111111144444444442222222222.',
+          '..1111111114444444444222222222..',
+          '...11111114444444444442222222...',
+          '....11111..4444444444..22222....',
+          '...........0444444440....333333.',
+          '....333....0044444400...33333333',
+          '...33333...0044444400...33333333',
+          '..3333333.00044444400...33333333',
+          '..3333333.0000444400....33333333',
+          '..333333330000044000....33333333',
+          '.3333333330000000000....33333333',
+          '33333333330000000000....33333333',
+          '33333333330000000000000.33333333',
+          '33333333330000000000000033333333',
+          '.33333333300000000000000.333333.',
+          '..333..333.000000000000.........',
+          '.............000000.............',
+        ],
+        names: [
+          'carriage',
+          'wheelL',
+          'wheelR',
+          'props',
+          'barrel',
+        ],
+      },
+      props: [
+        {
+          ox: 0,
+          oy: 19,
+          w: 32,
+          h: 12,
+          rows: [
+            '.........................kkkkkk.',
+            '....kkk.................kiNNNNnk',
+            '...kxsxk................kNiiKNnk',
+            '..kxszsxk...............knNNNnak',
+            '..kssSxxk...............kSsssxxk',
+            '..kxsxxKkk..............kNiNnnak',
+            '.kxkxxKksxk.............kNiNnnak',
+            'kxszkkkszsxk............kNiNnnak',
+            'kssSxkssSxxk............kSsssxxk',
+            'kxsxxkxsxxKk............knNnnaak',
+            '.kxxKkkxxKk..............kkkkkk.',
+            '..kkk..kkk......................',
+          ],
+        },
+        {
+          ox: 0,
+          oy: 19,
+          w: 32,
+          h: 12,
+          rows: [
+            '.........................kkkkkk.',
+            '....kkk.................kiNNNNnk',
+            '...kxsxk................kNiiKNnk',
+            '..kxszsxk...............knNNNnak',
+            '..kssSxxk..............kSSsssxxk',
+            '..kxsxxKkk..............kNiNnnak',
+            '.kxkxxKksxk.............kNiNnnak',
+            'kxszkkkszsxk............kNiNnnak',
+            'kssSxkssSxxk............kSsssxxk',
+            'kxsxxkxsxxKk............knNnnaak',
+            '.kxxKkkxxKk..............kkkkkk.',
+            '..kkk..kkk......................',
+          ],
+        },
+        {
+          ox: -5,
+          oy: 19,
+          w: 37,
+          h: 14,
+          rows: [
+            '..............................kkkkkk.',
+            '.............................kiNNNNnk',
+            '.............................kNiiKNnk',
+            '.............................knNNNnak',
+            '............................kSSsssaxk',
+            '.......kkk..kkk..............kNiNnaak',
+            '..kkk.kxsxkkxsxk.............kNiNnaak',
+            '.kxsxkxszskxszsxk............kNiNnaak',
+            'kxszsxksSxkssSxxk............kSsssaxk',
+            'kssSxxksxxkxsxxKk............knNnnaak',
+            'kxsxxKkxxKkkxxKk..............kkkkkk.',
+            '.kxxKk.kkk..kkk......................',
+            '..kkk................................',
+            '..kkkk...............................',
+          ],
+        },
+      ],
+      carriage: [
+        {
+          ox: 10,
+          oy: 3,
+          w: 14,
+          h: 29,
+          rows: [
+            '...kk..kk.....',
+            '..kiikkNNk....',
+            '..kiNkkNnk....',
+            '..kSxkkxsk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNssNnk....',
+            '..kiNxxNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNnnNnk....',
+            '..kiNNNNnk....',
+            '..kSxiNxsk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '.kiNnkkNNnk...',
+            '.kinnkkNNnk...',
+            '.kkknkkNnnk...',
+            'kiNnkNNNnnk...',
+            'kNSnkxxxsk....',
+            'kNNnknNNnk....',
+            'kNnnknNNnk....',
+            'kNNnknNnnk....',
+            'kkknksssxkkkk.',
+            'kNikkKKxkiiNNk',
+            'kankssssknnnak',
+            '.kkxxxxxxkkkk.',
+            '...kkkkkk.....',
+          ],
+        },
+        {
+          ox: 10,
+          oy: 3,
+          w: 14,
+          h: 29,
+          rows: [
+            '...kk..kk.....',
+            '..kiikkNNk....',
+            '..kiNkkNnk....',
+            '..kSxkkxsk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNssNnk....',
+            '..kiNxxNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNnnNnk....',
+            '..kiNNNNnk....',
+            '..kSxiNxsk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '.kiNnkkNNnk...',
+            '.kinnkkNNnkk..',
+            '.kkknkkNnnkik.',
+            'kiNnkNNNnnNk..',
+            'kNSnkxxxaik...',
+            'kNNnknNNnk....',
+            'kNnnknNknk....',
+            'kNNnknink.....',
+            'kkknksskxkkkk.',
+            'kNikkKKxkiiNNk',
+            'kankssssknnnak',
+            '.kkxxxxxxkkkk.',
+            '...kkkkkk.....',
+          ],
+        },
+        {
+          ox: 7,
+          oy: 3,
+          w: 22,
+          h: 29,
+          rows: [
+            '......kk..kk..........',
+            '.....kiikkNNk.........',
+            '.....kiNkkNnk.........',
+            '.....kKxkkxsk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNssNnk.........',
+            '.....kiNxxNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNnnNnk.........',
+            '.....kiNNNNnk.........',
+            '.....kSxiNxsk.........',
+            '.....kiNNNNnk.......k.',
+            '.....kiNNNNnk......kik',
+            '..k..kiNNNNnk.....kNk.',
+            '.kikkiNnkkNNnk.....k..',
+            '..k.kinnkkNknkk.......',
+            '.....knnkkNnkkik......',
+            '....kkknNNNnnNk.......',
+            '...kiSnkxxxaiNnk......',
+            '..kiNnkNnNknikk.......',
+            '..kiNnknnNknnk........',
+            '.kiNnkikninkk.........',
+            '.kiNkkksiskxkkkk......',
+            'kiNkNikkKKxkiiNNk.....',
+            '.kkkankssssknnnak.....',
+            '....kkxxxxxxkkkk......',
+            '......kkkkkk..........',
+          ],
+        },
+      ],
+      wheels: {
+        at: [[-2,0],[17,0]],
+      },
+      barrel: {
+        pivot: [16,10],
+        aims: [-40,-20,0,20,40],
+        recoil: {
+          max: 3,
+        },
+        frames: {
+          '0': [
+            {
+              ox: 9,
+              oy: -5,
+              w: 14,
+              h: 30,
+              muzzle: [16,-4.5],
+              vent: [16,14],
+              dir: [0,-1],
+              band: [[12,12,1,1],[13,12,2,0],[15,12,1,1],[16,12,4,2],[12,13,1,1],[13,13,2,0],[15,13,1,1],[16,13,4,2]],
+              rows: [
+                '..kkkkkkkkkk..',
+                '.kzzzxKKxsxxk.',
+                '.kxxsxxKKKKKk.',
+                '..ksSSsxxxKk..',
+                '...kksxKKkk...',
+                '..kSzzSsssxk..',
+                '...kxsxKKKk...',
+                '...ksSsxxKk...',
+                '...ksSsxxKk...',
+                '...ksSsxxKk...',
+                '...ksSsxxKk...',
+                '...ksSsxxKk...',
+                '..kxssxKKKKk..',
+                '.kksSzsxSxKkk.',
+                'kzssSSsxxxKszk',
+                'kSxsSSsxxxKxSk',
+                '.kSSzSSsssxxk.',
+                '..kxssxKKKKk..',
+                '..ksSSsxxxKk..',
+                '..ksSSoKxxKk..',
+                '..ksSSsxxxKk..',
+                '..kxssxKKKKk..',
+                '.kSSzSSsssxxk.',
+                '..kxssxKKKKk..',
+                '...kkkkkkkk...',
+                '....kssxKk....',
+                '....kSzsKk....',
+                '....kSsxKk....',
+                '.....kxKk.....',
+                '......kk......',
+              ],
+            },
+            {
+              ox: 9,
+              oy: -5,
+              w: 14,
+              h: 30,
+              muzzle: [16,-4.5],
+              vent: [16,14],
+              dir: [0,-1],
+              band: [[12,12,1,1],[13,12,2,0],[15,12,1,1],[16,12,4,2],[12,13,1,1],[13,13,2,0],[15,13,1,1],[16,13,4,2]],
+              rows: [
+                '..kkkkkkkkkk..',
+                '.kzzzxKKxsxxk.',
+                '.kxxsxxKKxKKk.',
+                '..ksxSsxxKKk..',
+                '...kksxKxkk...',
+                '..kSzzSsssxk..',
+                '...kzSxKKKk...',
+                '...ksKxxxKk...',
+                '...ksSsxxzk...',
+                '...ksSsxSKk...',
+                '...ksSsSKKk...',
+                '...ksSxxxKk...',
+                '..kxssxKKKKk..',
+                '.kksSzsxSxKkk.',
+                'kzssSSsxxxKszk',
+                'kSxsSSsxxxKxSk',
+                '.kSSzSSsssxxk.',
+                '..kxssxKKKKk..',
+                '..ksSSsxxxKk..',
+                '..ksSSoKxxKk..',
+                '..ksSSxxxxKk..',
+                '..kxssxKKKKk..',
+                '.kSSzSSsssxxk.',
+                '..kxssxKKKKk..',
+                '...kkkkkkkk...',
+                '....kssxKk....',
+                '....kSzsKk....',
+                '....kSsxKk....',
+                '.....kxKk.....',
+                '......kk......',
+              ],
+            },
+            {
+              ox: 9,
+              oy: -5,
+              w: 14,
+              h: 30,
+              muzzle: [16,-4.5],
+              vent: [16,14],
+              dir: [0,-1],
+              band: [[12,12,1,1],[14,12,1,0],[15,12,1,1],[16,12,4,2],[12,13,1,1],[13,13,1,0],[15,13,1,1],[16,13,4,2]],
+              rows: [
+                '..kkkkkkkkkk..',
+                '.kzzzxKKxsxxk.',
+                '.kxxsxxKKxKKk.',
+                '..ksxSsxxKKk..',
+                '...kksxKxkk...',
+                '..kSzzSsssxk..',
+                '...kzSxKKKk...',
+                '...ksKxxxKk...',
+                '...ksSsxxzk...',
+                '...ksSsxSKk...',
+                '...ksSsSKKk...',
+                '...ksSxxxKk...',
+                '..kxssxKKKKk..',
+                '.kksSzsxSxKkk.',
+                'kzssSSsxSKKszk',
+                'kSxsSSsxxxKxSk',
+                '.kSSzKSsssxxk.',
+                '..kxKsxKKKKk..',
+                '..ksSKsxxxKk..',
+                '..ksKSoKxxKk..',
+                '..ksSSxxxxKk..',
+                '..kxssxKKKKk..',
+                '.kSSzSSsssxxk.',
+                '..kxssxKKKKk..',
+                '...kkkkkkkk...',
+                '....kssxKk....',
+                '....kSzsKk....',
+                '....kSsxKk....',
+                '.....kxKk.....',
+                '......kk......',
+              ],
+            },
+          ],
+          '20': [
+            {
+              ox: 8,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [21,-3.6],
+              vent: [14,13],
+              dir: [0.3,-0.9],
+              band: [[12,10,1,1],[11,11,1,2],[12,11,2,0],[14,11,2,1],[13,12,1,0],[14,12,2,1],[16,12,2,2],[15,13,4,2],[18,14,1,2]],
+              rows: [
+                '........kkk........',
+                '.......kSSzkk......',
+                '.......ksSzxKkkk...',
+                '.......kxsSssKxskk.',
+                '........kkSssxxxxxk',
+                '........kSSsxxxKKk.',
+                '.......kxSSSsxkkk..',
+                '.......ksSsxsxk....',
+                '.......ksSsxxKk....',
+                '......ksSssxxKk....',
+                '.....kksSsxxKk.....',
+                '....kxxSSsxxKk.....',
+                '..kkksSSssxxk......',
+                '.kzsksSssxxKk......',
+                '.kSxxsSssxxxKk.....',
+                '..kkSSSssxxKk......',
+                '...kszSSxxxKkk.....',
+                '..kxSSssssxKszk....',
+                '..ksSSssxxxkxSk....',
+                '.kxsSoKxxxKkkk.....',
+                '.ksSSssxxKKk.......',
+                'kSzzSsxxxKk........',
+                'kxssSSsxxKk........',
+                '.kkkxxKssxk........',
+                '..kSkkkKKxk........',
+                '.kxSsxkkkKk........',
+                '..ksxxk..k.........',
+                '..ksxk.............',
+                '...kk..............',
+              ],
+            },
+            {
+              ox: 8,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [21,-3.6],
+              vent: [14,13],
+              dir: [0.3,-0.9],
+              band: [[12,10,1,1],[11,11,1,2],[12,11,2,0],[14,11,2,1],[13,12,1,0],[14,12,2,1],[16,12,2,2],[15,13,4,2],[18,14,1,2]],
+              rows: [
+                '........kkk........',
+                '.......kSSzkk......',
+                '.......ksxzxKkkk...',
+                '.......kxxSssKxskk.',
+                '........kkSssxxKxxk',
+                '........kSSsxxKKKk.',
+                '.......kzSSSsxkkk..',
+                '.......ksSsxsxk....',
+                '.......ksSxxxKk....',
+                '......ksSssxxKk....',
+                '.....kksSsxSzk.....',
+                '....kxxSSsSKKk.....',
+                '..kkksSSxsxxk......',
+                '.kzsksSssxxKk......',
+                '.kSxxsSssxxxKk.....',
+                '..kkSSSssxxKk......',
+                '...kszSSxxxKkk.....',
+                '..kxSSssssxKszk....',
+                '..ksSSssxxxkxSk....',
+                '.kxsSoKxxxKkkk.....',
+                '.ksSSxxxxKKk.......',
+                'kSzzSsxxxKk........',
+                'kxssSSsxxKk........',
+                '.kkkxxKssxk........',
+                '..kSkkkKKxk........',
+                '.kxSsxkkkKk........',
+                '..ksxxk..k.........',
+                '..ksxk.............',
+                '...kk..............',
+              ],
+            },
+            {
+              ox: 8,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [21,-3.6],
+              vent: [14,13],
+              dir: [0.3,-0.9],
+              band: [[12,10,1,1],[11,11,1,2],[13,11,1,0],[14,11,2,1],[14,12,2,1],[16,12,2,2],[15,13,4,2],[18,14,1,2]],
+              rows: [
+                '........kkk........',
+                '.......kSSzkk......',
+                '.......ksxzxKkkk...',
+                '.......kxxSssKxskk.',
+                '........kkSssxxKxxk',
+                '........kSSsxxKKKk.',
+                '.......kzSSSsxkkk..',
+                '.......ksSsxsxk....',
+                '.......ksSxxxKk....',
+                '......ksSssxxKk....',
+                '.....kksSsxSzk.....',
+                '....kxxSSsSKKk.....',
+                '..kkksSSxsxxk......',
+                '.kzsksSssxxKk......',
+                '.kSxxsSssxxxKk.....',
+                '..kkSSSssSKKk......',
+                '...kszKSxxxKkk.....',
+                '..kxKSssssxKszk....',
+                '..ksKKssxxxkxSk....',
+                '.kxsSoKxxxKkkk.....',
+                '.ksSSxxxxKKk.......',
+                'kSzzSsxxxKk........',
+                'kxssSSsxxKk........',
+                '.kkkxxKssxk........',
+                '..kSkkkKKxk........',
+                '.kxSsxkkkKk........',
+                '..ksxxk..k.........',
+                '..ksxk.............',
+                '...kk..............',
+              ],
+            },
+          ],
+          '40': [
+            {
+              ox: 6,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [25.3,-1.1],
+              vent: [13,13],
+              dir: [0.6,-0.8],
+              band: [[11,9,1,2],[12,9,1,1],[11,10,1,1],[12,10,2,0],[12,11,1,0],[13,11,2,1],[14,12,3,2],[15,13,3,2],[16,14,1,2]],
+              rows: [
+                '...............k........',
+                '..............kSkk......',
+                '..............kszzk.....',
+                '.............kxsSxKk....',
+                '..............kSSsSKk...',
+                '.............kSSSssxxk..',
+                '............kxSzssxxxsk.',
+                '...........kxsSsSxxxKKxk',
+                '...........ksSssxsxkKkk.',
+                '.........kksSssxxKxkk...',
+                '.....kk.kssSssxxxKk.....',
+                '....kSsksSSSsxxxKk......',
+                '....kxxsSSssxxxKk.......',
+                '.....kSsSsssxxKk........',
+                '....kxszzssxxxKk........',
+                '...kxsSSSSxxxKKk........',
+                '.kkksSSssssxKKk.........',
+                'ksSsSSssxxxsKssk........',
+                'kSSzSsoKxxxKkxzk........',
+                '.kzzSssxxxKk.kk.........',
+                '..kSSSxxxKKk............',
+                '.kskksssKKk.............',
+                'ksSskkssxk..............',
+                '.ksxxkkxxk..............',
+                '.kxxKk.kxk..............',
+                '..kkk...k...............',
+              ],
+            },
+            {
+              ox: 6,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [25.3,-1.1],
+              vent: [13,13],
+              dir: [0.6,-0.8],
+              band: [[11,9,1,2],[12,9,1,1],[11,10,1,1],[12,10,2,0],[12,11,1,0],[13,11,2,1],[14,12,3,2],[15,13,3,2],[16,14,1,2]],
+              rows: [
+                '...............k........',
+                '..............kSkk......',
+                '..............kxzzk.....',
+                '.............kxsSxKk....',
+                '..............kxSsSKk...',
+                '.............kSSSssxxk..',
+                '............kzSzssxxxsk.',
+                '...........kxKSsSxxKKKxk',
+                '...........ksSxsxsxkKkk.',
+                '.........kksSssxxKxkk...',
+                '.....kk.kssSssxxxKk.....',
+                '....kSsksSSSxSxSzk......',
+                '....kxxsSSssxxKKk.......',
+                '.....kSsSsssxxKk........',
+                '....kxszzssxxxKk........',
+                '...kxsSSSSxxxKKk........',
+                '.kkksSSssssxKKk.........',
+                'ksSsSSssxxxsKssk........',
+                'kSSzSsxKxxxKkxzk........',
+                '.kzzSssxxxKk.kk.........',
+                '..kSSSxxxKKk............',
+                '.kskksssKKk.............',
+                'ksSskkssxk..............',
+                '.ksxxkkxxk..............',
+                '.kxxKk.kxk..............',
+                '..kkk...k...............',
+              ],
+            },
+            {
+              ox: 6,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [25.3,-1.1],
+              vent: [13,13],
+              dir: [0.6,-0.8],
+              band: [[11,9,1,2],[11,10,1,1],[12,10,2,0],[13,11,2,1],[14,12,3,2],[15,13,3,2],[16,14,1,2]],
+              rows: [
+                '...............k........',
+                '..............kSkk......',
+                '..............kxzzk.....',
+                '.............kxsSxKk....',
+                '..............kxSsSKk...',
+                '.............kSSSssxxk..',
+                '............kzSzssxxxsk.',
+                '...........kxKSsSxxKKKxk',
+                '...........ksSxsxsxkKkk.',
+                '.........kksSssxxKxkk...',
+                '.....kk.kssSssxxxKk.....',
+                '....kSsksSSSxSxSzk......',
+                '....kxxsSSssxxKKk.......',
+                '.....kSsSsssxxKk........',
+                '....kxKzKssxxxKk........',
+                '...kxsSSSSxSKKKk........',
+                '.kkksKKssssxKKk.........',
+                'ksSsSSssxxxsKssk........',
+                'kSSzSsxKxxxKkxzk........',
+                '.kzzSssxxxKk.kk.........',
+                '..kSSSxxxKKk............',
+                '.kskksssKKk.............',
+                'ksSskkssxk..............',
+                '.ksxxkkxxk..............',
+                '.kxxKk.kxk..............',
+                '..kkk...k...............',
+              ],
+            },
+          ],
+          '-40': [
+            {
+              ox: 2,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [6.7,-1.1],
+              vent: [18,13],
+              dir: [-0.6,-0.8],
+              band: [[19,9,2,2],[18,10,3,2],[17,11,1,1],[18,11,2,2],[15,12,1,0],[16,12,2,1],[14,13,1,1],[15,13,2,0],[15,14,1,1]],
+              rows: [
+                '........k...............',
+                '......kkxk..............',
+                '.....kssKk..............',
+                '....kKxxKKk.............',
+                '...kKSxxxk..............',
+                '..kxsssxxxk.............',
+                '.kzSSssxsxKk............',
+                'ksssSSsSxxKKk...........',
+                '.kkxkSzssxxKk...........',
+                '...kkssSssxxKkk.........',
+                '.....kxSSssxxKKk.kk.....',
+                '......ksSSsxxxxKksSk....',
+                '.......ksSSsxxxxKxxk....',
+                '........ksSssxxxKxk.....',
+                '........ksSSssxssKKk....',
+                '........kxsSSsSsxxKKk...',
+                '.........kssSSSsxxxKkkk.',
+                '........kssszSsssxxxKxxk',
+                '........kzxksSSoKxxxsxxk',
+                '.........kk.ksSSssxsssk.',
+                '............kxsSSsSssk..',
+                '.............kxszSSkkKk.',
+                '..............kSzzkksxKk',
+                '..............kSSkkSsxk.',
+                '..............ksk.kxSSk.',
+                '...............k...kkk..',
+              ],
+            },
+            {
+              ox: 2,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [6.7,-1.1],
+              vent: [18,13],
+              dir: [-0.6,-0.8],
+              band: [[19,9,2,2],[18,10,3,2],[17,11,1,1],[18,11,2,2],[15,12,1,0],[16,12,2,1],[14,13,1,1],[15,13,2,0],[15,14,1,1]],
+              rows: [
+                '........k...............',
+                '......kkxk..............',
+                '.....kssKk..............',
+                '....kKxxKKk.............',
+                '...kKSxxKk..............',
+                '..kxsssxxxk.............',
+                '.kzSSssxsxKk............',
+                'ksxsxSsSxxKKk...........',
+                '.kkxkSzssxxzk...........',
+                '...kkszSxsxSKkk.........',
+                '.....kxSSssKxKKk.kk.....',
+                '......ksSSsxxxxKksSk....',
+                '.......ksSSxxxxxKxxk....',
+                '........ksSssxxxKxk.....',
+                '........ksSSssxssKKk....',
+                '........kxsSSsSsxxKKk...',
+                '.........kssSSSsxxxKkkk.',
+                '........kssszSsssxxxKxxk',
+                '........kzxksSSoKxxxsxxk',
+                '.........kk.ksSSxsxsssk.',
+                '............kxsSSsSssk..',
+                '.............kxszSSkkKk.',
+                '..............kSzzkksxKk',
+                '..............kSSkkSsxk.',
+                '..............ksk.kxSSk.',
+                '...............k...kkk..',
+              ],
+            },
+            {
+              ox: 2,
+              oy: -5,
+              w: 24,
+              h: 26,
+              muzzle: [6.7,-1.1],
+              vent: [18,13],
+              dir: [-0.6,-0.8],
+              band: [[19,9,2,2],[18,10,3,2],[17,11,1,1],[18,11,2,2],[15,12,1,0],[16,12,2,1],[14,13,1,1],[15,14,1,1]],
+              rows: [
+                '........k...............',
+                '......kkxk..............',
+                '.....kssKk..............',
+                '....kKxxKKk.............',
+                '...kKSxxKk..............',
+                '..kxsssxxxk.............',
+                '.kzSSssxsxKk............',
+                'ksxsxSsSxxKKk...........',
+                '.kkxkSzssxxzk...........',
+                '...kkszSxsxSKkk.........',
+                '.....kxSSssKxKKk.kk.....',
+                '......ksSSsxxxxKksSk....',
+                '.......ksSSxxxxKKxxk....',
+                '........ksSssxSxKxk.....',
+                '........ksSSssxssKKk....',
+                '........kxsSSsSsxxKKk...',
+                '.........kssSKSsxxxKkkk.',
+                '........kssszSsssxxxKxxk',
+                '........kzxksKKoKxxxsxxk',
+                '.........kk.ksKSxsxsssk.',
+                '............kxsSSsSssk..',
+                '.............kxszSSkkKk.',
+                '..............kSzzkksxKk',
+                '..............kSSkkSsxk.',
+                '..............ksk.kxSSk.',
+                '...............k...kkk..',
+              ],
+            },
+          ],
+          '-20': [
+            {
+              ox: 5,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [11,-3.6],
+              vent: [17,13],
+              dir: [-0.3,-0.9],
+              band: [[19,10,1,2],[16,11,1,1],[17,11,4,2],[14,12,1,0],[15,12,2,1],[17,12,2,2],[13,13,1,1],[14,13,2,0],[13,14,1,2]],
+              rows: [
+                '........kkk........',
+                '......kksxxk.......',
+                '...kkkKxsxKk.......',
+                '.kkzxKsxxKKk.......',
+                'ksSSSssxxkk........',
+                '.kssSSsxxxk........',
+                '..kkkSSSsxKk.......',
+                '....kSzsxxKk.......',
+                '....ksSssxKk.......',
+                '....kxSSsxxKk......',
+                '.....ksSsxxKkk.....',
+                '.....ksSssxxKKk....',
+                '......kSSsxxxKkkk..',
+                '......ksSssxxKkszk.',
+                '.....kxSSssxxKKxSk.',
+                '......ksSssxxxxkk..',
+                '.....kksSSsSssKk...',
+                '....kzsxSzSsxxxKk..',
+                '....kSxkSSssxxxKk..',
+                '.....kkksSSoKxxKKk.',
+                '.......kxsSssxxxKk.',
+                '........ksSSsxxssxk',
+                '........ksSSSSsKKKk',
+                '........kSzzxxKkkk.',
+                '........kSsskkkxk..',
+                '........kKkkkSsxKk.',
+                '.........k..kSsxk..',
+                '.............kSxk..',
+                '..............kk...',
+              ],
+            },
+            {
+              ox: 5,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [11,-3.6],
+              vent: [17,13],
+              dir: [-0.3,-0.9],
+              band: [[19,10,1,2],[16,11,1,1],[17,11,4,2],[14,12,1,0],[15,12,2,1],[17,12,2,2],[13,13,1,1],[14,13,2,0],[13,14,1,2]],
+              rows: [
+                '........kkk........',
+                '......kksxxk.......',
+                '...kkkKxxKKk.......',
+                '.kkzxKsxxKKk.......',
+                'ksSxSssxxkk........',
+                '.kssxSsxxxk........',
+                '..kkkSSSsxKk.......',
+                '....kSzsxxKk.......',
+                '....kzSxsxzk.......',
+                '....kxSSsxSKk......',
+                '.....ksSsxKKkk.....',
+                '.....ksSsSxxKKk....',
+                '......kSSxxxxKkkk..',
+                '......ksSssxxKkszk.',
+                '.....kxSSssxxKKxSk.',
+                '......ksSssxxxxkk..',
+                '.....kksSSsSssKk...',
+                '....kzsxSzSsxxxKk..',
+                '....kSxkSSssxxxKk..',
+                '.....kkksSSoKxxKKk.',
+                '.......kxsSsxxxxKk.',
+                '........ksSSsxxssxk',
+                '........ksSSSSsKKKk',
+                '........kSzzxxKkkk.',
+                '........kSsskkkxk..',
+                '........kKkkkSsxKk.',
+                '.........k..kSsxk..',
+                '.............kSxk..',
+                '..............kk...',
+              ],
+            },
+            {
+              ox: 5,
+              oy: -6,
+              w: 19,
+              h: 29,
+              muzzle: [11,-3.6],
+              vent: [17,13],
+              dir: [-0.3,-0.9],
+              band: [[19,10,1,2],[16,11,1,1],[17,11,4,2],[15,12,2,1],[17,12,2,2],[13,13,1,1],[14,13,1,0],[13,14,1,2]],
+              rows: [
+                '........kkk........',
+                '......kksxxk.......',
+                '...kkkKxxKKk.......',
+                '.kkzxKsxxKKk.......',
+                'ksSxSssxxkk........',
+                '.kssxSsxxxk........',
+                '..kkkSSSsxKk.......',
+                '....kSzsxxKk.......',
+                '....kzSxsxzk.......',
+                '....kxSSsxSKk......',
+                '.....ksSsxKKkk.....',
+                '.....ksSsSxxKKk....',
+                '......kSSxxxxKkkk..',
+                '......ksSssxxKkszk.',
+                '.....kxSSssxSKKxSk.',
+                '......ksSssxxxxkk..',
+                '.....kksSSsSssKk...',
+                '....kzsxSKSsxxxKk..',
+                '....kSxkSKssxxxKk..',
+                '.....kkksSKoKxxKKk.',
+                '.......kxsKsxxxxKk.',
+                '........ksSSsxxssxk',
+                '........ksSSSSsKKKk',
+                '........kSzzxxKkkk.',
+                '........kSsskkkxk..',
+                '........kKkkkSsxKk.',
+                '.........k..kSsxk..',
+                '.............kSxk..',
+                '..............kk...',
+              ],
+            },
+          ],
+        },
+      },
+      broken: {
+        ox: 0,
+        oy: -3,
+        w: 33,
+        h: 36,
+        rows: [
+          '.......................kk........',
+          '......................kxskk......',
+          '......................kxsSSk.....',
+          '......................kxssxKk....',
+          '.......................ksxxsxk...',
+          '......................kssxxxxxkk.',
+          '....kkkkk.....k......kxssxxxxxxxk',
+          '...kSSSSSk...kik..kkkxssxxxkKKKk.',
+          '..kSSNNNSsk..kiNkkNkxssxxxxxkkk..',
+          '.kSNNkkiNnskkSSxkkkxxsxxxxKk.....',
+          '.kSNikkiknskkikkkxssSxxxxKk......',
+          'kSNkkikikinskkSsksSSssxxKKk......',
+          'kSNkkiikiknskkxxsSSssxxxKk.......',
+          'kSNkkSSskkaxkKkSsSsssxxKk........',
+          'kSNkkSKxkkaxkkxszzssxxxKk........',
+          'kSNkksxxNNaxkksSSSSxxxKKk........',
+          'ksNkkkNNkkakksSSssssxKKk.........',
+          'ksnkkNkNkkkSssSsssxxsKssk..kk....',
+          '.ksnkNkkNkSSzSSoKxxxKkxzk.kiNk...',
+          '.ksnaNkkaakzzSssxxxKKkkk...knk...',
+          '..ksxaaaiNkkzSSxxxKKk.......k....',
+          '...kxxxxxnkxkkSssKKk.............',
+          '...kkkkkkkkSskksssk....kkkk......',
+          '..kxsxk...kssxkksxxk.kkSSSSkk....',
+          '.kxszsxk.kksxKkNkxk.kSSNNNNssk...',
+          '.kssSxxk..kkkkNNnkkkSSNkkkinssk..',
+          '.kxsxxKk..kSxxxxaakkSNkkkkikaxk..',
+          '..kxxKk...kiNnNNskkSSNiikSiiaxxk.',
+          '.kkkkkkkk.kinkkknkkSSNkkSKxiaxxk.',
+          'kiNsNNsNkkkikxsxkkkxSNNNkxkkaxxk.',
+          'kNNsNNsnNkkkxszsxkkkssnkkkkaxxk..',
+          'knnxnnxnakskssSkkkiikssnaaaxxxk..',
+          '.kkkkkkkkkskxkkiiinnkxxxxxxxxk...',
+          '.........kxxkiinnnkk.kkxxxxkk....',
+          '..........kkkankkk.....kkkk......',
+          '.............kk..................',
+        ],
+      },
+      shadow: [16,18,15,3],
+      hpLift: 12,
+    },
+    down: {
+      stage1: {
+        ox: -1,
+        oy: 0,
+        w: 34,
+        h: 32,
+        rows: [
+          '...................kkk............',
+          '.............kkk..kNNnk...........',
+          '....kkkk..S.kiNnk.kNnnk.kkkk......',
+          '...kiNNik..xkiNnk.kNNnkkiiNnk.....',
+          '..kiNkkNnk..kkkkkkkkkkkkNNnnk.....',
+          '..kNkkkkNk..kiSNNNNNSnkknnaak.....',
+          '..kNnkkiNk..knnnnnnnnnk.kkkkNk....',
+          '...knNNnkk..kkkkkkkkkkk.....kNk...',
+          '....kkkkiNk.kiSnk.kNNnk......kNk..',
+          '............kiNnk.kNnnk.......kak.',
+          '............kiNnk.kNNnk........k..',
+          '............kinnk.kNNnk...........',
+          '............kinnk.kNNnk...........',
+          '..kkkkk.....kiNnk.kNSnk...........',
+          '.kiiiiikkkkkkiNnk.kNNnk...........',
+          '.kannnniiiiiikSnk.kNNnk...S.......',
+          '.kkkkkknnnnnnkNnk.kNnnk..x........',
+          '.knnnnnkkkkkkiNnk.kNnnk.S.........',
+          'kiiSNNNNNSNnkiNnk.kNNnk..x........',
+          'knnnnnnnnnnakinnk.kNNnk...........',
+          '.kiiSNNNNNSNnknnk.kNNnk...........',
+          '.knnnnnnnnnnakNnk..kkkkkkkkkkk....',
+          '..kkkkkkkkkkkiSnk...kkSzSSSSSskk..',
+          '............kiNnk..kSSNNNNNNNNNsk.',
+          '.............kkk..kSNNknknnknkNNsk',
+          '..................kSNnnnnaannnnnxk',
+          '..kkkkkkkkkkk.....kSNNknknnknkNnxk',
+          '.kSiNNNNNNNNsk....kxsnNNnnnnnaaxxk',
+          '.ksnnnnannnnxk....kxxssssssssxxxKk',
+          '..kkkkkkkkkkk......kxxxxxxxxxxKKk.',
+          '....................kkKKKKKKKKkk..',
+          '......................kkkkkkkk....',
+        ],
+        parts: [
+          '...................111............',
+          '.............000..11111...........',
+          '....7777..7.00000.11111.7777......',
+          '...777777..700000.11111777777.....',
+          '..77777777..02222222221777777.....',
+          '..77777777..22222222222777777.....',
+          '..77777777..22222222222.777777....',
+          '...7777777..02222222221.....777...',
+          '....7777777.00000.11111......777..',
+          '............00000.11111.......777.',
+          '............00000.11111........7..',
+          '............00000.11111...........',
+          '............00000.11111...........',
+          '..44444.....00000.11111...........',
+          '.4444444444440000.11111...........',
+          '.4444444444444000.11111...7.......',
+          '.3444444444444000.11111..7........',
+          '.3333334444440000.11111.7.........',
+          '33333333333330000.11111..7........',
+          '33333333333330000.11111...........',
+          '.3333333333333000.11111...........',
+          '.3333333333333000..11166666666....',
+          '..333333333330000...666666666666..',
+          '............00000..66666666666666.',
+          '.............000..6666666666666666',
+          '..................6666666666666666',
+          '..55555555555.....6666666666666666',
+          '.5555555555555....6666666666666666',
+          '.5555555555555....6666666666666666',
+          '..55555555555......66666666666666.',
+          '....................666666666666..',
+          '......................66666666....',
+        ],
+        names: [
+          'left',
+          'right',
+          'transom',
+          'pile',
+          'beam',
+          'axle',
+          'wheel',
+          'tools',
+        ],
+      },
+      stage2: {
+        ox: 0,
+        oy: -1,
+        w: 44,
+        h: 34,
+        rows: [
+          '...........kkk..............................',
+          '..........kiNnkkkkk......kkkkkk.............',
+          '...kkkk...kkknksssxkkkk.kiNNNNnk............',
+          '..kiNNik..kNikkKKxkiiNNkkNiiKNnk............',
+          '.kiNkkNnk.kankksssknnnakknNNNnakkkkkkkkkkk..',
+          '.kNkkkkNk.kkknkxxxskkkk.kSsssxxkzzzxKKxsxxk.',
+          '.kNnkkiNk.kNSnknNNnk....kNiNnnakxxsxxKKKKKk.',
+          '..knNNnkk.knnakkkNnnk...kNiNnnakksSSsxxxKk..',
+          '...kkkkiNk.kkknkkNNnk...kNiNnnak.kksxKKkk...',
+          '...........kiNnkkNNnk...kSsssxxkkSzzSsssxkk.',
+          '....kkkkk...kiNNNNnk...kkkkknaakNkxsxKKKkNnk',
+          '...kSSSSSk..kiNNNNnk..kSSSSSkkknnksSsxxKknak',
+          '..kSSNNNSsk.kiNNNNnk.kSSNNNSsk.kkksSsxxKkkk.',
+          '.kSNNkikNnskkSxiNxskkSNNkikNnsk..ksSsxxKk...',
+          '.kSNkkikknskkiNNNNnkkSNkkikknsk..ksSsxxKk...',
+          'kSNkikikiknskiNnnNnkSNkikikiknsk.ksSsxxKk...',
+          'kSNkikikiknskiNkkNnkSNkikikiknskkxssxKKKKk..',
+          'kSNkkSSskkaxkiNkkNnkSNkkSSskkaxkksSzsxSxKkk.',
+          'kSNiiSKxNNaxkKaxxKakSNiiSKxNNaxkssSSsxxxKszk',
+          'kSNkksxxkkaxkaassaakSNkksxxkkaxkxsSSsxxxKxSk',
+          'ksNkNkNkNkaxkiNkkNnksNkNkNkNkaxkSSzSSsssxxk.',
+          'ksnkNkNkNkaxkiNkkNnksnkNkNkNkaxkkxssxKKKKk..',
+          '.ksnkkNkkaxkkSxkkxskksnkkNkkaxk.ksSSsxxxKk..',
+          '.ksnakNkaaxkkiNkkNnkksnakNkaaxkkksSSoKxxKkk.',
+          '..ksxaaaxxk.kiNkkNnk.ksxaaaxxkkiksSSsxxxKknk',
+          '...kxxxxxk..knnkkaak..kxxxxxk.knkxssxKKKKkak',
+          '....kkkkk....kk..kk....kkkkk...kSSzSSsssxxk.',
+          '................................kxssxKKKKk..',
+          '.................................kkkkkkkk...',
+          '..................................kssxKk....',
+          '..................................kSzsKk....',
+          '..................................kSsxKk....',
+          '...................................kxKk.....',
+          '....................................kk......',
+        ],
+        parts: [
+          '...........000..............................',
+          '..........000000000......333333.............',
+          '...3333...0000000000000.33333333............',
+          '..333333..0000000000000033333333............',
+          '.33333333.00000000000000333333334444444444..',
+          '.33333333.0000000000000.3333333344444444444.',
+          '.33333333.0000000000....3333333344444444444.',
+          '..3333333.00000000000...333333334444444444..',
+          '...3333333.0000000000...33333333.44444444...',
+          '...........0000000000...3333333344444444444.',
+          '....11111...00000000...222223333444444444444',
+          '...1111111..00000000..2222222334444444444444',
+          '..111111111.00000000.222222222.444444444444.',
+          '.111111111110000000022222222222..44444444...',
+          '.111111111110000000022222222222..44444444...',
+          '11111111111110000002222222222222.44444444...',
+          '111111111111100000022222222222224444444444..',
+          '1111111111111000000222222222222244444444444.',
+          '11111111111110000002222222222222444444444444',
+          '11111111111110000002222222222222444444444444',
+          '1111111111111000000222222222222244444444444.',
+          '111111111111100000022222222222224444444444..',
+          '.111111111110000000022222222222.4444444444..',
+          '.111111111110000000022222222222444444444444.',
+          '..111111111.00000000.22222222244444444444444',
+          '...1111111..00000000..2222222.44444444444444',
+          '....11111....00..00....22222...444444444444.',
+          '................................4444444444..',
+          '.................................44444444...',
+          '..................................444444....',
+          '..................................444444....',
+          '..................................444444....',
+          '...................................4444.....',
+          '....................................44......',
+        ],
+        names: [
+          'carriage',
+          'wheelL',
+          'wheelR',
+          'keg',
+          'lying',
+        ],
+      },
+      finished: {
+        ox: 0,
+        oy: -1,
+        w: 32,
+        h: 32,
+        rows: [
+          '...........kkk..................',
+          '..........kiNnkkkkk......kkkkkk.',
+          '....kkk...kkknksssxkkkk.kiNNNNnk',
+          '...kxsxk..kNikkKKxkiiNNkkNiiKNnk',
+          '..kxszsxk.kankksssknnnakknNNNnak',
+          '..kssSxxk.kkknkkkxskkkk.kSsssxxk',
+          '..kxsxxKkkkNSnkSxknk....kNiNnnak',
+          '.kxkxxKksxknnkssxKknk...kNiNnnak',
+          'kxszkkkszsxkkkssxKknk...kNiNnnak',
+          'kssSxkssSxxkkkkkkkkkk...kSsssxxk',
+          'kxsxkkkkkxkSSzSSsssxxk.kkkkknaak',
+          '.kxkSSSSSkkkKxxKKKKKk.kSSSSSkkk.',
+          '..kSSNNNSskksSSsxxxKkkSSNNNSsk..',
+          '.kSNNkikNnsksSSoKxxKkSNNkikNnsk.',
+          '.kSNkkikknsksSSsxxxKkSNkkikknsk.',
+          'kSNkikikiknksSSsxxxKkNkikikiknsk',
+          'kSNkikikikkksSSsxxxKkkkikikiknsk',
+          'kSNkkSSskzsSSzSSsssxxszkSSskkaxk',
+          'kSNiiSKxNksKxssxKKKKKskiSKxNNaxk',
+          'kSNkksxxkkkksSzsxSxKkkkksxxkkaxk',
+          'ksNkNkNkNkakxssxKKKKkNkNkNkNkaxk',
+          'ksnkNkNkNkaxksSsxxKksnkNkNkNkaxk',
+          '.ksnkkNkkaxkksSsxxKkksnkkNkkaxk.',
+          '.ksnakNkaaxkksSsxxKkksnakNkaaxk.',
+          '..ksxaaaxxkkSzzSsssxkksxaaaxxk..',
+          '...kxxxxxk..kKyyyyKk..kxxxxxk...',
+          '....kkkkk..kzyKKKKosk..kkkkk....',
+          '...........kzyKKKKoxk...........',
+          '...........kSyxKKxoxk...........',
+          '...........kSSooooxxk...........',
+          '............kkssxxkk............',
+          '..............kkkk..............',
+        ],
+        parts: [
+          '...........000..................',
+          '..........000000000......333333.',
+          '....333...0000000000000.33333333',
+          '...33333..0000000000000033333333',
+          '..3333333.0000000000000033333333',
+          '..3333333.0000044000000.33333333',
+          '..333333330000444400....33333333',
+          '.33333333300044444400...33333333',
+          '333333333330044444400...33333333',
+          '333333333334444444444...33333333',
+          '3333111113444444444444.222223333',
+          '.33111111134444444444.222222233.',
+          '..1111111114444444444222222222..',
+          '.111111111144444444442222222222.',
+          '.111111111144444444442222222222.',
+          '11111111111444444444422222222222',
+          '11111111144444444444444222222222',
+          '11111111444444444444444422222222',
+          '11111111144444444444444222222222',
+          '11111111114444444444442222222222',
+          '11111111111444444444422222222222',
+          '11111111111144444444222222222222',
+          '.111111111114444444422222222222.',
+          '.111111111114444444422222222222.',
+          '..1111111114444444444222222222..',
+          '...1111111..44444444..2222222...',
+          '....11111..4444444444..22222....',
+          '...........4444444444...........',
+          '...........4444444444...........',
+          '...........4444444444...........',
+          '............44444444............',
+          '..............4444..............',
+        ],
+        names: [
+          'carriage',
+          'wheelL',
+          'wheelR',
+          'props',
+          'barrel',
+        ],
+      },
+      props: [
+        {
+          ox: 0,
+          oy: 0,
+          w: 32,
+          h: 12,
+          rows: [
+            '.........................kkkkkk.',
+            '....kkk.................kiNNNNnk',
+            '...kxsxk................kNiiKNnk',
+            '..kxszsxk...............knNNNnak',
+            '..kssSxxk...............kSsssxxk',
+            '..kxsxxKkk..............kNiNnnak',
+            '.kxkxxKksxk.............kNiNnnak',
+            'kxszkkkszsxk............kNiNnnak',
+            'kssSxkssSxxk............kSsssxxk',
+            'kxsxxkxsxxKk............knNnnaak',
+            '.kxxKkkxxKk..............kkkkkk.',
+            '..kkk..kkk......................',
+          ],
+        },
+        {
+          ox: 0,
+          oy: 0,
+          w: 32,
+          h: 12,
+          rows: [
+            '.........................kkkkkk.',
+            '....kkk.................kiNNNNnk',
+            '...kxsxk................kNiiKNnk',
+            '..kxszsxk...............knNNNnak',
+            '..kssSxxk..............kSSsssxxk',
+            '..kxsxxKkk..............kNiNnnak',
+            '.kxkxxKksxk.............kNiNnnak',
+            'kxszkkkszsxk............kNiNnnak',
+            'kssSxkssSxxk............kSsssxxk',
+            'kxsxxkxsxxKk............knNnnaak',
+            '.kxxKkkxxKk..............kkkkkk.',
+            '..kkk..kkk......................',
+          ],
+        },
+        {
+          ox: -5,
+          oy: 0,
+          w: 37,
+          h: 13,
+          rows: [
+            '..............................kkkkkk.',
+            '.............................kiNNNNnk',
+            '.............................kNiiKNnk',
+            '.............................knNNNnak',
+            '............................kSSsssaxk',
+            '..kkk..kkk..kkk..............kNiNnaak',
+            '.kxsxkkxsxkkxsxk.............kNiNnaak',
+            'kxszsxkszskxszsxk............kNiNnaak',
+            'kssSxxksSxkssSxxk............kSsssaxk',
+            'kxsxxKksxxkxsxxKk............knNnnaak',
+            '.kxxKkkxxKkkxxKk..............kkkkkk.',
+            '..kkk..kkk..kkk......................',
+            '..kkkk...............................',
+          ],
+        },
+      ],
+      carriage: [
+        {
+          ox: 10,
+          oy: -1,
+          w: 14,
+          h: 27,
+          rows: [
+            '.kkk..........',
+            'kiNnkkkkk.....',
+            'kkknksssxkkkk.',
+            'kNikkKKxkiiNNk',
+            'kankksssknnnak',
+            'kkknkxxxskkkk.',
+            'kNSnknNNnk....',
+            'knnakkkNnnk...',
+            '.kkknkkNNnk...',
+            '.kiNnkkNNnk...',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kSxiNxsk....',
+            '..kiNNNNnk....',
+            '..kiNnnNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNxxNnk....',
+            '..kiNssNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kSxkkxsk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..knnkkaak....',
+            '...kk..kk.....',
+          ],
+        },
+        {
+          ox: 10,
+          oy: -1,
+          w: 14,
+          h: 27,
+          rows: [
+            '.kkk..........',
+            'kiNnkkkk......',
+            'kkknksiskkkkk.',
+            'kNikkKKkkiiNNk',
+            'kankksssknnnak',
+            'kkknkxxxaikkk.',
+            'kNSnknNNnkNk..',
+            'knnakkkNnnkik.',
+            '.kkknkkNNnkk..',
+            '.kiNnkkNNnk...',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kiNNNNnk....',
+            '..kSxiNxsk....',
+            '..kiNNNNnk....',
+            '..kiNnnNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kiNxxNnk....',
+            '..kiNssNnk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..kSxkkxsk....',
+            '..kiNkkNnk....',
+            '..kiNkkNnk....',
+            '..knnkkaak....',
+            '...kk..kk.....',
+          ],
+        },
+        {
+          ox: 7,
+          oy: -1,
+          w: 22,
+          h: 27,
+          rows: [
+            '.......kk.............',
+            '......kkikk...........',
+            '....kksksiskkkkk......',
+            '...kNikSKKkkiiNNk.....',
+            '...kankssssknnnak.....',
+            '....kkkxxxxaikkk......',
+            '...kiSnknNNkknk.......',
+            '..kiNnknkkNkkiik......',
+            '..kiNnknkkNknkNnk.....',
+            '.kiNnkNnkkNNnkkk......',
+            '.kiNnkiNNNNnk.........',
+            'kiNnkkiNNNNnk.........',
+            '.kkk.kiNNNNnk......k..',
+            '.kik.kSxiNxsk.....kNk.',
+            '..k..kiNNNNnk......kik',
+            '.....kiNnnNnk.......k.',
+            '.....kiNkkNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNxxNnk.........',
+            '.....kiNssNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNkkNnk.........',
+            '.....kKxkkxsk.........',
+            '.....kiNkkNnk.........',
+            '.....kiNkkNnk.........',
+            '.....knnkkaak.........',
+            '......kk..kk..........',
+          ],
+        },
+      ],
+      wheels: {
+        at: [[-2,7],[17,7]],
+      },
+      barrel: {
+        pivot: [16,17],
+        aims: [-40,-20,0,20,40],
+        recoil: {
+          max: 3,
+        },
+        frames: {
+          '0': [
+            {
+              ox: 8,
+              oy: 4,
+              w: 16,
+              h: 27,
+              muzzle: [16,27],
+              vent: [16,12],
+              dir: [0,1],
+              band: [[12,13,1,1],[13,13,2,0],[15,13,1,1],[16,13,4,2],[12,14,1,1],[13,14,2,0],[15,14,1,1],[16,14,4,2]],
+              rows: [
+                '.......kk.......',
+                '......kSxk......',
+                '.....kssxKk.....',
+                '.....kssxKk.....',
+                '...kkkkkkkkkk...',
+                '..kSSzSSsssxxk..',
+                '...kKxxKKKKKk...',
+                '...ksSSsxxxKk...',
+                '...ksSSoKxxKk...',
+                '...ksSSsxxxKk...',
+                '...ksSSsxxxKk...',
+                '.kkksSSsxxxKkkk.',
+                'kzsSSzSSsssxxszk',
+                '.ksKxssxKKKKKsk.',
+                '..kksSzsxSxKkk..',
+                '...kxssxKKKKk...',
+                '....ksSsxxKk....',
+                '....ksSsxxKk....',
+                '....ksSsxxKk....',
+                '...kSzzSsssxk...',
+                '....kKyyyyKk....',
+                '...kzyKKKKosk...',
+                '...kzyKKKKoxk...',
+                '...kSyxKKxoxk...',
+                '...kSSooooxxk...',
+                '....kkssxxkk....',
+                '......kkkk......',
+              ],
+            },
+            {
+              ox: 8,
+              oy: 4,
+              w: 16,
+              h: 27,
+              muzzle: [16,27],
+              vent: [16,12],
+              dir: [0,1],
+              band: [[12,13,1,1],[13,13,2,0],[17,13,3,2],[12,14,1,1],[13,14,2,0],[15,14,1,1],[16,14,4,2]],
+              rows: [
+                '.......kk.......',
+                '......kSxk......',
+                '.....kssxKk.....',
+                '.....kssxKk.....',
+                '...kkkkkkkkkk...',
+                '..kSSzSSsssxxk..',
+                '...kxxxKKKKKk...',
+                '...ksSSxxxxKk...',
+                '...ksSSoKxxKk...',
+                '...ksSSxxxxKk...',
+                '...ksSSsxxxKk...',
+                '.kkksSSsxxxKkkk.',
+                'kzsSSxSSsssxxszk',
+                '.ksKxzSxKKKKKsk.',
+                '..kksSzsxSxKkk..',
+                '...kxKsxKKKKk...',
+                '....ksSsxxzk....',
+                '....ksSsSKKk....',
+                '....ksSxxxKk....',
+                '...kSzzSssxxk...',
+                '....kxyyyyKk....',
+                '...kzyxKKKosk...',
+                '...kzyKKKKoxk...',
+                '...kSyxKKxoxk...',
+                '...kSSooooxxk...',
+                '....kkssxxkk....',
+                '......kkkk......',
+              ],
+            },
+            {
+              ox: 8,
+              oy: 4,
+              w: 16,
+              h: 27,
+              muzzle: [16,27],
+              vent: [16,12],
+              dir: [0,1],
+              band: [[12,13,1,1],[17,13,3,2],[12,14,1,1],[13,14,1,0],[15,14,1,1],[16,14,4,2]],
+              rows: [
+                '.......kk.......',
+                '......kSxk......',
+                '.....kssxKk.....',
+                '.....kssxKk.....',
+                '...kkkkkkkkkk...',
+                '..kSSzSSsssxxk..',
+                '...kxxxKKKKKk...',
+                '...ksSSxxxxKk...',
+                '...ksSSoKxxKk...',
+                '...ksKKxxxxKk...',
+                '...ksSKsxxxKk...',
+                '.kkksKSsxSKKkkk.',
+                'kzsSSxSSssxxxszk',
+                '.ksKxzSxKKKKKsk.',
+                '..kksSzsxSxKkk..',
+                '...kxKsxKKKKk...',
+                '....ksSsxxzk....',
+                '....ksSsSKKk....',
+                '....ksSxxxKk....',
+                '...kSzzSssxxk...',
+                '....kxyyyyKk....',
+                '...kzyxKKKosk...',
+                '...kzyKKKKoxk...',
+                '...kSyxKKxoxk...',
+                '...kSSooooxxk...',
+                '....kkssxxkk....',
+                '......kkkk......',
+              ],
+            },
+          ],
+          '20': [
+            {
+              ox: 8,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [19.5,26.5],
+              vent: [14,12],
+              dir: [0.3,0.9],
+              band: [[18,12,1,2],[15,13,4,2],[12,14,2,0],[14,14,2,1],[16,14,1,2],[11,15,1,2],[12,15,2,0]],
+              rows: [
+                '...kkk...........',
+                '..kSxxk..k.......',
+                '.kxSsxKkkxk......',
+                '..kSkksssxk......',
+                '.kkkSSssKKk......',
+                'kSzzSSxxxKk......',
+                'kSzSSsxxxKk......',
+                '.ksSSoKxxKKk.....',
+                '.kxsSssxxxKkkk...',
+                '..ksSSssxxKkszk..',
+                '..kxSSssxsxKxSk..',
+                '...ksSSSxxxKkk...',
+                '..kkSSSssxxKk....',
+                '.kzsxsSssxxxk....',
+                '.kSxksSssxxKk....',
+                '..kkksSSssxxk....',
+                '.....kxSSsxxKk...',
+                '......ksSsxsxkk..',
+                '......kszSsxSKKk.',
+                '.......ksyyyyosk.',
+                '......ksyyKKKKoxk',
+                '......kxyKKKKoxk.',
+                '......kSyyxxooxk.',
+                '.......kSoooxxk..',
+                '........kssxkk...',
+                '.........kkk.....',
+              ],
+            },
+            {
+              ox: 8,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [19.5,26.5],
+              vent: [14,12],
+              dir: [0.3,0.9],
+              band: [[18,12,1,2],[16,13,3,2],[12,14,2,0],[14,14,2,1],[16,14,1,2],[11,15,1,2],[12,15,2,0]],
+              rows: [
+                '...kkk...........',
+                '..kSxxk..k.......',
+                '.kxSsxKkkxk......',
+                '..kSkksssxk......',
+                '.kkkSSssKKk......',
+                'kSzzSSxxxKk......',
+                'kSzSSxxxxKk......',
+                '.kxSSoKxxKKk.....',
+                '.kxsSsxxxxKkkk...',
+                '..ksSSssxxKkszk..',
+                '..kxSSssxsxKxSk..',
+                '...ksSSSxxxKkk...',
+                '..kkSxSxsxxKk....',
+                '.kzsxsKssxxxk....',
+                '.kSxksSssxxzk....',
+                '..kkksKSssSxk....',
+                '.....kxSSsSKKk...',
+                '......ksSxxsxkk..',
+                '......kszSsxKKKk.',
+                '.......kxyyyyosk.',
+                '......ksyxKKKKoxk',
+                '......kxyKKKKoxk.',
+                '......kSyyxxooxk.',
+                '.......kSoooxxk..',
+                '........kssxkk...',
+                '.........kkk.....',
+              ],
+            },
+            {
+              ox: 8,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [19.5,26.5],
+              vent: [14,12],
+              dir: [0.3,0.9],
+              band: [[18,12,1,2],[16,13,3,2],[13,14,1,0],[14,14,2,1],[11,15,1,2],[12,15,1,0]],
+              rows: [
+                '...kkk...........',
+                '..kSxxk..k.......',
+                '.kxSsxKkkxk......',
+                '..kSkksssxk......',
+                '.kkkSSssKKk......',
+                'kSzzSSxxxKk......',
+                'kSzSSxxxxKk......',
+                '.kxSSoKxxKKk.....',
+                '.kxsSKxxxxKkkk...',
+                '..ksKSssSKKkszk..',
+                '..kxSKssxsxKxSk..',
+                '...ksKSSxxxKkk...',
+                '..kkSxSxsxxKk....',
+                '.kzsxsKssxxxk....',
+                '.kSxksSssxxzk....',
+                '..kkksKSssSxk....',
+                '.....kxSSsSKKk...',
+                '......ksSxxsxkk..',
+                '......kszSsxKKKk.',
+                '.......kxyyyyosk.',
+                '......ksyxKKKKoxk',
+                '......kxyKKKKoxk.',
+                '......kSyyxxooxk.',
+                '.......kSoooxxk..',
+                '........kssxkk...',
+                '.........kkk.....',
+              ],
+            },
+          ],
+          '40': [
+            {
+              ox: 6,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [22.8,25.1],
+              vent: [12,13],
+              dir: [0.6,0.8],
+              band: [[15,12,2,2],[14,13,3,2],[13,14,1,1],[14,14,2,2],[12,15,1,0],[13,15,1,1],[11,16,1,1],[12,16,1,0],[11,17,1,2]],
+              rows: [
+                '..k.k..kk............',
+                '.kxkKkkxxk...........',
+                '.ksxxksxxk...........',
+                'ksSsksssKk...........',
+                '.kskSssxKKk..........',
+                '..kSSsxxxKKk.........',
+                '.kzzsssxxxKk.kk......',
+                'kSSSSoKsxxxKksSk.....',
+                'ksksSSssxxxsKxk......',
+                '.k.ksSSssxsxKKk......',
+                '...kxsSSsSxxxKKk.....',
+                '....kxszzssxxxk......',
+                '.....kSSSsssxxKk.....',
+                '.....kssSSssxxxKk....',
+                '....kzxksSSSsxxxxkk..',
+                '.....kk.kksSssxsxKKk.',
+                '..........ksSSSzyyysk',
+                '...........kSSzyKKook',
+                '...........kxsyKKKxok',
+                '...........ksSyKKxoxk',
+                '............kSyxxoxk.',
+                '............kSsooxk..',
+                '.............kkskk...',
+                '...............k.....',
+              ],
+            },
+            {
+              ox: 6,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [22.8,25.1],
+              vent: [12,13],
+              dir: [0.6,0.8],
+              band: [[15,12,2,2],[14,13,3,2],[13,14,1,1],[14,14,2,2],[12,15,1,0],[13,15,1,1],[11,16,1,1],[12,16,1,0],[11,17,1,2]],
+              rows: [
+                '..k.k..kk............',
+                '.kxkKkkxxk...........',
+                '.ksxxksxxk...........',
+                'ksSsksssKk...........',
+                '.kskSssxKKk..........',
+                '..kSSsxxxKKk.........',
+                '.kzzsxxxxxKk.kk......',
+                'kSSSSoKxxxxKksSk.....',
+                'ksksSSxsxxxsKxk......',
+                '.k.ksSSssxsxKKk......',
+                '...kxsSSsSxxxxKk.....',
+                '....kxsxSsxxxxk......',
+                '.....kSSzKssxxKk.....',
+                '.....kssSSssxSKKk....',
+                '....kzxksKSSsSxxxkk..',
+                '.....kk.kksSsxxsKKKk.',
+                '..........ksSSSzyyysk',
+                '...........kSSzyKKook',
+                '...........kxsxKKKxok',
+                '...........ksSyKKxoxk',
+                '............kSyxxoxk.',
+                '............kSsooxk..',
+                '.............kkskk...',
+                '...............k.....',
+              ],
+            },
+            {
+              ox: 6,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [22.8,25.1],
+              vent: [12,13],
+              dir: [0.6,0.8],
+              band: [[15,12,2,2],[14,13,3,2],[13,14,1,1],[14,14,2,2],[12,15,1,0],[13,15,1,1],[12,16,1,0],[11,17,1,2]],
+              rows: [
+                '..k.k..kk............',
+                '.kxkKkkxxk...........',
+                '.ksxxksxxk...........',
+                'ksSsksssKk...........',
+                '.kskSssxKKk..........',
+                '..kSSsxxxKKk.........',
+                '.kzzsxxxxxKk.kk......',
+                'kSSSSoKxxxxKksSk.....',
+                'ksksSSKsxxSxKxk......',
+                '.k.ksSSssxsxKKk......',
+                '...kxKSKsSxxxxKk.....',
+                '....kxKxSsxxxxk......',
+                '.....kSSzKssxxKk.....',
+                '.....kssSSssxSKKk....',
+                '....kzxksKSSsSxxxkk..',
+                '.....kk.kksSsxxsKKKk.',
+                '..........ksSSSzyyysk',
+                '...........kSSzyKKook',
+                '...........kxsxKKKxok',
+                '...........ksSyKKxoxk',
+                '............kSyxxoxk.',
+                '............kSsooxk..',
+                '.............kkskk...',
+                '...............k.....',
+              ],
+            },
+          ],
+          '-40': [
+            {
+              ox: 5,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [9.2,25.1],
+              vent: [19,13],
+              dir: [-0.6,0.8],
+              band: [[15,12,1,1],[16,12,1,0],[15,13,2,0],[17,13,1,1],[16,14,3,1],[18,15,2,2],[19,16,2,2],[20,17,1,2]],
+              rows: [
+                '............kk..k.k..',
+                '...........ksSkkxkSk.',
+                '...........kSSzkSsxk.',
+                '...........kszzSksxKk',
+                '..........kxsSSSSkKk.',
+                '.........kxsSSssssk..',
+                '......kk.ksSSssxxssk.',
+                '.....kSsksSSsoKxxxxxk',
+                '......kxszSsssxxxKkxk',
+                '......kssSSssxxxKk.k.',
+                '.....kxsSSsSxxxKKk...',
+                '......kSSssxssKKk....',
+                '.....ksSssxxxxxk.....',
+                '....ksSSsxxxxKsk.....',
+                '..kkSSSsxxxxKkxzk....',
+                '.kssSzssxxKkk.kk.....',
+                'kzyyySSsxKk..........',
+                'kyyKKosxxk...........',
+                'kyxKKKoKKk...........',
+                'kSyxKKoxKk...........',
+                '.ksoxxoxk............',
+                '..ksooxxk............',
+                '...kkxkk.............',
+                '.....k...............',
+              ],
+            },
+            {
+              ox: 5,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [9.2,25.1],
+              vent: [19,13],
+              dir: [-0.6,0.8],
+              band: [[15,12,1,1],[16,12,1,0],[15,13,2,0],[17,13,1,1],[16,14,3,1],[18,15,2,2],[19,16,2,2],[20,17,1,2]],
+              rows: [
+                '............kk..k.k..',
+                '...........ksSkkxkSk.',
+                '...........kSSzkSsxk.',
+                '...........kxzzSksxKk',
+                '..........kxsSSSSkKk.',
+                '.........kxsSSssssk..',
+                '......kk.ksSSsxxxssk.',
+                '.....kSsksSSsxKxxxxxk',
+                '......kxsxSsssxxxKkxk',
+                '......ksszSssxxxKk.k.',
+                '.....kxsSSsSxxxKKk...',
+                '......kKSsxxssKKk....',
+                '.....ksSssxxxxxk.....',
+                '....ksSSsxxxxKsk.....',
+                '..kkSSSsxxxxKkxzk....',
+                '.kssxzxsKSzkk.kk.....',
+                'kzyyxSSsxKk..........',
+                'kyyKKosxxk...........',
+                'kyxKKKoKKk...........',
+                'kSyxKKoxKk...........',
+                '.ksoxxoxk............',
+                '..ksooxxk............',
+                '...kkxkk.............',
+                '.....k...............',
+              ],
+            },
+            {
+              ox: 5,
+              oy: 6,
+              w: 21,
+              h: 24,
+              muzzle: [9.2,25.1],
+              vent: [19,13],
+              dir: [-0.6,0.8],
+              band: [[15,12,1,1],[15,13,2,0],[17,13,1,1],[17,14,2,1],[18,15,2,2],[19,16,2,2],[20,17,1,2]],
+              rows: [
+                '............kk..k.k..',
+                '...........ksSkkxkSk.',
+                '...........kSSzkSsxk.',
+                '...........kxzzSksxKk',
+                '..........kxsSSSSkKk.',
+                '.........kxsSSssssk..',
+                '......kk.ksKKsxxxssk.',
+                '.....kSsksSSsxKxxxxxk',
+                '......kxsxKKssxxxKkxk',
+                '......ksszSssxxxKk.k.',
+                '.....kxsSSsSxSxKKk...',
+                '......kKSsxxsxKKk....',
+                '.....ksSssxxxxxk.....',
+                '....ksSSsxxxxKsk.....',
+                '..kkSSSsxxxxKkxzk....',
+                '.kssxzxsKSzkk.kk.....',
+                'kzyyxSSsxKk..........',
+                'kyyKKosxxk...........',
+                'kyxKKKoKKk...........',
+                'kSyxKKoxKk...........',
+                '.ksoxxoxk............',
+                '..ksooxxk............',
+                '...kkxkk.............',
+                '.....k...............',
+              ],
+            },
+          ],
+          '-20': [
+            {
+              ox: 7,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [12.5,26.5],
+              vent: [17,12],
+              dir: [-0.3,0.9],
+              band: [[13,12,1,2],[13,13,1,1],[14,13,2,0],[16,13,1,1],[15,14,2,1],[17,14,3,2],[18,15,3,2]],
+              rows: [
+                '...........kkk...',
+                '.......k..kSsxk..',
+                '......kskksSsxKk.',
+                '......kSzzSkkxk..',
+                '......kxszSSskkk.',
+                '......ksSSsSsssxk',
+                '......ksSSsxxxsxk',
+                '.....kxsSoKxxxKk.',
+                '...kkksSSssxxKKk.',
+                '..kzsksSssxxxKk..',
+                '..kSxxSzssxxxKk..',
+                '...kksSSsSsxKk...',
+                '....ksSssxxxxkk..',
+                '....kSSssxxKKszk.',
+                '....ksSssxxKkxSk.',
+                '....kSSsxxxKkkk..',
+                '...ksSssxxKk.....',
+                '..kkSzsxxKk......',
+                '.kxszSsssKk......',
+                '.kzyyyyoKk.......',
+                'kzyKKKKooKk......',
+                '.kSyKKKKoKk......',
+                '.kSyoxxooxk......',
+                '..kssoooxk.......',
+                '...kkxxxk........',
+                '.....kkk.........',
+              ],
+            },
+            {
+              ox: 7,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [12.5,26.5],
+              vent: [17,12],
+              dir: [-0.3,0.9],
+              band: [[13,12,1,2],[13,13,1,1],[14,13,2,0],[15,14,2,1],[17,14,3,2],[18,15,3,2]],
+              rows: [
+                '...........kkk...',
+                '.......k..kSsxk..',
+                '......kskksSsxKk.',
+                '......kSzzSkkxk..',
+                '......kxszSSskkk.',
+                '......ksSSsSsssxk',
+                '......ksSSxxxxsxk',
+                '.....kxsSoKxxxKk.',
+                '...kkksSSxxxxKKk.',
+                '..kzsksSssxxxKk..',
+                '..kSxxxzssxxxKk..',
+                '...kkszSsSsxKk...',
+                '....ksSKxxxxxkk..',
+                '....kKSssxxKKszk.',
+                '....ksSssxxKkxSk.',
+                '....kSSsxxzKkkk..',
+                '...ksSsSxSKk.....',
+                '..kkSzxxKKk......',
+                '.kxsxSsssxk......',
+                '.kzyxyyoKk.......',
+                'kzyKKKKooKk......',
+                '.kSyKKKKoKk......',
+                '.kSyoxxooxk......',
+                '..kssoooxk.......',
+                '...kkxxxk........',
+                '.....kkk.........',
+              ],
+            },
+            {
+              ox: 7,
+              oy: 5,
+              w: 17,
+              h: 26,
+              muzzle: [12.5,26.5],
+              vent: [17,12],
+              dir: [-0.3,0.9],
+              band: [[13,12,1,2],[13,13,1,1],[15,13,1,0],[16,14,1,1],[17,14,3,2],[18,15,3,2]],
+              rows: [
+                '...........kkk...',
+                '.......k..kSsxk..',
+                '......kskksSsxKk.',
+                '......kSzzSkkxk..',
+                '......kxszSSskkk.',
+                '......ksSSsSsssxk',
+                '......ksSSxxxxsxk',
+                '.....kxsKoKxxxKk.',
+                '...kkksKSxxxxKKk.',
+                '..kzsksKKsxxxKk..',
+                '..kSxxxzssSxxKk..',
+                '...kkszSsSsKKk...',
+                '....ksSKxxxxxkk..',
+                '....kKSssxxKKszk.',
+                '....ksSssxxKkxSk.',
+                '....kSSsxxzKkkk..',
+                '...ksSsSxSKk.....',
+                '..kkSzxxKKk......',
+                '.kxsxSsssxk......',
+                '.kzyxyyoKk.......',
+                'kzyKKKKooKk......',
+                '.kSyKKKKoKk......',
+                '.kSyoxxooxk......',
+                '..kssoooxk.......',
+                '...kkxxxk........',
+                '.....kkk.........',
+              ],
+            },
+          ],
+        },
+      },
+      broken: {
+        ox: 0,
+        oy: -1,
+        w: 32,
+        h: 33,
+        rows: [
+          '...............k................',
+          '...........kkkksk......kkkk.....',
+          '.kkkkkkkk.kssssxxk...kkSSSSkk...',
+          'kiNsNNsNkkksSKKxxk..kSSNNNNssk..',
+          'kNNsNNsnNkkkkkksxk.kSSNkkkinssk.',
+          'knnxnnxnakkSxxKkkkkkSNkkkkikaxk.',
+          '.kkkkkkkkkkSskkkiiikSNiikSiiaxxk',
+          '..........kskiiinnnkSNkkSKxiaxxk',
+          '..........kkkannkkkkSNNNkxkkaxxk',
+          '..........kkzkkkxxKKksnkkkkaxxk.',
+          '.........kSzzSsoKxxKKkkkaaaxxxk.',
+          '....kkkkkksSsSSssxxxKkszkxxxxk..',
+          '...kSSSSSkkkxsSsssxxsxxxkxxkk...',
+          '..kSSNNNSskkksSSssxsxKKkkkk.....',
+          '.kSNNkkiNnskkksSSsSxxxKKk.......',
+          '.kSNikkiiNskkkxszzssxxxk........',
+          'kSNkkikiknnskikssSsssxxKk..kk...',
+          'kSNkkiikiknskksssSSssxxKKkkiNk..',
+          'kSNkkSSskkaxkkSxksSSssxxKkkknk..',
+          'kSNkkSKxkkaxkakkkxkssxxxxKKkk...',
+          'kSNkksxxNNaxkiNkkkkxsssxxyysk...',
+          'ksNkkkNNkkaxkiiNkkxkxSxyyKyoxk..',
+          'ksnkkNkNkkaxkkSxkkNnkxyKKKKoxk..',
+          '.ksnkNkkNaxk.kiNkkNnkxyKKKxoxk..',
+          '.ksnaNkkaaxk.kiNkkaaksyKxxoxk...',
+          '..kskkkaxxk..knk..kk.kyoooxk....',
+          '...kxsxkxk...kkk.....kxxxxk.....',
+          '..kxszsxk...kxsxk.....kkkk......',
+          '..kssSxxk..kxszsxk..............',
+          '..kxsxxKk..kssSxxk..............',
+          '...kxxKk...kxsxxKk..............',
+          '....kkk.....kxxKk...............',
+          '.............kkk................',
+        ],
+      },
+      shadow: [16,25,15,3],
+      hpLift: 4,
+    },
+    fx: {
+      muzzleFlash: {
+        up: {
+          w: 28,
+          h: 28,
+          anchor: [14,23],
+          frames: [['............................','............................','............................','............................','.................JfJ........','...........J.....JfJ........','..........JfJ....JJ.........','..........JfJ...JfJ.........','.....J....JfJ...JyJ.........','....JfJ...JffJ.JffJ.........','.....JfJ..JfyJJJffJ.........','......JfJ.JfJyyJyfJ..J......','......JfJJ.JJyyJyJ.JJfJ.....','.......JyJJJJyYJJJJyJJ......','.......JJyyYYyYyyyyJJ.......','.....J..JyyYYYYYyyyJJ.......','....JfJJJJyyYYYYYYJJ.JJ.....','.....JJyfJYYYYwYyyJJJffJ....','.......JJyyyYYYYYyyJfJJ.....','........JyyyyYyYYyyJJ.......','.......JyJJJJYyJJJJyJ.......','........JJJyJyyJyfJJ........','.........JyJJyyJyJJ.........','..........J.JJJJJJfJ........','...............JfJJ.........','............................','............................','............................'],['............................','............................','.............JJ.............','............JffJ............','...........JfyyfJJfJ........','..........JffyyffJfJ........','..........JffyyffJJ.........','..........JfyyyyfJJ.........','.....J...JffyYYyffJ.........','....JfJ..JffyYYyffJ.........','.....JfJJffyyYYyyffJ........','......JfJffyyYYyyffJ.J......','......JfJffyyYYyyffJJfJ.....','.......JffyyYYYYyyffJJ......','.......JffyyYYYYyyffJ.......','.....J..JfyyYwwYyyfJJ.......','....JfJJJfyyYwwYyyfJ.JJ.....','.....JJyJfyyYwwYyyfJJffJ....','......JJffyYYwwYYyffJJJ.....','.....JffffyYYwwYYyffffJ.....','......JJJJyYYwwYYyJJJJ......','........JJyyYwwYyyJ.........','.........JJyYwwYyJJ.........','.........JfyYwwYyfJJ........','...............JfJJ.........','............................','............................','............................'],['............................','............................','............................','............................','............................','............................','....................J.......','............JJJJ...JyJ......','.......J....JffJ....J.......','......JyJ..JJffJJ...........','.......J..JJffffJJ..........','..........JJfyyfJJ..........','.........JJffyyffJJ.........','.........JJffyyffJJ.........','.........JffyyffffJ.........','........JfffyfffffJJ........','........JfffffffffJJ........','........JffffffffffJ........','........JffffffffffJ........','........JffffffffffJ........','........JffffYYyffJ.........','........JffffYYyfJ..........','........JfffyYyyfJ..........','.........JJfyyyfJ...........','............................','............................','............................','............................'],['............................','............................','............................','............................','............................','............................','............................','............................','.................y..........','............................','..........f.................','............................','............................','............J.J.............','...........J...J....f.......','............J.J.J...........','............................','..........J.J...J...........','............................','..........J.f.f.J.J.........','............................','..........J.f.f.J...........','...........J...f............','............f.f.............','............................','............................','............................','............................']],
+        },
+        down: {
+          w: 28,
+          h: 28,
+          anchor: [14,4],
+          frames: [['............................','............................','............................','...............JfJJ.........','..........J.JJJJJJfJ........','.........JyJJyyJyJJ.........','........JJJyJyyJyfJJ........','.......JyJJJJYyJJJJyJ.......','........JyyyyYyYYyyJJ.......','.......JJyyyYYYYYyyJfJJ.....','.....JJyfJYYYYwYyyJJJffJ....','....JfJJJJyyYYYYYYJJ.JJ.....','.....J..JyyYYYYYyyyJJ.......','.......JJyyYYyYyyyyJJ.......','.......JyJJJJyYJJJJyJJ......','......JfJJ.JJyyJyJ.JJfJ.....','......JfJ.JfJyyJyfJ..J......','.....JfJ..JfyJJJffJ.........','....JfJ...JffJ.JffJ.........','.....J....JfJ...JyJ.........','..........JfJ...JfJ.........','..........JfJ....JJ.........','...........J.....JfJ........','.................JfJ........','............................','............................','............................','............................'],['............................','............................','............................','...............JfJJ.........','.........JfyYwwYyfJJ........','.........JJyYwwYyJJ.........','........JJyyYwwYyyJ.........','......JJJJyYYwwYYyJJJJ......','.....JffffyYYwwYYyffffJ.....','......JJffyYYwwYYyffJJJ.....','.....JJyJfyyYwwYyyfJJffJ....','....JfJJJfyyYwwYyyfJ.JJ.....','.....J..JfyyYwwYyyfJJ.......','.......JffyyYYYYyyffJ.......','.......JffyyYYYYyyffJJ......','......JfJffyyYYyyffJJfJ.....','......JfJffyyYYyyffJ.J......','.....JfJJffyyYYyyffJ........','....JfJ..JffyYYyffJ.........','.....J...JffyYYyffJ.........','..........JfyyyyfJJ.........','..........JffyyffJJ.........','..........JffyyffJfJ........','...........JfyyfJJfJ........','............JffJ............','.............JJ.............','............................','............................'],['............................','............................','............................','............................','.........JJfyyyfJ...........','........JfffyYyyfJ..........','........JffffYYyfJ..........','........JffffYYyffJ.........','........JffffffffffJ........','........JffffffffffJ........','........JffffffffffJ........','........JfffffffffJJ........','........JfffyfffffJJ........','.........JffyyffffJ.........','.........JJffyyffJJ.........','.........JJffyyffJJ.........','..........JJfyyfJJ..........','.......J..JJffffJJ..........','......JyJ..JJffJJ...........','.......J....JffJ....J.......','............JJJJ...JyJ......','....................J.......','............................','............................','............................','............................','............................','............................'],['............................','............................','............................','............................','............f.f.............','...........J...f............','..........J.f.f.J...........','............................','..........J.f.f.J.J.........','............................','..........J.J...J...........','............................','............J.J.J...........','...........J...J....f.......','............J.J.............','............................','............................','..........f.................','............................','.................y..........','............................','............................','............................','............................','............................','............................','............................','............................']],
+        },
+      },
+      smoke: {
+        w: 24,
+        h: 24,
+        anchor: [12,12],
+        frames: [['........................','........................','........................','........................','........................','........................','........................','.........xxxxx..........','........xwwwwwx.........','.......xwwwwSwzx........','.......xwwwwSwzsx.......','.......xwwwwSwzsx.......','.......xwSSSwzzsx.......','.......xzwwzzzSsx.......','........xszzzSsx........','.........xssssx.........','..........xxxx..........','........................','........................','........................','........................','........................','........................','........................'],['........................','........................','........................','........................','........................','.........xxxxxxxx.......','.......xxwwwwwwwzx......','......xwwwzwwwwwzzx.....','.....xwwwwzzwwwwzsx.....','....xwwwwwzsswwwzzsx....','....xwwwwwzzswwwwSsx....','....xzwwwwwwwwzwzSx.....','....xzwwwwwwwwzzzzsx....','.....xwwwwwwwwzszSsx....','.....xzwzwwwwzzzssx.....','.....xzszzwwzzzSssx.....','......xsszzzzzSsxx......','.......xxsszSSssx.......','.........xxsssxx........','...........xxx..........','........................','........................','........................','........................'],['........................','........................','........................','........................','........x..xxxx.........','......xxwxxwwwzx........','.....xwwwwzwwwzsxxx.....','....xwwwwwzzwwwwwwSx....','....xwwwwzzszwwwwwzSx...','...xzwwwwzzszwwwwwzsx...','....xzwwwzzswwwwwzzsx...','....xwwwwzsszzwwwzzsx...','...xwwwwwwwwwwwwwzSsx...','...xwwwwwwwwwzwwwzsx....','...xzzzwwwwwzzswzzsx....','....xsswwwwwzzszzSsx....','.....xszwwzzzzszSsx.....','......xxzzzzzSsssx......','.......xsszSssxxx.......','........xssssx..........','.........xxxx...........','........................','........................','........................'],['........................','........................','........................','.......xxxx...xx........','.......w.w.x.x.w........','.....xwwwwzzxwwwzx......','....xw.www.zww.wzs......','....xwwwwzzzwwwzzsx.....','.....z.z.z.S.z.z.w.x....','...xwwwzzzSssszwwwwzzx..','...www.zzs.sxs.www.zsx..','..xwwwwzsxxx.xwwwwwzzsx.','...z.z.z.x.x.x.w.z.z.s..','..xzszwwwwzzxwwwzzzzsx..','...xss.www.zww.wzz.ssx..','....xwwwwwzzwwwwzsssx...','.....w.w.z.z.w.z.s.x....','....xzzzzzzSzzzzSsx.....','.....x.zzz.sxs.ssx......','......xssssx.xssx.......','.......x.x.....x........','........................','........................','........................'],['........................','........................','...........xxx..........','.......xxxxWWWWx........','.....x.W.W.w.W.z.x......','...xxWWWWWWwwWzsWWzx....','...wwW.WWz.zzz.WWW.sx...','..xwwWWszzsszzSWWzzWxx..','...W.W.z.s.x.s.z.w.W.z..','..xzzzzssx..xxxxswwWWssx','.x.sss.sx......xzW.Wzz.x','.xWWWssx........xzzWzssx','.x.z.s.x.........W.W.s..','.xsssszzx.......xWWWzsx.','.x.wwW.sxx.xxx.xWz.zzs..','.xzWWzzsWzxWWWxWWsszssx.','.x.s.z.s.z.w.W.W.z.s.x..','..xssssWWzswwWzszzsx....','...xxx.zzz.WWz.sss.x....','......xssszzzzssxxx.....','.......x.x.s.s.x........','...........xxxx.........','........................','........................'],['........................','............x.x.........','.......x.x.x.W.x........','......x.Wzx.WWz.xxx.....','...x.x.W.z.W.W.s.W.x....','..x.W.z.z.s.z.z.W.z.x...','.x.W.W.s.s.s.s.x.W.s.x..','.xW.Wzs.xx..xxx.sss.WWz.','.x.s.z.x.........x.W.z.x','x.W.s.s...........W.W.s.','.W.z.x...........x.z.z.x','xzz.sx............x.WWz.','.s.s.x.............W.W.x','x.W.z.x...........x.z.s.','.W.W.s...........W.W.s.x','xzz.zsx.........xWW.zsx.','.s.s.W.z.x.x...x.W.z.s..','..x.W.W.x.W.z.W.z.z.S.x.','...x.z.s.W.z.W.W.s.s.x..','....xss.WWz.szz.sxx.x...','.....x.x.s.S.x.s.x......','........x.s.x.x.x.......','.........x.x............','........................']],
+      },
+      fuseSpark: {
+        w: 8,
+        h: 8,
+        anchor: [4,4],
+        frames: [['........','...y....','..yYy.f.','.yYwYy..','..yYy...','...y.f..','.f......','........'],['.f...y..','...y....','.y.Y.y..','..YwY...','.yYwYy..','..YYy.f.','...y....','f.......'],['....f...','.f......','...y..y.','..yYy...','...Y....','..f.y...','......f.','........']],
+      },
+      ball: {
+        w: 6,
+        h: 6,
+        anchor: [3,3],
+        rows: [
+          '.kkkk.',
+          'kSzsxk',
+          'ksSsxk',
+          'ksxxKk',
+          'kxxKKk',
+          '.kkkk.',
+        ],
+      },
+      ballShadow: {
+        w: 6,
+        h: 3,
+        anchor: [3,1],
+        rows: [
+          '.kkkk.',
+          'kkkkkk',
+          '.kkkk.',
+        ],
+      },
+    },
+    wheel: {
+      w: 17,
+      h: 21,
+      hub: [8,10],
+      frames: [
+        [
+          [['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkikNnsk...','...kSNkkikknsk...','..kSNkikikiknsk..','..kSNkikikiknsk..','..kSNkkSSskkaxk..','..kSNiiSKxNNaxk..','..kSNkksxxkkaxk..','..ksNkNkNkNkaxk..','..ksnkNkNkNkaxk..','...ksnkkNkkaxk...','...ksnakNkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkiNnsk...','...kSNikkiknsk...','..kSNkkikikinsk..','..kSNkkiikiknsk..','..kSNiiSSskkaxk..','..kSNkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikNNkkaxk..','..ksnikNkNkkaxk..','...ksnkNkkNaxk...','...ksnaNkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkkNnsk...','...kSNikkkinsk...','..kSNkkikikknsk..','..kSNikikikinsk..','..kSNkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikNkNkNaxk..','..ksnkkNkNkkaxk..','...ksnNkkkNaxk...','...ksnakkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNikkNnsk...','...kSNkikkinsk...','..kSNikikikknsk..','..kSNkikiikknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkNNkNkaxk..','..ksnkkNkNkNaxk..','...ksnNkkNkaxk...','...ksnakkNaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................']],
+          [['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkikNnsk...','...kSNkkikknsk...','..kSNkikikiknsk..','..kSNkikikiknsk..','..kSNkkSSskkaxk..','..kSNiiSKxNNaxk..','..kSNkksxxkkaxk..','..ksNkNkNkNkaxk..','..ksnkNkNkNkaxk..','...ksnkkNkkaxk...','...ksnakNkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkiNnsk...','...kSNikkiknsk...','..kSNkkikikinsk..','..kSNkkiikiknsk..','..kSNiiSSskkaxk..','..kSNkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikNNkkaxk..','..ksnikNkNkkaxk..','...ksnkNkkNaxk...','...ksnaNkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkkNnsk...','...kSNikkkinsk...','..kSNkkikikknsk..','..kSNikikikinsk..','..kSNkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikNkNkNaxk..','..ksnkkNkNkkaxk..','...ksnNkkkNaxk...','...ksnakkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNikkNnsk...','...kSNkikkinsk...','..kSNikikikknsk..','..kSNkikiikknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkNNkNkaxk..','..ksnkkNkNkNaxk..','...ksnNkkNkaxk...','...ksnakkNaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................']],
+        ],
+        [
+          [['.................','.................','......kkkkk......','.....kxSSSSk.....','....kKxNNNSsk....','...kxkNkikNnsk...','...kxNkkikknsk...','..kSNkaiikiknsk..','..kSNkakikiknsk..','..kSNkkSSskkaxk..','..kSNiiSKxNNaxk..','..kSNkksxxkkaxk..','..ksNkNkNkNkaxk..','..ksnkNkNkNkaxk..','...ksnkkNkkaxk...','...ksnakNkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kKxSSSk.....','....kKKNNNSsk....','...kSNakkiNnsk...','...kSNakkiknsk...','..kSNkkaiikinsk..','..kSNkkaikiknsk..','..kSNiiSSskkaxk..','..kSNkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikNNkkaxk..','..ksnikNkNkkaxk..','...ksnkNkkNaxk...','...ksnaNkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kKKxSSk.....','....kSxkNNSsk....','...kSNNkkkNnsk...','...kSNakkkinsk...','..kSNkkaiikknsk..','..kSNikakikinsk..','..kSNkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikNkNkNaxk..','..ksnkkNkNkkaxk..','...ksnNkkkNaxk...','...ksnakkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kxKKxSk.....','....kSSNkNSsk....','...kSNNakkNnsk...','...kSNkakkinsk...','..kSNikaiikknsk..','..kSNkikaikknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkNNkNkaxk..','..ksnkkNkNkNaxk..','...ksnNkkNkaxk...','...ksnakkNaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................']],
+          [['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkakNnsk...','...kSNkkakknsk...','..kSNkikaiiknsk..','..kSNkikakiknsk..','..kSNkkSSskkaxk..','..kSNiiSKxNNaxk..','..kSNkksxxkkaxk..','..ksNkNkNkNkaxk..','..ksnkNkNkNkaxk..','...ksnkkNkkaxk...','...ksnakNkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkaNnsk...','...kSNikkaknsk...','..kSNkkikaiinsk..','..kSNkkiakiknsk..','..kSNiiSSskkaxk..','..kSNkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikNNkkaxk..','..ksnikNkNkkaxk..','...ksnkNkkNaxk...','...ksnaNkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkkNnsk...','...kSNikkkansk...','..kSNkkikaiknsk..','..kSNikikakinsk..','..kSNkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikNkNkNaxk..','..ksnkkNkNkkaxk..','...ksnNkkkNaxk...','...ksnakkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNikkNnsk...','...kSNkikkansk...','..kSNikikaiknsk..','..kSNkikiakknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkNNkNkaxk..','..ksnkkNkNkNaxk..','...ksnNkkNkaxk...','...ksnakkNaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................']],
+        ],
+        [
+          [['.................','.................','......kkkkk......','.....kxSSSSk.....','....kKxNNNSsk....','...kxkNkikNnsk...','...kxNkkikknsk...','..kSNkaiikiknsk..','...kNkakikiknsk..','...kxkkSSskkaxk..','...kxiiSKxNNaxk..','...kxkksxxkkaxk..','...kNkNkNkNkaxk..','..ksnkNkNkNkaxk..','...ksnkkNkkaxk...','...ksnakNkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kKxSSSk.....','....kKKNNNSsk....','...kSNakkiNnsk...','...kSNakkiknsk...','...kNkkaiikinsk..','...kxkkaikiknsk..','...kxiiSSskkaxk..','...kxkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikNNkkaxk..','..ksnikNkNkkaxk..','...ksnkNkkNaxk...','...ksnaNkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kKKxSSk.....','....kSxkNNSsk....','...kSNNkkkNnsk...','....kNakkkinsk...','...kskkaiikknsk..','...kxikakikinsk..','...kxkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikNkNkNaxk..','..ksnkkNkNkkaxk..','...ksnNkkkNaxk...','...ksnakkkaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kxKKxSk.....','....kSSNkNSsk....','....ksNakkNnsk...','....kxkakkinsk...','...ksikaiikknsk..','..kSxkikaikknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkNNkNkaxk..','..ksnkkNkNkNaxk..','...ksnNkkNkaxk...','...ksnakkNaaxk...','....ksxaaaxxk....','.....kxxxxxk.....','......kkkkk......','.................','.................']],
+          [['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkakNnsk...','...kSNkkakknsk...','..kSNkikaiiknsk..','..kSNkikakiknsk..','..kSNkkSSskkaxk..','..kSNiiSKxNNaxk..','..kSNkksxxkkakSk.','..ksNkNkkkkkakkSk','..ksnkNkkkkkak.k.','...ksnkkkkkak....','...ksnakkkakxk...','....ksxaaaixk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkaNnsk...','...kSNikkaknsk...','..kSNkkikaiinsk..','..kSNkkiakiknsk..','..kSNiiSSskkaxk..','..kSNkkSKxkkaxk..','..kSNkksxxNNaxk..','..ksNkikkkkkakSk.','..ksnikkkkkkakk..','...ksnkkkkkkkkSk.','...ksnakkkkaxkk..','....ksxaaixxk....','.....kxxxxxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNkkkNnsk...','...kSNikkkansk...','..kSNkkikaiknsk..','..kSNikikakinsk..','..kSNkiSSsikaxk..','..kSNkkSKxkkaxk..','..kSNkisxxNkaxk..','..ksNikkkkkNaxk..','..ksnkkkkkkkaxk..','...ksnkkkkkakSk..','...ksnakkkkakkSk.','....ksxaakxxk.k..','.....kxxixxk.....','......kkkkk......','.................','.................'],['.................','.................','......kkkkk......','.....kSSSSSk.....','....kSSNNNSsk....','...kSNNikkNnsk...','...kSNkikkansk...','..kSNikikaiknsk..','..kSNkikiakknsk..','..kSNkkSSsNNaxk..','..kSNkkSKxkkaxk..','..kSNiisxxkkaxk..','..ksNkkkkkNkaxk..','..ksnkkkkkkNaxk..','...ksnkkkkkaxk...','...ksnakkkaakSk..','....ksxakaxk.k...','.....kxixxxkkSk..','......kkkkk..k...','.................','.................']],
+        ],
+      ],
+    },
+  };
+
+  // The cannon's frames in FX_ART are 56 square with its footprint's top-left at
+  // (CP, CP), so every layer lines up drawn at the footprint less CP.
+  const CP = 12;
+  const C_STAGES = ['stage1', 'stage2', 'finished'];
+  // a stage going up: [from, to] in C_STAGES (-1 nothing yet)
+  const C_STEPS = [[-1, 0], [0, 1], [0, 2], [1, 2]];
+  function cannonGrid(f) {
+    const g = FG.grid(56);
+    for (let y = 0; y < f.rows.length; y++) {
+      const r = f.rows[y];
+      for (let x = 0; x < r.length; x++) if (r[x] !== '.') FG.put(g, x + f.ox + CP, y + f.oy + CP, r[x]);
+    }
+    return g;
+  }
+  // the pixel of a frame at footprint (X, Y)
+  function cannonAt(f, X, Y) {
+    if (!f) return '.';
+    const r = f.rows[Y - f.oy];
+    return r && X >= f.ox && X < f.ox + f.w ? r[X - f.ox] : '.';
+  }
   // the effects themselves: id -> how many frames, and how to draw frame i
   const FX_ART = {
     // Wen Lambo, 32 across, its foot (the bottom of the tyres) at y 27 and centred on
@@ -11070,48 +13334,95 @@ const SquadView = (() => {
       }
       return FG.outline(g);
     }],
-    // A Builder's cannon, two tiles square, in its three stages: the carriage's planks
-    // (gaps between them, more planks waiting), the carriage on its spoked wheels with
-    // the barrel's cradle, and the whole gun. Frames 0-2 point away, up the screen;
-    // 3-5 point towards you, the muzzle a dark mouth at the bottom.
-    cannon: [6, 32, (i) => {
-      let g = FG.grid(32);
-      const st = i % 3;
-      const down = i >= 3;
-      for (let y = 12; y <= 27; y++) {
-        if (st === 0 && y % 4 === 3) continue;
-        const f = (y - 12) / 15;
-        for (let x = Math.round(8 - f * 2); x <= Math.round(23 + f * 2); x++) FG.put(g, x, y, '1');
+    // A Builder's cannon (CANNON_ART), drawn as layers. cannonC, per facing (0-11
+    // pointing away up the screen, 12-23 at you): 0 stage 1, 1 stage 2, 2 the whole gun
+    // at rest, 3-5 the shot and the keg and 6-8 the carriage (knocked about 0, 1, 2),
+    // 9 the wreck
+    cannonC: [24, 56, (i) => {
+      const A = CANNON_ART[i < 12 ? 'up' : 'down'];
+      const k = i % 12;
+      if (k > 9) return FG.grid(56);
+      return cannonGrid(k === 0 ? A.stage1 : k === 1 ? A.stage2 : k === 2 ? A.finished : k < 6 ? A.props[k - 3] : k < 9 ? A.carriage[k - 6] : A.broken);
+    }],
+    // its barrel: per facing (0-14 up, 15-29 down), knocked about (5 each), turned
+    // -40 -20 0 20 40 degrees about its trunnions (+ the muzzle to the screen's right)
+    cannonB: [30, 56, (i) => {
+      const B = CANNON_ART[i < 15 ? 'up' : 'down'].barrel;
+      return cannonGrid(B.frames[B.aims[i % 5]][Math.floor(i / 5) % 3]);
+    }],
+    // a wheel turning (17 x 21): knocked about (8 each), side (4, the left one first)
+    // and its four frames
+    cannonW: [24, 21, (i) => {
+      const rows = CANNON_ART.wheel.frames[Math.floor(i / 8) % 3][Math.floor(i / 4) % 2][i % 4];
+      const g = FG.grid(21);
+      rows.forEach((r, y) => {
+        for (let x = 0; x < r.length; x++) if (r[x] !== '.') g[y][x] = r[x];
+      });
+      return g;
+    }],
+    // its shot: the muzzle flash (0-3 pointing up the screen, 4-7 down), the smoke ring
+    // rolling out and thinning, and the ball, its shadow and the fuse's sparks (2-4),
+    // all on (4, 4)
+    cannonFx: [8, 28, (i) => CANNON_ART.fx.muzzleFlash[i < 4 ? 'up' : 'down'].frames[i % 4].map((r) => [...r])],
+    cannonSmoke: [6, 24, (i) => CANNON_ART.fx.smoke.frames[i].map((r) => [...r])],
+    cannonShot: [5, 8, (i) => {
+      const fx = CANNON_ART.fx;
+      const g = FG.grid(8);
+      const rows = i === 0 ? fx.ball.rows : i === 1 ? fx.ballShadow.rows : fx.fuseSpark.frames[i - 2];
+      const dx = i < 2 ? 4 - fx.ball.anchor[0] : 0;
+      const dy = i === 0 ? 4 - fx.ball.anchor[1] : i === 1 ? 4 - fx.ballShadow.anchor[1] : 0;
+      rows.forEach((r, y) => {
+        for (let x = 0; x < r.length; x++) if (r[x] !== '.') FG.put(g, x + dx, y + dy, r[x]);
+      });
+      return g;
+    }],
+    // A stage going up, a part at a time (C_STEPS: to stage 1, 1 to 2, 1 to the gun, 2
+    // to the gun), per facing (40 each) and step (10): 0 what stays, 1 what goes, 2-9
+    // the new stage's parts in the order they go up
+    cannonUp: [80, 56, (i) => {
+      const A = CANNON_ART[i < 40 ? 'up' : 'down'];
+      const [from, to] = C_STEPS[Math.floor(i / 10) % 4];
+      const j = i % 10;
+      const B = A[C_STAGES[to]];
+      const O = from >= 0 ? A[C_STAGES[from]] : null;
+      const g = FG.grid(56);
+      if (j === 1) {
+        if (O)
+          for (let y = 0; y < O.h; y++)
+            for (let x = 0; x < O.w; x++) {
+              const c = O.rows[y][x];
+              if (c !== '.' && cannonAt(B, x + O.ox, y + O.oy) !== c) FG.put(g, x + O.ox + CP, y + O.oy + CP, c);
+            }
+        return g;
       }
-      g = FG.volume(g, '1', 'wood');
-      if (st === 0) {
-        for (let x = 1; x <= 7; x++) FG.put(g, x, 29, 'n');
-        for (let x = 24; x <= 30; x++) FG.put(g, x, 30, 'N');
-        return FG.outline(g);
-      }
-      for (const cx of [6, 25]) FG.disc(g, cx, 22, 6, '2');
-      g = FG.volume(g, '2', 'wood');
-      for (const cx of [6, 25]) {
-        FG.ring(g, cx, 22, 6, 1.4, 'a');
-        FG.line(g, cx - 4, 22, cx + 4, 22, 1, 'a');
-        FG.line(g, cx, 18, cx, 26, 1, 'a');
-        FG.disc(g, cx, 22, 1.6, 's');
-      }
-      const top = st === 1 ? (down ? 18 : 13) : down ? 10 : 3;
-      const bot = st === 1 ? (down ? 24 : 20) : down ? 28 : 20;
-      for (let y = top; y <= bot; y++) for (let x = 12; x <= 19; x++) FG.put(g, x, y, '3');
-      if (st === 2) {
-        const my = down ? 26 : 2;
-        for (let y = my; y <= my + 3; y++) for (let x = 11; x <= 20; x++) FG.put(g, x, y, '3');
-      }
-      g = FG.volume(g, '3', 'iron');
-      if (st === 2) {
-        if (down) {
-          FG.disc(g, 16, 27.5, 2.8, 'K');
-          FG.disc(g, 16, 27.5, 1.4, 'k');
-        } else for (let x = 13; x <= 18; x++) FG.put(g, x, 2, 'K');
-      }
-      return FG.outline(g);
+      for (let y = 0; y < B.h; y++)
+        for (let x = 0; x < B.w; x++) {
+          const c = B.rows[y][x];
+          if (c === '.') continue;
+          const same = cannonAt(O, x + B.ox, y + B.oy) === c;
+          if (j === 0 ? same : !same && +B.parts[y][x] === j - 2) FG.put(g, x + B.ox + CP, y + B.oy + CP, c);
+        }
+      return g;
+    }],
+    // the Big Gun going up a stage, the same way: per facing (24 each) and stage it
+    // goes to (6 each): 0 what stays, 1 what goes, 2-5 the new pixels a band of 12 rows
+    // at a time from the floor up
+    bigUp: [48, 48, (i) => {
+      const f0 = i < 24 ? 0 : 4;
+      const st = Math.floor(i / 6) % 4;
+      const j = i % 6;
+      const B = FX_ART.biggun[2](f0 + st);
+      const O = st > 0 ? FX_ART.biggun[2](f0 + st - 1) : null;
+      const g = FG.grid(48);
+      for (let y = 0; y < 48; y++)
+        for (let x = 0; x < 48; x++) {
+          const c = B[y][x];
+          const o = O ? O[y][x] : '.';
+          if (j === 1) {
+            if (o !== '.' && o !== c) g[y][x] = o;
+          } else if (c !== '.' && (j === 0 ? o === c : o !== c && Math.floor((47 - y) / 12) === j - 2)) g[y][x] = c;
+        }
+      return g;
     }],
     // The Big Gun (engine 22, the Big Gun Blueprint): a 3x3 field gun, 48 across. A
     // heavy iron bed with gold rivets on two wheels of gold-bound wood, and a fat barrel
@@ -13014,6 +15325,10 @@ const SquadView = (() => {
     // a Builder's works (engine 9): a stage of the cannon or a sandbag of its wall, done
     // at craftHit; its cannon firing: the ball takes cannonWind plus cannonTile a tile
     craft: 1000, craftHit: 640, cannon: 700, cannonWind: 170, cannonTile: 45,
+    // and how the cannon looks doing it (no beat waits on these): the barrel kicked back
+    // and easing home, the carriage rolling back and settling, its smoke, the wisp after,
+    // a blow's shake, a repair's damage fading
+    gunKick: 350, gunRoll: 320, gunSmoke: 720, gunWisp: 1000, gunShake: 280, gunFix: 460,
     // a Digger's pit (engine 10): the close-up, a look round through its binoculars,
     // the digging and the leaves over it (done at pitHit); and an enemy falling in
     pitdig: 2400, pitdigHit: 2050, pitfall: 1500,
@@ -15906,75 +18221,199 @@ const SquadView = (() => {
     return true;
   }
   // ---- a Builder's cannon on the board (engine 9): in its row (the lower of its two),
-  // pointing at the other side, a stage at a time; the squad's band round its barrel,
-  // and a kick back when it fires
+  // pointing at the other side, a stage at a time; the squad's band round its barrel.
+  // The field gun (CANNON_ART) is drawn as layers: the shot and the keg, which stay
+  // put; the carriage and its wheels, which roll back a pixel or two when it fires; the
+  // barrel, turned to its target as the fuse burns and kicked back along its length;
+  // the band. Knocked about, each layer shows its damage.
+  const cannonBoxes = new WeakMap();
   function cannonBox(wk) {
+    let b = cannonBoxes.get(wk);
+    if (b && b.flip === P.flip) return b;
     const sc = wk.cells.map(([x0, y0]) => scr(x0, y0));
     const sx = Math.min(...sc.map((p) => p[0]));
     const sy = Math.min(...sc.map((p) => p[1]));
     // on screen it points up when its squad's way forward is up the screen
     const up = wk.face * (P.flip ? -1 : 1) < 0;
-    return { px: sx * TILE, py: TOP + sy * TILE, up, row: sy + (wk.big ? 2 : 1) };
+    b = { px: sx * TILE, py: TOP + sy * TILE, up, row: sy + (wk.big ? 2 : 1), flip: P.flip };
+    cannonBoxes.set(wk, b);
+    return b;
   }
   const cannonRow = (wk) => cannonBox(wk).row;
+  // the stage it shows (its last looks done whatever it counts to: the Blueprint's kit
+  // has fewer); 0 before its first
+  const gunLook = (stage, of, big) => (stage <= 0 ? 0 : of && stage >= of ? (big ? 4 : 3) : clamp(stage, 1, big ? 4 : 3));
+  // how knocked about it looks: 1 below two thirds of its HP, 2 below a third
+  const gunHurt = (wk, max) => (wk.hp == null || wk.hp * 3 >= max * 2 ? 0 : wk.hp * 3 >= max ? 1 : 2);
+  // Firing, fe ms after the shot at the beat's pace k: the barrel kicked back along its
+  // length (fast, held a moment, then eased home), and the carriage rolled back two
+  // pixels and settling again (the wheels turn a frame a pixel)
+  function gunKick(fe, k, max) {
+    const a = 40 * k;
+    const h = 90 * k;
+    const r = MS.gunKick * k;
+    if (fe < 0 || fe >= h + r) return 0;
+    if (fe < a) return Math.round((max * fe) / a);
+    if (fe < h) return max;
+    const f = (fe - h) / r;
+    return Math.round(max * (1 - f * f * (3 - 2 * f)));
+  }
+  function gunRoll(fe, k) {
+    const h = 200 * k;
+    const r = MS.gunRoll * k;
+    if (fe < 0 || fe >= h + r) return 0;
+    if (fe < 35 * k) return 1;
+    if (fe < h) return 2;
+    return fe < h + r / 2 ? 1 : 0;
+  }
+  // the barrel's aim (an index into its aims, 2 straight): out toward its target a step
+  // at a time while the fuse burns, held through the shot, back once the smoke clears
+  function gunAim(fe, ov) {
+    const n = ov.aim - 2;
+    if (!n) return 2;
+    const m = Math.abs(n);
+    let q;
+    if (fe < -ov.wind) q = 0;
+    else if (fe < 0) q = Math.min(m, Math.floor(((fe + ov.wind) / (ov.wind * 0.6)) * m) + 1);
+    else if (fe < ov.back) q = m;
+    else q = m - 1 - Math.floor((fe - ov.back) / (90 * ov.k));
+    return 2 + Math.sign(n) * clamp(q, 0, m);
+  }
+  const GUN_SHAKE = [1, -1, 1, -1, 1, 0, -1, 0];
+  // the keys its frames fade out under (ghostOf), made once
+  const GHOST_C = Array.from({ length: 24 }, (_, i) => 'gunC' + i);
+  const GHOST_B = Array.from({ length: 30 }, (_, i) => 'gunB' + i);
+  // A stage going up (ov.bld): what stays, what goes fading out in the dither, and the
+  // new stage's parts dropping in one after another, each landing on its spot
+  function drawBuild(x, b, ox, oy, t) {
+    const id = b.big ? 'bigUp' : 'cannonUp';
+    // (the old stage's leftovers clear in the first part of it, the floor clear for the new)
+    const p = clamp((t - b.t0) / ((b.hit - b.t0) * 0.5), 0, 1);
+    x.drawImage(fxFrame(id, b.base), ox, oy);
+    if (p < 1) x.drawImage(ghostOf(fxFrame(id, b.base + 1), b.gk, 1 - p), ox, oy);
+    for (let j = 0; j < b.n; j++) {
+      const e = t - (b.land0 + b.gap * j - b.drop);
+      if (e < 0) break;
+      const f = e >= b.drop ? 0 : 1 - e / b.drop;
+      x.drawImage(fxFrame(id, b.base + 2 + j), ox, oy - Math.round(7 * f * f));
+    }
+  }
   function drawCannon(x, wk, t) {
     const { px, py, up } = cannonBox(wk);
     // the Big Gun (engine 22): three tiles across, four stages
     const big = !!wk.big;
     const W = big ? 48 : 32;
     const max = wk.max || SE.RULES.cannonHp;
-    // its last stage looks done whatever it counts to (the Blueprint's kit has fewer)
-    const stage = wk.of && wk.stage >= wk.of ? (big ? 4 : 3) : clamp(wk.stage, 1, big ? 4 : 3);
+    const stage = gunLook(wk.stage, wk.of, big);
     const ov = P.ov['cannon' + wk.id];
-    // knocked about (engine 15): its HP over it once it has lost some; out of action it
-    // sits dark and smoking
+    const live = !!ov && !P.calm;
+    const A = CANNON_ART[up ? 'up' : 'down'];
+    const fi = up ? 0 : 1;
+    // knocked about: it shakes a moment
+    let sx = 0;
+    if (live && ov.hitT != null && t >= ov.hitT && t < ov.hitT + ov.hitDur) sx = GUN_SHAKE[Math.floor(((t - ov.hitT) / ov.hitDur) * GUN_SHAKE.length)];
+    // its HP over it once it has lost some (clear of the barrel pointing up the screen)
     if (wk.hp != null && wk.hp < max) {
       const bw = big ? 32 : 20;
       const fill = Math.round((bw * wk.hp) / max);
       const bx = px + (W - bw) / 2 - 1;
+      const by = py - (big ? 4 : A.hpLift);
       x.fillStyle = INK;
-      x.fillRect(bx, py - 4, bw + 2, 4);
+      x.fillRect(bx, by, bw + 2, 4);
       x.fillStyle = '#3E2C58';
-      x.fillRect(bx + 1, py - 3, bw, 2);
+      x.fillRect(bx + 1, by + 1, bw, 2);
       x.fillStyle = wk.hp * 2 > max ? '#FFD447' : '#FF5C77';
-      x.fillRect(bx + 1, py - 3, fill, 2);
+      x.fillRect(bx + 1, by + 1, fill, 2);
     }
-    if (wk.broken) {
-      ditherRect(x, px + 3, py + 6, W - 6, W - 12, '#1B1229', 0.45);
-      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + W / 2 - 8 + (j * 2 - 1) * 4, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
+    // going up a stage: its parts drop in (to its contact, when the stage is done)
+    if (live && ov.bld && t >= ov.bld.t0 && t < ov.bld.hit) {
+      drawBuild(x, ov.bld, big ? px : px - CP, big ? py : py - CP, t);
+      return;
     }
-    const fe = ov && ov.fireT != null && !P.calm ? t - ov.fireT : -1;
-    const kick = fe >= 0 && fe < (big ? 240 : 160) ? (fe < 60 ? (big ? 3 : 2) : 1) * (up ? 1 : -1) : 0;
-    blob(x, px + W / 2, py + W - 3, W / 2 - 1, 3, '#1B1229', 0.3);
+    const firing = live && ov.fireT != null;
+    const fe = firing ? t - ov.fireT : -1e9;
     if (big) {
-      x.drawImage(fxFrame('biggun', (up ? 0 : 4) + stage - 1), px, py + kick);
+      // out of action it sits dark and smoking
+      if (wk.broken) {
+        ditherRect(x, px + 3, py + 6, W - 6, W - 12, '#1B1229', 0.45);
+        if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + W / 2 - 8 + (j * 2 - 1) * 4, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
+      }
+      // it kicks back as a whole when it fires
+      const kick = fe >= 0 && fe < 240 * ov.k ? (fe < 60 * ov.k ? 3 : fe < 150 * ov.k ? 2 : 1) * (up ? 1 : -1) : 0;
+      blob(x, px + W / 2, py + W - 3, W / 2 - 1, 3, '#1B1229', 0.3);
+      x.drawImage(fxFrame('biggun', (up ? 0 : 4) + stage - 1), px + sx, py + kick);
       if (stage >= 4) {
         const T = colors[P.sideOf(wk.team)];
         const by = py + kick + (up ? 14 : 32);
         x.fillStyle = T.line;
-        x.fillRect(px + 18, by, 12, 2);
+        x.fillRect(px + sx + 18, by, 12, 2);
         x.fillStyle = T.fill;
-        x.fillRect(px + 18, by, 12, 1);
+        x.fillRect(px + sx + 18, by, 12, 1);
         x.fillStyle = T.light;
-        x.fillRect(px + 18, by, 3, 1);
+        x.fillRect(px + sx + 18, by, 3, 1);
+        // the fuse burning at its breech as it winds up
+        if (firing && fe < 0 && fe >= -ov.wind) x.drawImage(fxFrame('cannonShot', 2 + (Math.floor(-fe / (40 * ov.k)) % 3)), px + sx + 20, py + kick + (up ? 24 : 14));
       }
       return;
     }
-    x.drawImage(fxFrame('cannon', (up ? 0 : 3) + stage - 1), px, py + kick);
-    if (stage >= 3) {
-      const T = colors[P.sideOf(wk.team)];
-      const by = py + kick + (up ? 9 : 19);
-      x.fillStyle = T.line;
-      x.fillRect(px + 12, by, 8, 2);
-      x.fillStyle = T.fill;
-      x.fillRect(px + 12, by, 8, 1);
-      x.fillStyle = T.light;
-      x.fillRect(px + 12, by, 2, 1);
+    const ox = px - CP + sx;
+    const oy = py - CP;
+    const hurt = gunHurt(wk, max);
+    // out of action: the wreck, smoking
+    if (wk.broken) {
+      blob(x, px + A.shadow[0], py + A.shadow[1], A.shadow[2], A.shadow[3], '#1B1229', 0.3);
+      x.drawImage(fxFrame('cannonC', fi * 12 + 9), ox, oy);
+      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + W / 2 - 8 + (j * 2 - 1) * 4, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
+      return;
     }
+    if (stage < 3) {
+      x.drawImage(fxFrame('cannonC', fi * 12 + stage - 1), ox, oy);
+      return;
+    }
+    // the finished gun: its shadow (it stays put), the shot and the keg, the carriage
+    // and its wheels, the barrel and its band
+    blob(x, px + A.shadow[0], py + A.shadow[1], A.shadow[2], A.shadow[3], '#1B1229', 0.3);
+    const roll = firing ? gunRoll(fe, ov.k) : 0;
+    const kick = firing ? gunKick(fe, ov.k, A.barrel.recoil.max) : 0;
+    const aim = firing ? gunAim(fe, ov) : 2;
+    const ry = up ? roll : -roll;
+    x.drawImage(fxFrame('cannonC', fi * 12 + 3 + hurt), ox, oy);
+    x.drawImage(fxFrame('cannonC', fi * 12 + 6 + hurt), ox, oy + ry);
+    const WH = A.wheels;
+    const ph = up ? roll % 4 : (4 - (roll % 4)) % 4;
+    for (let s = 0; s < 2; s++) x.drawImage(fxFrame('cannonW', hurt * 8 + s * 4 + ph), px + sx + WH.at[s][0], py + ry + WH.at[s][1]);
+    const B = A.barrel.frames[A.barrel.aims[aim]][hurt];
+    const bx = ox - Math.round(B.dir[0] * kick);
+    const by = oy + ry - Math.round(B.dir[1] * kick);
+    x.drawImage(fxFrame('cannonB', fi * 15 + hurt * 5 + aim), bx, by);
+    // patched up: the damage it had going away in the dither
+    if (live && ov.fix && t >= ov.fix.t0 && t < ov.fix.t0 + ov.fix.dur) {
+      const a = 1 - (t - ov.fix.t0) / ov.fix.dur;
+      const was = ov.fix.hurt;
+      const ci = fi * 12;
+      if (ov.fix.broken) x.drawImage(ghostOf(fxFrame('cannonC', ci + 9), GHOST_C[ci + 9], a), ox, oy);
+      else if (was > hurt) {
+        x.drawImage(ghostOf(fxFrame('cannonC', ci + 3 + was), GHOST_C[ci + 3 + was], a), ox, oy);
+        x.drawImage(ghostOf(fxFrame('cannonC', ci + 6 + was), GHOST_C[ci + 6 + was], a), ox, oy + ry);
+        const bi = fi * 15 + was * 5 + aim;
+        x.drawImage(ghostOf(fxFrame('cannonB', bi), GHOST_B[bi], a), bx, by);
+      }
+    }
+    // the squad's band round the first reinforce
+    const T = colors[P.sideOf(wk.team)];
+    const bandX = bx + CP;
+    const bandY = by + CP;
+    for (const r of B.band) {
+      x.fillStyle = r[3] === 0 ? T.light : r[3] === 1 ? T.fill : T.line;
+      x.fillRect(bandX + r[0], bandY + r[1], r[2], 1);
+    }
+    // the fuse burning at the touch-hole as it winds up
+    if (firing && fe < 0 && fe >= -ov.wind) x.drawImage(fxFrame('cannonShot', 2 + (Math.floor(-fe / (40 * ov.k)) % 3)), bandX + B.vent[0] - 4, bandY + B.vent[1] - 4);
   }
   // a Builder at work: the mallet knocking away, chips and sparks off each blow, and
-  // for the cannon its stages as pips over it; it fires: a flash and smoke at the
-  // muzzle, and the ball on its way
+  // for the cannon its stages as pips over it, the new stage going up a part at a time;
+  // it fires: the fuse, the flash and the kick, smoke rolling off the muzzle, and the
+  // ball on its way
   function worksBeat(b, T, k) {
     const S = P.S;
     const e = b.e;
@@ -16001,9 +18440,16 @@ const SquadView = (() => {
         addParts(4, cx, cy, e.what === 'wall' ? [OC.skL, OC.sk] : [OC.wdL, OC.wd, '#FFD447'], 0.05, 0.0003, 300 * k, h, true, [Math.PI, Math.PI * 2]);
         atClock(h, () => sfx('thud'));
       }
-      // patched up (engine 15)
-      if (e.what === 'repair') label(T + b.contact, 'REPAIRED', '#4BE08F', cx, Math.round(cy - 26), true);
-      if (e.what === 'cannon')
+      // patched up (engine 15): at the contact its damage fades away
+      if (e.what === 'repair') {
+        label(T + b.contact, 'REPAIRED', '#4BE08F', cx, Math.round(cy - 26), true);
+        const wk = S.works[e.w];
+        if (wk && !wk.big) {
+          const max = wk.max || SE.RULES.cannonHp;
+          ovOf('cannon' + e.w).fix = { t0: T + b.contact, dur: MS.gunFix * k, broken: !!wk.broken, hurt: gunHurt(wk, max) };
+        }
+      }
+      if (e.what === 'cannon') {
         addFx(T, b.dur, (x, kk, el) => {
           const done = el >= b.contact ? e.stage : e.stage - 1;
           const w = e.of * 5 - 1;
@@ -16016,51 +18462,132 @@ const SquadView = (() => {
             x.fillRect(x0 + s * 5, y0, 4, 3);
           }
         });
+        // the new stage goes up a part at a time: they drop in between the first blow
+        // and the last, each with a puff of dust, the old stage's leftovers fading out
+        const big = !!e.big;
+        const from = gunLook(e.stage - 1, e.of, big);
+        const to = gunLook(e.stage, e.of, big);
+        const wk0 = { cells: e.cells, face: e.face, big };
+        const box = cannonBox(wk0);
+        const fi = box.up ? 0 : 1;
+        let step = -1;
+        if (big) step = to === from + 1 ? from : -1;
+        else for (let q = 0; q < C_STEPS.length; q++) if (C_STEPS[q][0] === from - 1 && C_STEPS[q][1] === to - 1) step = q;
+        if (step >= 0) {
+          const n = big ? 4 : CANNON_ART[fi ? 'down' : 'up'][C_STAGES[C_STEPS[step][1]]].names.length;
+          const base = big ? fi * 24 + step * 6 : fi * 40 + step * 10;
+          const land0 = T + b.contact * 0.2;
+          const gap = n > 1 ? (b.contact * 0.67) / (n - 1) : 0;
+          const bld = { big, base, n, t0: T + b.contact * 0.08, hit: T + b.contact, land0, gap, drop: Math.min(130 * k, b.contact * 0.18), gk: (big ? 'bigUp' : 'gunUp') + base };
+          ovOf('cannon' + e.w).bld = bld;
+          // its first stage has nothing on the board till the contact: drawn on the floor
+          if (from === 0) addFx(T, b.contact, (x, kk, el) => {
+            if (!P.calm && T + el >= bld.t0) drawBuild(x, bld, big ? box.px : box.px - CP, big ? box.py : box.py - CP, T + el);
+          }, true);
+          // a puff of dust as each part lands
+          const W = big ? 48 : 32;
+          for (let j = 0; j < n; j++) {
+            const lx = box.px + (big ? W / 2 : partFoot(fi, step, j, 0));
+            const ly = box.py + (big ? W - 1 - j * 12 : partFoot(fi, step, j, 1));
+            addParts(3, lx, ly, ['#FFE3EA', '#D88FA3', OC.wdL], 0.035, 0.00015, 260 * k, land0 + gap * j, false, [Math.PI * 1.05, Math.PI * 1.95]);
+          }
+        }
+      }
       return true;
     }
     if (b.kind === 'cannon') {
       const wk = S.works[e.w];
-      // the muzzle: the end of the barrel, in the middle of the gun's front
+      // the muzzle: the end of the barrel, turned toward its target
       const box = wk ? cannonBox(wk) : null;
       const up = box ? box.up : true;
       const [fx0, fy0] = tileC(e.from[0], e.from[1]);
-      // (the Big Gun's muzzle is the middle of its three tiles: engine 22)
-      const half = e.big ? 24 : 16;
-      const mx = box ? box.px + half : fx0;
-      const my = box ? box.py + (up ? 2 : half * 2 - 3) : fy0;
       const d = S.u[e.d];
       // a blind shot that misses (engine 13) comes down on the tile beside its enemy
       const [tx, ty] = e.miss ? tileC(e.at[0], e.at[1]) : centreOf(d);
-      ovOf('cannon' + e.w).fireT = T;
-      sfx('boom');
+      // it winds up (the fuse burns down), and at the end of that it goes off
+      const wind = MS.cannonWind * k;
+      const TS = T + wind;
+      const A = CANNON_ART[up ? 'up' : 'down'];
+      const ov = ovOf('cannon' + e.w);
+      // (the Big Gun's muzzle is the middle of its three tiles: engine 22)
+      const half = e.big ? 24 : 16;
+      let aim = 2;
+      if (box && !e.big) {
+        const dx = tx - (box.px + A.barrel.pivot[0]);
+        const dy = ty - (box.py + A.barrel.pivot[1]);
+        const deg = (Math.atan2(dx, up ? -dy : dy) * 180) / Math.PI;
+        aim = 2 + clamp(Math.round(deg / 20), -2, 2);
+      }
+      const B = A.barrel.frames[A.barrel.aims[aim]][0];
+      const mx = box ? (e.big ? box.px + half : box.px + B.muzzle[0]) : fx0;
+      const my = box ? (e.big ? box.py + (up ? 2 : half * 2 - 3) : box.py + B.muzzle[1]) : fy0;
+      const ddx = e.big ? 0 : B.dir[0];
+      const ddy = e.big ? (up ? -1 : 1) : B.dir[1];
+      ov.fireT = TS;
+      ov.wind = wind;
+      ov.k = k;
+      ov.aim = aim;
+      ov.back = Math.max(560 * k, b.contact - wind + 200 * k);
+      atClock(TS, () => sfx('boom'));
       if (e.blind) label(T, 'BLIND', '#C9C9D6', mx, my - 12, false);
       if (e.miss) {
         addFx(T + b.contact, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(tx - 8), Math.round(ty - 8)));
         label(T + b.contact, 'MISS', '#C9C9D6', tx, ty - 16, false);
       }
-      addFx(T, 150 * k, (x, kk) => {
-        x.fillStyle = kk < 0.4 ? '#FFFFFF' : '#FFD447';
-        x.fillRect(mx - 3, my - 3, 7, 7);
-        x.fillStyle = '#FF8A3D';
-        x.fillRect(mx - 1, my - 5, 3, 11);
-        x.fillRect(mx - 5, my - 1, 11, 3);
+      // where the muzzle is el ms after the shot: kicked back with the barrel, rolled
+      // back with the carriage (the Big Gun kicks as a whole)
+      const RM = A.barrel.recoil.max;
+      const back = (el) => (e.big ? (el < 60 * k ? 3 : el < 150 * k ? 2 : el < 240 * k ? 1 : 0) : gunKick(el, k, RM) + gunRoll(el, k));
+      // the flash: white-hot, the flame thrown out, coming apart
+      const FL = 50 * k;
+      const MF = CANNON_ART.fx.muzzleFlash[up ? 'up' : 'down'];
+      addFx(TS, FL * 4, (x, kk, el) => {
+        const q = back(el);
+        x.drawImage(fxFrame('cannonFx', (up ? 0 : 4) + Math.min(3, Math.floor(el / FL))), Math.round(mx - ddx * q) - MF.anchor[0], Math.round(my - ddy * q) - MF.anchor[1]);
       });
-      for (const s of [-1, 1]) addFx(T + 40 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8 + s * (3 + (el * 0.02) / k)), Math.round(my - 8 + (up ? -1 : 1) * ((el * 0.01) / k))));
+      // the smoke rolling out of it into a ring and drifting off, thinning
+      const SM = MS.gunSmoke * k;
+      addFx(TS + 40 * k, SM, (x, kk) => {
+        const f = Math.min(5, Math.floor(kk * 6));
+        const d2 = 3 + kk * 9;
+        x.drawImage(fxFrame('cannonSmoke', f), Math.round(mx + ddx * d2) - 12, Math.round(my + ddy * d2 - kk * 5) - 12);
+      });
+      // and a thin wisp off the muzzle for a while after
+      const WS = MS.gunWisp * k;
+      addFx(TS + 260 * k, WS, (x, kk, el) => {
+        const q = back(el + 260 * k);
+        const X = mx - ddx * q;
+        const Y = my - ddy * q;
+        for (let j = 0; j < 5; j++) {
+          if (j + kk * 6 > 6) break;
+          const h = j * 3 + ((el / k) * 0.01) % 3;
+          const wx = Math.round(X + Math.sin(h * 0.55 + el / (160 * k)) * 1.5);
+          const wy = Math.round(Y - 2 - h);
+          x.fillStyle = j < 2 ? '#EEEEF5' : '#C9C9D6';
+          x.fillRect(wx, wy, j < 2 ? 2 : 1, 2);
+          // its shadow side
+          if (j < 2) {
+            x.fillStyle = '#C9C9D6';
+            x.fillRect(wx + 1, wy + 1, 1, 1);
+          }
+        }
+      });
       const len = Math.hypot(tx - mx, ty - my);
+      const fly = Math.max(1, b.contact - wind);
+      // where the ball comes down: dust and bits of floor flying
+      addParts(6, tx, ty + 3, ['#FFE3EA', '#D88FA3', '#C27088', '#3A3A4A'], 0.06, 0.0005, 380 * k, T + b.contact, true, [Math.PI * 1.05, Math.PI * 1.95]);
+      ringFx(T + b.contact, tx, ty + 4, 300 * k, '#FFE3EA', 3, 12, true, 0.45);
       // the Big Gun (engine 22): a fat gold-banded shell on a high arc, a shockwave and
       // a ring of fire where it lands, the board shaking under it
       if (e.big) {
-        addFx(T, 220 * k, (x, kk) => {
-          x.fillStyle = kk < 0.3 ? '#FFFFFF' : '#FFD447';
-          x.fillRect(mx - 5, my - 5, 11, 11);
-          x.fillStyle = '#FF8A3D';
-          x.fillRect(mx - 2, my - 9, 5, 19);
-          x.fillRect(mx - 9, my - 2, 19, 5);
-        });
-        addParts(14, mx, my, ['#FFD447', '#FF8A3D', '#FFF3B0'], 0.09, 0.0002, 360 * k, T, true);
-        addFx(T, b.contact, (x, kk) => {
+        addParts(14, mx, my, ['#FFD447', '#FF8A3D', '#FFF3B0'], 0.09, 0.0002, 360 * k, TS, true);
+        addFx(TS, fly, (x, kk) => {
           const X = Math.round(lerp(mx, tx, kk));
           const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (12 + len / 5));
+          // its shadow on the floor, under it all the way
+          x.globalAlpha = 0.3;
+          x.drawImage(fxFrame('cannonShot', 1), Math.round(lerp(mx, tx, kk)) - 4, Math.round(lerp(my + 4, ty + 4, kk)) - 4);
+          x.globalAlpha = 1;
           x.fillStyle = INK;
           x.fillRect(X - 3, Y - 2, 7, 5);
           x.fillRect(X - 2, Y - 3, 5, 7);
@@ -16088,20 +18615,40 @@ const SquadView = (() => {
         label(T + b.contact + 40 * k, 'KA-BOOM', '#FFD447', tx, ty - 30, true, 2);
         return true;
       }
-      addFx(T, b.contact, (x, kk) => {
+      // the ball, its light on it, on its arc; its shadow on the floor under it
+      const gy = my + (up ? 6 : 3);
+      addFx(TS, fly, (x, kk) => {
         const X = Math.round(lerp(mx, tx, kk));
         const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (5 + len / 9));
-        x.fillStyle = INK;
-        x.fillRect(X - 2, Y - 1, 5, 3);
-        x.fillRect(X - 1, Y - 2, 3, 5);
-        x.fillStyle = '#3A3A4A';
-        x.fillRect(X - 1, Y - 1, 3, 3);
-        x.fillStyle = '#C9C9D6';
-        x.fillRect(X - 1, Y - 1, 1, 1);
+        x.globalAlpha = 0.3;
+        x.drawImage(fxFrame('cannonShot', 1), X - 4, Math.round(lerp(gy, ty + 4, kk)) - 4);
+        x.globalAlpha = 1;
+        x.drawImage(fxFrame('cannonShot', 0), X - 4, Y - 4);
       });
       return true;
     }
     return false;
+  }
+  // where a part of a stage going up lands: its bottom middle (footprint terms), once
+  const partFeet = new Map();
+  function partFoot(fi, step, j, axis) {
+    const key = fi * 4 + step;
+    let p = partFeet.get(key);
+    if (!p) {
+      const B = CANNON_ART[fi ? 'down' : 'up'][C_STAGES[C_STEPS[step][1]]];
+      p = B.names.map(() => [99, -99, -99]);
+      B.parts.forEach((r, y) => {
+        for (let x = 0; x < r.length; x++) {
+          if (r[x] === '.') continue;
+          const q = p[+r[x]];
+          q[0] = Math.min(q[0], x + B.ox);
+          q[1] = Math.max(q[1], x + B.ox);
+          q[2] = Math.max(q[2], y + B.oy);
+        }
+      });
+      partFeet.set(key, p);
+    }
+    return axis ? p[j][2] : Math.round((p[j][0] + p[j][1]) / 2);
   }
   // ---- the engine 7 trench kit on the board
   // A shot at something that is not where the beat's target Blub stands (a Decoy
@@ -20377,18 +22924,25 @@ const SquadView = (() => {
         sfx('thud');
         return;
       }
-      // the cannon knocked about (engine 15): the damage over it, sparks, and when it is
-      // out of action a burst of smoke and the words
+      // the cannon knocked about (engine 15): it shakes, splinters of its wood and
+      // sparks off its iron fly, its damage shows; when it is out of action, a burst of
+      // smoke and the words
       case 'cannonhit': {
         const wk = S.works[e.w];
         if (!wk) return;
-        const { px, py } = cannonBox(wk);
-        label(T, '-' + e.dmg, '#FFFFFF', px + 16, py - 6, false);
-        addParts(7, px + 16, py + 12, ['#FFF3B0', '#FFD447', '#C9C9D6'], 0.08, 0.0003, 300 * k, T, true);
+        const { px, py, up } = cannonBox(wk);
+        const half = wk.big ? 24 : 16;
+        const lift = !wk.big && up ? 8 : 0;
+        label(T, '-' + e.dmg, '#FFFFFF', px + half, py - 6 - lift, false);
+        const ov = ovOf('cannon' + e.w);
+        ov.hitT = T;
+        ov.hitDur = MS.gunShake * k;
+        addParts(7, px + half, py + half - 4, ['#FFF3B0', '#FFD447', '#C9C9D6'], 0.08, 0.0003, 300 * k, T, true);
+        addParts(6, px + half, py + half - 2, [OC.wdL, OC.wd, OC.wdD, '#6E6E80', '#3A3A4A'], 0.06, 0.0005, 440 * k, T, true, [Math.PI * 1.1, Math.PI * 1.9]);
         sfx(e.src === 'blast' ? 'thud' : 'block');
         if (e.down) {
-          label(T + 160 * k, 'OUT OF ACTION', '#FF5C77', px + 16, py - 16, true);
-          for (let j = 0; j < 4; j++) addFx(T + j * 60 * k, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), px + 4 + j * 6, Math.round(py + 4 - kk * 10)));
+          label(T + 160 * k, 'OUT OF ACTION', '#FF5C77', px + half, py - 16 - lift, true);
+          for (let j = 0; j < 4; j++) addFx(T + j * 60 * k, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), px + 4 + j * (wk.big ? 10 : 6), Math.round(py + 4 - kk * 10)));
         }
         return;
       }
