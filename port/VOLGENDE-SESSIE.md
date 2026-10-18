@@ -100,25 +100,24 @@ Uitwerking:
   met +6,7 punten winkans gemiddeld), de schade die de schutter incasseert, en hoe
   vaak het kanon tot het einde van de ronde bemand blijft.
 
-## 6. Coin Flip: gouden doodshoofd, en direct flippen van het rad (nieuw)
-Het doodshoofd staat er al (engine 29). Nog te doen:
-- **Gouden doodshoofd:** het doodshoofd wordt goudkleurig in plaats van bot-wit,
-  bijvoorbeeld in reliëf in het goud zoals de Blub-kop op de kopzijde (`A`/`o`/`y`/`Y`
-  met een `k`-rand voor de oogkassen). Pas `SKULL` aan in `FX_ART.flipcoin`
-  (frames 4–6).
-- **Van het rad betekent direct flippen:** komt de munt van het rad van de Gambler
-  (`openGold(..., 'gamble')`), dan flipt de Blub hem **aan het begin van zijn
-  volgende beurt**. Hij wacht dus niet op lage HP of op `coinBy`. Zet daarvoor
-  `coins[t].flipBy = turn + 1` als de bron `'gamble'` is, en laat `coinHurt` het
-  niet uitstellen.
-- **Dood zonder flip betekent nooit meer:** gaat de Blub KO voordat hij flipte, dan
-  doet de munt de rest van de match niets meer. Vandaag flipt hij hem nog bij het
-  neergaan (`flipCoins(d.team, true)` in `knockOut`), en kop brengt dan nog de
-  dubbelganger. Die flip bij het neergaan vervalt. Hij geldt ook niet in latere
-  rondes van de match: per team en per match onthouden, dus ook in `matchRounds`.
-  Overleg nog of dat alleen voor de munt van het rad geldt of voor elke munt.
+## 6. Coin Flip: gouden doodshoofd, direct flippen, verloren bij KO (nieuw)
+Het doodshoofd staat er al (engine 29). Dit gaat over de Coin Flip zelf, kop of
+munt. Het rad van de Gambler staat er los van; een munt die van het rad komt,
+volgt gewoon dezelfde regel.
+- **Gouden doodshoofd:** het doodshoofd wordt goudkleurig, in reliëf in het goud
+  zoals de Blub-kop op de kopzijde (`A`/`o`/`y`/`Y` met een `k`-rand voor de oogkassen),
+  in plaats van bot-wit. Pas `SKULL` aan in `FX_ART.flipcoin` (frames 4–6).
+- **Direct flippen:** een Blub die de Coin Flip krijgt, flipt hem **aan het begin van
+  zijn volgende beurt**, waar hij hem ook vandaan heeft. Hij wacht niet meer op lage
+  HP (`coinAt`) of op `coinBy`/`goldGrace`. Zet in `openGold` dus
+  `coins[t].flipBy = turn + 1`, en haal het uitstellen tot lage HP uit `coinHurt`.
+- **Dood zonder flip betekent verloren:** gaat de Blub KO voordat hij flipte, dan doet
+  de munt niets meer. Vandaag flipt hij hem nog bij het neergaan
+  (`flipCoins(d.team, true)` in `knockOut`), en kop brengt dan nog de dubbelganger.
+  Die flip bij het neergaan vervalt. De munt is weg en komt die match niet terug.
 - Teksten (`GOLDS` 'coin', Round info en de log) aanpassen. Daarna meten: winkans
-  met de munt, en hoe vaak hij verloren gaat.
+  met de munt, en hoe vaak hij verloren gaat. De timing verandert, want hij flipt
+  meteen in plaats van "als hij in nood zit", dus de dubbelganger komt vroeger.
 
 ## Suggesties
 1. **Perks in kratten voelen zwak** (review, 24.000 rondes): WAGMI, Pump, Dev Wallet,
