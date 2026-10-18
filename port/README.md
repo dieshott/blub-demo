@@ -152,3 +152,34 @@ wijzigingen eerst over naar de bron en sync pas daarna.
   boog houden. Het mondingsvuur draait mee met de loop (`cannonFx`: 2 richtingen ×
   5 hoeken × 4 frames, gedraaid rond de monding). De frames van de Big Gun worden
   maar één keer opgebouwd (`bigGrid`). Het rookpluimpje stopt met de beat.
+
+## Engine 29
+### Kansdrops vallen direct op de Blub
+- `RULES.boxFetch: false`: het ophalen (`fetcher`/`fetchBox`/`pickBox`/`mistBoxes`/
+  `boxSpot`) blijft in de code staan als schakelaar. De krat valt direct op de Blub
+  die de kans won (`boxLands`, `dropBox`): event `box` met `direct: 1`, gevolgd door
+  `drop` (`box: 1, direct: 1`) en `dropHit`, of bij goud door `openGold`. Het aantal
+  BOX_SALT-trekkingen per beurt is gelijk gebleven. Een ruiter, een Blub in de
+  Diamond Hand of een Gambler die nog draait kan geen krat vangen; die gaat dan naar
+  de volgende Blub die ook raak gooide.
+- View: de krat valt aan zijn parachute op de Blub (`MS.boxDrop`/`boxDropHit`), met
+  daarna een gloed (`drawGlow`/`glowOn`, `MS.boxGlow`): groen `#4BE08F`, rood
+  `#FF5C77`, goud `#FFD447`.
+- Gemeten (3200 rondes): groen +1,6, rood −2,1 en goud +6,0 procentpunt winkans.
+
+### Pizza bezorgen
+- De Blub met de telefoon gooit aan het begin van elke eigen beurt gratis een punt
+  naar de zwaarst gewonde teamgenoot binnen `pizzaToss: 3` tegels die op `pizzaAt`%
+  HP of minder staat. Hij mag ook zelf eten. Event `toss`, gevolgd door een heal.
+- Een Blub op `pizzaLow: 40`% HP of minder, zonder vijand binnen 2 tegels, loopt tot 2
+  beurten ver terug naar de doos.
+- Herbalanceerd: `pizzaHp` 8 → 4 en `pizzaAt` 60 → 75. Per doos worden nu 4,6 van de
+  6 punten gegeten (was 2,1), en 5–7% van de dozen blijft onaangeroerd (was
+  31–38%). Winkans ongeveer +9 procentpunt.
+- View: de beat `toss` met `FX_ART.pizzaslice` (een draaiende punt in een boog), en
+  een stapel punten bij de Blub met de telefoon.
+
+### Diamond Hand en Coin Flip
+- `diamondDmg` 2 → 3. Het team dat hem claimt wint nu 55,5% (was 48,9%).
+- Coin Flip: de muntzijde is een doodshoofd (`FX_ART.flipcoin` frames 4–6). Alle
+  teksten zeggen "Skull" in plaats van "Tails".

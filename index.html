@@ -3806,7 +3806,7 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 28;
+const SQUAD_ENGINE = 29;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -3960,7 +3960,8 @@ const RULES = lock({
   // builds a tower under it; on each of its turns the gun sprays diamondShots of
   // diamondDmg at an enemy within diamondRange that it can see, diamondAmmo bursts in
   // all. Its Blub is never moved, frozen or knocked back; knocked out, the tower shatters.
-  diamondRange: 5, diamondShots: 3, diamondDmg: 2, diamondAmmo: 4,
+  // (engine 29: 3 a shot, 2 before: the squad that had it won less than half its rounds)
+  diamondRange: 5, diamondShots: 3, diamondDmg: 3, diamondAmmo: 4,
   laserRange: 2, laserDmg: 1, laserDodge: 50, // Laser Eyes Totem: +laserRange reach, and it keeps only laserDodge% of its dodge
   copiumAt: 50, copiumRange: 2, copiumSoak: 35, // Copium Tank
   apeDmg: 1, // Ape Together Banner: per Blub standing next to a team mate
@@ -4008,9 +4009,10 @@ const RULES = lock({
   // less (or at the start of turn coinBy at the latest) it flips it. Heads (a Blub's
   // head): a doppelganger of it joins the squad beside it, full HP, the same build (no
   // trench job), coinHp more HP than its Blub and a bubble shield: a golden double.
-  // Tails: the Blub that flipped it is out of the round. Each as likely, from the
-  // chest's own stream. Knocked out before it has flipped it, it flips it as it goes
-  // down: heads still brings its double; tails changes nothing any more.
+  // Skull (its other side, tails before engine 29): the Blub that flipped it is out of
+  // the round. Each as likely, from the chest's own stream. Knocked out before it has
+  // flipped it, it flips it as it goes down: heads still brings its double; the skull
+  // changes nothing any more.
   coinAt: 35, coinBy: 8, coinHp: 18,
   // Pizza Phone: an old golden phone for the Blub nearest the crate. As the fight starts
   // it calls for a pizza, and on turn pizzaTurn a white delivery van that has seen
@@ -4020,7 +4022,17 @@ const RULES = lock({
   // pizzaAt% HP or less with nobody in its reach walks back to it, when it gets beside
   // it this turn, and has a slice (that is its turn); one that starts its turn beside it
   // pizzaHp or more down has one on its way. Eaten up, the box goes.
-  pizzaTurn: 3, pizzaSlices: 6, pizzaHp: 8, pizzaAt: 60,
+  // (engine 29: smaller slices, eaten sooner, 8 HP at 60% before, so that most of the box
+  // gets eaten without the phone deciding rounds)
+  pizzaTurn: 3, pizzaSlices: 6, pizzaHp: 4, pizzaAt: 75,
+  // engine 29 (the owner: get the pizza eaten). The Blub on the phone keeps a stack of
+  // the box's slices on it: once the box is down, at the start of each of its own turns
+  // (its turn not spent) it throws one to the most hurt Blub of its squad (by share of
+  // HP) within pizzaToss tiles at pizzaAt% HP or less, itself too. A slice thrown is one
+  // fewer in the box, wherever its Blub is; knocked out, it throws no more. And a Blub
+  // at pizzaLow% HP or less with no enemy within 2 tiles walks back to the box from up
+  // to two moves away, a move a turn, and has a slice once it gets beside it.
+  pizzaToss: 3, pizzaLow: 40,
   // Pump.fun Pill: a capsule like the Bonding Curve Nuke's pill, green and white. A Blub
   // with a Trench Rifle takes it (one in Attack first, then the nearest the crate),
   // else one with a Scope Rifle, else the squad's hardest hitter (no Boom Pack), and
@@ -4052,6 +4064,12 @@ const RULES = lock({
   // the duty to fetch passes only to a Blub of the squad within boxReach tiles of the
   // crate that is free to walk (not tangled, caught or held); with none, the crate waits
   boxReach: 4,
+  // engine 29 (the owner): no fetching any more. boxFetch off, the crate falls straight
+  // onto the Blub that rolled it and opens at once: its perk (or the golden drop) is that
+  // Blub's on the spot. A Blub it cannot land on (up on a Green Candle or in the Diamond
+  // Hand, a Gambler at its wheel) lets it pass to the next of its squad that rolled one.
+  // On, the engine 28 crate near the Blub that its squad has to fetch (boxNear, boxReach).
+  boxFetch: false,
   // ---- the Gambler (engine 28, a power, one a squad). On its first turns it stays on its
   // own rows and spins its wheel instead of fighting: gambleGold% a golden drop (GOLDS),
   // else red, nothing. How many spins its stance gives it (gambleSpins); the last one is
@@ -4390,8 +4408,10 @@ const CHEST_POOL = lock(EVENTS.filter((e) => !EVENTS_OFF.includes(e[0])));
 // squad's own rows as the round starts, and the Blub it is meant for opens it.
 const GOLDS = lock([
   ['pill', 'Pump.fun Pill', `A green and white capsule, the Bonding Curve Nuke's little sister. Your rifle Blub takes it (else a Scope Rifle, else your hardest hitter, and it comes with a rifle). When the enemy comes within ${RULES.pillNear} tiles it swallows it and goes berserk: it rushes up to ${RULES.pillDash} tiles into their ground and sprays round after round until it has done ${RULES.pillMin}% to ${RULES.pillMax}% of a Blub's HP in damage. Then they shoot it down, one shot.`],
-  ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad: a Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back for one, and one that starts its turn beside the box grabs one on its way.`],
-  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest, or ${RULES.goldGrace} turns after it is opened if that is later) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
+  // (engine 29: the Blub on the phone throws slices, and the badly hurt walk further for one)
+  ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad. Your Blub on the phone keeps a stack of them on it: at the start of each of its turns it throws one to whoever is hurt worst within ${RULES.pizzaToss} tiles at ${RULES.pizzaAt}% HP or less (itself too), and still gets its turn. A Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back to the box for one (at ${RULES.pizzaLow}% or less from up to two moves away, over two turns), and one that starts its turn beside the box grabs one on its way. Eaten up, the box goes.`],
+  // (the coin's other side is a skull, engine 29: the texts say so)
+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest, or ${RULES.goldGrace} turns after it is opened if that is later) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Skull: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. The moment it is opened its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -6442,6 +6462,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     // beside its squad's pizza and a slice down (engine 22): it grabs one on its way
     const z = pizzaOf(u);
     if (z && cheb(u.x, u.y, z.x, z.y) <= 1 && u.max - u.hp >= RULES.pizzaHp) slice(u, z);
+    // the Blub on the phone throws a slice off its stack to whoever needs it most (engine 29)
+    tossSlice(u);
     u.attacked = false;
     u.hurt = false;
     if (u.gear === 'pillow' && u.cls !== 'sweet' && turn >= u.pillowAt) {
@@ -7829,8 +7851,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   }
   // ---- the Coin Flip (engine 22): flipped as the fight starts. Heads: the doppelganger
   // comes off the bench onto the free tile nearest its Blub (ring by ring, team B's on
-  // the board turned round). Tails: its Blub is out of the round (not knocked out: no
-  // totem, tent or blast comes of it).
+  // the board turned round). The skull (tails, engine 29): its Blub is out of the round
+  // (not knocked out: no totem, tent or blast comes of it).
   function freeNear(x0, y0, flip) {
     for (let d = 1; d < SIZE; d++)
       for (let k = 0; k < (2 * d + 1) * (2 * d + 1); k++) {
@@ -7859,7 +7881,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       c.done = true;
       const heads = cr() < 0.5;
       const to = heads ? freeNear(u.x, u.y, u.team === 1) : null;
-      // flipped as it goes down: heads still brings its double, tails is nothing more
+      // flipped as it goes down: heads still brings its double, the skull nothing more
+      // (the tails side, a skull since engine 29)
       if (fall && (!heads || !to || over >= 0)) {
         push({ t: 'coin', u: u.id, heads: heads ? 1 : 0, fall: 1 });
         continue;
@@ -8016,13 +8039,17 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       z.slices = RULES.pizzaSlices;
       tiles[best] = SAND;
       restep(best);
-      push({ t: 'pizza', team: z.team, at: [z.x, z.y], slices: z.slices });
+      // (by: the Blub on the phone, its stack of slices on it from now on, engine 29)
+      push({ t: 'pizza', team: z.team, at: [z.x, z.y], slices: z.slices, by: z.by.id });
     }
   }
-  function slice(u, z) {
+  // `by`: the Blub on the phone threw it from its stack (engine 29): 'toss', from its
+  // tile to the one it feeds (itself too), and the heal is put down to it
+  function slice(u, z, by) {
     z.slices--;
-    push({ t: 'slice', u: u.id, team: z.team, at: [z.x, z.y], left: z.slices });
-    heal(u, RULES.pizzaHp, 'pizza');
+    if (by) push({ t: 'toss', u: by.id, d: u.id, team: z.team, from: [by.x, by.y], to: [u.x, u.y], at: [z.x, z.y], left: z.slices });
+    else push({ t: 'slice', u: u.id, team: z.team, at: [z.x, z.y], left: z.slices });
+    heal(u, RULES.pizzaHp, 'pizza', by);
     // eaten up: the box goes
     if (!z.slices) {
       tiles[z.c] = z.was;
@@ -8035,14 +8062,25 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     const z = pizzas[u.team];
     return z && z.c >= 0 && z.slices > 0 ? z : null;
   };
-  // a Blub low on HP with nobody to fight walks back for a slice (its turn)
+  // the Blub on the phone, at the start of its turn (engine 29): a slice off its stack for
+  // the most hurt of its squad within pizzaToss tiles at pizzaAt% HP or less (itself too)
+  function tossSlice(u) {
+    const z = pizzaOf(u);
+    if (!z || z.by !== u) return;
+    const v = living[u.team].filter((w) => cheb(u.x, u.y, w.x, w.y) <= RULES.pizzaToss && w.hp * 100 <= w.max * RULES.pizzaAt).sort(byHurt)[0];
+    if (v) slice(v, z, u);
+  }
+  // a Blub low on HP with nobody to fight walks back for a slice (its turn). Engine 29:
+  // one at pizzaLow% HP or less with no enemy within 2 tiles comes from up to two moves
+  // away, a move a turn; a walk that gets nowhere leaves it its turn
   function pizzaRun(u) {
     const z = pizzaOf(u);
-    if (!z || u.hp * 100 > u.max * RULES.pizzaAt || inReach(u).length) return false;
+    if (!z) return false;
+    const low = u.hp * 100 <= u.max * RULES.pizzaLow && !foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 2);
+    if (!low && (u.hp * 100 > u.max * RULES.pizzaAt || inReach(u).length)) return false;
     if (cheb(u.x, u.y, z.x, z.y) > 1) {
-      const P = search(u, u.move, (x, y) => cheb(x, y, z.x, z.y) <= 1);
-      if (!P.found.length) return false;
-      walk(u, route(P, P.found[0]));
+      const P = search(u, low ? 2 * u.move : u.move, (x, y) => cheb(x, y, z.x, z.y) <= 1);
+      if (!P.found.length || !walk(u, route(P, P.found[0]))) return false;
       if (!u.alive || over >= 0 || cheb(u.x, u.y, z.x, z.y) > 1) return true;
     }
     slice(u, z);
@@ -8479,7 +8517,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // fight's stream rolls the same either way. 'box' tells where one lands (and for whom
   // it is a must to fetch); its Blub picks it up by stepping on it ('drop', box: 1, then
   // the perk, as a supply drop; or 'perk' for a golden one); 'boxgone' if the mist gets
-  // it first.
+  // it first. (engine 29: with RULES.boxFetch off, as now, there is no fetching: it lands
+  // right on the Blub that rolled it and opens at once, dropBox; nothing waits on the floor)
   const boxR = rng(subSeed(seed, round, BOX_SALT));
   const rainK = weather === 'rain' ? RULES.chanceRain : 1;
   // golden this round? goldPct% for each of the squad's Blubs, and which golden drop
@@ -8519,6 +8558,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (k.by) k.had = true;
     return k.by;
   }
+  // engine 29: a Blub a crate can fall straight onto (boxFetch off): not one up on a Green
+  // Candle or in the Diamond Hand, nor a Gambler still at its wheel
+  const boxLands = (v) => RULES.boxFetch || (!v.ride && !(v.pow === 'gambler' && gambling(v)));
   function boxTurn(turn) {
     for (const t of [0, 1]) {
       const rolls = [];
@@ -8527,13 +8569,16 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       const b = boxR();
       const c = boxR();
       if (boxes[t] || over >= 0) continue;
+      // (engine 29: the first of the squad that rolled one and that it can land on; the
+      // draws above are the same whoever that is, or if it is nobody this turn)
       let u = null;
       for (let i = 0; i < TEAM && !u; i++) {
         const v = U[t * TEAM + i];
-        if (v.alive && rolls[i] * 100 < RULES.chancePct * rainK) u = v;
+        if (v.alive && rolls[i] * 100 < RULES.chancePct * rainK && boxLands(v)) u = v;
       }
       if (!u) continue;
-      const at = boxSpot(u, turn, a);
+      // (engine 29: boxFetch off, it comes down on the Blub's own tile)
+      const at = RULES.boxFetch ? boxSpot(u, turn, a) : [u.x, u.y];
       if (!at) continue;
       // (a golden one is kept for this crate: the next its squad has not had, engine 28)
       const gold = boxGold[t] && goldFor(t, boxGold[t]);
@@ -8542,9 +8587,25 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       const list = good ? DROP_GOOD : DROP_BAD;
       const k = { team: t, x: at[0], y: at[1], c: idx(at[0], at[1]), good, gold, kind: gold ? null : list[Math.floor(c * list.length)], by: null, done: false, turn };
       boxes[t] = k;
+      if (!RULES.boxFetch) {
+        dropBox(u, k, turn);
+        continue;
+      }
       const by = fetcher(k);
       push({ t: 'box', team: t, u: u.id, by: by ? by.id : -1, at, good, ...(gold ? { gold } : { k: k.kind }), n: turn });
     }
+  }
+  // engine 29: the crate lands right on its Blub and is opened there and then. 'box'
+  // (direct: 1) says on whom, then what is in it as a supply drop's perk ('drop', box: 1,
+  // direct: 1, and what it does), or the golden drop, opened by that Blub ('perk')
+  function dropBox(u, k, turn) {
+    k.done = true;
+    k.by = u;
+    push({ t: 'box', team: k.team, u: u.id, by: u.id, at: [k.x, k.y], good: k.good, ...(k.gold ? { gold: k.gold } : { k: k.kind }), n: turn, direct: 1 });
+    if (k.gold) return openGold(k.team, u, k.gold, [k.x, k.y], turn, 'box');
+    push({ t: 'drop', u: u.id, team: k.team, k: k.kind, good: k.good, at: [k.x, k.y], n: turn, box: 1, direct: 1 });
+    dropHit(u, k.kind, turn);
+    checkOver();
   }
   // its Blub goes straight for it, its whole move; there, it picks it up and hits what it reaches
   function fetchBox(u, turn) {
@@ -13656,8 +13717,8 @@ const SquadView = (() => {
       return g;
     }],
     // The Coin Flip's coin (engine 22): 16 across, turning. 0 heads (a Blub's head stamped
-    // in it), 1-2 heads turning away, 3 edge on, 4-5 tails turning in, 6 tails (the $ of
-    // $BLUB).
+    // in it), 1-2 heads turning away, 3 edge on, 4-5 the skull side turning in, 6 the
+    // skull (engine 29: it was the $ of $BLUB).
     flipcoin: [7, 16, (i) => {
       let g = FG.grid(16);
       const w = [6.6, 4.9, 2.7, 0.9, 2.7, 4.9, 6.6][i];
@@ -13696,9 +13757,19 @@ const SquadView = (() => {
         put(8, 10, 'o');
         put(6, 7, 'w');
       } else {
-        // the $
-        for (const [x, y] of [[8, 3], [6, 4], [7, 4], [8, 4], [9, 4], [10, 4], [5, 5], [8, 5], [5, 6], [8, 6], [6, 7], [7, 7], [8, 7], [9, 7], [8, 8], [10, 8], [8, 9], [11, 9], [5, 10], [6, 10], [7, 10], [8, 10], [9, 10], [10, 10], [8, 11]]) put(x, y, 'A');
-        put(6, 5, 'w');
+        // the skull (engine 29): bone white, lit from the top left (grey on its shadow
+        // side), dark eye sockets, a nose and its teeth, edged in dark gold like the
+        // head on the other side. Drawn by hand for each width the coin turns through
+        // (columns 3-12, rows 3-12; '.' leaves the gold): 6 the full face, 5 and 4 the
+        // same skull squeezed as it turns in, its eyes closing up to a dark band.
+        const SKULL = {
+          4: ['....AA....', '....wW....', '...wWWS...', '...WkkS...', '...WkkS...', '...WWWS...', '...AWSA...', '...ASSA...', '....AA....', '..........'],
+          5: ['...AAAA...', '..AwWWSA..', '.AwWWWWSA.', '.AkkWWkkA.', '.AkkWWkkA.', '.AWWkkWSA.', '..AWWWSA..', '..AkWWkA..', '..AkSSkA..', '...AAAA...'],
+          6: ['..AAAAAA..', '.AwwWWWWA.', 'AwWWWWWWSA', 'AWkkWWkkSA', 'AWkkWWkkSA', 'AWWWkkWWSA', '.AWWWWWSA.', '.AWkWWkSA.', '.ASkSSkSA.', '..AAAAAA..'],
+        }[i];
+        SKULL.forEach((r, j) => {
+          for (let k = 0; k < r.length; k++) if (r[k] !== '.') FG.put(g, 3 + k, 3 + j, r[k]);
+        });
       }
       return FG.outline(g);
     }],
@@ -13837,6 +13908,31 @@ const SquadView = (() => {
         }
       for (const [x, y] of [[6, 8], [9, 8], [5, 10], [10, 10], [7, 11], [8, 9]]) if (g[y][x] === 'y') FG.put(g, x, y, 'r');
       if (i === 7) for (const [x, y] of [[5, 9], [9, 11], [10, 8]]) FG.put(g, x, y, 'o');
+      return FG.outline(g);
+    }],
+    // engine 29: a slice of pizza on its own, 14 across, the one the Blub on the phone
+    // throws: golden crust along its wide end, the cheese down to its tip, three
+    // pepperoni. 0 tip down, crust on top; 1-3 turned a quarter more each, for its spin
+    // through the air. The light stays up and to the left whichever way it is turned.
+    pizzaslice: [4, 14, (i) => {
+      let g = FG.grid(14);
+      const ca = [1, 0, -1, 0][i];
+      const sa = [0, 1, 0, -1][i];
+      // a point of the slice as it is tip down, turned round the middle (7, 7)
+      const at = (x, y) => [7 + (x - 7) * ca - (y - 7) * sa, 7 + (x - 7) * sa + (y - 7) * ca];
+      FG.poly(g, [at(2.5, 3.5), at(11.5, 3.5), at(7, 12.6)], '1');
+      g = FG.volume(g, '1', 'gold');
+      const [ax, ay] = at(3, 3);
+      const [bx, by] = at(11, 3);
+      FG.line(g, ax, ay, bx, by, 2.6, '2');
+      g = FG.volume(g, '2', 'wood');
+      // the pepperoni, 2x2: lit on the top left, a shadow on the bottom right
+      for (const [px, py] of [[5, 6], [9, 6], [7, 9]]) {
+        const [cx, cy] = at(px, py);
+        FG.disc(g, cx, cy, 0.8, 'r');
+        FG.put(g, cx - 1, cy - 1, 'F');
+        FG.put(g, cx, cy, 'R');
+      }
       return FG.outline(g);
     }],
     // its icon: a golden phone with a dial, the handset on top, and a slice of pizza
@@ -14133,10 +14229,14 @@ const SquadView = (() => {
         return u + ' runs from the pink mist.';
       // Supply Drop Rain (engine 27): a crate on one Blub, green or red
       case 'drop':
+        // (engine 29: a chance drop that falls straight onto its Blub opens at once)
+        if (e.direct) return 'It opens on ' + u + ' at once: ' + nameOf('drop', e.k) + ' (' + descOf('drop', e.k).replace(/\.$/, '') + ').';
         if (e.box) return u + ' opens ' + lb(e.team) + "'s " + (e.good ? 'green' : 'red') + ' crate: ' + nameOf('drop', e.k) + ' (' + descOf('drop', e.k).replace(/\.$/, '') + ').';
         return 'Supply drop! ' + u + ' gets a ' + (e.good ? 'green' : 'red') + ' crate: ' + nameOf('drop', e.k) + ' (' + descOf('drop', e.k).replace(/\.$/, '') + ').';
       // the chance drops (engine 28)
       case 'box':
+        // (engine 29: straight onto its Blub, no fetching)
+        if (e.direct) return 'Chance drop! ' + (e.gold ? 'A golden crate' : 'A ' + (e.good ? 'green' : 'red') + ' crate') + ' comes down right on ' + u + '.';
         return (e.gold ? 'A golden crate' : 'A ' + (e.good ? 'green' : 'red') + ' crate') + ' comes down near ' + u + (e.by >= 0 ? ': ' + nm(e.by) + ' has to fetch it.' : '.');
       case 'boxgone':
         if (e.why === 'nuke') return 'The nuke blows ' + lb(e.team) + "'s crate away.";
@@ -14301,10 +14401,13 @@ const SquadView = (() => {
         return 'HONK HONK! The pizza van pulls up and drops a box on ' + lb(e.team) + "'s rows: " + e.slices + ' slices.';
       case 'slice':
         return u + ' grabs a slice of pizza' + (e.left ? ' (' + e.left + ' left).' : ': that was the last one.');
-      // the Coin Flip (engine 22)
+      // a slice off the stack of the Blub on the phone (engine 29)
+      case 'toss':
+        return (e.u === e.d ? u + ' wolfs down a slice of pizza off its stack' : u + ' throws ' + d + ' a slice of pizza') + (e.left ? ' (' + e.left + ' left).' : ': that was the last one.');
+      // the Coin Flip (engine 22); its other side is a skull (engine 29)
       case 'coin':
-        if (e.fall) return e.heads ? u + ' flips the coin as it goes down: HEADS! Its double takes its place.' : u + ' flips the coin as it goes down: tails. Nothing left to lose.';
-        return e.heads ? u + ' flips the coin: HEADS! A doppelganger joins the fight.' : u + ' flips the coin: TAILS! It flips itself right out of the round.';
+        if (e.fall) return e.heads ? u + ' flips the coin as it goes down: HEADS! Its double takes its place.' : u + ' flips the coin as it goes down: the skull. Nothing left to lose.';
+        return e.heads ? u + ' flips the coin: HEADS! A doppelganger joins the fight.' : u + ' flips the coin: SKULL! It flips itself right out of the round.';
       // the Ray Gun's slime (engine 22)
       case 'goo':
         return e.res === 'absorb' ? 'The slime pops ' + d + "'s bubble." : 'The slime splashes ' + d + ': -' + e.dmg + '.';
@@ -15267,7 +15370,51 @@ const SquadView = (() => {
       white,
       ghost: white,
       line: { you: silhouette(mask, 16, 20, colors.you.fill, true), rival: silhouette(mask, 16, 20, colors.rival.fill, true), gold: silhouette(mask, 16, 20, colors.gold, true), pump: silhouette(mask, 16, 20, '#4BE08F', true) },
+      // (engine 29: its shape, for the glow a chance drop leaves round it: glowImg)
+      mask,
+      glow: [],
     };
+  }
+  // ---- engine 29: the glow round a Blub a chance drop has just opened on (GLOW: green for
+  // a buff, red for a nerf, gold for a golden drop; its colour, the light one, the deep one)
+  const GLOW = { good: ['#4BE08F', '#D6F5DD', '#1F8F57'], bad: ['#FF5C77', '#FFD3DD', '#B8324A'], gold: ['#FFD447', '#FFFFFF', '#C98A12'] };
+  const GLOW_KINDS = ['good', 'bad', 'gold'];
+  // A halo of light round the Blub's own shape, 3 px out (so it is 22x26, drawn 3 px up
+  // and left of the Blub): its edge lit solid, light at the top left and deep at the
+  // bottom right, then two rings of light dithered thinner and thinner. `ph` is how far
+  // it is swollen for the pulse (0 just the edge, 1 a sparse second ring, 2 both rings);
+  // `lv` 1-4 how much of it is left as it fades (the ordered dither cut into it). Made
+  // once a look.
+  function glowImg(S, kind, ph, lv) {
+    const ki = GLOW_KINDS.indexOf(kind);
+    const id = ki * 12 + ph * 4 + lv - 1;
+    if (S.glow[id]) return S.glow[id];
+    const [col, hi, lo] = GLOW[kind];
+    const c = canvas(22, 26);
+    const g = c.getContext('2d');
+    const on = (i, j) => i >= 0 && j >= 0 && i < 16 && j < 20 && S.mask[j * 16 + i];
+    for (let j = -3; j < 23; j++)
+      for (let i = -3; i < 19; i++) {
+        if (on(i, j)) continue;
+        // how far it is from the shape (to the nearest pixel of it)
+        let d = 9;
+        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (on(i + dx, j + dy)) d = Math.min(d, Math.hypot(dx, dy));
+        const b = FG.BAYER[((j + 3) & 3) * 4 + ((i + 3) & 3)];
+        // (each step of the fade keeps a quarter more of the dither)
+        if (b >= lv * 4) continue;
+        const tl = i + j < 13;
+        // (in a notch of it, between the ears, the light is dithered: not a solid plug)
+        const notch = (on(i - 1, j) || on(i - 2, j) || on(i - 3, j)) && (on(i + 1, j) || on(i + 2, j) || on(i + 3, j));
+        if (notch && (d > 1 || b >= 8)) continue;
+        let paint = null;
+        if (d <= 1) paint = ph && tl ? hi : ph && i + j > 25 ? lo : col;
+        else if (d <= 2.3) paint = b < [0, 4, 8][ph] ? col : null;
+        else if (d <= 3.2 && ph === 2) paint = b < 2 || (tl && b < 4) ? hi : null;
+        if (!paint) continue;
+        g.fillStyle = paint;
+        g.fillRect(i + 3, j + 3, 1, 1);
+      }
+    return (S.glow[id] = c);
   }
 
   // weapons turned in 8 directions (0 = pointing right, 2 = down, 4 = left, 6 = up), turned about the grip
@@ -15395,6 +15542,9 @@ const SquadView = (() => {
     // the Pizza Phone (engine 22): the call; the van rolling in and stopping at vanStop,
     // the box out of its back and down at vanHit, and off it goes; a slice to eat
     phone: 1900, phoneHit: 1400, van: 3600, vanStop: 1250, vanHit: 1900, slice: 700, sliceHit: 380,
+    // engine 29: a slice the Blub on the phone throws: it lets go at tossGo, and the slice
+    // lands on the one it feeds at tossHit
+    toss: 950, tossHit: 620, tossGo: 160,
     // the Pump.fun Pill (engine 22): up out of its paw and down its throat at pillHit;
     // its rush a tile every rushTile; a burst a bullet every pumpGap; the one shot that
     // brings it down, in at oneshotHit; and the damage it did, to read
@@ -15418,6 +15568,10 @@ const SquadView = (() => {
     // scene (gopenHit: the lid goes, a crate off the Gambler's wheel falls first);
     // the Gambler's wheel stops at gambleStop
     box: 1250, boxHit: 900, boxPick: 160, boxGone: 700, gopen: 2600, gopenHit: 650, gopenFall: 1100,
+    // engine 29: a chance drop that falls straight onto its Blub: on its parachute out of
+    // the sky, landing on it at boxDropHit, and its glow round the Blub for boxGlow after
+    // (a golden one falls in its scene first, as the Gambler's does: gopenFall)
+    boxDrop: 1500, boxDropHit: 950, boxGlow: 1200,
     gamble: 2700, gambleSlap: 380, gambleStop: 1900,
     // (a red spin that is not the last: a quick one)
     gambleQ: 1450, gambleQSlap: 300, gambleQStop: 1000,
@@ -15522,6 +15676,9 @@ const SquadView = (() => {
         lastMove = null;
       };
       const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
+      // engine 29: the 'box' of a chance drop that fell straight onto its Blub, told just
+      // before what is in it ('drop', or the golden drop's 'perk'): its index, else -1
+      const directBox = (i, team) => (i > 0 && ev[i - 1].t === 'box' && ev[i - 1].direct && ev[i - 1].team === team ? i - 1 : -1);
       ev.forEach((e, i) => {
         const t = e.t;
         if (t === 'pill') rager = e.u;
@@ -15535,8 +15692,15 @@ const SquadView = (() => {
         // Gambler's wheel falls first)
         if (t === 'perk' && e.n != null) {
           parent = null;
-          const hit = MS.gopenHit + (e.src === 'gamble' ? MS.gopenFall : 0);
-          add({ kind: 'gopen', dur: MS.gopen + hit - MS.gopenHit, contact: hit, list: [{ ei: i, off: hit }], e, actors: [e.u] });
+          // (engine 29: a chance drop's golden crate falls right onto its Blub first, like the
+          // Gambler's, its 'box' riding on the scene from the start)
+          const db = directBox(i, e.team);
+          const hit = MS.gopenHit + (e.src === 'gamble' || db >= 0 ? MS.gopenFall : 0);
+          const gb = add({ kind: 'gopen', dur: MS.gopen + hit - MS.gopenHit, contact: hit, list: [{ ei: i, off: hit }], e, actors: [e.u] });
+          if (db >= 0) {
+            gb.direct = true;
+            gb.list.unshift({ ei: db, off: 0 });
+          }
           return;
         }
         if (t === 'perk') {
@@ -15601,8 +15765,8 @@ const SquadView = (() => {
               return;
             }
           }
-          // a slice of pizza heals as it is eaten (engine 22)
-          if (t === 'heal' && p.kind === 'slice' && e.src === 'pizza') {
+          // a slice of pizza heals as it is eaten (engine 22), a thrown one as it lands (engine 29)
+          if (t === 'heal' && (p.kind === 'slice' || p.kind === 'toss') && e.src === 'pizza') {
             attachTo(p, i);
             return;
           }
@@ -15717,6 +15881,14 @@ const SquadView = (() => {
           return;
         }
         if (t === 'drop') {
+          // (engine 29: a chance drop that falls straight onto its Blub: a scene that keeps
+          // its time, its 'box' first; what it does lands with it, as a supply drop's)
+          if (e.direct) {
+            const db = directBox(i, e.team);
+            parent = add({ kind: 'drop', dur: MS.boxDrop, contact: MS.boxDropHit, list: [{ ei: i, off: 0 }], e, actors: [e.u], keep: true, direct: true });
+            if (db >= 0) parent.list.unshift({ ei: db, off: 0 });
+            return;
+          }
           // (a chance drop picked up opens at once: engine 28)
           const hit = e.box ? MS.boxPick : MS.dropHit;
           parent = add({ kind: 'drop', dur: MS.drop - MS.dropHit + hit, contact: hit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
@@ -15725,6 +15897,9 @@ const SquadView = (() => {
         // the chance drops (engine 28): a crate comes down near a Blub; the mist takes one
         if (t === 'box') {
           parent = null;
+          // (engine 29: one that falls straight onto its Blub rides on what is in it, next)
+          const nx = ev[i + 1];
+          if (e.direct && nx && directBox(i + 1, nx.team) === i && ((nx.t === 'drop' && nx.direct) || (nx.t === 'perk' && nx.n != null))) return;
           add({ kind: 'box', dur: MS.box, contact: MS.boxHit, list: [{ ei: i, off: MS.boxHit }], e, actors: e.by >= 0 ? [e.by] : [] });
           return;
         }
@@ -15786,6 +15961,11 @@ const SquadView = (() => {
         }
         if (t === 'slice') {
           parent = add({ kind: 'slice', dur: MS.slice, contact: MS.sliceHit, list: [{ ei: i, off: MS.sliceHit }], e, actors: [e.u] });
+          return;
+        }
+        // a slice thrown by the Blub on the phone (engine 29), down on the one it feeds at contact
+        if (t === 'toss') {
+          parent = add({ kind: 'toss', dur: MS.toss, contact: MS.tossHit, list: [{ ei: i, off: MS.tossHit }], e, actors: e.u === e.d ? [e.u] : [e.u, e.d] });
           return;
         }
         // the Coin Flip (engine 22): a scene of its own, the result on the floor at contact
@@ -16272,7 +16452,8 @@ const SquadView = (() => {
       // a squad's perk for the round, out of its crate
       // the chance drops (engine 28): a crate down, picked up, or gone in the mist
       case 'box':
-        S.boxes[e.team] = { team: e.team, x: e.at[0], y: e.at[1], good: e.good, gold: e.gold || null };
+        // (engine 29: one that falls straight onto its Blub never waits on the floor)
+        if (!e.direct) S.boxes[e.team] = { team: e.team, x: e.at[0], y: e.at[1], good: e.good, gold: e.gold || null };
         S.boxLog.push({ team: e.team, good: e.good, gold: e.gold || null, k: e.k || null, st: 'down' });
         break;
       case 'boxgone':
@@ -16323,15 +16504,20 @@ const SquadView = (() => {
         break;
       case 'pizza':
         S.pizzas[e.team] = { team: e.team, x: e.at[0], y: e.at[1], slices: e.slices };
+        // the Blub on the phone has its stack of slices on it from now on (engine 29)
+        if (e.by != null && U[e.by]) U[e.by].st.stack = true;
         break;
+      // a slice eaten at the box, or thrown off the stack (engine 29): one fewer either way
+      case 'toss':
       case 'slice': {
         const z = S.pizzas[e.team];
         if (z) z.slices = e.left;
         if (z && !e.left) delete S.pizzas[e.team];
+        if (!e.left) for (const v of U) if (v && v.team === e.team) delete v.st.stack;
         break;
       }
-      // the Coin Flip (engine 22): heads, the double comes off the bench; tails, its Blub
-      // is gone (as it goes down, nothing more happens to it)
+      // the Coin Flip (engine 22): heads, the double comes off the bench; the skull (engine
+      // 29), its Blub is gone (as it goes down, nothing more happens to it)
       case 'coin': {
         const u = U[e.u];
         delete u.st.coin;
@@ -17035,6 +17221,71 @@ const SquadView = (() => {
 
   // a Blub carried off by the moon rocket: the rocket draws it until it comes down
   const airborne = (u, t) => !!u.air && t >= u.air[0] && t < u.air[1];
+  // ---- engine 29: a chance drop's glow round its Blub (u.glow: its kind, from t0 for dur
+  // ms; glowOn). It comes up at once, pulses three times and fades over its last 35%:
+  // behind the Blub a pool of light on the floor round its feet (dithered, swelling with
+  // the pulse) and the halo round its shape (glowImg, full and drawn in by turns); over
+  // it, a few sparkles drifting up off it. Calm playback has it still, as a marker.
+  // where each sparkle starts (x off the Blub's middle, y up from its feet) and its phase
+  const GLOW_SPARK = [[-9, 4, 0], [9, 7, 0.37], [-6, 14, 0.71], [8, 15, 0.19], [-1, 19, 0.55], [11, 11, 0.86]];
+  function glowOn(u, t0, kind, k) {
+    if (u) u.glow = { t0, dur: MS.boxGlow * (k || 1), kind };
+  }
+  function drawGlow(x, u, ox, oy, fy, t, front) {
+    const g = u.glow;
+    const e = (t - g.t0) / g.dur;
+    if (e < 0 || e >= 1) return;
+    const a = e < 0.06 ? e / 0.06 : e > 0.65 ? (1 - e) / 0.35 : 1;
+    const lv = Math.ceil(a * 4);
+    if (lv < 1) return;
+    const pal = GLOW[g.kind];
+    const col = pal[0];
+    const hi = pal[1];
+    // three pulses: a quarter swelling, a quarter full, a quarter easing, a quarter drawn in
+    const q = P.calm ? 1 : Math.floor(e * 12) % 4;
+    if (front) {
+      if (P.calm || a < 0.3) return;
+      const cx = ox + 8;
+      const by = oy + 19;
+      for (let i = 0; i < GLOW_SPARK.length; i++) {
+        const s = GLOW_SPARK[i];
+        const f = (e * 2.4 + s[2]) % 1;
+        if (f > 0.85) continue;
+        const sx = cx + s[0] + (f > 0.5 ? (s[0] > 0 ? 1 : -1) : 0);
+        const sy = by - s[1] - Math.round(f * 9);
+        // a little cross of light as it starts, then a dot that dims
+        if (f < 0.3) {
+          x.fillStyle = col;
+          x.fillRect(sx - 1, sy, 3, 1);
+          x.fillRect(sx, sy - 1, 1, 3);
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(sx, sy, 1, 1);
+        } else {
+          x.fillStyle = f < 0.6 ? hi : col;
+          x.fillRect(sx, sy, 1, 1);
+        }
+      }
+      return;
+    }
+    // the pool of light on the floor: a dithered oval, its rim brighter
+    const sw = q === 0 || q === 2 ? 1 : q === 1 ? 2 : 0;
+    const hw = 9 + sw;
+    const hh = 3 + (sw > 1 ? 1 : 0);
+    const cx = ox + 8;
+    const lim = a * 7;
+    for (let dy = -hh; dy <= hh; dy++) {
+      const w = Math.round(hw * Math.sqrt(Math.max(0, 1 - (dy * dy) / ((hh + 0.5) * (hh + 0.5)))));
+      const yy = fy + dy;
+      for (let xx = cx - w; xx < cx + w; xx++) {
+        const rim = xx === cx - w || xx === cx + w - 1 || dy === -hh || dy === hh;
+        if (FG.BAYER[(yy & 3) * 4 + (xx & 3)] >= (rim ? lim * 2 : lim)) continue;
+        x.fillStyle = rim ? hi : col;
+        x.fillRect(xx, yy, 1, 1);
+      }
+    }
+    // and the halo round its shape (swelling, full, easing, drawn in)
+    x.drawImage(glowImg(P.spr[u.id], g.kind, q === 1 ? 2 : q === 3 ? 0 : 1, lv), ox - 3, oy - 3);
+  }
   function drawUnit(x, u, t, now) {
     if (airborne(u, t)) {
       u._b = null;
@@ -17096,6 +17347,8 @@ const SquadView = (() => {
       const [hcx, hcy] = tileC(held.x, held.y);
       x.drawImage(fxFrame('diamond', 2 + diamondBlocks(held, t)), Math.round(hcx - 16), hcy + 6 - 29);
     }
+    // (engine 29: a chance drop's glow, behind it)
+    if (u.glow) drawGlow(x, u, ox, oy, p.y, t, false);
     drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
     const S = P.spr[u.id];
     // on the Pump.fun Pill (engine 22): a green edge flickering round it, shaking with it
@@ -17123,6 +17376,8 @@ const SquadView = (() => {
     // instead of its own weapon
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
+    // (engine 29: and its sparkles, over it)
+    if (u.glow) drawGlow(x, u, ox, oy, p.y, t, true);
     // lasting looks
     // on the Pump.fun Pill (engine 22): eyes gone red, green sparks off it
     if (u.st.pumped) {
@@ -17158,6 +17413,12 @@ const SquadView = (() => {
       x.fillRect(hx0, hy0 + 1, 1, 3);
       x.fillStyle = '#FFF3B0';
       x.fillRect(hx0 - 1, hy0, 1, 1);
+    }
+    // engine 29: the Blub on the phone has its stack of slices on it once the box is down:
+    // the top one in its paw, at its side, till the last one is gone
+    if (u.st.stack && !u.st.phone) {
+      const s = u.face > 0 ? -1 : 1;
+      drawSlice(x, ox + 8 + s * 8 - 3, oy + 13);
     }
     // the golden coin (engine 22) in its paw, glinting, till it flips it
     if (u.st.coin && !(u.coinT > t)) {
@@ -19931,7 +20192,10 @@ const SquadView = (() => {
   // it is meant for walks over and prises the lid, and it bursts open in a shower of
   // gold with a beam straight up, the drop's card rising out of it to hang there till
   // the fight starts; then what is in it does its own little scene (goldReveal).
-  function goldCrate(e, T, k, cx, cy, until, trip, open) {
+  // (engine 29: `direct`, a chance drop's that fell straight onto its Blub: once open the
+  // crate goes, quickly dithered away, and the card hangs higher, over the Blub's head,
+  // so the Blub stands in plain sight in its glow)
+  function goldCrate(e, T, k, cx, cy, until, trip, open, direct) {
     const ic = iconSrc('gold', e.id);
     addFx(T, until, (x, kk, el) => {
       if (el < open) {
@@ -19945,12 +20209,16 @@ const SquadView = (() => {
         }
         return;
       }
-      // (the Shiba's crate flies apart: engine 22)
-      if (e.id !== 'shiba') x.drawImage(fxFrame('airdrop', 7), cx - 16, cy - 24);
       const e2 = el - open;
+      // (the Shiba's crate flies apart: engine 22)
+      if (e.id !== 'shiba' && !direct) x.drawImage(fxFrame('airdrop', 7), cx - 16, cy - 24);
+      else if (e.id !== 'shiba' && e2 < 380 * k) {
+        const img = fxFrame('airdrop', 7);
+        x.drawImage(e2 < 120 * k ? img : ghostOf(img, 'drop7', 1 - (e2 - 120 * k) / (260 * k)), cx - 16, cy - 24);
+      }
       const up = Math.min(1, e2 / (380 * k));
       const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
-      const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * 20 + bob));
+      const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * (direct ? 36 : 20) + bob));
       // its card: gold, with a white rim that glints
       x.fillStyle = INK;
       x.fillRect(cx - 18, iy - 2, 36, 36);
@@ -20576,6 +20844,49 @@ const SquadView = (() => {
       addParts(10, dx, dy - 4, ['#FFD447', '#E2566E', '#FFFFFF'], 0.06, 0.0003, 600 * k, hit + 60 * k, true, [-Math.PI, 0]);
       return true;
     }
+    // engine 29: a slice off the stack of the Blub on the phone. It turns to the one it
+    // feeds, a little hop as it lets go, and the slice spins through the air in an arc
+    // (higher the further it goes, its shadow on the floor under it) and lands on it: NOM,
+    // crumbs, and the heal. Its own it just stuffs in: up out of its paw and in.
+    if (b.kind === 'toss') {
+      const u = P.S.u[e.u];
+      const d = P.S.u[e.d];
+      if (!u || !d) return true;
+      const self = u === d;
+      const hit = T + b.contact;
+      const go = T + MS.tossGo * k;
+      const [fx0, fy0] = tileC(e.from[0], e.from[1]);
+      const [tx0, ty0] = tileC(e.to[0], e.to[1]);
+      if (!self) faceTo(u, tx0);
+      // (the stack is at its side, the one away from where it faces)
+      const s = u.face > 0 ? -1 : 1;
+      const far = Math.hypot(tx0 - fx0, ty0 - fy0);
+      const h = self ? 9 : Math.min(30, 12 + far * 0.3);
+      u.hop = { kind: 'toss', t0: go - 60 * k, dur: 200 * k, h: 2 };
+      atClock(go, () => sfx('click'));
+      addFx(go, hit - go, (x, kk, el) => {
+        // off the stack at its side, over its head and down to the other one's mouth,
+        // wherever the two of them are drawn now
+        const ub = u._b;
+        const db = d._b;
+        const sx = ub ? ub.ox + 9 + s * 8 : fx0 + s * 8;
+        const sy = ub ? ub.oy + 15 : fy0 + 2;
+        const ex = db ? db.ox + 8 : tx0;
+        const ey = db ? db.oy + 9 : ty0 - 4;
+        if (!self) blob(x, lerp(fx0, tx0, kk), lerp(fy0, ty0, kk) + 6, 2, 1, '#1B1229', 0.25);
+        const X = Math.round(lerp(sx, ex, kk));
+        const Y = Math.round(lerp(sy, ey, kk) - Math.sin(kk * Math.PI) * h);
+        // it turns over a quarter every 70 ms on its way (tip down as it lands)
+        const fr = kk > 0.85 ? 0 : Math.floor(el / (70 * k)) % 4;
+        x.drawImage(fxFrame('pizzaslice', fr), X - 7, Y - 7);
+      });
+      const [dx, dy] = centreOf(d);
+      label(hit, 'NOM', '#FFD447', dx, dy - 22, false);
+      if (!self) d.hop = { kind: 'toss', t0: hit, dur: 180 * k, h: 2 };
+      atClock(hit, () => sfx('heal'));
+      addParts(5, dx, dy - 8, ['#D9A05B', '#FFD447', '#E2566E'], 0.035, 0.0003, 380 * k, hit, false);
+      return true;
+    }
     if (b.kind === 'slice') {
       const u = P.S.u[e.u];
       if (!u) return true;
@@ -20612,8 +20923,8 @@ const SquadView = (() => {
   // with a PING and it goes up out of sight, turning over and over, the camera
   // following it up and back down; it slows as it falls (the clock too), hits the
   // floor in front of its Blub, rolls on its edge, wobbles and falls flat. HEADS: a
-  // gold flash and its double steps out of it. TAILS: its Blub comes apart. Flipped as
-  // its Blub goes down, the coin pops out of where it fell.
+  // gold flash and its double steps out of it. SKULL (the tails side, engine 29): its
+  // Blub comes apart. Flipped as its Blub goes down, the coin pops out of where it fell.
   // ---- The Gambler's wheel (engine 28; the pixel wheel of engine 23). Eight wedges,
   // as many gold as its odds (two at 25%, four ALL IN at 50%), the rest red; a pointer
   // on top and bulbs round its gold rim, drawn a pixel at a time for each of 32 turns.
@@ -20787,9 +21098,11 @@ const SquadView = (() => {
   }
   // A crate coming down (engine 28): a chance drop's onto its tile (green, red, or gold
   // in a beam of gold light), or the golden crate the Gambler's wheel won, at its feet
+  // (engine 29: a chance drop's golden crate that falls straight onto its Blub comes down
+  // the same way, onto the Blub's own tile, in its beam)
   function boxBeat(b, T, k) {
     const e = b.e;
-    const gamb = b.kind === 'gopen' && e.src === 'gamble';
+    const gamb = b.kind === 'gopen' && (e.src === 'gamble' || !!b.direct);
     if (b.kind !== 'box' && !gamb) return false;
     if (P.calm) return true;
     const [cx, cy] = tileC(e.at[0], e.at[1]);
@@ -20906,7 +21219,8 @@ const SquadView = (() => {
       flash(flat);
       hold(110);
     });
-    label(flat, e.heads ? 'HEADS!' : 'TAILS!', e.heads ? '#FFD447' : '#FF5C77', lx, ly - 18, true, 2);
+    // (the other side says SKULL!, the face it shows: engine 29)
+    label(flat, e.heads ? 'HEADS!' : 'SKULL!', e.heads ? '#FFD447' : '#FF5C77', lx, ly - 18, true, 2);
     ringFx(flat, lx, ly, 460 * k, e.heads ? '#FFD447' : '#FF5C77', 3, 20, true, 0.6);
     if (e.heads && e.c != null) {
       // the double: out of its Blub in a flash of gold, onto its own tile
@@ -22672,9 +22986,18 @@ const SquadView = (() => {
         if (e.n != null && e.kind === 'gold') {
           const gb = b && b.kind === 'gopen' ? b : null;
           const until = gb ? Math.max(600 * k, gb.t + gb.dur - T) : 1600 * k;
+          // (engine 29: one that fell straight onto its Blub hangs its card higher, the name
+          // over it, and leaves the gold glow round the Blub as it opens, and round the Blub
+          // it is meant for when that is another)
+          const dir = !!(gb && gb.direct);
+          const ly = dir ? cy - 62 : cy - 54;
           // (on the top rows the card hangs over the Blub: the name goes under it)
-          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, cy - 54 < TOP + 8 ? cy + 40 : above(cy - 54), true);
-          return goldCrate(e, T, k, cx, cy, until, null, 0);
+          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, ly < TOP + 8 ? cy + 40 : above(ly), true);
+          if (dir) {
+            glowOn(U[e.by], T, 'gold', k);
+            if (e.u !== e.by) glowOn(U[e.u], T + 200 * k, 'gold', k);
+          }
+          return goldCrate(e, T, k, cx, cy, until, null, 0, dir);
         }
         const until = Math.max(0, (P.rd.fightAt || T) - T);
         const trip = crateTrip(e, T, until, k);
@@ -22997,9 +23320,19 @@ const SquadView = (() => {
       // Blub (what it does lands with it: the heal, the HP, the status)
       // A CHANCE DROP (engine 28): its crate comes down on its parachute near a Blub, green,
       // red or gold, a '!' over the Blub that has to fetch it
+      // (engine 29: one that falls straight onto its Blub is drawn by what is in it, the
+      // 'drop' or the golden scene; a golden one's thump on the floor is told here)
       case 'box': {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         const col = e.gold ? '#FFD447' : e.good ? '#4BE08F' : '#FF5C77';
+        if (e.direct && b && b.direct) {
+          if (!e.gold) return;
+          const land = b.t + Math.round(MS.gopenFall * k) - T;
+          for (const s of [-1, 1]) addFx(T + land, 420 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), cy - 8));
+          label(T + land, 'GOLDEN DROP!', col, cx, above(cy - 28), true);
+          atClock(T + land, () => sfx('block'));
+          return;
+        }
         for (const s of [-1, 1]) addFx(T, 420 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (4 + (el * 0.02) / k)), cy - 8));
         label(T, e.gold ? 'GOLDEN DROP!' : 'CRATE!', col, cx, above(cy - 28), true);
         const v = e.by >= 0 ? U[e.by] : null;
@@ -23052,7 +23385,9 @@ const SquadView = (() => {
           const [cx, cy] = centreOf(u);
           blob(x, cx, cy + 6, Math.round(2 + kk * 6), 1, '#1B1229', 0.1 + kk * 0.22);
         }, true);
-        if (e.box) addFx(T, land, (x) => {
+        // (engine 29: a chance drop that falls straight onto its Blub comes down on its
+        // parachute as the rain's do, a little slower, and leaves its glow round it)
+        if (e.box && !e.direct) addFx(T, land, (x) => {
           const [cx, cy] = centreOf(u);
           x.drawImage(fxFrame('airdrop', good ? 4 : 5), cx - 16 + (Math.floor((T + 0) / 40) % 2), cy - 26);
         });
@@ -23061,18 +23396,22 @@ const SquadView = (() => {
           const sway = Math.round(Math.sin(el / (200 * k)) * 4 * (1 - kk)) + Math.round(side * 10 * (1 - kk));
           x.drawImage(fxFrame('airdrop', good ? 0 : 2), cx - 16 + sway, Math.round(lerp(y0, cy - 28, kk * kk)));
         });
-        addFx(T + land, 560 * k, (x, kk) => {
+        // (engine 29: one on its Blub goes quicker, so its glow shows)
+        const op = e.direct ? 0.3 : 0.5;
+        addFx(T + land, (e.direct ? 380 : 560) * k, (x, kk) => {
           const [cx, cy] = centreOf(u);
           const img = fxFrame('airdrop', good ? 1 : 3);
-          x.drawImage(kk < 0.5 ? img : ghostOf(img, good ? 'drop1' : 'drop3', 1 - (kk - 0.5) / 0.5), cx - 16, cy - 26);
+          x.drawImage(kk < op ? img : ghostOf(img, good ? 'drop1' : 'drop3', 1 - (kk - op) / (1 - op)), cx - 16, cy - 26);
         });
         atClock(T + land, () => {
           sfx(good ? 'power' : 'miss');
           const [cx, cy] = centreOf(u);
-          label(T + land, nameOf('drop', e.k).toUpperCase(), col, cx, cy - 24, true);
+          // (engine 29: kept on the arena over a Blub on the top row)
+          label(T + land, nameOf('drop', e.k).toUpperCase(), col, cx, above(cy - 24), true);
           ringFx(T + land, cx, cy + 4, 320 * k, col, 3, 11, true, 0.7);
           addParts(10, cx, cy - 8, good ? ['#4BE08F', '#9FE3A8', '#FFFFFF'] : ['#E2566E', '#FF9AA8', '#FFFFFF'], 0.07, 0.0002, 520 * k, T + land, true, [-Math.PI, 0]);
         });
+        if (e.direct) glowOn(u, T + land, good ? 'good' : 'bad', k);
         return;
       }
       case 'wagmi': {
@@ -24141,8 +24480,10 @@ const SquadView = (() => {
     const spots = []; // [x, y, 'blast' | 'boom' | 'aim'] in arena terms
     const HURT = new Set(['attack', 'splash', 'zap', 'bump', 'fog', 'shell', 'snag', 'mine', 'cannonball', 'rekt', 'sniped']);
     const drops = []; // the supply drops of the turn (engine 27): just their names, no falling
+    const glows = []; // engine 29: the chance drops that fell straight onto a Blub: its glow, still
     end.forEach((i) => {
       const e = R.ev[i];
+      if (e.t === 'box' && e.direct) glows.push(e);
       if (HURT.has(e.t) && e.dmg > 0) taken[e.d] = (taken[e.d] || 0) + e.dmg;
       if (e.t === 'heal') healed[e.d] = (healed[e.d] || 0) + e.amt;
       if (e.t === 'wagmi') healed[e.u] = (healed[e.u] || 0) + e.amt;
@@ -24153,7 +24494,7 @@ const SquadView = (() => {
       // a shell still in the air at the end of the turn: its target
       if (e.t === 'aim' && !end.some((j) => j > i && R.ev[j].t === 'blast' && R.ev[j].o === e.o)) spots.push([e.at[0], e.at[1], 'aim']);
     });
-    P.calmInfo = { taken, healed, kos, lines, spots, drops };
+    P.calmInfo = { taken, healed, kos, lines, spots, drops, glows };
     P.calmFresh = true;
   }
   // markers need the positions after the turn, so they are placed after the events applied
@@ -24161,7 +24502,7 @@ const SquadView = (() => {
     if (!P.calmFresh) return;
     P.calmFresh = false;
     const S = P.S;
-    const { taken, healed, kos, lines, spots, drops } = P.calmInfo;
+    const { taken, healed, kos, lines, spots, drops, glows } = P.calmInfo;
     // where shells and mines went off this turn: a marker and a quick flash, no motion
     spots.forEach(([ax, ay, kind]) => {
       const [sx, sy] = scr(ax, ay);
@@ -24199,6 +24540,14 @@ const SquadView = (() => {
         P.marks.push({ img, x: px, y: py });
         px += img.width + 1;
       });
+    });
+    // engine 29: a chance drop that fell straight onto its Blub: the glow round it, still
+    // (green, red or gold), where it stands now
+    (glows || []).forEach((e) => {
+      const u = S.u[e.u];
+      if (!u || !u.alive || u.gone) return;
+      const p = unitPos(u, P.clock);
+      P.marks.push({ img: glowImg(P.spr[u.id], e.gold ? 'gold' : e.good ? 'good' : 'bad', 2, 4), x: p.x - 3, y: p.y - 19 - p.hop - 3 });
     });
     // a supply drop's name over the Blub it landed on, green or red
     (drops || []).forEach((e) => {
@@ -24670,7 +25019,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee']);
+  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -24846,7 +25195,8 @@ const SquadView = (() => {
         else if (u.tent) r.hp.append(el('span', 'long', 'In the tent'), el('span', 'short', 'TENT'));
         else if (u.moon) r.hp.append(el('span', 'long', 'On the moon'), el('span', 'short', 'MOON'));
         else if (u.pit) r.hp.append(el('span', 'long', 'In a pit'), el('span', 'short', 'PIT'));
-        else if (u.flipped) r.hp.append(el('span', 'long', 'Flipped away'), el('span', 'short', 'TAILS'));
+        // flipped the skull (engine 29: it said TAILS)
+        else if (u.flipped) r.hp.append(el('span', 'long', 'Flipped away'), el('span', 'short', 'SKULL'));
         else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
         r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
         r.b.classList.toggle('ko', !u.alive);
@@ -25834,6 +26184,8 @@ const SquadView = (() => {
         sh(u.jerk, 't0');
         sh(u.quake, 't0');
         sh(u.quake, 't1');
+        // (engine 29: a chance drop's glow)
+        sh(u.glow, 't0');
         if (u.air) u.air = [u.air[0] + shift, u.air[1] + shift];
         ['flash', 'hpT', 'koT', 'nap', 'hurt', 'riseT'].forEach((f) => (u[f] += shift));
       });
@@ -26048,8 +26400,10 @@ const SquadView = (() => {
       // the golden drop (engine 22)
       gold: {
         pill: `Your rifle Blub swallows it as the enemy comes: it rushes in and sprays ${R.pillMin}-${R.pillMax}% of a Blub's HP, then is shot down.`,
-        pizza: `Your Blub calls for pizza: ${R.pizzaWait} turns later a van drops a box on your rows, ${R.pizzaSlices} slices of ${R.pizzaHp} HP for the whole squad.`,
-        coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Tails: that Blub is out.`,
+        // (engine 29: the slices it throws)
+        pizza: `Your Blub calls for pizza: ${R.pizzaWait} turns later a van drops a box on your rows, ${R.pizzaSlices} slices of ${R.pizzaHp} HP. It throws one a turn to a hurt Blub near it, and the badly hurt walk back for more.`,
+        // (its other side a skull: engine 29)
+        coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Skull: that Blub is out.`,
         raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
         shiba: `Let out at once: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
         blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
@@ -26335,11 +26689,14 @@ const SquadView = (() => {
     }
     // engine 28: the chance drops, each crate as it comes down, and the golden drops opened
     if (RU.chancePct) {
-      row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it (within ' + RU.boxReach + ' tiles; when it falls, the next takes over), and the mist takes it if it gets there first.');
+      // (engine 29: with boxFetch off, as now, it lands right on its Blub and opens at once)
+      if (!RU.boxFetch) row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down right on it, one a squad a round. It opens at once: green or red, a perk for that Blub, which glows green or red with it; now and then a golden drop, with a glow of gold. A Blub up on a Green Candle or in the Diamond Hand, or a Gambler at its wheel, cannot catch one.');
+      else row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it (within ' + RU.boxReach + ' tiles; when it falls, the next takes over), and the mist takes it if it gets there first.');
       for (const k of (P.S && P.S.boxLog) || []) {
         if (k.gold && k.st === 'got') continue;
         const lbl = P.sideLabels[P.sideOf(k.team)] + ' · ' + (k.gold ? 'golden' : k.good ? 'green' : 'red') + ' crate';
         if (k.st === 'got') row('perk ' + (k.good ? 'buff' : 'nerf'), k.good ? 'buff' : 'nerf', k.k, lbl + ' · ' + P.names[k.u], nameOf('drop', k.k), descOf('drop', k.k));
+        else if (k.st !== 'gone' && !RU.boxFetch) row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, 'On its way down', 'It opens the moment it lands.');
         else row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, k.st === 'gone' ? { nuke: 'Blown away by the nuke', crushed: 'Crushed' }[k.why] || 'Lost in the mist' : 'Not picked up yet', k.st === 'gone' ? '' : 'Its nearest Blub is on the way.');
       }
       for (const g of (P.S && P.S.goldLog) || []) row('perk gold', 'gold', g.id, P.sideLabels[P.sideOf(g.team)] + ' · golden drop' + (g.src === 'gamble' ? ', off the Gambler\u2019s wheel' : '') + ' · ' + P.names[g.u], nameOf('gold', g.id), descOf('gold', g.id));
