@@ -11,8 +11,8 @@ wijzigingen eerst over naar de bron en sync pas daarna.
 - `engine-27-to-28.diff`: de volledige diff van `index.html`, van engine 27
   (ee1ba63) naar engine 28. Daar zitten ook de golden drops van engine 22 in, die
   opnieuw zijn ingebouwd.
-- In `index.html` is elke wijziging gemarkeerd. Zoek op `engine 28` (36 plekken)
-  en `engine 22` (97 plekken) om ze terug te vinden.
+- In `index.html` is elke wijziging gemarkeerd. Zoek op `engine 28` en `engine 22`
+  om ze terug te vinden.
 
 ## Wat er in engine 28 zit
 
@@ -27,7 +27,15 @@ wijzigingen eerst over naar de bron en sync pas daarna.
   krat weg (`boxgone`).
 - `goldPct: 1`: 1% per Blub per ronde (×2 in de regen) dat de krat van die ronde
   goud is (`GOLDS`).
-- `teamCrate: false`: de oude teamkrat. De code bestaat nog, als schakelaar.
+- `teamCrate: false`: de oude teamkrat. De code bestaat nog, als schakelaar. Als hij
+  uit staat, geeft `chestSpin` ook geen teambuff of -nerf meer; ze worden nog wel
+  getrokken, zodat de stream gelijk blijft.
+- `boxReach: 4`: de ophaalplicht gaat alleen over op een Blub die binnen 4 tegels van
+  de krat staat en niet vastzit (verstrikt, gevangen of vastgehouden door een
+  Guardian). Is er niemand, dan wacht de krat.
+- Een golden crate krijgt zijn soort vast toegewezen zodra hij landt (`goldFor`,
+  `goldHad`), zodat de tekst klopt met wat eruit komt. `boxgone` heeft een
+  `why`: `mist`, `nuke` of `crushed`.
 - Engine-functies: `boxTurn`, `fetchBox`, `pickBox`, `mistBoxes` en `openGold`.
   De nieuwe rng-stream is `BOX_SALT = 7`, met een vast aantal trekkingen per beurt.
 - View: de beats `box`, `boxgone` en `gopen`, verder `drawBox` en de sectie
@@ -40,8 +48,14 @@ wijzigingen eerst over naar de bron en sync pas daarna.
 - Het aantal beurten hangt af van zijn stance (`gambleSpins`): attack 3, middle 4,
   evade 4, hold 5. De laatste draai is **ALL IN**, met `gambleAllIn: 50`% kans.
 - Bij zijn eerste golden drop stopt hij, op zijn hoogtepunt.
-- Engine: `gamble(u, turn)`, rng-stream `GAMBLE_SALT = 8`. View: de beat `gamble`
-  (het rad, `wheelLayout`) en `ICONS.pow.gambler`.
+- Spins worden geteld (`u.spins`). Een gemiste spin, bijvoorbeeld door bevriezing,
+  haalt hij binnen `gambleLate: 2` extra beurten in. De laatste spin is altijd
+  ALL IN. Een Gambler die nog draait, wordt niet gekozen voor de Green Candle, de
+  Diamond Hand, de Lambo of de stunt cannon.
+- Engine: `gamble(u, turn)` en `gambleTurn()`. Die laatste trekt elke beurt 4 waarden
+  per unit-slot uit `GAMBLE_SALT = 8`, dus een vast aantal trekkingen. View: de beat
+  `gamble` (het rad, `wheelLayout`). Een rode spin die niet de laatste is, is kort
+  (`MS.gambleQ`). Verder `ICONS.pow.gambler`.
 - Gemeten in de simulaties: de Gambler krijgt in ongeveer 70% van de rondes goud
   en ALL IN valt ongeveer 50% raak. De winrate van de power ligt rond de 50%.
 
@@ -50,6 +64,14 @@ wijzigingen eerst over naar de bron en sync pas daarna.
   en Pump.fun Pill.
 - Een team krijgt elke golden drop hooguit één keer (`goldHad`). Daarnaast:
   `goldGrace: 4` en `pizzaWait: 2`.
+- De Coin Flip-dubbelganger krijgt `foxhole`, `ammo` en `gambled`. Zonder `ammo`
+  deed elke treffer NaN schade en schakelde die de Blub in één klap uit.
+- Een Blueprint die laat opent, mag nog `cannonStart` beurten na het openen een
+  kanon uitzetten (`meme.printAt`). Staat het kanon van het team al, dan helpt
+  hij dat afbouwen en repareren.
+- De kooi van de Shiba komt op een vrije tegel naast de krat (`perk.dog`).
+- Tunnels en terugkeer uit het Field Hospital of de Rug Pull landen nooit op een
+  krat die nog moet worden opgehaald.
 
 ### 4. Fixes uit de review van engine 27
 - Mist: een Blub die uit de mist wil maar eerst opzij moet, bleef staan tot hij KO

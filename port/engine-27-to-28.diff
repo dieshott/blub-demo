@@ -1,5 +1,5 @@
 diff --git a/index.html b/index.html
-index 4a14e6e..92aee01 100644
+index 4a14e6e..1a3598e 100644
 --- a/index.html
 +++ b/index.html
 @@ -581,7 +581,7 @@ body.no-scroll{overflow:hidden}
@@ -38,7 +38,7 @@ index 4a14e6e..92aee01 100644
  const SIZE = 15;
  const TEAM = 5;
  const TURNS = 20;
-@@ -3977,6 +3979,82 @@ const RULES = lock({
+@@ -3977,6 +3979,87 @@ const RULES = lock({
    ngmiMiss: 1, // NGMI: the squad's first attacks that always miss
    bagMove: 1, bagTurns: 2, // Bagholder: bagMove less move (a supply drop's: for bagTurns of its turns)
    rektHp: 5,
@@ -112,16 +112,21 @@ index 4a14e6e..92aee01 100644
 +  // (GOLDS) instead. teamCrate: the old crate for the whole squad as the round starts
 +  // (off; its code stays, for a rule set that wants it back).
 +  chancePct: 5, chanceRain: 2, goldPct: 1, boxNear: 3, teamCrate: false,
++  // the duty to fetch passes only to a Blub of the squad within boxReach tiles of the
++  // crate that is free to walk (not tangled, caught or held); with none, the crate waits
++  boxReach: 4,
 +  // ---- the Gambler (engine 28, a power, one a squad). On its first turns it stays on its
 +  // own rows and spins its wheel instead of fighting: gambleGold% a golden drop (GOLDS),
 +  // else red, nothing. How many spins its stance gives it (gambleSpins); the last one is
 +  // ALL IN, at gambleAllIn%. Its first golden drop and it stops, on a high; the golden
 +  // drop goes to the Blub of the squad it is meant for (the Gambler itself when any).
-+  gambleGold: 25, gambleAllIn: 50, gambleSpins: { attack: 3, middle: 4, hold: 5, evade: 4 },
++  // A spin it misses (frozen, trapped, carried off) it makes up on a later turn, up to
++  // gambleLate turns after its stance's last; its last spin is ALL IN, whenever that is.
++  gambleGold: 25, gambleAllIn: 50, gambleSpins: { attack: 3, middle: 4, hold: 5, evade: 4 }, gambleLate: 2,
    // ---- the trench arsenal
    // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
    // keeps only scopeDodge% of its dodge
-@@ -4062,7 +4140,7 @@ const RULES = lock({
+@@ -4062,7 +4145,7 @@ const RULES = lock({
    screenTake: 25,
    // How many Blubs of a squad may have a power (engine 14, the owner's call: never a
    // squad of five Diggers): the trench jobs and the Freeze Ray once, the rest twice
@@ -130,7 +135,7 @@ index 4a14e6e..92aee01 100644
    // Miner: with no enemy it could fight this turn (and none within digSafe tiles) it
    // digs, finding a gem digGem% of the time and a stone digStone% (twice as often on
    // its Mine Shaft, where it digs whenever nobody is in its reach and which it keeps
-@@ -4114,9 +4192,14 @@ const WEAPON_STATS = lock({
+@@ -4114,9 +4197,14 @@ const WEAPON_STATS = lock({
    boom: { range: 1, dmg: 0, hands: 2, boom: 1, one: 1 },
    // tool: not a pick: what a Builder fights with, whatever weapon it was given
    tool: { range: 1, dmg: RULES.toolDmg, hands: 1, tool: 1 },
@@ -145,7 +150,7 @@ index 4a14e6e..92aee01 100644
  const GEAR = lock([
    ['shield', 'Shell Shield', 'One-handed weapons only. Blocks 30% of hits for half damage.'],
    ['boots', 'Cloud Boots', '+1 move and a little extra dodge.'],
-@@ -4133,6 +4216,7 @@ const POWERS = lock(capped([
+@@ -4133,6 +4221,7 @@ const POWERS = lock(capped([
    ['rage', 'Rage Mode', `Once hit to ${RULES.rageAt}% HP or less: +${RULES.rageDmg} damage on close-up blows (+${RULES.rageShot} on shots) for the rest of the round.`],
    ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
    ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
@@ -153,7 +158,7 @@ index 4a14e6e..92aee01 100644
    ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles, ${RULES.cannonDmg} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
    ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs a pit beside it, covered with leaves: its whole turn, at most ${RULES.pitMax === 1 ? 'one pit' : RULES.pitMax + ' pits'} a round${RULES.pitMax > 1 ? ', never two in one turn' : ''}. When the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it.`],
    ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
-@@ -4194,7 +4278,7 @@ const OBJECTS = lock([
+@@ -4194,7 +4283,7 @@ const OBJECTS = lock([
    ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
    ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. The first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it is lost in the smoke: the pot pops, and for the rest of that turn and ${RULES.smokeTurns} more a cloud hangs over it and the tiles around it. An arrow or bullet that flies into the cloud, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it.`],
    ['decoy', 'Decoy Blub', `A dummy in your colours, also out in no man's land; nobody walks through it. Enemy shooters that can hit it from 2 tiles or more take it for a Blub and shoot it first, unless an enemy stands right next to them. It falls apart after ${RULES.decoyHp} damage.`],
@@ -162,7 +167,7 @@ index 4a14e6e..92aee01 100644
  ]);
  const OBJECT_STATS = lock({
    sandbags: { cells: [-1, 0, 1], solid: 1, out: 1 },
-@@ -4273,9 +4357,9 @@ const EVENT_STATS = lock({
+@@ -4273,9 +4362,9 @@ const EVENT_STATS = lock({
    ape: { turn: 0, contested: 1, spots: 'line' },
    exit: { turn: 0, spots: 'mid' },
  });
@@ -175,7 +180,7 @@ index 4a14e6e..92aee01 100644
  const BUFFS = lock([
    ['airdrop', 'Airdrop', `Somewhere between turn ${RULES.airdropFrom} and ${RULES.airdropTo} the weakest Blub gets ${RULES.airdropHp} HP and its power back.`],
    ['sniper', 'Sniper Bot', `One shot of ${RULES.sniperDmg} damage on the first enemy that uses a power.`],
-@@ -4296,6 +4380,17 @@ const NERFS = lock([
+@@ -4296,6 +4385,17 @@ const NERFS = lock([
  // them fall again (the admin panel's competitions, later). The chest draws from the rest.
  const EVENTS_OFF = lock(['sendit', 'laser', 'copium', 'ape']);
  const CHEST_POOL = lock(EVENTS.filter((e) => !EVENTS_OFF.includes(e[0])));
@@ -185,7 +190,7 @@ index 4a14e6e..92aee01 100644
 +const GOLDS = lock([
 +  ['pill', 'Pump.fun Pill', `A green and white capsule, the Bonding Curve Nuke's little sister. Your rifle Blub takes it (else a Scope Rifle, else your hardest hitter, and it comes with a rifle). When the enemy comes within ${RULES.pillNear} tiles it swallows it and goes berserk: it rushes up to ${RULES.pillDash} tiles into their ground and sprays round after round until it has done ${RULES.pillMin}% to ${RULES.pillMax}% of a Blub's HP in damage. Then they shoot it down, one shot.`],
 +  ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad: a Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back for one, and one that starts its turn beside the box grabs one on its way.`],
-+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (${RULES.goldGrace} turns after it is opened at the latest) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
++  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest, or ${RULES.goldGrace} turns after it is opened if that is later) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
 +  ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
 +  ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. The moment it is opened its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
 +  ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -193,7 +198,7 @@ index 4a14e6e..92aee01 100644
  const CHEST_SALT = 4; // the chest's random stream
  // What the chest's own effects need to roll (which Blub gets Rekt, and so on) comes
  // from a stream of its own, so the fight rolls exactly the same with the chest off:
-@@ -4325,6 +4420,9 @@ const WEATHER_SALT = 0x77e4;
+@@ -4325,6 +4425,9 @@ const WEATHER_SALT = 0x77e4;
  // fight's own stream rolls the same as without it. [id, name, good (1 green, 0 red),
  // what it does to the Blub it lands on]; the ids and names are the chest's (BUFFS, NERFS).
  const DROP_SALT = 6;
@@ -203,7 +208,7 @@ index 4a14e6e..92aee01 100644
  const plural = (n, one, more) => n + ' ' + (n === 1 ? one : more);
  const DROPS = lock([
    ['airdrop', 'Airdrop', 1, `Heals ${RULES.airdropHp} HP, and its power is ready again.`],
-@@ -4332,11 +4430,11 @@ const DROPS = lock([
+@@ -4332,11 +4435,11 @@ const DROPS = lock([
    ['pump', 'Pump', 1, `+${RULES.pumpDmg} damage for its next ${plural(RULES.pumpTurns, 'turn', 'turns')}.`],
    ['devwallet', 'Dev Wallet', 1, `Heals ${RULES.devwalletShare}% of the damage it has taken this round (at least 1).`],
    ['sniper', 'Sniper Bot', 1, `The Sniper Bot fires at once: ${RULES.sniperDmg} damage to the enemy nearest that Blub.`],
@@ -217,7 +222,7 @@ index 4a14e6e..92aee01 100644
    ['paper', 'Paper Hands', 0, `It loses its nerve and runs back for ${plural(RULES.paperTurns, 'turn', 'turns')}.`],
  ]);
  const DROP_GOOD = DROPS.filter((d) => d[2]).map((d) => d[0]);
-@@ -4453,9 +4551,9 @@ function cleanSquad(raw) {
+@@ -4453,9 +4556,9 @@ function cleanSquad(raw) {
  // A power one too many for a squad (RULES.powMax) swapped, in place, for the first in
  // POW_SPARE with room; the Blubs listed first keep theirs. For squads saved or built
  // before the caps (engine 14), and for squads filled in from the role presets.
@@ -229,7 +234,7 @@ index 4a14e6e..92aee01 100644
  const spareFor = (u) => (WEAPON_STATS[u.wpn] && WEAPON_STATS[u.wpn].range >= 3 ? POW_SPARE_SHOT : POW_SPARE);
  function capPowers(units) {
    const n = {};
-@@ -4662,20 +4760,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4662,20 +4765,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    const loud = !quiet;
    const U = [];
    const occ = new Int8Array(N).fill(-1);
@@ -258,7 +263,7 @@ index 4a14e6e..92aee01 100644
        U.push(u);
        occ[idx(x, y)] = u.id;
      }),
-@@ -4688,14 +4786,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4688,14 +4791,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    // (a list of events instead of true: the chest draws from that pool, e.g. all of EVENTS)
    const spin = chest ? chestSpin(seed, round, Array.isArray(chest) ? chest : CHEST_POOL) : null;
    const cr = rng(subSeed(seed, round, EFFECT_SALT));
@@ -275,7 +280,7 @@ index 4a14e6e..92aee01 100644
        // WAGMI: the whole squad turns up tougher
        if (meme[t].buff === 'wagmi')
          for (const u of squad) {
-@@ -4771,12 +4869,50 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4771,12 +4874,50 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    let item = null; // {item, x, y}
    let over = -1;
    let now = 0; // the turn being played, for the memepowers that only last a while
@@ -330,7 +335,7 @@ index 4a14e6e..92aee01 100644
    if (spin)
      for (const t of [0, 1]) {
        const rows = t === 0 ? [SIZE - 1, SIZE - 2, SIZE - 3] : [0, 1, 2];
-@@ -4787,20 +4923,98 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4787,20 +4928,110 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
            if (occ[c] < 0 && !solidTile(tiles[c]) && wireT[c] < 0 && mineT[c] < 0 && !towerT[c] && !trenchT[c]) free.push([x, y]);
          }
        const at = free.length ? free[Math.floor(cr() * free.length)] : null;
@@ -362,7 +367,7 @@ index 4a14e6e..92aee01 100644
 +    const st = unitStats({ ...s, pow }, false, false);
 +    const wpn = WEAPON_STATS[s.wpn].boom ? 'sword' : s.wpn;
 +    const v = fresh({ ...s, pow, wpn }, U.length, t, by.x, by.y, false, st);
-+    Object.assign(v, { engineer: false, crew: false, hp: st.max + RULES.coinHp, max: st.max + RULES.coinHp, bubble: true, alive: false, bench: true, of: base.id });
++    Object.assign(v, { engineer: false, crew: false, hp: st.max + RULES.coinHp, max: st.max + RULES.coinHp, bubble: true, alive: false, bench: true, of: base.id, foxhole: false, ammo: 0, gambled: true });
 +    U.push(v);
 +    stats.push({ dmg: 0, kills: 0, healed: 0, taken: 0 });
 +    start.push({ u: v.id, team: t, cap: false, cls: v.cls, wpn: v.wpn, gear: v.gear, pow: v.pow, tac: v.tac, stn: v.stn, x: v.x, y: v.y, hp: v.hp, max: v.max, mv: v.move, bubble: v.bubble, bench: 1, of: v.of });
@@ -385,11 +390,13 @@ index 4a14e6e..92aee01 100644
 +  // chance drop's crate or off the Gambler's wheel). What is in it goes to the Blub of
 +  // the squad it is meant for (goldBy), else to the one that opened it. 'perk' (kind
 +  // 'gold') tells it, with what changed; then what starts with it at once.
++  // a squad opens each golden drop once a round at most: a second one of the same kind
++  // is the next in GOLDS it has not had yet (engine 28); a chance drop's is kept for it
++  // as it comes down, so what the crate and the wheel say is what is opened
 +  const goldHad = [new Set(), new Set()];
++  const goldFor = (t, g) => (goldHad[t].has(g) ? GOLDS.map((v) => v[0]).find((id) => !goldHad[t].has(id)) || g : g);
 +  function openGold(t, opener, g, at, turn, src) {
-+    // a squad opens each golden drop once a round at most: a second one of the same
-+    // kind is the next in GOLDS it has not had yet (engine 28)
-+    if (goldHad[t].has(g)) g = GOLDS.map((v) => v[0]).find((id) => !goldHad[t].has(id)) || g;
++    if (src !== 'box') g = goldFor(t, g);
 +    goldHad[t].add(g);
 +    const u = goldBy(t, g, at) || opener;
 +    meme[t].gold = g;
@@ -397,14 +404,18 @@ index 4a14e6e..92aee01 100644
 +    if (g === 'blueprint') {
 +        // a golden hard hat: a Builder too, its own weapon kept. With the squad's
 +        // Builder still to build its cannon, the two build the Big Gun together.
-+        const lead = U.find((v) => v.team === t && v.engineer);
++        // (opened mid-round, engine 28: it lays out within cannonStart turns of now; with
++        // the squad's cannon already laid out, it helps finish and patch that one)
++        const lead = U.find((v) => v.team === t && v.engineer && v.alive);
++        const laid = works.some((w) => w.team === t);
 +        u.max += RULES.workHp;
 +        u.hp += RULES.workHp;
++        meme[t].printAt = turn;
 +        if (lead) {
 +          u.crew = true;
-+          meme[t].big = true;
++          if (!laid) meme[t].big = true;
 +        } else u.engineer = true;
-+        Object.assign(out, { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, big: 1 } : {}) });
++        Object.assign(out, { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, ...(laid ? {} : { big: 1 }) } : {}) });
 +      }
 +      // the Pump.fun Pill: it keeps it till it swallows it (by goldGrace turns at the latest)
 +      if (g === 'pill') {
@@ -418,6 +429,12 @@ index 4a14e6e..92aee01 100644
 +        u.load = 0;
 +        u.sight = -1;
 +      }
++    // the Shiba Inu's cage goes down beside the crate's tile (engine 28: a Blub stands on it)
++    if (g === 'shiba') {
++      const sx = t ? -1 : 1;
++      const ring = [[0, -1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1]].map(([dx, dy]) => [at[0] + dx * sx, at[1] + dy * sx]);
++      out.dog = ring.find(([x, y]) => inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)]) && tiles[idx(x, y)] !== WATER) || at.slice();
++    }
 +    push({ t: 'perk', team: t, kind: 'gold', id: g, at, u: u.id, by: opener.id, n: turn, src, ...out });
 +    if (g === 'coin') coins[t] = { by: u, v: makeDouble(t, u), done: false, flipBy: Math.max(RULES.coinBy, turn + RULES.goldGrace) };
 +    if (g === 'pizza') {
@@ -425,14 +442,14 @@ index 4a14e6e..92aee01 100644
 +      callPizza();
 +    }
 +    if (g === 'shiba') {
-+      dogs[t] = { team: t, x: at[0], y: at[1], by: u, bites: 0, out: false, done: false };
++      dogs[t] = { team: t, x: out.dog[0], y: out.dog[1], by: u, bites: 0, out: false, done: false };
 +      unleash();
 +    }
 +  }
  
    // the Liquidity Pool pays out at the start of a turn, to everyone standing in it
    // who rested there (fighting or working the turn before breaks the streak):
-@@ -4814,7 +5028,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4814,7 +5045,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      push({ t: 'yield', u: wet.map((u) => u.id), amt: wet.map((u, i) => Math.min(u.max - u.hp, misty ? pay[i] - (pay[i] >> 1) : pay[i])) });
      wet.forEach((u, i) => heal(u, pay[i], 'pool'));
    }
@@ -441,7 +458,7 @@ index 4a14e6e..92aee01 100644
    // the captain's command of each squad, whether it was called, and the one in force
    const cmdOf = [sqA, sqB].map((sq) => (sq && has(COMMANDS, sq.cmd) ? sq.cmd : ''));
    const called = [false, false];
-@@ -4825,12 +5039,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4825,12 +5056,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    // not alive while they are gone (nothing hits them, they hit nothing), but a squad
    // with one of them still to come back is not beaten.
    const gone = [];
@@ -456,7 +473,7 @@ index 4a14e6e..92aee01 100644
    // a Brawler's bonus is for what it swings or stabs with
    const brawly = (v) => v.cls === 'fierce' && WEAPON_STATS[v.wpn].range <= 2 && !WEAPON_STATS[v.wpn].boom;
    // the blast a Boom Pack carries: beside it, and a tile farther
-@@ -4939,12 +5153,19 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4939,12 +5170,19 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      occ[idx(d.x, d.y)] = -1;
      if (by) stats[by.id].kills++;
      push({ t: 'ko', u: d.id, by: by ? by.id : -1 });
@@ -478,7 +495,7 @@ index 4a14e6e..92aee01 100644
      if (tent) {
        tent.used = true;
        const back = now + RULES.hospTurns + 1;
-@@ -4974,6 +5195,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -4974,6 +5212,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      // Paper Hands: the first of the squad to fall under paperAt% loses its nerve
      // a Miner hurt to tunnelAt% or less tunnels away on its next turn
      if (d.alive && d.pow === 'miner' && !d.tunneled && d.hp * 100 <= d.max * RULES.tunnelAt) d.tunnel = 1;
@@ -487,7 +504,7 @@ index 4a14e6e..92aee01 100644
      // (never the Blub up in the Diamond Hand: diamond hands, engine 21)
      if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && !anchored(d) && d.hp * 100 < d.max * RULES.paperAt) {
        meme[d.team].paper = 1;
-@@ -5127,7 +5350,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5127,7 +5367,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        const pool = tiles[c] === WATER ? RULES.poolDodge : 0;
        // the Scope Rifle's shot was aimed at this one for a whole turn
        const dodge = w.cycle ? Math.floor((d.dodge * RULES.scopeDodge) / 100) : d.dodge;
@@ -498,7 +515,7 @@ index 4a14e6e..92aee01 100644
      }
      // the FUD cloud: a swing taken from inside it goes wide far more often. A Bubble
      // Wand still never misses, because that is the whole of what it is for.
-@@ -5247,6 +5472,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5247,6 +5489,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      const dc = decoyFor(u);
      if (dc) return hitDecoy(u, dc);
      const meant = d;
@@ -507,7 +524,7 @@ index 4a14e6e..92aee01 100644
      d = shieldedBy(u, d);
      const gd = d === meant ? -1 : meant.id;
      // the first arrow or bullet at a Blub by its squad's Smoke Pot is lost in the smoke
-@@ -5285,6 +5512,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5285,6 +5529,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        u.move -= RULES.chargeMove;
        u.charged = false;
      }
@@ -520,7 +537,7 @@ index 4a14e6e..92aee01 100644
      if (!landed || u.wpn !== 'hammer') return;
      // the hammer: splash on the enemies around the target, then knock it back
      for (const v of foes(u).slice()) if (v !== d && v.alive && over < 0 && cheb(v.x, v.y, d.x, d.y) <= 1) pure(u, v, w.splash, 'splash');
-@@ -5352,7 +5585,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5352,7 +5602,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    const sCost = new Int16Array(N).fill(-1);
    const sPrev = new Int16Array(N).fill(-1);
    let touched = [];
@@ -530,7 +547,7 @@ index 4a14e6e..92aee01 100644
      for (let k = 0; k < touched.length; k++) {
        sCost[touched[k]] = -1;
        sPrev[touched[k]] = -1;
-@@ -5378,7 +5612,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5378,7 +5629,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
            const n = list[flip ? L - 1 - k : k];
            const o = occ[n];
            if ((o >= 0 && U[o].team !== u.team) || pitT[n] === u.team) continue;
@@ -539,7 +556,7 @@ index 4a14e6e..92aee01 100644
            if (nc > maxCost || (sCost[n] >= 0 && sCost[n] <= nc)) continue;
            if (sCost[n] < 0) touched.push(n);
            sCost[n] = nc;
-@@ -5411,7 +5645,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5411,7 +5662,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      return foes(u).some((v) => cheb(x, y, v.x, v.y) <= 1 && (v.cls === 'sleepy' || onScreen(v)));
    };
    const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce') || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug || cats.includes(c));
@@ -549,7 +566,7 @@ index 4a14e6e..92aee01 100644
      let spent = 0;
      let n = 0;
      for (; n < path.length; n++) {
-@@ -5429,7 +5664,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5429,7 +5681,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        }
      // never on to a tile the mist takes by next turn, unless nearer the centre than where
      // it stands (engine 27); a walk cut short there stops short of any screen too
@@ -558,7 +575,7 @@ index 4a14e6e..92aee01 100644
      while (n > 0 && (occ[path[n - 1]] >= 0 || worse(path[n - 1], from))) {
        if (worse(path[n - 1], from)) cut = false;
        n--;
-@@ -5462,6 +5697,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -5462,6 +5714,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    function arrive(u) {
      const c = idx(u.x, u.y);
      if (item && item.x === u.x && item.y === u.y) pickUp(u);
@@ -567,7 +584,7 @@ index 4a14e6e..92aee01 100644
      if (!u.alive || over >= 0) return;
      if (wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce') {
        hurt(u, RULES.wireDmg, 'snag', objs.find((o) => o.k === 'wire' && o.cells.includes(c)));
-@@ -6182,6 +6419,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6182,6 +6436,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        push({ t: 'status', u: u.id, s: 'honey', on: false });
      }
      if (u.cls === 'sleepy' && !u.attacked && !u.hurt && u.hp < u.max && !misty && !foes(u).some((e) => cheb(e.x, e.y, u.x, u.y) <= 3)) heal(u, RULES.doze, 'doze');
@@ -577,7 +594,7 @@ index 4a14e6e..92aee01 100644
      u.attacked = false;
      u.hurt = false;
      if (u.gear === 'pillow' && u.cls !== 'sweet' && turn >= u.pillowAt) {
-@@ -6198,7 +6438,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6198,7 +6455,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        u.skip = 0;
        u.immune = true;
        push({ t: 'skip', u: u.id });
@@ -586,7 +603,7 @@ index 4a14e6e..92aee01 100644
        return false;
      }
      // a brace lasts till its next turn (a Trickster's second action keeps it)
-@@ -6209,18 +6449,22 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6209,18 +6466,22 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      actor = null;
      if (u.alive && over < 0 && !u.busy && !u.moved) ready(u, turn);
      u.immune = false;
@@ -611,7 +628,7 @@ index 4a14e6e..92aee01 100644
      // riding a Green Candle (engine 19): it stays up there and hits what it reaches (a
      // medic heals whom it reaches); up in the Diamond Hand (engine 21) it works the gun.
      // (Taken off it somehow, the thing it rode is done for, and it carries on as usual.)
-@@ -6250,6 +6494,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6250,6 +6511,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      }
      // in the mist, or where it comes next turn (engine 27): out of it first
      if (leaveMist(u, turn)) return;
@@ -620,7 +637,7 @@ index 4a14e6e..92aee01 100644
  
      // the power-up of the round: grab it when it is in reach and nobody is,
      // unless a teammate is closer to it
-@@ -6273,9 +6519,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6273,9 +6536,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
          return;
        }
      }
@@ -633,7 +650,7 @@ index 4a14e6e..92aee01 100644
      // the Digger: back from out there once its cloud lifts, out there with its grenade,
      // or a pit
      if (u.pow === 'digger' && (fallBack(u) || sneak(u) || digPit(u))) return;
-@@ -6297,10 +6545,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6297,10 +6562,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    // A Blub that gets nowhere carries on with its turn as usual (and takes the mist).
    function leaveMist(u, turn) {
      if (!danger(idx(u.x, u.y))) return false;
@@ -649,7 +666,7 @@ index 4a14e6e..92aee01 100644
      if (!u.alive || over >= 0) return true;
      if (u.cls === 'sweet' && medic(u, true, turn)) return true;
      hitAround(u);
-@@ -6545,7 +6794,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6545,7 +6811,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      if (tiles[c] !== GRASS && tiles[c] !== BUSH) return false;
      // (nor a Digger's pit: a pit and a wall never share a tile, engine 13)
      if (wireT[c] >= 0 || mineT[c] >= 0 || pitT[c] >= 0 || towerT[c] || trenchT[c] || shaftT[c] || sandT[c]) return false;
@@ -658,7 +675,7 @@ index 4a14e6e..92aee01 100644
      if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
      if (crater && crater.cells.indexOf(c) >= 0) return false;
      return !objs.some((o) => o.k === 'smoke' && o.cells[0] === c);
-@@ -6658,7 +6907,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6658,7 +6924,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      u.exposed = now;
      u.exposedPct = RULES.buildTake;
      u.attacked = true;
@@ -667,7 +684,7 @@ index 4a14e6e..92aee01 100644
    }
    // The cannon goes up a little way out (engine 13): before it lays one out, its Builder
    // walks to its squad's cannonRow (a row either side will do; the nearest column it can
-@@ -6674,7 +6923,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6674,7 +6940,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        const [x, y] = xyOf(c);
        if (Math.abs(y - ty) > 1 || occ[c] >= 0) continue;
        const sc = Math.abs(y - ty) * 100 + Math.abs(x - u.x) * 4 + Math.abs(x - 7);
@@ -677,7 +694,7 @@ index 4a14e6e..92aee01 100644
        best = c;
        bs = sc;
      }
-@@ -6682,18 +6932,57 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6682,18 +6949,57 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      walk(u, route(P, best));
      return true;
    }
@@ -715,7 +732,8 @@ index 4a14e6e..92aee01 100644
 +    if (w && w.stage >= w.of && w.wall >= w.front.length) return false;
      if (inReach(u).length) return false;
      if (!w) {
-       if (now > RULES.cannonStart) return false;
+-      if (now > RULES.cannonStart) return false;
++      if (now > RULES.cannonStart + (meme[u.team].printAt || 0)) return false;
 +      // the Blueprint's second Builder leaves the laying out to the squad's own while it
 +      // stands, and keeps close to it (within two tiles) till it has
 +      if (u.crew && living[u.team].some((v) => v.engineer)) {
@@ -739,7 +757,7 @@ index 4a14e6e..92aee01 100644
        works.push(w);
        for (const c of w.cells) {
          tiles[c] = SAND;
-@@ -6701,13 +6990,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6701,13 +7007,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        }
        for (const c of w.cells) restep(c);
      }
@@ -764,7 +782,7 @@ index 4a14e6e..92aee01 100644
        return true;
      }
      // the wall: a sandbag a turn where there is still room for it
-@@ -6731,12 +7027,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6731,12 +7044,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        walk(u, route(P, P.found[0]));
        return true;
      }
@@ -779,7 +797,7 @@ index 4a14e6e..92aee01 100644
      return true;
    }
    // a finished cannon fires by itself: at the nearest enemy (then the most hurt) it can
-@@ -6744,8 +7040,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6744,8 +7057,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    // (engine 13): under a cloud, at an enemy in one or behind one, it fires blind and hits
    // blindHit% of the time; a miss lands on a tile beside that enemy.
    function fireCannon(w, turn) {
@@ -791,7 +809,7 @@ index 4a14e6e..92aee01 100644
      let best = null;
      let bd = 99;
      for (const v of living[1 - w.team]) {
-@@ -6762,7 +7059,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6762,7 +7076,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        }
      }
      if (!best) return;
@@ -806,7 +824,7 @@ index 4a14e6e..92aee01 100644
      const m = w.muzzle.slice().sort((p, q) => cheb(...xyOf(p), best.x, best.y) - cheb(...xyOf(q), best.x, best.y) || (w.team ? q - p : p - q))[0];
      const [mx, my] = xyOf(m);
      const blind = clouds > 0 && (w.cells.some((c) => smokeT[c]) || smokeT[idx(best.x, best.y)] > 0 || smoked(mx, my, best.x, best.y));
-@@ -6776,11 +7079,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6776,11 +7096,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
            if ((dx || dy) && inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)])) near.push([x, y]);
          }
        const at = near.length ? near[Math.floor(r() * near.length)] : [best.x, best.y];
@@ -825,7 +843,16 @@ index 4a14e6e..92aee01 100644
      checkOver();
    }
    // Builder: with nobody in its reach and barricades left to put up, it builds one
-@@ -6987,8 +7294,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -6871,7 +7195,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+     return true;
+   }
+   // the tiles a Miner may come up on: free, dry, no trap, nothing lying there
+-  const tunnelOk = (u, c) => occ[c] < 0 && !danger(c) && !solidTile(tiles[c]) && tiles[c] !== WATER && !trap(u, c) && mineT[c] < 0 && c !== honey && !(item && idx(item.x, item.y) === c) && !(crater && crater.cells.indexOf(c) >= 0);
++  const tunnelOk = (u, c) => occ[c] < 0 && !boxOn(c) && !danger(c) && !solidTile(tiles[c]) && tiles[c] !== WATER && !trap(u, c) && mineT[c] < 0 && c !== honey && !(item && idx(item.x, item.y) === c) && !(crater && crater.cells.indexOf(c) >= 0);
+   // the Miner comes up somewhere else: its whole turn ('gem' carrying one over,
+   // 'away' getting out of trouble)
+   function popUp(u, c, why) {
+@@ -6987,8 +7311,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      for (const u of hit) if (!u.hp) knockOut(u, null);
      for (const u of hit) afterHit(u);
      if (!standing(0) && !standing(1)) {
@@ -836,7 +863,25 @@ index 4a14e6e..92aee01 100644
        const a = pre[0] * maxB;
        const b = pre[1] * maxA;
        over = a !== b ? (a > b ? 0 : 1) : cnt[0] !== cnt[1] ? (cnt[0] > cnt[1] ? 0 : 1) : r() < 0.5 ? 0 : 1;
-@@ -7440,6 +7747,316 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7209,7 +7533,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+       const top = near.filter((v) => key(v) === best);
+       u = top[Math.floor(cr() * top.length)];
+     } else if (turn >= RULES.lamboAt) {
+-      u = pickBlub('lambo', (w) => !!w.ride);
++      u = pickBlub('lambo', (w) => !!w.ride || (w.pow === 'gambler' && gambling(w)));
+       given = true;
+     }
+     if (!u) return;
+@@ -7306,7 +7630,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+   const putDown = (x, y) => {
+     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return false;
+     const c = idx(x, y);
+-    if (occ[c] >= 0 || solidTile(tiles[c]) || mineT[c] >= 0 || wireT[c] >= 0 || c === rug || c === honey) return false;
++    if (occ[c] >= 0 || solidTile(tiles[c]) || mineT[c] >= 0 || wireT[c] >= 0 || c === rug || c === honey || boxOn(c)) return false;
+     if (crater && crater.cells.indexOf(c) >= 0) return false;
+     return !(item && item.x === x && item.y === y);
+   };
+@@ -7440,6 +7764,316 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
      props.push({ id: e.id, c, x, y, was, team: -1, hp: 0, since: 0, size: 0, holder: -1, rider: -1, down: false });
    }
    if (props.length) push({ t: 'props', list: props.map((p) => ({ id: p.id, at: [p.x, p.y], hp: p.hp })) });
@@ -1153,7 +1198,16 @@ index 4a14e6e..92aee01 100644
    const owned = (id, team) => props.find((p) => p.id === id && p.team === team && !p.down);
    // Diamond Hands (engine 21): the Blub up in the hand holds on, whatever comes: it is
    // never frozen, trapped, knocked back or shoved
-@@ -7629,7 +8246,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7471,7 +8105,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+   // settles a tie; never a Boom Pack carrier); from then on the candle is no wall: its
+   // rider stands on its tile, high up, and stays there hitting what it reaches. It pumps
+   // a block a turn up to candleMax, and the turn after the top it goes to the moon.
+-  const canRide = (v) => v.alive && !v.ride && !W(v).boom;
++  const canRide = (v) => v.alive && !v.ride && !W(v).boom && !(v.pow === 'gambler' && gambling(v));
+   // the props a Blub climbs onto: the Green Candle (engine 19) and the Diamond Hand (21)
+   const rides = (p) => p.id === 'candle' || p.id === 'diamond';
+   function riderOf(p, team) {
+@@ -7629,7 +8263,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    const padAt = live.filter((e) => e.id === 'rocket').map((e) => idx(e.cells[0][0], e.cells[0][1]));
    let exitAt = exitEv ? RULES.exitFrom + Math.floor(cr() * (RULES.exitTo - RULES.exitFrom + 1)) : 0;
    // the BFS in connected() starts on these two, so they never sink
@@ -1162,7 +1216,7 @@ index 4a14e6e..92aee01 100644
    // every hole that would fit round u, each as a list of cells
    function holesAround(u) {
      const S = RULES.exitSize;
-@@ -7693,7 +8310,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7693,7 +8327,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
            if (u.pow === 'bubble' && !u.bubble) {
              u.bubble = true;
              push({ t: 'status', u: u.id, s: 'bubble', on: true });
@@ -1171,7 +1225,16 @@ index 4a14e6e..92aee01 100644
          }
        }
        if (m.buff === 'devwallet' && turn === RULES.devwalletTurn) {
-@@ -7736,6 +8353,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7720,7 +8354,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+       for (const c of cats.slice()) {
+         if (over >= 0) break;
+         // (never the Blub up on the Green Candle or in the Diamond Hand)
+-        const v = pickBlub('sendit', (w) => !!w.ride);
++        const v = pickBlub('sendit', (w) => !!w.ride || (w.pow === 'gambler' && gambling(w)));
+         if (v) sendIt(v, c);
+       }
+     if (turn >= RULES.propAt)
+@@ -7736,6 +8370,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        }
    }
    function runEvents(turn) {
@@ -1181,7 +1244,7 @@ index 4a14e6e..92aee01 100644
      memeTurn(turn);
      claimTurn(turn);
      rugTurn(turn);
-@@ -7783,7 +8403,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7783,7 +8420,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        if (u.pow === 'bubble' && !u.bubble) {
          u.bubble = true;
          push({ t: 'status', u: u.id, s: 'bubble', on: true });
@@ -1190,7 +1253,7 @@ index 4a14e6e..92aee01 100644
      } else if (kind === 'wagmi') {
        u.max += RULES.wagmiHp;
        u.hp += RULES.wagmiHp;
-@@ -7826,10 +8446,126 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7826,10 +8463,140 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        // (never the Blub up in the Diamond Hand: diamond hands)
        if (anchored(u)) return;
        u.paper = Math.max(u.paper || 0, turn + RULES.paperTurns - 1);
@@ -1230,11 +1293,15 @@ index 4a14e6e..92aee01 100644
 +      }
 +    return list.length ? list[Math.floor(a * list.length)] : null;
 +  }
-+  // who has to fetch it: the squad's Blub nearest it that can walk (a tie: the lower unit)
++  // who has to fetch it: the squad's Blub nearest it that can walk (a tie: the lower unit),
++  // within boxReach of it. It keeps the duty till it falls or is pinned down (tangled,
++  // caught, held by a Guardian) while another is free; with nobody in reach, nobody yet.
++  const pinned = (v) => v.tangled >= now || v.caught >= now || foes(v).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, v.x, v.y) <= 1);
 +  function fetcher(k) {
 +    const can = (v) => v.alive && !v.ride && !anchored(v) && !(v.pow === 'gambler' && gambling(v));
-+    if (k.by && can(k.by)) return k.by;
-+    k.by = living[k.team].filter(can).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
++    if (k.by && can(k.by) && !pinned(k.by)) return k.by;
++    const next = living[k.team].filter((v) => can(v) && !pinned(v) && cheb(v.x, v.y, k.x, k.y) <= RULES.boxReach).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
++    if (next || !k.by || !can(k.by)) k.by = next;
 +    return k.by;
 +  }
 +  function boxTurn(turn) {
@@ -1253,7 +1320,9 @@ index 4a14e6e..92aee01 100644
 +      if (!u) continue;
 +      const at = boxSpot(u, turn, a);
 +      if (!at) continue;
-+      const gold = boxGold[t];
++      // (a golden one is kept for this crate: the next its squad has not had, engine 28)
++      const gold = boxGold[t] && goldFor(t, boxGold[t]);
++      if (gold) goldHad[t].add(gold);
 +      const good = b < 0.5 ? 1 : 0;
 +      const list = good ? DROP_GOOD : DROP_BAD;
 +      const k = { team: t, x: at[0], y: at[1], c: idx(at[0], at[1]), good, gold, kind: gold ? null : list[Math.floor(c * list.length)], by: null, done: false, turn };
@@ -1282,52 +1351,61 @@ index 4a14e6e..92aee01 100644
 +    dropHit(u, k.kind, now);
 +    checkOver();
 +  }
-+  // the mist gets there first (or its tile is no floor any more): the crate is gone
++  // the mist gets there first (or the nuke's crater, or its tile is no floor any more):
++  // the crate is gone. why: 'mist', 'nuke' or 'crushed'
 +  function mistBoxes(turn) {
-+    for (const k of boxes)
-+      if (k && !k.done && (inMist(k.x, k.y, turn) || solidTile(tiles[k.c]) || pitT[k.c] >= 0 || (crater && crater.cells.indexOf(k.c) >= 0))) {
-+        k.done = true;
-+        push({ t: 'boxgone', team: k.team, at: [k.x, k.y] });
-+      }
++    for (const k of boxes) {
++      if (!k || k.done) continue;
++      const why = inMist(k.x, k.y, turn) ? 'mist' : crater && crater.cells.indexOf(k.c) >= 0 ? 'nuke' : solidTile(tiles[k.c]) || pitT[k.c] >= 0 ? 'crushed' : '';
++      if (!why) continue;
++      k.done = true;
++      push({ t: 'boxgone', team: k.team, at: [k.x, k.y], why });
++    }
 +  }
 +  // ---- the Gambler's wheel (engine 28): one spin a turn on its first turns, on its own
 +  // rows, till it hits gold; four draws a spin from GAMBLE_SALT whatever comes up
++  // (drawn at the start of every turn for each of the ten, whoever spins: gambleTurn)
 +  const gambleR = rng(subSeed(seed, round, GAMBLE_SALT));
-+  const gambling = (u) => !u.gambled && now <= (RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack) && !u.bench;
++  const spinsOf = (u) => RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack;
++  const gambling = (u) => !u.gambled && !u.bench && u.of == null && (u.spins || 0) < spinsOf(u) && now <= spinsOf(u) + RULES.gambleLate;
++  const gdraw = [];
++  function gambleTurn() {
++    for (let i = 0; i < 2 * TEAM; i++) gdraw[i] = [gambleR(), gambleR(), gambleR(), gambleR()];
++  }
 +  function gamble(u, turn) {
-+    const a = gambleR();
-+    const b = gambleR();
-+    const c = gambleR();
-+    gambleR();
-+    if (!gambling(u)) return false;
++    if (!gambling(u) || u.id >= 2 * TEAM) return false;
 +    if (u.spunAt === turn) return true;
 +    u.spunAt = turn;
-+    const spins = RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack;
-+    const allIn = turn >= spins;
++    const [a, b, c] = gdraw[u.id];
++    const spins = spinsOf(u);
++    u.spins = (u.spins || 0) + 1;
++    // its last spin, or its last chance at one: ALL IN
++    const allIn = u.spins >= spins || turn >= spins + RULES.gambleLate;
 +    const pct = allIn ? RULES.gambleAllIn : RULES.gambleGold;
 +    const win = a * 100 < pct;
 +    if (win || allIn) u.gambled = true;
-+    const g = win ? GOLDS[Math.floor(b * GOLDS.length)][0] : null;
++    const g = win ? goldFor(u.team, GOLDS[Math.floor(b * GOLDS.length)][0]) : null;
 +    // which wedge it stops on (8: gold ones first, as many as its odds; for the page)
 +    const golds = Math.round((pct * 8) / 100);
 +    const wedge = win ? Math.floor(c * golds) : golds + Math.floor(c * (8 - golds));
-+    push({ t: 'gamble', u: u.id, n: turn, spins, allIn: allIn ? 1 : 0, pct, golds, wedge, ...(g ? { gold: g } : {}) });
++    push({ t: 'gamble', u: u.id, n: u.spins, spins, allIn: allIn ? 1 : 0, pct, golds, wedge, ...(g ? { gold: g } : {}) });
 +    if (g) openGold(u.team, u, g, [u.x, u.y], turn, 'gamble');
 +    return true;
 +  }
    // a supply drop's perks that last a few of the Blub's own turns, counted at the end of each
    function tickDrops(u) {
      if (u.pumpT > 0 && !--u.pumpT) push({ t: 'status', u: u.id, s: 'pump', on: false });
-@@ -7854,6 +8590,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7854,6 +8621,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
        dropTurn(turn);
        if (over >= 0) break;
      }
 +    mistBoxes(turn);
 +    boxTurn(turn);
++    gambleTurn();
      if (!spawned && turn >= POWERUP_TURN && occ[CENTRE] < 0) spawn();
      // the mortars fire on their own
      for (const m of objs) if (m.k === 'mortar' && over < 0) fireMortar(m, turn);
-@@ -7876,6 +8614,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7876,6 +8646,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
          if (checkOver()) break;
        }
      }
@@ -1336,7 +1414,7 @@ index 4a14e6e..92aee01 100644
      // a command whose captain did not get to its next turn ends with that turn
      for (const t of [0, 1]) if (orders[t] && !orders[t].done && turn >= orders[t].turn + 1) endOrder(t);
      // shells fired this turn land at its end (those still in the air)
-@@ -7886,8 +8626,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
+@@ -7886,8 +8658,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
    const hp = [sum(0), sum(1)];
    if (over < 0) {
      reason = 'time';
@@ -1347,7 +1425,7 @@ index 4a14e6e..92aee01 100644
      const a = hp[0] * maxB;
      const b = hp[1] * maxA;
      if (a !== b) over = a > b ? 0 : 1;
-@@ -8183,12 +8923,14 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
+@@ -8183,13 +8955,17 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
      return ev;
    });
  
@@ -1362,9 +1440,12 @@ index 4a14e6e..92aee01 100644
 -    const t = { buff, nerf, turn: 0 };
 +    const t = { buff, nerf, gold: null, turn: 0 };
      if (buff === 'airdrop') t.turn = RULES.airdropFrom + Math.floor(r() * (RULES.airdropTo - RULES.airdropFrom + 1));
++    // (with no crate for the squad, no buff or nerf for it either: engine 28)
++    if (!RULES.teamCrate) Object.assign(t, { buff: null, nerf: null, turn: 0 });
      return t;
    });
-@@ -8209,7 +8951,7 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
+ 
+@@ -8209,7 +8985,7 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
  
    return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
  }
@@ -1373,7 +1454,7 @@ index 4a14e6e..92aee01 100644
  })();
  
  /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
-@@ -8266,8 +9008,8 @@ const SquadView = (() => {
+@@ -8266,8 +9042,8 @@ const SquadView = (() => {
  
    // catalog names always come from the engine
    const CATS = {
@@ -1384,7 +1465,7 @@ index 4a14e6e..92aee01 100644
      // Supply Drop Rain (engine 27): [id, name, text] per drop, the perk on one Blub
      drop: (SE.DROPS || []).map((d) => [d[0], d[1], d[3]]),
    };
-@@ -8302,6 +9044,11 @@ const SquadView = (() => {
+@@ -8302,6 +9078,11 @@ const SquadView = (() => {
        'nNn', 'nwn', 'nNn', '.n.', '.N.', '.n.', '.N.', '.n.'] };
    // what a Builder fights with (engine 9): its mallet, the Build Hammer
    if (!ARMS_SPR.tool) ARMS_SPR.tool = ARMS_SPR.mallet;
@@ -1396,7 +1477,7 @@ index 4a14e6e..92aee01 100644
    // a gem and a stone, as a Miner digs them up and carries them
    const GEM_ROWS = ['..w..', '.lbb.', 'lbbBb', '.bBB.', '..B..'];
    const STONE_ROWS = ['.sss.', 'sSSss', 'ssxss', '.sxs.'];
-@@ -8313,6 +9060,11 @@ const SquadView = (() => {
+@@ -8313,6 +9094,11 @@ const SquadView = (() => {
      c.width = w;
      c.height = h;
      if (cls) c.className = cls;
@@ -1408,7 +1489,7 @@ index 4a14e6e..92aee01 100644
      return c;
    }
    function paintRows(x, rows, pal, ox, oy, s) {
-@@ -8455,6 +9207,9 @@ const SquadView = (() => {
+@@ -8455,6 +9241,9 @@ const SquadView = (() => {
          'kYYk...kkkk.', 'kYYk........', 'kYYk......k.', '.kYYk....kk.', '.kYYYkkkkYk.', '..kYYYYYYk..', '...kkkkkk...'],
        bubble: ['...kkkkkk...', '..kbbbbbbk..', '.kbwwlllllk.', 'kbwwllllllbk', 'kbwlllllllbk',
          'kblllllllllk', 'kbllllllllbk', 'kblllllllbbk', 'kbllllllbbbk', '.kbbllbbbbk.', '..kbbbbbbk..', '...kkkkkk...'],
@@ -1418,7 +1499,7 @@ index 4a14e6e..92aee01 100644
        // Builder: a hard hat
        builder: ['............', '....kkkk....', '...kYyyyk...', '..kYyykyyk..', '.kYyyykyyyk.',
          '.kyyyykyyyk.', '.kyyyykyyok.', 'kkkkkkkkkkkk', 'kYyyyyyyyyok', 'kkkkkkkkkkkk', '............', '............'],
-@@ -8915,6 +9670,8 @@ const SquadView = (() => {
+@@ -8915,6 +9704,8 @@ const SquadView = (() => {
        iron: ['K', 'x', 's', 'S', 'z'],
        // clear diamond: white to the palest blue, blue in its shadows
        ice: ['B', 'l', 'u', 'W', 'w'],
@@ -1427,7 +1508,7 @@ index 4a14e6e..92aee01 100644
      },
      // Material is laid down in a digit, which no ramp ever writes, and lit after:
      // lighting a letter that an earlier lighting pass already wrote would light it
-@@ -9543,36 +10300,51 @@ const SquadView = (() => {
+@@ -9543,36 +10334,51 @@ const SquadView = (() => {
      // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
      // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
      // and the Airdrop buff itself), 2-3 the same in red (a nerf).
@@ -1490,7 +1571,7 @@ index 4a14e6e..92aee01 100644
        g = FG.outline(g);
        return g;
      }],
-@@ -10297,6 +11069,521 @@ const SquadView = (() => {
+@@ -10297,6 +11103,521 @@ const SquadView = (() => {
        }
        return FG.outline(g);
      }],
@@ -2012,7 +2093,7 @@ index 4a14e6e..92aee01 100644
      cloud: [4, 48, (i) => {
        let g = FG.grid(48);
        const w = Math.sin(i * 1.6) * 1.5;
-@@ -10324,6 +11611,9 @@ const SquadView = (() => {
+@@ -10324,6 +11645,9 @@ const SquadView = (() => {
    Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
    // and Diamond Hands' is its hand of diamond, waiting (engine 21)
    Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
@@ -2022,7 +2103,7 @@ index 4a14e6e..92aee01 100644
    // frame `i` of an effect, painted once and kept
    function fxFrame(id, i) {
      const key = id + ':' + i;
-@@ -10432,6 +11722,7 @@ const SquadView = (() => {
+@@ -10432,6 +11756,7 @@ const SquadView = (() => {
      nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ', singed: 'The Lambo’s crash finishes off ',
  
      sniped: 'The Sniper Bot takes out ',
@@ -2030,7 +2111,7 @@ index 4a14e6e..92aee01 100644
      crashed: 'The Lambo crash finishes off ',
      gas: 'Gas fees finish off ',
      blasted: 'The Boom Pack knocks out ',
-@@ -10462,7 +11753,16 @@ const SquadView = (() => {
+@@ -10462,7 +11787,18 @@ const SquadView = (() => {
          return u + ' runs from the pink mist.';
        // Supply Drop Rain (engine 27): a crate on one Blub, green or red
        case 'drop':
@@ -2040,6 +2121,8 @@ index 4a14e6e..92aee01 100644
 +      case 'box':
 +        return (e.gold ? 'A golden crate' : 'A ' + (e.good ? 'green' : 'red') + ' crate') + ' comes down near ' + u + (e.by >= 0 ? ': ' + nm(e.by) + ' has to fetch it.' : '.');
 +      case 'boxgone':
++        if (e.why === 'nuke') return 'The nuke blows ' + lb(e.team) + "'s crate away.";
++        if (e.why === 'crushed') return lb(e.team) + "'s crate is crushed.";
 +        return 'The mist swallows ' + lb(e.team) + "'s crate.";
 +      // the Gambler's wheel (engine 28)
 +      case 'gamble':
@@ -2047,7 +2130,7 @@ index 4a14e6e..92aee01 100644
        case 'wagmi':
          return 'WAGMI: ' + u + ' gets +' + e.amt + ' max HP.';
        case 'rekt':
-@@ -10533,6 +11833,7 @@ const SquadView = (() => {
+@@ -10533,6 +11869,7 @@ const SquadView = (() => {
        case 'slam':
          return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : u + ' slams down on ' + d + ': -' + e.dmg + '.';
        case 'goal':
@@ -2055,7 +2138,7 @@ index 4a14e6e..92aee01 100644
          return u + ' runs for the ' + (e.id === 'sendit' ? 'stunt cannon' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
        // the Digger's smoke grenade (engine 14), and its way back once the cloud lifts
        case 'grenade':
-@@ -10564,14 +11865,15 @@ const SquadView = (() => {
+@@ -10564,14 +11901,15 @@ const SquadView = (() => {
        case 'craft':
          if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
          if (e.what === 'repair') return u + ' patches up the cannon (' + e.stage + '/' + e.of + ' HP).';
@@ -2073,7 +2156,7 @@ index 4a14e6e..92aee01 100644
        case 'cannonball':
          return e.res === 'absorb' ? 'The cannonball pops ' + d + "'s bubble." : 'The cannonball hits ' + d + ': -' + e.dmg + '.';
        case 'dig': {
-@@ -10599,7 +11901,42 @@ const SquadView = (() => {
+@@ -10599,7 +11937,48 @@ const SquadView = (() => {
          const call = nameOf('cmd', e.cmd).replace(/!$/, '');
          return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
        }
@@ -2112,11 +2195,17 @@ index 4a14e6e..92aee01 100644
 +      case 'dogdone':
 +        return e.path.length ? 'The Shiba Inu has had its fill and trots back to ' + u + '. Good boy.' : 'The Shiba Inu has had its fill and sits down, very pleased with itself.';
        case 'perk':
++        // (opened mid-round, engine 28: e.by opened it, e.u gets what is in it)
++        if (e.kind === 'gold' && e.n != null) {
++          const what = nameOf('gold', e.id);
++          if (e.src === 'gamble') return e.u === e.by ? u + ' wins the ' + what + '!' : nm(e.by) + ' wins the ' + what + ' for ' + u + '!';
++          return e.u === e.by ? u + ' opens ' + lb(e.team) + "'s golden crate: " + what + '!' : nm(e.by) + ' opens ' + lb(e.team) + "'s golden crate: " + what + ', for ' + u + '!';
++        }
 +        if (e.kind === 'gold') return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '!' : lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '.';
          return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
        case 'pick':
          return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
-@@ -10680,6 +12017,8 @@ const SquadView = (() => {
+@@ -10680,6 +12059,8 @@ const SquadView = (() => {
          if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + ' and its power back.';
          if (src === 'devwallet') return 'The dev wallet pays ' + d + ' back: +' + e.amt + '.';
          if (src === 'gem') return 'The gem heals ' + d + ': +' + e.amt + '.';
@@ -2125,7 +2214,7 @@ index 4a14e6e..92aee01 100644
          // the pool's yield is told once for everybody ('yield')
          if (src === 'pool') return '';
          return d + ' heals ' + e.amt + '.';
-@@ -11539,7 +12878,7 @@ const SquadView = (() => {
+@@ -11539,7 +12920,7 @@ const SquadView = (() => {
        get,
        white,
        ghost: white,
@@ -2134,7 +2223,7 @@ index 4a14e6e..92aee01 100644
      };
    }
  
-@@ -11653,6 +12992,22 @@ const SquadView = (() => {
+@@ -11653,6 +13034,22 @@ const SquadView = (() => {
      // the memepowers in the fight
      // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
      pick: 1500, pickHit: 1150,
@@ -2157,7 +2246,7 @@ index 4a14e6e..92aee01 100644
      // each squad's perk coming down in its crate as the round starts, and time to read it
      // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
      perks: 4000, perksHit: 1300,
-@@ -11666,6 +13021,12 @@ const SquadView = (() => {
+@@ -11666,6 +13063,14 @@ const SquadView = (() => {
      // a supply drop (engine 27): the crate on its parachute, landing on its Blub at
      // dropHit; a second crate in the same turn comes dropTwo after the first
      drop: 820, dropHit: 520, dropTwo: 180,
@@ -2167,10 +2256,12 @@ index 4a14e6e..92aee01 100644
 +    // the Gambler's wheel stops at gambleStop
 +    box: 1250, boxHit: 900, boxPick: 160, boxGone: 700, gopen: 2600, gopenHit: 650, gopenFall: 1100,
 +    gamble: 2700, gambleSlap: 380, gambleStop: 1900,
++    // (a red spin that is not the last: a quick one)
++    gambleQ: 1450, gambleQSlap: 300, gambleQStop: 1000,
      airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
      // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
      // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
-@@ -11711,8 +13072,8 @@ const SquadView = (() => {
+@@ -11711,8 +13116,8 @@ const SquadView = (() => {
    const ROUND_BUDGET = 40000;
    // ...but only its routine: these beats are scenes, choreographed with their camera,
    // and keep their time however long the round runs (as does the last knock-out)
@@ -2181,7 +2272,7 @@ index 4a14e6e..92aee01 100644
    const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
  
    // Turns a round's events into beats on a clock. Each beat lists the events it applies and when.
-@@ -11742,7 +13103,12 @@ const SquadView = (() => {
+@@ -11742,7 +13147,12 @@ const SquadView = (() => {
        let lastMove = null; // a move group that later moves of the same turn may join
        let pend = []; // knock-outs and revives wait until the hit that caused them is shown
        const aims = {}; // mortar -> its aim beat, until the shell lands
@@ -2194,7 +2285,7 @@ index 4a14e6e..92aee01 100644
          b.list = b.list || [];
          b.actors = b.actors || [];
          pre.forEach((ei) => {
-@@ -11764,6 +13130,21 @@ const SquadView = (() => {
+@@ -11764,6 +13174,21 @@ const SquadView = (() => {
        const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
        ev.forEach((e, i) => {
          const t = e.t;
@@ -2216,7 +2307,7 @@ index 4a14e6e..92aee01 100644
          if (t === 'perk') {
            if (parent && parent.kind === 'perks') attachTo(parent, i);
            else parent = add({ kind: 'perks', dur: MS.perks, contact: MS.perksHit, list: [{ ei: i, off: MS.perksHit }], e });
-@@ -11781,7 +13162,7 @@ const SquadView = (() => {
+@@ -11781,7 +13206,7 @@ const SquadView = (() => {
          // events that ride on the beat that caused them
          const p = parent;
          if (p) {
@@ -2225,7 +2316,7 @@ index 4a14e6e..92aee01 100644
              attachTo(p, i);
              if (t === 'knock' && e.to) pos[e.d] = e.to.slice();
              return;
-@@ -11814,7 +13195,7 @@ const SquadView = (() => {
+@@ -11814,7 +13239,7 @@ const SquadView = (() => {
            // a supply drop (engine 27): what it does lands with the crate; a second
            // crate in the same turn comes down just after the first, in the same beat
            if (p.kind === 'drop') {
@@ -2234,7 +2325,7 @@ index 4a14e6e..92aee01 100644
                p.two = true;
                p.list.push({ ei: i, off: MS.dropTwo });
                p.contact += MS.dropTwo;
-@@ -11826,6 +13207,16 @@ const SquadView = (() => {
+@@ -11826,6 +13251,16 @@ const SquadView = (() => {
                return;
              }
            }
@@ -2251,7 +2342,7 @@ index 4a14e6e..92aee01 100644
            // the Diamond Hand's bullets, one after another in its burst (engine 21)
            if (t === 'bullet' && p.kind === 'spray') {
              p.list.push({ ei: i, off: MS.sprayHit + p.nb * MS.sprayGap });
-@@ -11901,7 +13292,8 @@ const SquadView = (() => {
+@@ -11901,7 +13336,8 @@ const SquadView = (() => {
              lastMove.list.push({ ei: i, off: 0 });
              lastMove.steps = Math.max(lastMove.steps, len);
              lastMove.dur = lastMove.steps * MS.tile + MS.settle;
@@ -2261,7 +2352,7 @@ index 4a14e6e..92aee01 100644
            pos[e.u] = e.path[len - 1].slice();
            return;
          }
-@@ -11912,7 +13304,8 @@ const SquadView = (() => {
+@@ -11912,7 +13348,8 @@ const SquadView = (() => {
            // a bullet is there almost as it leaves; the Scope Rifle takes a breath first
            const gun = GUNS.has(e.w);
            const wind = e.w === 'scope' ? MS.scopeWind : MS.rWind;
@@ -2271,7 +2362,7 @@ index 4a14e6e..92aee01 100644
            parent = add({ kind: 'attack', dur: e.w === 'scope' ? MS.scopeShot : ranged ? Math.max(MS.ranged, contact + 160) : MS.melee, contact, c1: contact, rel: wind, list: [{ ei: i, off: contact }], e });
            return;
          }
-@@ -11930,7 +13323,26 @@ const SquadView = (() => {
+@@ -11930,7 +13367,28 @@ const SquadView = (() => {
            return;
          }
          if (t === 'drop') {
@@ -2295,11 +2386,13 @@ index 4a14e6e..92aee01 100644
 +        // the Gambler's wheel (engine 28): told as it stops
 +        if (t === 'gamble') {
 +          parent = null;
-+          add({ kind: 'gamble', dur: MS.gamble, contact: MS.gambleStop, list: [{ ei: i, off: MS.gambleStop }], e, actors: [e.u] });
++          const quick = !e.allIn && !e.gold;
++          const stop = quick ? MS.gambleQStop : MS.gambleStop;
++          add({ kind: 'gamble', dur: quick ? MS.gambleQ : MS.gamble, contact: stop, list: [{ ei: i, off: stop }], e, actors: [e.u], quick });
            return;
          }
          if (t === 'pick') {
-@@ -11946,36 +13358,93 @@ const SquadView = (() => {
+@@ -11946,39 +13404,96 @@ const SquadView = (() => {
            pos[e.u] = e.at.slice();
            return;
          }
@@ -2353,8 +2446,9 @@ index 4a14e6e..92aee01 100644
 -          parent = add({ kind: 'yield', dur: MS.yield, contact: MS.yieldHit, list: [{ ei: i, off: 0 }], e });
 +        if (t === 'slice') {
 +          parent = add({ kind: 'slice', dur: MS.slice, contact: MS.sliceHit, list: [{ ei: i, off: MS.sliceHit }], e, actors: [e.u] });
-+          return;
-+        }
+           return;
+         }
+-        // the trench arsenal: each a scene of its own, the event at its high point
 +        // the Coin Flip (engine 22): a scene of its own, the result on the floor at contact
 +        if (t === 'coin') {
 +          parent = null;
@@ -2408,10 +2502,13 @@ index 4a14e6e..92aee01 100644
 +        }
 +        if (t === 'yield') {
 +          parent = add({ kind: 'yield', dur: MS.yield, contact: MS.yieldHit, list: [{ ei: i, off: 0 }], e });
++          return;
++        }
++        // the trench arsenal: each a scene of its own, the event at its high point
+         if (t === 'reload' || t === 'scope' || t === 'build' || t === 'dig' || t === 'deliver' || t === 'blowup' || t === 'arm' || t === 'craft' || t === 'ready') {
+           parent = add({ kind: t, dur: MS[t], contact: MS[t + 'Hit'], list: [{ ei: i, off: MS[t + 'Hit'] }], e, actors: [e.u] });
            return;
-         }
-         // the trench arsenal: each a scene of its own, the event at its high point
-@@ -12195,7 +13664,8 @@ const SquadView = (() => {
+@@ -12195,7 +13710,8 @@ const SquadView = (() => {
      return {
        u: R.start.map((s) => ({
          id: s.u, team: s.team, side: sideOf(s.team), cap: s.cap, cls: s.cls, wpn: s.wpn, gear: s.gear, pow: s.pow, tac: s.tac,
@@ -2421,7 +2518,7 @@ index 4a14e6e..92aee01 100644
          face: 1, mv: null, atk: null, flash: -1e9, hpFrom: s.hp, hpT: -1e9, hop: null, koT: -1e9, nap: -1e9, hurt: -1e9, mark: -1e9,
          dug: onTile('trench', s.x, s.y), ammo: nearCrate(s.team, s.x, s.y), riseT: -1e9, jerk: null,
        })),
-@@ -12212,6 +13682,14 @@ const SquadView = (() => {
+@@ -12212,6 +13728,14 @@ const SquadView = (() => {
        works: {},
        // the Diggers' pits (engine 10): { x, y, team, open }
        pits: [],
@@ -2436,7 +2533,7 @@ index 4a14e6e..92aee01 100644
      };
    }
    function fold(S, e) {
-@@ -12304,6 +13782,10 @@ const SquadView = (() => {
+@@ -12304,6 +13828,10 @@ const SquadView = (() => {
        case 'slam':
        case 'singed':
        case 'bullet':
@@ -2447,7 +2544,7 @@ index 4a14e6e..92aee01 100644
          U[e.d].hp = e.hp;
          if (e.res === 'absorb') U[e.d].st.bubble = false;
          // tangled in the wire (engine 15) till its next turn is over
-@@ -12334,7 +13816,11 @@ const SquadView = (() => {
+@@ -12334,7 +13862,11 @@ const SquadView = (() => {
        }
        // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
        case 'craft':
@@ -2460,7 +2557,7 @@ index 4a14e6e..92aee01 100644
          else if (e.what === 'repair') {
            // patched up (engine 15): back in action as soon as it has HP
            const w = S.works[e.w];
-@@ -12388,17 +13874,108 @@ const SquadView = (() => {
+@@ -12388,17 +13920,108 @@ const SquadView = (() => {
          S.sprung.honeypot = true;
          break;
        // a squad's perk for the round, out of its crate
@@ -2471,7 +2568,7 @@ index 4a14e6e..92aee01 100644
 +        break;
 +      case 'boxgone':
 +        delete S.boxes[e.team];
-+        for (const k of S.boxLog) if (k.team === e.team && k.st === 'down') k.st = 'gone';
++        for (const k of S.boxLog) if (k.team === e.team && k.st === 'down') Object.assign(k, { st: 'gone', why: e.why || 'mist' });
 +        break;
 +      case 'drop':
 +        if (e.box) {
@@ -2503,7 +2600,7 @@ index 4a14e6e..92aee01 100644
 +          if (e.id === 'pill') u.st.pill = true;
 +        }
 +        // the Shiba Inu, in its cage where the crate came down
-+        if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
++        if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: (e.dog || e.at)[0], y: (e.dog || e.at)[1], caged: true, done: false, by: e.u, face: 1 };
 +        break;
 +      // the Pump.fun Pill (engine 22): down its throat, a rifle in its paws, berserk
 +      case 'pill':
@@ -2571,7 +2668,7 @@ index 4a14e6e..92aee01 100644
          break;
        // the contested five: laid, claimed, grown, knocked at and down
        case 'props':
-@@ -12592,8 +14169,13 @@ const SquadView = (() => {
+@@ -12592,8 +14215,13 @@ const SquadView = (() => {
      bag: [['.n.n.', '.nnn.', 'nNNNn', 'nNyNn', '.nnn.'], { n: '#8C5A2B', N: '#D9A05B', y: '#FFD447' }],
      gas: [['.r...', 'rRr..', 'rRr.r', 'rrrrr', 'rrr..'], { r: '#E2566E', R: '#FFB3C0' }],
      ngmi: [['r...r', '.r.r.', '..r..', '.r.r.', 'r...r'], { r: '#FF5C77' }],
@@ -2586,7 +2683,7 @@ index 4a14e6e..92aee01 100644
    const statusCache = {};
    function statusImg(s) {
      if (statusCache[s]) return statusCache[s];
-@@ -12610,9 +14192,50 @@ const SquadView = (() => {
+@@ -12610,9 +14238,50 @@ const SquadView = (() => {
    function fxOK(important) {
      return important || P.speed < 4;
    }
@@ -2639,7 +2736,7 @@ index 4a14e6e..92aee01 100644
    }
    // Play an effect's frames over `dur`, centred on a point. Frames are drawn at
    // their own size and never scaled by a fraction: half a pixel of blur undoes the
-@@ -12706,7 +14329,16 @@ const SquadView = (() => {
+@@ -12706,7 +14375,16 @@ const SquadView = (() => {
    function closeUp(t0, dur, cx, cy, o) {
      if (!P || P.calm || P.speed >= 4 || P.seeking) return;
      const opt = o || {};
@@ -2657,7 +2754,7 @@ index 4a14e6e..92aee01 100644
      P.shots.push({ t0, t1: t0 + dur, cx, cy, follow: opt.follow || null });
      if (opt.slow) P.slows.push({ t0: opt.slow[0], t1: opt.slow[1], f: opt.f || 0.35 });
    }
-@@ -12903,7 +14535,8 @@ const SquadView = (() => {
+@@ -12903,7 +14581,8 @@ const SquadView = (() => {
  
    // ---- drawing one frame
    function drawWeapon(x, u, ox, oy, pose, t) {
@@ -2667,7 +2764,7 @@ index 4a14e6e..92aee01 100644
      if (!ARMS_SPR[w]) return;
      const face = u.face;
      const hx = face > 0 ? ox + 15 : ox;
-@@ -12968,6 +14601,19 @@ const SquadView = (() => {
+@@ -12968,6 +14647,19 @@ const SquadView = (() => {
        const back = w === 'rifle' ? kick(a.c1) + kick(a.c1 + gap) + kick(a.c1 + 2 * gap) : kick(a.c1);
        const [kx, ky] = fwd(back);
        drawArmsDir(x, w, hx + kx, hy - 2 + ky, d);
@@ -2687,7 +2784,7 @@ index 4a14e6e..92aee01 100644
      } else if (w === 'bow') {
        drawArmsDir(x, w, hx, hy - 2, d);
        if (e < a.rel) {
-@@ -13055,6 +14701,19 @@ const SquadView = (() => {
+@@ -13055,6 +14747,19 @@ const SquadView = (() => {
      }
      drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
      const S = P.spr[u.id];
@@ -2707,7 +2804,7 @@ index 4a14e6e..92aee01 100644
      const spr = S.get(u.face, moodOf(u, t, now));
      const flashing = !P.calm && t - u.flash >= 0 && t - u.flash < 70 * P.speed;
      const img = flashing ? S.white : spr;
-@@ -13068,6 +14727,73 @@ const SquadView = (() => {
+@@ -13068,6 +14773,73 @@ const SquadView = (() => {
      if (inHand) drawHandFront(x, held, ox, oy, t);
      else drawWeapon(x, u, ox, oy, pose, t);
      // lasting looks
@@ -2781,7 +2878,7 @@ index 4a14e6e..92aee01 100644
      if (u.st.feather) {
        const k = Math.floor(now / 200) & 1;
        x.fillStyle = '#FFFFFF';
-@@ -13333,7 +15059,7 @@ const SquadView = (() => {
+@@ -13333,7 +15105,7 @@ const SquadView = (() => {
          const by = (j + 0.5 - TOP / 4) / 4;
          const out = (Math.max(Math.abs(bx - c), Math.abs(by - c)) - w) * 4;
          const n = Math.sin(i * 0.55 + tt * 1.3) * Math.cos(j * 0.45 - tt * 0.9) + Math.sin((i + j) * 0.21 + tt * 0.7);
@@ -2790,7 +2887,7 @@ index 4a14e6e..92aee01 100644
          const deep = v >= 1;
          const a = v <= 0 ? 0 : v < 0.5 ? 70 : !deep ? 112 : ((i + j + (still ? 0 : Math.floor(tt * 3))) & 3) === 0 ? 150 : 128;
          const o = (j * W + i) * 4;
-@@ -14131,32 +15857,52 @@ const SquadView = (() => {
+@@ -14131,32 +15903,52 @@ const SquadView = (() => {
      const sy = Math.min(...sc.map((p) => p[1]));
      // on screen it points up when its squad's way forward is up the screen
      const up = wk.face * (P.flip ? -1 : 1) < 0;
@@ -2856,7 +2953,7 @@ index 4a14e6e..92aee01 100644
      x.drawImage(fxFrame('cannon', (up ? 0 : 3) + stage - 1), px, py + kick);
      if (stage >= 3) {
        const T = colors[P.sideOf(wk.team)];
-@@ -14221,8 +15967,10 @@ const SquadView = (() => {
+@@ -14221,8 +16013,10 @@ const SquadView = (() => {
        const box = wk ? cannonBox(wk) : null;
        const up = box ? box.up : true;
        const [fx0, fy0] = tileC(e.from[0], e.from[1]);
@@ -2869,7 +2966,7 @@ index 4a14e6e..92aee01 100644
        const d = S.u[e.d];
        // a blind shot that misses (engine 13) comes down on the tile beside its enemy
        const [tx, ty] = e.miss ? tileC(e.at[0], e.at[1]) : centreOf(d);
-@@ -14242,6 +15990,47 @@ const SquadView = (() => {
+@@ -14242,6 +16036,47 @@ const SquadView = (() => {
        });
        for (const s of [-1, 1]) addFx(T + 40 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(mx - 8 + s * (3 + (el * 0.02) / k)), Math.round(my - 8 + (up ? -1 : 1) * ((el * 0.01) / k))));
        const len = Math.hypot(tx - mx, ty - my);
@@ -2917,7 +3014,7 @@ index 4a14e6e..92aee01 100644
        addFx(T, b.contact, (x, kk) => {
          const X = Math.round(lerp(mx, tx, kk));
          const Y = Math.round(lerp(my, ty - 2, kk) - Math.sin(Math.PI * kk) * (5 + len / 9));
-@@ -14671,11 +16460,16 @@ const SquadView = (() => {
+@@ -14671,11 +16506,16 @@ const SquadView = (() => {
      const kd = drop >= 1 ? 1 : clamp(drop * N - r, 0, 1);
      if (kd <= 0) return;
      const dy = Math.round((1 - kd) * -18);
@@ -2937,7 +3034,7 @@ index 4a14e6e..92aee01 100644
    }
    // A rectangle filled to `a` (0 to 1) with the ordered dither rather than drawn
    // see-through: rubber on the road, a mark wearing off.
-@@ -14699,9 +16493,7 @@ const SquadView = (() => {
+@@ -14699,9 +16539,7 @@ const SquadView = (() => {
      const id = key + '|' + step;
      let c = ghostCache.get(id);
      if (c) return c;
@@ -2948,7 +3045,7 @@ index 4a14e6e..92aee01 100644
      const g = c.getContext('2d');
      g.drawImage(img, 0, 0);
      const d = g.getImageData(0, 0, c.width, c.height);
-@@ -15061,8 +16853,8 @@ const SquadView = (() => {
+@@ -15061,8 +16899,8 @@ const SquadView = (() => {
      if (shot && !P.buf) P.buf = canvas(CW, CH);
      const x = shot ? P.buf.getContext('2d') : P.ctx;
      const S = P.S;
@@ -2959,7 +3056,7 @@ index 4a14e6e..92aee01 100644
      x.fillStyle = '#120A1C';
      x.fillRect(0, 0, CW, CH);
      if (!P.map) return;
-@@ -15108,7 +16900,7 @@ const SquadView = (() => {
+@@ -15108,7 +16946,7 @@ const SquadView = (() => {
        }
        drawCraters(x);
        drawSink(x, t, now);
@@ -2968,7 +3065,7 @@ index 4a14e6e..92aee01 100644
        drawShells(x, t, now, true);
      }
      // rows, back to front: the row's blocks and objects first, then the units
-@@ -15156,17 +16948,20 @@ const SquadView = (() => {
+@@ -15156,17 +16994,20 @@ const SquadView = (() => {
        if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
        for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
        for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
@@ -2995,7 +3092,7 @@ index 4a14e6e..92aee01 100644
      }
      drawMist(x, t, now);
      // units with a block right in front of them get their outline drawn over it
-@@ -15187,7 +16982,7 @@ const SquadView = (() => {
+@@ -15187,7 +17028,7 @@ const SquadView = (() => {
      drawCurve(x, t, now);
      drawSights(x, now);
      drawPacks(x, now);
@@ -3004,7 +3101,7 @@ index 4a14e6e..92aee01 100644
      drawShells(x, t, now, false);
      P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
      for (let i = P.parts.length - 1; i >= 0; i--) {
-@@ -15227,7 +17022,7 @@ const SquadView = (() => {
+@@ -15227,7 +17068,7 @@ const SquadView = (() => {
          x.fillRect(b.ox + 8, ay + 3, 1, 1);
        }
      }
@@ -3013,7 +3110,7 @@ index 4a14e6e..92aee01 100644
      // calm playback: this turn's results stay as markers
      for (const m of P.marks) {
        if (m.line) {
-@@ -15247,6 +17042,7 @@ const SquadView = (() => {
+@@ -15247,6 +17088,7 @@ const SquadView = (() => {
        x.drawImage(n.img, n.x, Math.round(n.y - (8 * e) / dur));
      }
      x.globalAlpha = 1;
@@ -3021,7 +3118,7 @@ index 4a14e6e..92aee01 100644
      P.nums = P.nums.filter((n) => t - n.t0 < 600 * Math.max(1, P.speed / 2));
      x.setTransform(1, 0, 0, 1, 0, 0);
      const fe = t - P.flashT;
-@@ -15467,6 +17263,8 @@ const SquadView = (() => {
+@@ -15467,6 +17309,8 @@ const SquadView = (() => {
    // Each squad's perk comes down on its own side as the round starts: a crate on a
    // parachute, green for a buff and red for a nerf, swaying down onto the tile of
    // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
@@ -3030,7 +3127,7 @@ index 4a14e6e..92aee01 100644
    function perkFall(b, T, k) {
      if (P.calm) return;
      const HIT = MS.perksHit * k;
-@@ -15474,8 +17272,18 @@ const SquadView = (() => {
+@@ -15474,8 +17318,18 @@ const SquadView = (() => {
        const e = P.rd.R.ev[it.ei];
        if (!e || e.t !== 'perk' || !e.at) continue;
        const [cx, cy] = tileC(e.at[0], e.at[1]);
@@ -3050,7 +3147,7 @@ index 4a14e6e..92aee01 100644
        addFx(T, HIT, (x, kk, el) => {
          const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
          x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
-@@ -15483,16 +17291,1231 @@ const SquadView = (() => {
+@@ -15483,16 +17337,1232 @@ const SquadView = (() => {
      }
      sfx('read');
    }
@@ -3077,7 +3174,7 @@ index 4a14e6e..92aee01 100644
 +      const e2 = el - open;
 +      const up = Math.min(1, e2 / (380 * k));
 +      const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
-+      const iy = Math.round(cy - 22 - up * 20 + bob);
++      const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * 20 + bob));
 +      // its card: gold, with a white rim that glints
 +      x.fillStyle = INK;
 +      x.fillRect(cx - 18, iy - 2, 36, 36);
@@ -3874,8 +3971,8 @@ index 4a14e6e..92aee01 100644
 +    const [ux, uy] = centreOf(u);
 +    const { lay, pos } = wheelLayout(e.golds);
 +    const land = T + 260 * k;
-+    const slap = T + MS.gambleSlap * k;
-+    const stop = T + MS.gambleStop * k;
++    const slap = T + (b.quick ? MS.gambleQSlap : MS.gambleSlap) * k;
++    const stop = T + b.contact;
 +    const until = T + b.dur;
 +    const wedge = pos(e.wedge);
 +    const w = { t0: slap, t1: stop, end: (3 + (e.n % 2)) * 360 + ((((360 - (wedge + 0.5) * 45) % 360) + 360) % 360) };
@@ -3909,7 +4006,7 @@ index 4a14e6e..92aee01 100644
 +      label(slap, 'ALL IN!', '#FFD447', ux, above(uy - 26), true, 2);
 +      ringFx(slap, ux, uy + 4, 420 * k, '#FFD447', 4, 16, true, 0.5);
 +    } else label(slap, 'SPIN ' + e.n + '/' + e.spins, '#FFF3B0', ux, above(uy - 24), true);
-+    closeUp(stop - 700 * k, 1250 * k, wx, wy + 4, { slow: [stop - 300 * k, stop + 60 * k], f: 0.45, force: true });
++    if (!b.quick) closeUp(stop - 700 * k, 1250 * k, wx, wy + 4, { slow: [stop - 300 * k, stop + 60 * k], f: 0.45, force: true });
 +    return true;
 +  }
 +  // A crate coming down (engine 28): a chance drop's onto its tile (green, red, or gold
@@ -3929,6 +4026,7 @@ index 4a14e6e..92aee01 100644
 +      const sway = Math.round(Math.sin(el / (220 * k)) * 4 * (1 - kk));
 +      x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
 +    });
++    if (gamb && b.contact > fall) addFx(T + fall, b.contact - fall, (x) => x.drawImage(fxFrame('airdrop', 8), cx - 16, cy - 24));
 +    if (gold)
 +      addFx(T, fall + 260 * k, (x, kk) => {
 +        const a = Math.min(1, kk * 2.2) * (kk > 0.85 ? (1 - kk) / 0.15 : 1);
@@ -4283,7 +4381,7 @@ index 4a14e6e..92aee01 100644
        const kind = m.buff ? 'buff' : 'nerf';
        const row = el('div', 'sqv-pu perk ' + (kind === 'buff' ? 'good' : 'bad'));
        row.append(icon(kind, m[kind], 32));
-@@ -15503,7 +18526,7 @@ const SquadView = (() => {
+@@ -15503,7 +18573,7 @@ const SquadView = (() => {
      }
      b2.className = 'sqv-ban on perks';
      const mine = ch.teams[P.me];
@@ -4292,7 +4390,7 @@ index 4a14e6e..92aee01 100644
      say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
    }
    // a beat starts: poses, reticles, telegraphs and beams that lead up to the event
-@@ -15543,6 +18566,12 @@ const SquadView = (() => {
+@@ -15543,6 +18613,12 @@ const SquadView = (() => {
      }
      if (P.calm) return;
      if (b.kind === 'rocket') return rocketScene(b, T, k);
@@ -4305,7 +4403,7 @@ index 4a14e6e..92aee01 100644
      if (arsenalBeat(b, T, k)) return;
      if (kitBeat(b, T, k)) return;
      if (worksBeat(b, T, k)) return;
-@@ -15662,7 +18691,8 @@ const SquadView = (() => {
+@@ -15662,7 +18738,8 @@ const SquadView = (() => {
            oy = b.end[1] - dy;
          }
          const travel = b.contact - b.rel;
@@ -4315,7 +4413,7 @@ index 4a14e6e..92aee01 100644
          else if (e.kind === 'ranged') {
            // shots from up on a watchtower start higher and lob down
            const arc = 4 + len / 8 + (u._b && u._b.lift >= TOWER_LIFT ? 7 : 0);
-@@ -15882,10 +18912,15 @@ const SquadView = (() => {
+@@ -15882,10 +18959,15 @@ const SquadView = (() => {
      const U = S.u;
      const k = (b && b.k) || 1;
      const live = !P.seeking && !P.calm;
@@ -4332,7 +4430,7 @@ index 4a14e6e..92aee01 100644
        if (!P.calm) {
          u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
          const [lx, ly] = pts[pts.length - 1];
-@@ -15910,7 +18945,6 @@ const SquadView = (() => {
+@@ -15910,7 +18992,6 @@ const SquadView = (() => {
        P.curveDur = 1100 * k;
      }
      if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
@@ -4340,7 +4438,7 @@ index 4a14e6e..92aee01 100644
      // what hurt a Blub last, for the line when it is knocked out without an attacker
      if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
      if (e.t === 'blowup') P.cause[e.u] = 'blowup';
-@@ -15925,7 +18959,25 @@ const SquadView = (() => {
+@@ -15925,7 +19006,25 @@ const SquadView = (() => {
      }
      // the Boom Pack's Blub is gone in its own blast
      if (e.t === 'blowup' && live) U[e.u].air = [T, 1e12];
@@ -4366,7 +4464,7 @@ index 4a14e6e..92aee01 100644
      if (e.t === 'ko') {
        const u = U[e.u];
        u.koT = T;
-@@ -15954,14 +19006,17 @@ const SquadView = (() => {
+@@ -15954,14 +19053,17 @@ const SquadView = (() => {
      P.dirty = true;
      if (P.calm) return;
      fx(e, T, b, k);
@@ -4386,7 +4484,7 @@ index 4a14e6e..92aee01 100644
      switch (e.t) {
        case 'attack': {
          const u = U[e.u];
-@@ -16080,8 +19135,15 @@ const SquadView = (() => {
+@@ -16080,8 +19182,15 @@ const SquadView = (() => {
        case 'zap':
        case 'blasted':
        case 'cannonball':
@@ -4402,7 +4500,7 @@ index 4a14e6e..92aee01 100644
          const [dx, dy] = centreOf(d);
          const top = (d._b ? d._b.oy : dy - 13) - 2;
          if (e.t === 'cannonball') {
-@@ -16842,6 +19904,26 @@ const SquadView = (() => {
+@@ -16842,6 +19951,26 @@ const SquadView = (() => {
          shake(T + MS.sprayHit * k);
          return;
        }
@@ -4429,7 +4527,7 @@ index 4a14e6e..92aee01 100644
        // a round of it, on the Blub it sprays
        case 'bullet': {
          const d = U[e.d];
-@@ -16941,18 +20023,28 @@ const SquadView = (() => {
+@@ -16941,18 +20070,29 @@ const SquadView = (() => {
        // walks over and pries the lid, the perk's card rises out of it and hangs there
        // over the crate until the fight starts, and the Blub walks back to its spot.
        case 'perk': {
@@ -4447,7 +4545,8 @@ index 4a14e6e..92aee01 100644
 +        if (e.n != null && e.kind === 'gold') {
 +          const gb = b && b.kind === 'gopen' ? b : null;
 +          const until = gb ? Math.max(600 * k, gb.t + gb.dur - T) : 1600 * k;
-+          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, above(cy - 54), true);
++          // (on the top rows the card hangs over the Blub: the name goes under it)
++          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, cy - 54 < TOP + 8 ? cy + 40 : above(cy - 54), true);
 +          return goldCrate(e, T, k, cx, cy, until, null, 0);
 +        }
          const until = Math.max(0, (P.rd.fightAt || T) - T);
@@ -4461,7 +4560,16 @@ index 4a14e6e..92aee01 100644
          addFx(T, until, (x, kk, el) => {
            if (el < open) {
              // shut, with a wobble once the Blub gets its paws on the lid
-@@ -17258,11 +20350,54 @@ const SquadView = (() => {
+@@ -16964,7 +20104,7 @@ const SquadView = (() => {
+           const e2 = el - open;
+           const up = Math.min(1, e2 / (380 * k));
+           const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
+-          const iy = Math.round(cy - 22 - up * 20 + bob);
++          const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * 20 + bob));
+           x.fillStyle = INK;
+           x.fillRect(cx - 18, iy - 2, 36, 36);
+           x.fillStyle = red ? '#E2566E' : '#4FB36B';
+@@ -17258,11 +20398,54 @@ const SquadView = (() => {
        // buff and red for a nerf, swings down out of the sky onto one Blub, its shadow
        // sharpening under it; it lands, pops open, and the perk's name goes up over the
        // Blub (what it does lands with it: the heal, the HP, the status)
@@ -4483,7 +4591,7 @@ index 4a14e6e..92aee01 100644
 +      case 'boxgone': {
 +        const [cx, cy] = tileC(e.at[0], e.at[1]);
 +        for (const s of [-1, 0, 1]) addFx(T, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (5 + (el * 0.02) / k)), cy - 10 - Math.round(kk * 6)));
-+        label(T, 'LOST IN THE MIST', '#E9A2B6', cx, above(cy - 24), true);
++        label(T, e.why === 'nuke' ? 'BLOWN AWAY' : e.why === 'crushed' ? 'CRUSHED' : 'LOST IN THE MIST', '#E9A2B6', cx, above(cy - 24), true);
 +        sfx('miss');
 +        return;
 +      }
@@ -4517,7 +4625,7 @@ index 4a14e6e..92aee01 100644
          const [cx0, cy0] = centreOf(u);
          const y0 = TOP - 36;
          const col = good ? '#4BE08F' : '#FF5C77';
-@@ -17272,7 +20407,11 @@ const SquadView = (() => {
+@@ -17272,7 +20455,11 @@ const SquadView = (() => {
            const [cx, cy] = centreOf(u);
            blob(x, cx, cy + 6, Math.round(2 + kk * 6), 1, '#1B1229', 0.1 + kk * 0.22);
          }, true);
@@ -4530,7 +4638,7 @@ index 4a14e6e..92aee01 100644
            const [cx, cy] = centreOf(u);
            const sway = Math.round(Math.sin(el / (200 * k)) * 4 * (1 - kk)) + Math.round(side * 10 * (1 - kk));
            x.drawImage(fxFrame('airdrop', good ? 0 : 2), cx - 16 + sway, Math.round(lerp(y0, cy - 28, kk * kk)));
-@@ -18248,7 +21387,8 @@ const SquadView = (() => {
+@@ -18248,7 +21435,8 @@ const SquadView = (() => {
          const [cx, cy] = tileC(e.at[0], e.at[1]);
          addParts(10, cx, cy + 6, ['#FFE3EA', '#FFF3B0', '#FFFFFF'], 0.05, 0.0002, 380 * k, T, true, [Math.PI, Math.PI * 2]);
          ringFx(T, cx, cy + 6, 300 * k, '#FFF3B0', 3, 12, true);
@@ -4540,7 +4648,7 @@ index 4a14e6e..92aee01 100644
          sfx('sift');
          say(nameOf('item', e.item) + ' landed in the middle.');
          return;
-@@ -18310,7 +21450,7 @@ const SquadView = (() => {
+@@ -18310,7 +21498,7 @@ const SquadView = (() => {
    }
  
    // a knock-out without an attacker: say what did it (the mist, a shell, a mine, the wire)
@@ -4549,7 +4657,7 @@ index 4a14e6e..92aee01 100644
    // calm markers: a shell's target (red corners), where it landed (a red cross), a mine (pink)
    const MARKS = {};
    function markImg(kind) {
-@@ -18879,7 +22019,7 @@ const SquadView = (() => {
+@@ -18879,7 +22067,7 @@ const SquadView = (() => {
    }
  
    // ---- text: ticker, log and the screen-reader line
@@ -4558,9 +4666,14 @@ index 4a14e6e..92aee01 100644
    function log(e) {
      if (!LOGGED.has(e.t)) return;
      if (e.t === 'attack' && e.n === 1) return;
-@@ -18943,13 +22083,13 @@ const SquadView = (() => {
-       R.meme.hidden = !m;
-       if (!m) return;
+@@ -18940,16 +22128,16 @@ const SquadView = (() => {
+       R.memeChips = {};
+       const team = side === 'you' ? P.me : 1 - P.me;
+       const m = ch && ch.teams && ch.teams[team];
+-      R.meme.hidden = !m;
+-      if (!m) return;
++      R.meme.hidden = !m || !(m.buff || m.nerf || m.gold);
++      if (R.meme.hidden) return;
        R.meme.hidden = false;
 -      for (const kind of ['buff', 'nerf']) {
 +      for (const kind of ['buff', 'nerf', 'gold']) {
@@ -4574,7 +4687,7 @@ index 4a14e6e..92aee01 100644
          R.meme.append(c);
          R.memeChips[id] = c;
        }
-@@ -18999,6 +22139,26 @@ const SquadView = (() => {
+@@ -18999,6 +22187,26 @@ const SquadView = (() => {
          R.list.append(b);
          R.rows.push({ id, b, hp, bar, sts, key: '' });
        }
@@ -4601,7 +4714,7 @@ index 4a14e6e..92aee01 100644
      });
    }
    function updateRosters() {
-@@ -19016,13 +22176,15 @@ const SquadView = (() => {
+@@ -19016,13 +22224,15 @@ const SquadView = (() => {
        R.rows.forEach((r) => {
          const u = S.u[r.id];
          if (u.alive) alive[u.side]++;
@@ -4619,7 +4732,7 @@ index 4a14e6e..92aee01 100644
          if (key === r.key) return;
          r.key = key;
          r.hp.textContent = '';
-@@ -19033,6 +22195,7 @@ const SquadView = (() => {
+@@ -19033,6 +22243,7 @@ const SquadView = (() => {
          else if (u.tent) r.hp.append(el('span', 'long', 'In the tent'), el('span', 'short', 'TENT'));
          else if (u.moon) r.hp.append(el('span', 'long', 'On the moon'), el('span', 'short', 'MOON'));
          else if (u.pit) r.hp.append(el('span', 'long', 'In a pit'), el('span', 'short', 'PIT'));
@@ -4627,7 +4740,7 @@ index 4a14e6e..92aee01 100644
          else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
          r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
          r.b.classList.toggle('ko', !u.alive);
-@@ -19051,8 +22214,9 @@ const SquadView = (() => {
+@@ -19051,8 +22262,9 @@ const SquadView = (() => {
          r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : u.tent ? 'in the Field Hospital' : u.moon ? 'gone to the moon' : u.pit ? 'fallen into a pit' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
        }),
      );
@@ -4639,7 +4752,7 @@ index 4a14e6e..92aee01 100644
    }
    // a roster tap: light the unit up on the board for 1.5 s and show its build
    function inspect(id) {
-@@ -19359,6 +22523,19 @@ const SquadView = (() => {
+@@ -19359,6 +22571,19 @@ const SquadView = (() => {
      P.map = r.map;
      setupObjs(r.R);
      P.S = freshState(r.R, P.sideOf);
@@ -4659,7 +4772,7 @@ index 4a14e6e..92aee01 100644
      // units hop in from the back rows first
      const order = P.S.u.map((u) => u).sort((a, b) => {
        const [, ay] = scr(a.x, a.y);
-@@ -19417,13 +22594,22 @@ const SquadView = (() => {
+@@ -19417,13 +22642,22 @@ const SquadView = (() => {
      P.raf = requestAnimationFrame(frame);
      const dt = Math.min(50, P.last ? now - P.last : 16);
      P.last = now;
@@ -4689,7 +4802,7 @@ index 4a14e6e..92aee01 100644
    }
    function advance(dt) {
      if (P.phase === 'intro') {
-@@ -19445,8 +22631,12 @@ const SquadView = (() => {
+@@ -19445,8 +22679,12 @@ const SquadView = (() => {
      const Q = P.rd.Q;
      while (P.qi < Q.length && Q[P.qi].at <= P.clock) {
        const q = Q[P.qi++];
@@ -4704,7 +4817,7 @@ index 4a14e6e..92aee01 100644
      }
      placeMarks();
    }
-@@ -20200,6 +23390,15 @@ const SquadView = (() => {
+@@ -20200,6 +23438,15 @@ const SquadView = (() => {
          rekt: `One Blub starts ${R.rektHp} HP down.`,
          ngmi: R.ngmiMiss === 1 ? 'The first attack always misses.' : `The first ${R.ngmiMiss} attacks always miss.`,
        },
@@ -4720,7 +4833,7 @@ index 4a14e6e..92aee01 100644
      };
      return (T[kind] && T[kind][id]) || descOf(kind, id);
    }
-@@ -20415,7 +23614,7 @@ const SquadView = (() => {
+@@ -20415,7 +23662,7 @@ const SquadView = (() => {
      if (open && P) fillInfo();
    }
    // what Round info shows: the round, and the chest's hidden events gone off so far
@@ -4729,7 +4842,7 @@ index 4a14e6e..92aee01 100644
    function fillInfo() {
      const r = P && P.rounds[P.ri];
      if (!r || !D) return;
-@@ -20473,12 +23672,23 @@ const SquadView = (() => {
+@@ -20473,12 +23720,23 @@ const SquadView = (() => {
          if (shown) row('ev', 'ev', v.id, 'Event' + (v.turn ? ' · turn ' + v.turn : ''), nameOf('ev', v.id), descOf('ev', v.id));
          else row('ev hid', null, null, 'Event', 'A hidden event', 'Nobody knows what or where until it goes off.');
        }
@@ -4742,19 +4855,19 @@ index 4a14e6e..92aee01 100644
      }
 +    // engine 28: the chance drops, each crate as it comes down, and the golden drops opened
 +    if (RU.chancePct) {
-+      row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it, and the mist takes it if it gets there first.');
++      row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it (within ' + RU.boxReach + ' tiles; when it falls, the next takes over), and the mist takes it if it gets there first.');
 +      for (const k of (P.S && P.S.boxLog) || []) {
 +        if (k.gold && k.st === 'got') continue;
 +        const lbl = P.sideLabels[P.sideOf(k.team)] + ' · ' + (k.gold ? 'golden' : k.good ? 'green' : 'red') + ' crate';
 +        if (k.st === 'got') row('perk ' + (k.good ? 'buff' : 'nerf'), k.good ? 'buff' : 'nerf', k.k, lbl + ' · ' + P.names[k.u], nameOf('drop', k.k), descOf('drop', k.k));
-+        else row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, k.st === 'gone' ? 'Lost in the mist' : 'Not picked up yet', k.st === 'gone' ? '' : 'Its nearest Blub is on the way.');
++        else row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, k.st === 'gone' ? { nuke: 'Blown away by the nuke', crushed: 'Crushed' }[k.why] || 'Lost in the mist' : 'Not picked up yet', k.st === 'gone' ? '' : 'Its nearest Blub is on the way.');
 +      }
 +      for (const g of (P.S && P.S.goldLog) || []) row('perk gold', 'gold', g.id, P.sideLabels[P.sideOf(g.team)] + ' · golden drop' + (g.src === 'gamble' ? ', off the Gambler\u2019s wheel' : '') + ' · ' + P.names[g.u], nameOf('gold', g.id), descOf('gold', g.id));
 +    }
    }
  
    // ---- round intro and round end
-@@ -20570,7 +23780,14 @@ const SquadView = (() => {
+@@ -20570,7 +23828,14 @@ const SquadView = (() => {
    }
    function totals() {
      const t = [...Array(10)].map(() => ({ dmg: 0, kills: 0, healed: 0, taken: 0 }));
@@ -4770,7 +4883,7 @@ index 4a14e6e..92aee01 100644
      return t;
    }
    // the MVP: damage + 10 x knock-outs + healed + taken / 2, from the winning side
-@@ -21324,6 +24541,8 @@ const SquadView = (() => {
+@@ -21324,6 +24589,8 @@ const SquadView = (() => {
      const dropsOf = (good) => (SE.DROPS || []).filter((d) => !!d[2] === good).map((d) => [d[0], d[1], d[3]]);
      section(o.buffsTitle || 'Supply drops: green crates', dropsOf(true), 'buff');
      section(o.nerfsTitle || 'Supply drops: red crates', dropsOf(false), 'nerf');

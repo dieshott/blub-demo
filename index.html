@@ -4049,12 +4049,17 @@ const RULES = lock({
   // (GOLDS) instead. teamCrate: the old crate for the whole squad as the round starts
   // (off; its code stays, for a rule set that wants it back).
   chancePct: 5, chanceRain: 2, goldPct: 1, boxNear: 3, teamCrate: false,
+  // the duty to fetch passes only to a Blub of the squad within boxReach tiles of the
+  // crate that is free to walk (not tangled, caught or held); with none, the crate waits
+  boxReach: 4,
   // ---- the Gambler (engine 28, a power, one a squad). On its first turns it stays on its
   // own rows and spins its wheel instead of fighting: gambleGold% a golden drop (GOLDS),
   // else red, nothing. How many spins its stance gives it (gambleSpins); the last one is
   // ALL IN, at gambleAllIn%. Its first golden drop and it stops, on a high; the golden
   // drop goes to the Blub of the squad it is meant for (the Gambler itself when any).
-  gambleGold: 25, gambleAllIn: 50, gambleSpins: { attack: 3, middle: 4, hold: 5, evade: 4 },
+  // A spin it misses (frozen, trapped, carried off) it makes up on a later turn, up to
+  // gambleLate turns after its stance's last; its last spin is ALL IN, whenever that is.
+  gambleGold: 25, gambleAllIn: 50, gambleSpins: { attack: 3, middle: 4, hold: 5, evade: 4 }, gambleLate: 2,
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
@@ -4386,7 +4391,7 @@ const CHEST_POOL = lock(EVENTS.filter((e) => !EVENTS_OFF.includes(e[0])));
 const GOLDS = lock([
   ['pill', 'Pump.fun Pill', `A green and white capsule, the Bonding Curve Nuke's little sister. Your rifle Blub takes it (else a Scope Rifle, else your hardest hitter, and it comes with a rifle). When the enemy comes within ${RULES.pillNear} tiles it swallows it and goes berserk: it rushes up to ${RULES.pillDash} tiles into their ground and sprays round after round until it has done ${RULES.pillMin}% to ${RULES.pillMax}% of a Blub's HP in damage. Then they shoot it down, one shot.`],
   ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad: a Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back for one, and one that starts its turn beside the box grabs one on its way.`],
-  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (${RULES.goldGrace} turns after it is opened at the latest) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest, or ${RULES.goldGrace} turns after it is opened if that is later) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Tails: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. The moment it is opened its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -4949,7 +4954,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     const st = unitStats({ ...s, pow }, false, false);
     const wpn = WEAPON_STATS[s.wpn].boom ? 'sword' : s.wpn;
     const v = fresh({ ...s, pow, wpn }, U.length, t, by.x, by.y, false, st);
-    Object.assign(v, { engineer: false, crew: false, hp: st.max + RULES.coinHp, max: st.max + RULES.coinHp, bubble: true, alive: false, bench: true, of: base.id });
+    Object.assign(v, { engineer: false, crew: false, hp: st.max + RULES.coinHp, max: st.max + RULES.coinHp, bubble: true, alive: false, bench: true, of: base.id, foxhole: false, ammo: 0, gambled: true });
     U.push(v);
     stats.push({ dmg: 0, kills: 0, healed: 0, taken: 0 });
     start.push({ u: v.id, team: t, cap: false, cls: v.cls, wpn: v.wpn, gear: v.gear, pow: v.pow, tac: v.tac, stn: v.stn, x: v.x, y: v.y, hp: v.hp, max: v.max, mv: v.move, bubble: v.bubble, bench: 1, of: v.of });
@@ -4971,11 +4976,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // chance drop's crate or off the Gambler's wheel). What is in it goes to the Blub of
   // the squad it is meant for (goldBy), else to the one that opened it. 'perk' (kind
   // 'gold') tells it, with what changed; then what starts with it at once.
+  // a squad opens each golden drop once a round at most: a second one of the same kind
+  // is the next in GOLDS it has not had yet (engine 28); a chance drop's is kept for it
+  // as it comes down, so what the crate and the wheel say is what is opened
   const goldHad = [new Set(), new Set()];
+  const goldFor = (t, g) => (goldHad[t].has(g) ? GOLDS.map((v) => v[0]).find((id) => !goldHad[t].has(id)) || g : g);
   function openGold(t, opener, g, at, turn, src) {
-    // a squad opens each golden drop once a round at most: a second one of the same
-    // kind is the next in GOLDS it has not had yet (engine 28)
-    if (goldHad[t].has(g)) g = GOLDS.map((v) => v[0]).find((id) => !goldHad[t].has(id)) || g;
+    if (src !== 'box') g = goldFor(t, g);
     goldHad[t].add(g);
     const u = goldBy(t, g, at) || opener;
     meme[t].gold = g;
@@ -4983,14 +4990,18 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (g === 'blueprint') {
         // a golden hard hat: a Builder too, its own weapon kept. With the squad's
         // Builder still to build its cannon, the two build the Big Gun together.
-        const lead = U.find((v) => v.team === t && v.engineer);
+        // (opened mid-round, engine 28: it lays out within cannonStart turns of now; with
+        // the squad's cannon already laid out, it helps finish and patch that one)
+        const lead = U.find((v) => v.team === t && v.engineer && v.alive);
+        const laid = works.some((w) => w.team === t);
         u.max += RULES.workHp;
         u.hp += RULES.workHp;
+        meme[t].printAt = turn;
         if (lead) {
           u.crew = true;
-          meme[t].big = true;
+          if (!laid) meme[t].big = true;
         } else u.engineer = true;
-        Object.assign(out, { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, big: 1 } : {}) });
+        Object.assign(out, { hp: u.hp, max: u.max, ...(lead ? { lead: lead.id, ...(laid ? {} : { big: 1 }) } : {}) });
       }
       // the Pump.fun Pill: it keeps it till it swallows it (by goldGrace turns at the latest)
       if (g === 'pill') {
@@ -5004,6 +5015,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         u.load = 0;
         u.sight = -1;
       }
+    // the Shiba Inu's cage goes down beside the crate's tile (engine 28: a Blub stands on it)
+    if (g === 'shiba') {
+      const sx = t ? -1 : 1;
+      const ring = [[0, -1], [1, 0], [-1, 0], [0, 1], [1, -1], [-1, -1], [1, 1], [-1, 1]].map(([dx, dy]) => [at[0] + dx * sx, at[1] + dy * sx]);
+      out.dog = ring.find(([x, y]) => inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)]) && tiles[idx(x, y)] !== WATER) || at.slice();
+    }
     push({ t: 'perk', team: t, kind: 'gold', id: g, at, u: u.id, by: opener.id, n: turn, src, ...out });
     if (g === 'coin') coins[t] = { by: u, v: makeDouble(t, u), done: false, flipBy: Math.max(RULES.coinBy, turn + RULES.goldGrace) };
     if (g === 'pizza') {
@@ -5011,7 +5028,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       callPizza();
     }
     if (g === 'shiba') {
-      dogs[t] = { team: t, x: at[0], y: at[1], by: u, bites: 0, out: false, done: false };
+      dogs[t] = { team: t, x: out.dog[0], y: out.dog[1], by: u, bites: 0, out: false, done: false };
       unleash();
     }
   }
@@ -6964,7 +6981,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (w && w.stage >= w.of && w.wall >= w.front.length) return false;
     if (inReach(u).length) return false;
     if (!w) {
-      if (now > RULES.cannonStart) return false;
+      if (now > RULES.cannonStart + (meme[u.team].printAt || 0)) return false;
       // the Blueprint's second Builder leaves the laying out to the squad's own while it
       // stands, and keeps close to it (within two tiles) till it has
       if (u.crew && living[u.team].some((v) => v.engineer)) {
@@ -7178,7 +7195,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     return true;
   }
   // the tiles a Miner may come up on: free, dry, no trap, nothing lying there
-  const tunnelOk = (u, c) => occ[c] < 0 && !danger(c) && !solidTile(tiles[c]) && tiles[c] !== WATER && !trap(u, c) && mineT[c] < 0 && c !== honey && !(item && idx(item.x, item.y) === c) && !(crater && crater.cells.indexOf(c) >= 0);
+  const tunnelOk = (u, c) => occ[c] < 0 && !boxOn(c) && !danger(c) && !solidTile(tiles[c]) && tiles[c] !== WATER && !trap(u, c) && mineT[c] < 0 && c !== honey && !(item && idx(item.x, item.y) === c) && !(crater && crater.cells.indexOf(c) >= 0);
   // the Miner comes up somewhere else: its whole turn ('gem' carrying one over,
   // 'away' getting out of trouble)
   function popUp(u, c, why) {
@@ -7516,7 +7533,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       const top = near.filter((v) => key(v) === best);
       u = top[Math.floor(cr() * top.length)];
     } else if (turn >= RULES.lamboAt) {
-      u = pickBlub('lambo', (w) => !!w.ride);
+      u = pickBlub('lambo', (w) => !!w.ride || (w.pow === 'gambler' && gambling(w)));
       given = true;
     }
     if (!u) return;
@@ -7613,7 +7630,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   const putDown = (x, y) => {
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return false;
     const c = idx(x, y);
-    if (occ[c] >= 0 || solidTile(tiles[c]) || mineT[c] >= 0 || wireT[c] >= 0 || c === rug || c === honey) return false;
+    if (occ[c] >= 0 || solidTile(tiles[c]) || mineT[c] >= 0 || wireT[c] >= 0 || c === rug || c === honey || boxOn(c)) return false;
     if (crater && crater.cells.indexOf(c) >= 0) return false;
     return !(item && item.x === x && item.y === y);
   };
@@ -8088,7 +8105,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // settles a tie; never a Boom Pack carrier); from then on the candle is no wall: its
   // rider stands on its tile, high up, and stays there hitting what it reaches. It pumps
   // a block a turn up to candleMax, and the turn after the top it goes to the moon.
-  const canRide = (v) => v.alive && !v.ride && !W(v).boom;
+  const canRide = (v) => v.alive && !v.ride && !W(v).boom && !(v.pow === 'gambler' && gambling(v));
   // the props a Blub climbs onto: the Green Candle (engine 19) and the Diamond Hand (21)
   const rides = (p) => p.id === 'candle' || p.id === 'diamond';
   function riderOf(p, team) {
@@ -8337,7 +8354,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       for (const c of cats.slice()) {
         if (over >= 0) break;
         // (never the Blub up on the Green Candle or in the Diamond Hand)
-        const v = pickBlub('sendit', (w) => !!w.ride);
+        const v = pickBlub('sendit', (w) => !!w.ride || (w.pow === 'gambler' && gambling(w)));
         if (v) sendIt(v, c);
       }
     if (turn >= RULES.propAt)
@@ -8481,11 +8498,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
     return list.length ? list[Math.floor(a * list.length)] : null;
   }
-  // who has to fetch it: the squad's Blub nearest it that can walk (a tie: the lower unit)
+  // who has to fetch it: the squad's Blub nearest it that can walk (a tie: the lower unit),
+  // within boxReach of it. It keeps the duty till it falls or is pinned down (tangled,
+  // caught, held by a Guardian) while another is free; with nobody in reach, nobody yet.
+  const pinned = (v) => v.tangled >= now || v.caught >= now || foes(v).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, v.x, v.y) <= 1);
   function fetcher(k) {
     const can = (v) => v.alive && !v.ride && !anchored(v) && !(v.pow === 'gambler' && gambling(v));
-    if (k.by && can(k.by)) return k.by;
-    k.by = living[k.team].filter(can).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
+    if (k.by && can(k.by) && !pinned(k.by)) return k.by;
+    const next = living[k.team].filter((v) => can(v) && !pinned(v) && cheb(v.x, v.y, k.x, k.y) <= RULES.boxReach).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
+    if (next || !k.by || !can(k.by)) k.by = next;
     return k.by;
   }
   function boxTurn(turn) {
@@ -8504,7 +8525,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       if (!u) continue;
       const at = boxSpot(u, turn, a);
       if (!at) continue;
-      const gold = boxGold[t];
+      // (a golden one is kept for this crate: the next its squad has not had, engine 28)
+      const gold = boxGold[t] && goldFor(t, boxGold[t]);
+      if (gold) goldHad[t].add(gold);
       const good = b < 0.5 ? 1 : 0;
       const list = good ? DROP_GOOD : DROP_BAD;
       const k = { team: t, x: at[0], y: at[1], c: idx(at[0], at[1]), good, gold, kind: gold ? null : list[Math.floor(c * list.length)], by: null, done: false, turn };
@@ -8533,36 +8556,44 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     dropHit(u, k.kind, now);
     checkOver();
   }
-  // the mist gets there first (or its tile is no floor any more): the crate is gone
+  // the mist gets there first (or the nuke's crater, or its tile is no floor any more):
+  // the crate is gone. why: 'mist', 'nuke' or 'crushed'
   function mistBoxes(turn) {
-    for (const k of boxes)
-      if (k && !k.done && (inMist(k.x, k.y, turn) || solidTile(tiles[k.c]) || pitT[k.c] >= 0 || (crater && crater.cells.indexOf(k.c) >= 0))) {
-        k.done = true;
-        push({ t: 'boxgone', team: k.team, at: [k.x, k.y] });
-      }
+    for (const k of boxes) {
+      if (!k || k.done) continue;
+      const why = inMist(k.x, k.y, turn) ? 'mist' : crater && crater.cells.indexOf(k.c) >= 0 ? 'nuke' : solidTile(tiles[k.c]) || pitT[k.c] >= 0 ? 'crushed' : '';
+      if (!why) continue;
+      k.done = true;
+      push({ t: 'boxgone', team: k.team, at: [k.x, k.y], why });
+    }
   }
   // ---- the Gambler's wheel (engine 28): one spin a turn on its first turns, on its own
   // rows, till it hits gold; four draws a spin from GAMBLE_SALT whatever comes up
+  // (drawn at the start of every turn for each of the ten, whoever spins: gambleTurn)
   const gambleR = rng(subSeed(seed, round, GAMBLE_SALT));
-  const gambling = (u) => !u.gambled && now <= (RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack) && !u.bench;
+  const spinsOf = (u) => RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack;
+  const gambling = (u) => !u.gambled && !u.bench && u.of == null && (u.spins || 0) < spinsOf(u) && now <= spinsOf(u) + RULES.gambleLate;
+  const gdraw = [];
+  function gambleTurn() {
+    for (let i = 0; i < 2 * TEAM; i++) gdraw[i] = [gambleR(), gambleR(), gambleR(), gambleR()];
+  }
   function gamble(u, turn) {
-    const a = gambleR();
-    const b = gambleR();
-    const c = gambleR();
-    gambleR();
-    if (!gambling(u)) return false;
+    if (!gambling(u) || u.id >= 2 * TEAM) return false;
     if (u.spunAt === turn) return true;
     u.spunAt = turn;
-    const spins = RULES.gambleSpins[u.stn] || RULES.gambleSpins.attack;
-    const allIn = turn >= spins;
+    const [a, b, c] = gdraw[u.id];
+    const spins = spinsOf(u);
+    u.spins = (u.spins || 0) + 1;
+    // its last spin, or its last chance at one: ALL IN
+    const allIn = u.spins >= spins || turn >= spins + RULES.gambleLate;
     const pct = allIn ? RULES.gambleAllIn : RULES.gambleGold;
     const win = a * 100 < pct;
     if (win || allIn) u.gambled = true;
-    const g = win ? GOLDS[Math.floor(b * GOLDS.length)][0] : null;
+    const g = win ? goldFor(u.team, GOLDS[Math.floor(b * GOLDS.length)][0]) : null;
     // which wedge it stops on (8: gold ones first, as many as its odds; for the page)
     const golds = Math.round((pct * 8) / 100);
     const wedge = win ? Math.floor(c * golds) : golds + Math.floor(c * (8 - golds));
-    push({ t: 'gamble', u: u.id, n: turn, spins, allIn: allIn ? 1 : 0, pct, golds, wedge, ...(g ? { gold: g } : {}) });
+    push({ t: 'gamble', u: u.id, n: u.spins, spins, allIn: allIn ? 1 : 0, pct, golds, wedge, ...(g ? { gold: g } : {}) });
     if (g) openGold(u.team, u, g, [u.x, u.y], turn, 'gamble');
     return true;
   }
@@ -8592,6 +8623,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     }
     mistBoxes(turn);
     boxTurn(turn);
+    gambleTurn();
     if (!spawned && turn >= POWERUP_TURN && occ[CENTRE] < 0) spawn();
     // the mortars fire on their own
     for (const m of objs) if (m.k === 'mortar' && over < 0) fireMortar(m, turn);
@@ -8932,6 +8964,8 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
     const nerf = green ? null : one(NERFS);
     const t = { buff, nerf, gold: null, turn: 0 };
     if (buff === 'airdrop') t.turn = RULES.airdropFrom + Math.floor(r() * (RULES.airdropTo - RULES.airdropFrom + 1));
+    // (with no crate for the squad, no buff or nerf for it either: engine 28)
+    if (!RULES.teamCrate) Object.assign(t, { buff: null, nerf: null, turn: 0 });
     return t;
   });
 
@@ -11759,6 +11793,8 @@ const SquadView = (() => {
       case 'box':
         return (e.gold ? 'A golden crate' : 'A ' + (e.good ? 'green' : 'red') + ' crate') + ' comes down near ' + u + (e.by >= 0 ? ': ' + nm(e.by) + ' has to fetch it.' : '.');
       case 'boxgone':
+        if (e.why === 'nuke') return 'The nuke blows ' + lb(e.team) + "'s crate away.";
+        if (e.why === 'crushed') return lb(e.team) + "'s crate is crushed.";
         return 'The mist swallows ' + lb(e.team) + "'s crate.";
       // the Gambler's wheel (engine 28)
       case 'gamble':
@@ -11936,6 +11972,12 @@ const SquadView = (() => {
       case 'dogdone':
         return e.path.length ? 'The Shiba Inu has had its fill and trots back to ' + u + '. Good boy.' : 'The Shiba Inu has had its fill and sits down, very pleased with itself.';
       case 'perk':
+        // (opened mid-round, engine 28: e.by opened it, e.u gets what is in it)
+        if (e.kind === 'gold' && e.n != null) {
+          const what = nameOf('gold', e.id);
+          if (e.src === 'gamble') return e.u === e.by ? u + ' wins the ' + what + '!' : nm(e.by) + ' wins the ' + what + ' for ' + u + '!';
+          return e.u === e.by ? u + ' opens ' + lb(e.team) + "'s golden crate: " + what + '!' : nm(e.by) + ' opens ' + lb(e.team) + "'s golden crate: " + what + ', for ' + u + '!';
+        }
         if (e.kind === 'gold') return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '!' : lb(e.team) + "'s golden crate: " + nameOf('gold', e.id) + '.';
         return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
       case 'pick':
@@ -13027,6 +13069,8 @@ const SquadView = (() => {
     // the Gambler's wheel stops at gambleStop
     box: 1250, boxHit: 900, boxPick: 160, boxGone: 700, gopen: 2600, gopenHit: 650, gopenFall: 1100,
     gamble: 2700, gambleSlap: 380, gambleStop: 1900,
+    // (a red spin that is not the last: a quick one)
+    gambleQ: 1450, gambleQSlap: 300, gambleQStop: 1000,
     airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
     // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
     // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
@@ -13342,7 +13386,9 @@ const SquadView = (() => {
         // the Gambler's wheel (engine 28): told as it stops
         if (t === 'gamble') {
           parent = null;
-          add({ kind: 'gamble', dur: MS.gamble, contact: MS.gambleStop, list: [{ ei: i, off: MS.gambleStop }], e, actors: [e.u] });
+          const quick = !e.allIn && !e.gold;
+          const stop = quick ? MS.gambleQStop : MS.gambleStop;
+          add({ kind: 'gamble', dur: quick ? MS.gambleQ : MS.gamble, contact: stop, list: [{ ei: i, off: stop }], e, actors: [e.u], quick });
           return;
         }
         if (t === 'pick') {
@@ -13881,7 +13927,7 @@ const SquadView = (() => {
         break;
       case 'boxgone':
         delete S.boxes[e.team];
-        for (const k of S.boxLog) if (k.team === e.team && k.st === 'down') k.st = 'gone';
+        for (const k of S.boxLog) if (k.team === e.team && k.st === 'down') Object.assign(k, { st: 'gone', why: e.why || 'mist' });
         break;
       case 'drop':
         if (e.box) {
@@ -13913,7 +13959,7 @@ const SquadView = (() => {
           if (e.id === 'pill') u.st.pill = true;
         }
         // the Shiba Inu, in its cage where the crate came down
-        if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: e.at[0], y: e.at[1], caged: true, done: false, by: e.u, face: 1 };
+        if (e.kind === 'gold' && e.id === 'shiba' && e.at) S.dogs[e.team] = { team: e.team, x: (e.dog || e.at)[0], y: (e.dog || e.at)[1], caged: true, done: false, by: e.u, face: 1 };
         break;
       // the Pump.fun Pill (engine 22): down its throat, a rifle in its paws, berserk
       case 'pill':
@@ -17314,7 +17360,7 @@ const SquadView = (() => {
       const e2 = el - open;
       const up = Math.min(1, e2 / (380 * k));
       const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
-      const iy = Math.round(cy - 22 - up * 20 + bob);
+      const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * 20 + bob));
       // its card: gold, with a white rim that glints
       x.fillStyle = INK;
       x.fillRect(cx - 18, iy - 2, 36, 36);
@@ -18111,8 +18157,8 @@ const SquadView = (() => {
     const [ux, uy] = centreOf(u);
     const { lay, pos } = wheelLayout(e.golds);
     const land = T + 260 * k;
-    const slap = T + MS.gambleSlap * k;
-    const stop = T + MS.gambleStop * k;
+    const slap = T + (b.quick ? MS.gambleQSlap : MS.gambleSlap) * k;
+    const stop = T + b.contact;
     const until = T + b.dur;
     const wedge = pos(e.wedge);
     const w = { t0: slap, t1: stop, end: (3 + (e.n % 2)) * 360 + ((((360 - (wedge + 0.5) * 45) % 360) + 360) % 360) };
@@ -18146,7 +18192,7 @@ const SquadView = (() => {
       label(slap, 'ALL IN!', '#FFD447', ux, above(uy - 26), true, 2);
       ringFx(slap, ux, uy + 4, 420 * k, '#FFD447', 4, 16, true, 0.5);
     } else label(slap, 'SPIN ' + e.n + '/' + e.spins, '#FFF3B0', ux, above(uy - 24), true);
-    closeUp(stop - 700 * k, 1250 * k, wx, wy + 4, { slow: [stop - 300 * k, stop + 60 * k], f: 0.45, force: true });
+    if (!b.quick) closeUp(stop - 700 * k, 1250 * k, wx, wy + 4, { slow: [stop - 300 * k, stop + 60 * k], f: 0.45, force: true });
     return true;
   }
   // A crate coming down (engine 28): a chance drop's onto its tile (green, red, or gold
@@ -18166,6 +18212,7 @@ const SquadView = (() => {
       const sway = Math.round(Math.sin(el / (220 * k)) * 4 * (1 - kk));
       x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
     });
+    if (gamb && b.contact > fall) addFx(T + fall, b.contact - fall, (x) => x.drawImage(fxFrame('airdrop', 8), cx - 16, cy - 24));
     if (gold)
       addFx(T, fall + 260 * k, (x, kk) => {
         const a = Math.min(1, kk * 2.2) * (kk > 0.85 ? (1 - kk) / 0.15 : 1);
@@ -20035,7 +20082,8 @@ const SquadView = (() => {
         if (e.n != null && e.kind === 'gold') {
           const gb = b && b.kind === 'gopen' ? b : null;
           const until = gb ? Math.max(600 * k, gb.t + gb.dur - T) : 1600 * k;
-          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, above(cy - 54), true);
+          // (on the top rows the card hangs over the Blub: the name goes under it)
+          label(T, nameOf('gold', e.id).toUpperCase(), '#FFD447', cx, cy - 54 < TOP + 8 ? cy + 40 : above(cy - 54), true);
           return goldCrate(e, T, k, cx, cy, until, null, 0);
         }
         const until = Math.max(0, (P.rd.fightAt || T) - T);
@@ -20056,7 +20104,7 @@ const SquadView = (() => {
           const e2 = el - open;
           const up = Math.min(1, e2 / (380 * k));
           const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
-          const iy = Math.round(cy - 22 - up * 20 + bob);
+          const iy = Math.max(TOP + 1, Math.round(cy - 22 - up * 20 + bob));
           x.fillStyle = INK;
           x.fillRect(cx - 18, iy - 2, 36, 36);
           x.fillStyle = red ? '#E2566E' : '#4FB36B';
@@ -20368,7 +20416,7 @@ const SquadView = (() => {
       case 'boxgone': {
         const [cx, cy] = tileC(e.at[0], e.at[1]);
         for (const s of [-1, 0, 1]) addFx(T, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (5 + (el * 0.02) / k)), cy - 10 - Math.round(kk * 6)));
-        label(T, 'LOST IN THE MIST', '#E9A2B6', cx, above(cy - 24), true);
+        label(T, e.why === 'nuke' ? 'BLOWN AWAY' : e.why === 'crushed' ? 'CRUSHED' : 'LOST IN THE MIST', '#E9A2B6', cx, above(cy - 24), true);
         sfx('miss');
         return;
       }
@@ -22080,8 +22128,8 @@ const SquadView = (() => {
       R.memeChips = {};
       const team = side === 'you' ? P.me : 1 - P.me;
       const m = ch && ch.teams && ch.teams[team];
-      R.meme.hidden = !m;
-      if (!m) return;
+      R.meme.hidden = !m || !(m.buff || m.nerf || m.gold);
+      if (R.meme.hidden) return;
       R.meme.hidden = false;
       for (const kind of ['buff', 'nerf', 'gold']) {
         const id = m[kind];
@@ -23680,12 +23728,12 @@ const SquadView = (() => {
     }
     // engine 28: the chance drops, each crate as it comes down, and the golden drops opened
     if (RU.chancePct) {
-      row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it, and the mist takes it if it gets there first.');
+      row('perk buff', null, null, 'Chance drops', 'A crate for each squad, maybe', 'Every turn each Blub has a ' + RU.chancePct + '% chance (' + RU.chancePct * RU.chanceRain + '% in Supply Drop Rain) that a crate comes down near it, one a squad a round: green or red, a perk for the Blub that picks it up; now and then a golden drop. Its squad\u2019s nearest Blub has to fetch it (within ' + RU.boxReach + ' tiles; when it falls, the next takes over), and the mist takes it if it gets there first.');
       for (const k of (P.S && P.S.boxLog) || []) {
         if (k.gold && k.st === 'got') continue;
         const lbl = P.sideLabels[P.sideOf(k.team)] + ' · ' + (k.gold ? 'golden' : k.good ? 'green' : 'red') + ' crate';
         if (k.st === 'got') row('perk ' + (k.good ? 'buff' : 'nerf'), k.good ? 'buff' : 'nerf', k.k, lbl + ' · ' + P.names[k.u], nameOf('drop', k.k), descOf('drop', k.k));
-        else row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, k.st === 'gone' ? 'Lost in the mist' : 'Not picked up yet', k.st === 'gone' ? '' : 'Its nearest Blub is on the way.');
+        else row('perk ' + (k.gold ? 'gold' : k.good ? 'buff' : 'nerf'), null, null, lbl, k.st === 'gone' ? { nuke: 'Blown away by the nuke', crushed: 'Crushed' }[k.why] || 'Lost in the mist' : 'Not picked up yet', k.st === 'gone' ? '' : 'Its nearest Blub is on the way.');
       }
       for (const g of (P.S && P.S.goldLog) || []) row('perk gold', 'gold', g.id, P.sideLabels[P.sideOf(g.team)] + ' · golden drop' + (g.src === 'gamble' ? ', off the Gambler\u2019s wheel' : '') + ' · ' + P.names[g.u], nameOf('gold', g.id), descOf('gold', g.id));
     }
