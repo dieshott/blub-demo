@@ -11982,6 +11982,9 @@ const SquadView = (() => {
   const C_STAGES = ['stage1', 'stage2', 'finished'];
   // a stage going up: [from, to] in C_STAGES (-1 nothing yet)
   const C_STEPS = [[-1, 0], [0, 1], [0, 2], [1, 2]];
+  // the Big Gun's procedural frames, each worked out once (bigUp needs each of them often)
+  const bigGrids = [];
+  const bigGrid = (n) => bigGrids[n] || (bigGrids[n] = FX_ART.biggun[2](n));
   function cannonGrid(f) {
     const g = FG.grid(56);
     for (let y = 0; y < f.rows.length; y++) {
@@ -13363,7 +13366,29 @@ const SquadView = (() => {
     // its shot: the muzzle flash (0-3 pointing up the screen, 4-7 down), the smoke ring
     // rolling out and thinning, and the ball, its shadow and the fuse's sparks (2-4),
     // all on (4, 4)
-    cannonFx: [8, 28, (i) => CANNON_ART.fx.muzzleFlash[i < 4 ? 'up' : 'down'].frames[i % 4].map((r) => [...r])],
+    cannonFx: [40, 48, (i) => {
+      const fi = i < 20 ? 'up' : 'down';
+      const MF = CANNON_ART.fx.muzzleFlash[fi];
+      const rows = MF.frames[i % 4];
+      const { frames, aims } = CANNON_ART[fi].barrel;
+      const d0 = frames[aims[2]][0].dir;
+      const d1 = frames[aims[Math.floor((i % 20) / 4)]][0].dir;
+      const a = Math.atan2(d0[0] * d1[1] - d0[1] * d1[0], d0[0] * d1[0] + d0[1] * d1[1]);
+      const c = Math.cos(a);
+      const s = Math.sin(a);
+      const [ax, ay] = MF.anchor;
+      const g = FG.grid(48);
+      for (let y = 0; y < 48; y++)
+        for (let x = 0; x < 48; x++) {
+          // where this pixel comes from: turned back about the muzzle
+          const dx = x + 0.5 - 24;
+          const dy = y + 0.5 - 24;
+          const r = rows[Math.floor(ay - s * dx + c * dy)];
+          const sx = Math.floor(ax + c * dx + s * dy);
+          if (r && sx >= 0 && sx < r.length && r[sx] !== '.') g[y][x] = r[sx];
+        }
+      return g;
+    }],
     cannonSmoke: [6, 24, (i) => CANNON_ART.fx.smoke.frames[i].map((r) => [...r])],
     cannonShot: [5, 8, (i) => {
       const fx = CANNON_ART.fx;
@@ -13411,8 +13436,8 @@ const SquadView = (() => {
       const f0 = i < 24 ? 0 : 4;
       const st = Math.floor(i / 6) % 4;
       const j = i % 6;
-      const B = FX_ART.biggun[2](f0 + st);
-      const O = st > 0 ? FX_ART.biggun[2](f0 + st - 1) : null;
+      const B = bigGrid(f0 + st);
+      const O = st > 0 ? bigGrid(f0 + st - 1) : null;
       const g = FG.grid(48);
       for (let y = 0; y < 48; y++)
         for (let x = 0; x < 48; x++) {
@@ -18478,11 +18503,12 @@ const SquadView = (() => {
           const base = big ? fi * 24 + step * 6 : fi * 40 + step * 10;
           const land0 = T + b.contact * 0.2;
           const gap = n > 1 ? (b.contact * 0.67) / (n - 1) : 0;
-          const bld = { big, base, n, t0: T + b.contact * 0.08, hit: T + b.contact, land0, gap, drop: Math.min(130 * k, b.contact * 0.18), gk: (big ? 'bigUp' : 'gunUp') + base };
+          const bld = { big, base, n, T, t0: T + b.contact * 0.08, hit: T + b.contact, land0, gap, drop: Math.min(130 * k, b.contact * 0.18), gk: (big ? 'bigUp' : 'gunUp') + base };
           ovOf('cannon' + e.w).bld = bld;
           // its first stage has nothing on the board till the contact: drawn on the floor
+          // (on bld's own clock, which a change of speed moves along with the fx)
           if (from === 0) addFx(T, b.contact, (x, kk, el) => {
-            if (!P.calm && T + el >= bld.t0) drawBuild(x, bld, big ? box.px : box.px - CP, big ? box.py : box.py - CP, T + el);
+            if (!P.calm && bld.T + el >= bld.t0) drawBuild(x, bld, big ? box.px : box.px - CP, big ? box.py : box.py - CP, bld.T + el);
           }, true);
           // a puff of dust as each part lands
           const W = big ? 48 : 32;
@@ -18505,7 +18531,7 @@ const SquadView = (() => {
       // a blind shot that misses (engine 13) comes down on the tile beside its enemy
       const [tx, ty] = e.miss ? tileC(e.at[0], e.at[1]) : centreOf(d);
       // it winds up (the fuse burns down), and at the end of that it goes off
-      const wind = MS.cannonWind * k;
+      const wind = Math.min(MS.cannonWind * k, b.contact * 0.35);
       const TS = T + wind;
       const A = CANNON_ART[up ? 'up' : 'down'];
       const ov = ovOf('cannon' + e.w);
@@ -18540,10 +18566,9 @@ const SquadView = (() => {
       const back = (el) => (e.big ? (el < 60 * k ? 3 : el < 150 * k ? 2 : el < 240 * k ? 1 : 0) : gunKick(el, k, RM) + gunRoll(el, k));
       // the flash: white-hot, the flame thrown out, coming apart
       const FL = 50 * k;
-      const MF = CANNON_ART.fx.muzzleFlash[up ? 'up' : 'down'];
       addFx(TS, FL * 4, (x, kk, el) => {
         const q = back(el);
-        x.drawImage(fxFrame('cannonFx', (up ? 0 : 4) + Math.min(3, Math.floor(el / FL))), Math.round(mx - ddx * q) - MF.anchor[0], Math.round(my - ddy * q) - MF.anchor[1]);
+        x.drawImage(fxFrame('cannonFx', (up ? 0 : 20) + (e.big ? 2 : aim) * 4 + Math.min(3, Math.floor(el / FL))), Math.round(mx - ddx * q) - 24, Math.round(my - ddy * q) - 24);
       });
       // the smoke rolling out of it into a ring and drifting off, thinning
       const SM = MS.gunSmoke * k;
@@ -18553,8 +18578,8 @@ const SquadView = (() => {
         x.drawImage(fxFrame('cannonSmoke', f), Math.round(mx + ddx * d2) - 12, Math.round(my + ddy * d2 - kk * 5) - 12);
       });
       // and a thin wisp off the muzzle for a while after
-      const WS = MS.gunWisp * k;
-      addFx(TS + 260 * k, WS, (x, kk, el) => {
+      const WS = Math.min(MS.gunWisp * k, b.dur - wind - 260 * k);
+      if (WS >= 120 * k) addFx(TS + 260 * k, WS, (x, kk, el) => {
         const q = back(el + 260 * k);
         const X = mx - ddx * q;
         const Y = my - ddy * q;
@@ -25819,6 +25844,10 @@ const SquadView = (() => {
       Object.values(P.ov).forEach((v) => {
         sh(v, 'fireT');
         sh(v.wob, 't0');
+        // the cannon's: a hit's shake, a repair, a stage going up
+        sh(v, 'hitT');
+        sh(v.fix, 't0');
+        if (v.bld) ['t0', 'hit', 'land0', 'T'].forEach((f) => sh(v.bld, f));
       });
       ['shakeT', 'flashT', 'itemT', 'mistT'].forEach((f) => P[f] != null && (P[f] += shift));
       // the director's cuts and slow spells, what waits for its moment on the clock,

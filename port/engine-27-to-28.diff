@@ -1,5 +1,5 @@
 diff --git a/index.html b/index.html
-index 4a14e6e..e8ede8e 100644
+index 4a14e6e..b7d9d3d 100644
 --- a/index.html
 +++ b/index.html
 @@ -581,7 +581,7 @@ body.no-scroll{overflow:hidden}
@@ -1522,7 +1522,7 @@ index 4a14e6e..e8ede8e 100644
      },
      // Material is laid down in a digit, which no ramp ever writes, and lit after:
      // lighting a letter that an earlier lighting pass already wrote would light it
-@@ -8931,6 +9732,2270 @@ const SquadView = (() => {
+@@ -8931,6 +9732,2273 @@ const SquadView = (() => {
      [[14, 17], [12, 21], [10, 24], [8, 27], [6, 28]],
      [[14, 15], [10, 16], [7, 14], [4, 15], [2, 13]],
    ];
@@ -3776,6 +3776,9 @@ index 4a14e6e..e8ede8e 100644
 +  const C_STAGES = ['stage1', 'stage2', 'finished'];
 +  // a stage going up: [from, to] in C_STAGES (-1 nothing yet)
 +  const C_STEPS = [[-1, 0], [0, 1], [0, 2], [1, 2]];
++  // the Big Gun's procedural frames, each worked out once (bigUp needs each of them often)
++  const bigGrids = [];
++  const bigGrid = (n) => bigGrids[n] || (bigGrids[n] = FX_ART.biggun[2](n));
 +  function cannonGrid(f) {
 +    const g = FG.grid(56);
 +    for (let y = 0; y < f.rows.length; y++) {
@@ -3793,7 +3796,7 @@ index 4a14e6e..e8ede8e 100644
    // the effects themselves: id -> how many frames, and how to draw frame i
    const FX_ART = {
      // Wen Lambo, 32 across, its foot (the bottom of the tyres) at y 27 and centred on
-@@ -9543,36 +12608,51 @@ const SquadView = (() => {
+@@ -9543,36 +12611,51 @@ const SquadView = (() => {
      // The Airdrop: a supply crate with a cross on it, under a striped canopy on four
      // lines. 0 coming down; 1 the crate alone, landed, lid sprung. 0-1 green (a buff,
      // and the Airdrop buff itself), 2-3 the same in red (a nerf).
@@ -3856,7 +3859,7 @@ index 4a14e6e..e8ede8e 100644
        g = FG.outline(g);
        return g;
      }],
-@@ -10254,47 +13334,609 @@ const SquadView = (() => {
+@@ -10254,85 +13337,672 @@ const SquadView = (() => {
        }
        return FG.outline(g);
      }],
@@ -3901,7 +3904,29 @@ index 4a14e6e..e8ede8e 100644
 +    // its shot: the muzzle flash (0-3 pointing up the screen, 4-7 down), the smoke ring
 +    // rolling out and thinning, and the ball, its shadow and the fuse's sparks (2-4),
 +    // all on (4, 4)
-+    cannonFx: [8, 28, (i) => CANNON_ART.fx.muzzleFlash[i < 4 ? 'up' : 'down'].frames[i % 4].map((r) => [...r])],
++    cannonFx: [40, 48, (i) => {
++      const fi = i < 20 ? 'up' : 'down';
++      const MF = CANNON_ART.fx.muzzleFlash[fi];
++      const rows = MF.frames[i % 4];
++      const { frames, aims } = CANNON_ART[fi].barrel;
++      const d0 = frames[aims[2]][0].dir;
++      const d1 = frames[aims[Math.floor((i % 20) / 4)]][0].dir;
++      const a = Math.atan2(d0[0] * d1[1] - d0[1] * d1[0], d0[0] * d1[0] + d0[1] * d1[1]);
++      const c = Math.cos(a);
++      const s = Math.sin(a);
++      const [ax, ay] = MF.anchor;
++      const g = FG.grid(48);
++      for (let y = 0; y < 48; y++)
++        for (let x = 0; x < 48; x++) {
++          // where this pixel comes from: turned back about the muzzle
++          const dx = x + 0.5 - 24;
++          const dy = y + 0.5 - 24;
++          const r = rows[Math.floor(ay - s * dx + c * dy)];
++          const sx = Math.floor(ax + c * dx + s * dy);
++          if (r && sx >= 0 && sx < r.length && r[sx] !== '.') g[y][x] = r[sx];
++        }
++      return g;
++    }],
 +    cannonSmoke: [6, 24, (i) => CANNON_ART.fx.smoke.frames[i].map((r) => [...r])],
 +    cannonShot: [5, 8, (i) => {
 +      const fx = CANNON_ART.fx;
@@ -3950,8 +3975,8 @@ index 4a14e6e..e8ede8e 100644
 +      const f0 = i < 24 ? 0 : 4;
 +      const st = Math.floor(i / 6) % 4;
 +      const j = i % 6;
-+      const B = FX_ART.biggun[2](f0 + st);
-+      const O = st > 0 ? FX_ART.biggun[2](f0 + st - 1) : null;
++      const B = bigGrid(f0 + st);
++      const O = st > 0 ? bigGrid(f0 + st - 1) : null;
 +      const g = FG.grid(48);
 +      for (let y = 0; y < 48; y++)
 +        for (let x = 0; x < 48; x++) {
@@ -4055,9 +4080,10 @@ index 4a14e6e..e8ede8e 100644
 +          FG.disc(g, 23.5, 44, 3.6, 'K');
 +          FG.disc(g, 23.5, 44, 1.8, 'k');
 +        } else for (let x = 19; x <= 28; x++) FG.put(g, x, 1, 'K');
-+      }
-+      return FG.outline(g);
-+    }],
+       }
+       return FG.outline(g);
+     }],
+-    cloud: [4, 48, (i) => {
 +    // The Shiba Inu (engine 22, the golden drop): 20 across, side on, facing right, its
 +    // feet on row 17. A fox-red coat, the cream markings a Shiba has (cheeks, muzzle,
 +    // throat and belly, the underside of its curled tail, white socks), pricked ears,
@@ -4275,7 +4301,22 @@ index 4a14e6e..e8ede8e 100644
 +    // pizza on its side and a pizza slice on its roof. 0-1 driving (the wheels turning),
 +    // 2 stopped with its back doors swung open.
 +    van: [3, 48, (i) => {
-+      let g = FG.grid(48);
+       let g = FG.grid(48);
+-      const w = Math.sin(i * 1.6) * 1.5;
+-      const R = ['x', 'x', 's', 'S', 'S'];
+-      for (let x = 5; x < 45; x++) for (let y = 21; y < 29; y++) FG.put(g, x, y, 's');
+-      FG.billow(g, 11, 21 + w, 8, R);
+-      FG.billow(g, 34, 19 + w, 9.5, R);
+-      FG.billow(g, 22, 15 - w, 11, R);
+-      FG.billow(g, 43, 23, 5.5, R);
+-      FG.billow(g, 28 + w, 22, 6, R);
+-      FG.billow(g, 16 - w, 12, 5.5, R);
+-      FG.billow(g, 31, 10 + w, 5, R);
+-      FG.billow(g, 5.5, 24, 4.5, R);
+-      for (let x = 0; x < 48; x++) for (let y = 29; y < 48; y++) g[y][x] = '.';
+-      for (let x = 5; x < 45; x++) {
+-        if (g[28][x] !== '.') g[28][x] = 'x';
+-        if (g[27][x] !== '.' && (x + i) % 3) g[27][x] = 'x';
 +      // the body: the box at the back, the cab in front with its sloping windscreen
 +      FG.poly(g, [[3, 14], [33, 14], [36, 16], [42, 23], [45, 28], [45, 38], [3, 38]], '1');
 +      g = FG.volume(g, '1', 'white');
@@ -4370,8 +4411,24 @@ index 4a14e6e..e8ede8e 100644
 +        }
 +      for (const [x, y] of [[6, 8], [9, 8], [5, 10], [10, 10], [7, 11], [8, 9]]) if (g[y][x] === 'y') FG.put(g, x, y, 'r');
 +      if (i === 7) for (const [x, y] of [[5, 9], [9, 11], [10, 8]]) FG.put(g, x, y, 'o');
-+      return FG.outline(g);
-+    }],
+       return FG.outline(g);
+     }],
+-  };
+-  const fxCache = new Map();
+-  // the chest's Send It icon is the stunt cannon itself, going off (engine 20); drawn
+-  // when it is first asked for, since the forge needs the helpers further down
+-  Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
+-  // and Diamond Hands' is its hand of diamond, waiting (engine 21)
+-  Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
+-  // frame `i` of an effect, painted once and kept
+-  function fxFrame(id, i) {
+-    const key = id + ':' + i;
+-    let c = fxCache.get(key);
+-    if (c) return c;
+-    const [n, size, draw] = FX_ART[id];
+-    c = canvas(size, size);
+-    paintRows(c.getContext('2d'), draw(clamp(i, 0, n - 1)).map((r) => r.join('')), IP, 0, 0, 1);
+-    fxCache.set(key, c);
 +    // its icon: a golden phone with a dial, the handset on top, and a slice of pizza
 +    gb_pizza: [1, 32, () => {
 +      let g = FG.grid(32);
@@ -4495,20 +4552,51 @@ index 4a14e6e..e8ede8e 100644
 +      FG.line(g, 16, 3, 16, 11, 1.4, 'Y');
 +      FG.put(g, 12, 6, 'w');
 +      FG.put(g, 13, 5, 'w');
-       return FG.outline(g);
-     }],
-     cloud: [4, 48, (i) => {
-@@ -10324,6 +13966,9 @@ const SquadView = (() => {
-   Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
-   // and Diamond Hands' is its hand of diamond, waiting (engine 21)
-   Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
++      return FG.outline(g);
++    }],
++    cloud: [4, 48, (i) => {
++      let g = FG.grid(48);
++      const w = Math.sin(i * 1.6) * 1.5;
++      const R = ['x', 'x', 's', 'S', 'S'];
++      for (let x = 5; x < 45; x++) for (let y = 21; y < 29; y++) FG.put(g, x, y, 's');
++      FG.billow(g, 11, 21 + w, 8, R);
++      FG.billow(g, 34, 19 + w, 9.5, R);
++      FG.billow(g, 22, 15 - w, 11, R);
++      FG.billow(g, 43, 23, 5.5, R);
++      FG.billow(g, 28 + w, 22, 6, R);
++      FG.billow(g, 16 - w, 12, 5.5, R);
++      FG.billow(g, 31, 10 + w, 5, R);
++      FG.billow(g, 5.5, 24, 4.5, R);
++      for (let x = 0; x < 48; x++) for (let y = 29; y < 48; y++) g[y][x] = '.';
++      for (let x = 5; x < 45; x++) {
++        if (g[28][x] !== '.') g[28][x] = 'x';
++        if (g[27][x] !== '.' && (x + i) % 3) g[27][x] = 'x';
++      }
++      return FG.outline(g);
++    }],
++  };
++  const fxCache = new Map();
++  // the chest's Send It icon is the stunt cannon itself, going off (engine 20); drawn
++  // when it is first asked for, since the forge needs the helpers further down
++  Object.defineProperty(ICONS.ev, 'sendit', { enumerable: true, get: () => FX_ART.stunt[2](2).map((r) => r.join('')) });
++  // and Diamond Hands' is its hand of diamond, waiting (engine 21)
++  Object.defineProperty(ICONS.ev, 'diamond', { enumerable: true, get: () => FX_ART.diamond[2](0).map((r) => r.join('')) });
 +  // the golden drop's icons come out of the forge too (engine 22): FX_ART.gb_<id>
 +  ICONS.gold = {};
 +  for (const [id] of SE.GOLDS || []) Object.defineProperty(ICONS.gold, id, { enumerable: true, get: () => (FX_ART['gb_' + id] ? FX_ART['gb_' + id][2](0).map((r) => r.join('')) : null) });
-   // frame `i` of an effect, painted once and kept
-   function fxFrame(id, i) {
-     const key = id + ':' + i;
-@@ -10432,6 +14077,7 @@ const SquadView = (() => {
++  // frame `i` of an effect, painted once and kept
++  function fxFrame(id, i) {
++    const key = id + ':' + i;
++    let c = fxCache.get(key);
++    if (c) return c;
++    const [n, size, draw] = FX_ART[id];
++    c = canvas(size, size);
++    paintRows(c.getContext('2d'), draw(clamp(i, 0, n - 1)).map((r) => r.join('')), IP, 0, 0, 1);
++    fxCache.set(key, c);
+     return c;
+   }
+   const fxCount = (id) => FX_ART[id][0];
+@@ -10432,6 +14102,7 @@ const SquadView = (() => {
      nuked: 'The pill graduates right on top of ', fume: 'The crater finishes off ', rammed: 'The Lambo runs down ', singed: 'The Lambo’s crash finishes off ',
  
      sniped: 'The Sniper Bot takes out ',
@@ -4516,7 +4604,7 @@ index 4a14e6e..e8ede8e 100644
      crashed: 'The Lambo crash finishes off ',
      gas: 'Gas fees finish off ',
      blasted: 'The Boom Pack knocks out ',
-@@ -10462,7 +14108,18 @@ const SquadView = (() => {
+@@ -10462,7 +14133,18 @@ const SquadView = (() => {
          return u + ' runs from the pink mist.';
        // Supply Drop Rain (engine 27): a crate on one Blub, green or red
        case 'drop':
@@ -4535,7 +4623,7 @@ index 4a14e6e..e8ede8e 100644
        case 'wagmi':
          return 'WAGMI: ' + u + ' gets +' + e.amt + ' max HP.';
        case 'rekt':
-@@ -10533,6 +14190,7 @@ const SquadView = (() => {
+@@ -10533,6 +14215,7 @@ const SquadView = (() => {
        case 'slam':
          return e.res === 'absorb' ? 'The landing pops ' + d + "'s bubble." : u + ' slams down on ' + d + ': -' + e.dmg + '.';
        case 'goal':
@@ -4543,7 +4631,7 @@ index 4a14e6e..e8ede8e 100644
          return u + ' runs for the ' + (e.id === 'sendit' ? 'stunt cannon' : e.id === 'rocket' ? 'moon rocket' : e.id === 'lambo' ? 'Lambo' : nameOf('ev', e.id)) + '.';
        // the Digger's smoke grenade (engine 14), and its way back once the cloud lifts
        case 'grenade':
-@@ -10564,14 +14222,15 @@ const SquadView = (() => {
+@@ -10564,14 +14247,15 @@ const SquadView = (() => {
        case 'craft':
          if (e.what === 'wall') return u + ' puts a sandbag in front of the cannon.';
          if (e.what === 'repair') return u + ' patches up the cannon (' + e.stage + '/' + e.of + ' HP).';
@@ -4561,7 +4649,7 @@ index 4a14e6e..e8ede8e 100644
        case 'cannonball':
          return e.res === 'absorb' ? 'The cannonball pops ' + d + "'s bubble." : 'The cannonball hits ' + d + ': -' + e.dmg + '.';
        case 'dig': {
-@@ -10599,7 +14258,48 @@ const SquadView = (() => {
+@@ -10599,7 +14283,48 @@ const SquadView = (() => {
          const call = nameOf('cmd', e.cmd).replace(/!$/, '');
          return u + ': “' + call + (e.d >= 0 ? ' on ' + d : '') + '!”';
        }
@@ -4610,7 +4698,7 @@ index 4a14e6e..e8ede8e 100644
          return e.u >= 0 ? u + ' opens ' + lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '!' : lb(e.team) + "'s crate: " + nameOf(e.kind, e.id) + '.';
        case 'pick':
          return 'The ' + nameOf('ev', e.id) + ' picks ' + u + '!';
-@@ -10680,6 +14380,8 @@ const SquadView = (() => {
+@@ -10680,6 +14405,8 @@ const SquadView = (() => {
          if (src === 'airdrop') return 'The airdrop lands on ' + d + ': +' + e.amt + ' and its power back.';
          if (src === 'devwallet') return 'The dev wallet pays ' + d + ' back: +' + e.amt + '.';
          if (src === 'gem') return 'The gem heals ' + d + ': +' + e.amt + '.';
@@ -4619,7 +4707,7 @@ index 4a14e6e..e8ede8e 100644
          // the pool's yield is told once for everybody ('yield')
          if (src === 'pool') return '';
          return d + ' heals ' + e.amt + '.';
-@@ -11539,7 +15241,7 @@ const SquadView = (() => {
+@@ -11539,7 +15266,7 @@ const SquadView = (() => {
        get,
        white,
        ghost: white,
@@ -4628,7 +4716,7 @@ index 4a14e6e..e8ede8e 100644
      };
    }
  
-@@ -11623,6 +15325,10 @@ const SquadView = (() => {
+@@ -11623,6 +15350,10 @@ const SquadView = (() => {
      // a Builder's works (engine 9): a stage of the cannon or a sandbag of its wall, done
      // at craftHit; its cannon firing: the ball takes cannonWind plus cannonTile a tile
      craft: 1000, craftHit: 640, cannon: 700, cannonWind: 170, cannonTile: 45,
@@ -4639,7 +4727,7 @@ index 4a14e6e..e8ede8e 100644
      // a Digger's pit (engine 10): the close-up, a look round through its binoculars,
      // the digging and the leaves over it (done at pitHit); and an enemy falling in
      pitdig: 2400, pitdigHit: 2050, pitfall: 1500,
-@@ -11653,6 +15359,22 @@ const SquadView = (() => {
+@@ -11653,6 +15384,22 @@ const SquadView = (() => {
      // the memepowers in the fight
      // the roulette: a spotlight hopping from Blub to Blub, slowing, and stopping
      pick: 1500, pickHit: 1150,
@@ -4662,7 +4750,7 @@ index 4a14e6e..e8ede8e 100644
      // each squad's perk coming down in its crate as the round starts, and time to read it
      // (at 1x, the clock at half speed: 2.6 s of falling, 5 s to read)
      perks: 4000, perksHit: 1300,
-@@ -11666,6 +15388,14 @@ const SquadView = (() => {
+@@ -11666,6 +15413,14 @@ const SquadView = (() => {
      // a supply drop (engine 27): the crate on its parachute, landing on its Blub at
      // dropHit; a second crate in the same turn comes dropTwo after the first
      drop: 820, dropHit: 520, dropTwo: 180,
@@ -4677,7 +4765,7 @@ index 4a14e6e..e8ede8e 100644
      airdrop: 1500, airdropHit: 1050, snipe: 1150, snipeHit: 720, devwallet: 900, devwalletHit: 420, walletEach: 110, paper: 950,
      // the rocket: ignition, liftoff and gone, and with a passenger, its fall too
      // the Moon Rocket: ignition, the flight over to its Blub and the beam (it has it at
-@@ -11711,8 +15441,8 @@ const SquadView = (() => {
+@@ -11711,8 +15466,8 @@ const SquadView = (() => {
    const ROUND_BUDGET = 40000;
    // ...but only its routine: these beats are scenes, choreographed with their camera,
    // and keep their time however long the round runs (as does the last knock-out)
@@ -4688,7 +4776,7 @@ index 4a14e6e..e8ede8e 100644
    const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
  
    // Turns a round's events into beats on a clock. Each beat lists the events it applies and when.
-@@ -11742,7 +15472,12 @@ const SquadView = (() => {
+@@ -11742,7 +15497,12 @@ const SquadView = (() => {
        let lastMove = null; // a move group that later moves of the same turn may join
        let pend = []; // knock-outs and revives wait until the hit that caused them is shown
        const aims = {}; // mortar -> its aim beat, until the shell lands
@@ -4701,11 +4789,10 @@ index 4a14e6e..e8ede8e 100644
          b.list = b.list || [];
          b.actors = b.actors || [];
          pre.forEach((ei) => {
-@@ -11764,7 +15499,22 @@ const SquadView = (() => {
+@@ -11764,6 +15524,21 @@ const SquadView = (() => {
        const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
        ev.forEach((e, i) => {
          const t = e.t;
--        if (t === 'perk') {
 +        if (t === 'pill') rager = e.u;
 +        // its bullets ride on their burst, whatever a hit set off in between
 +        if (t === 'pump' && lastBurst) {
@@ -4721,11 +4808,10 @@ index 4a14e6e..e8ede8e 100644
 +          add({ kind: 'gopen', dur: MS.gopen + hit - MS.gopenHit, contact: hit, list: [{ ei: i, off: hit }], e, actors: [e.u] });
 +          return;
 +        }
-+        if (t === 'perk') {
+         if (t === 'perk') {
            if (parent && parent.kind === 'perks') attachTo(parent, i);
            else parent = add({ kind: 'perks', dur: MS.perks, contact: MS.perksHit, list: [{ ei: i, off: MS.perksHit }], e });
-           return;
-@@ -11781,7 +15531,7 @@ const SquadView = (() => {
+@@ -11781,7 +15556,7 @@ const SquadView = (() => {
          // events that ride on the beat that caused them
          const p = parent;
          if (p) {
@@ -4734,7 +4820,7 @@ index 4a14e6e..e8ede8e 100644
              attachTo(p, i);
              if (t === 'knock' && e.to) pos[e.d] = e.to.slice();
              return;
-@@ -11814,7 +15564,7 @@ const SquadView = (() => {
+@@ -11814,7 +15589,7 @@ const SquadView = (() => {
            // a supply drop (engine 27): what it does lands with the crate; a second
            // crate in the same turn comes down just after the first, in the same beat
            if (p.kind === 'drop') {
@@ -4743,7 +4829,7 @@ index 4a14e6e..e8ede8e 100644
                p.two = true;
                p.list.push({ ei: i, off: MS.dropTwo });
                p.contact += MS.dropTwo;
-@@ -11826,6 +15576,16 @@ const SquadView = (() => {
+@@ -11826,6 +15601,16 @@ const SquadView = (() => {
                return;
              }
            }
@@ -4760,7 +4846,7 @@ index 4a14e6e..e8ede8e 100644
            // the Diamond Hand's bullets, one after another in its burst (engine 21)
            if (t === 'bullet' && p.kind === 'spray') {
              p.list.push({ ei: i, off: MS.sprayHit + p.nb * MS.sprayGap });
-@@ -11901,7 +15661,8 @@ const SquadView = (() => {
+@@ -11901,7 +15686,8 @@ const SquadView = (() => {
              lastMove.list.push({ ei: i, off: 0 });
              lastMove.steps = Math.max(lastMove.steps, len);
              lastMove.dur = lastMove.steps * MS.tile + MS.settle;
@@ -4770,7 +4856,7 @@ index 4a14e6e..e8ede8e 100644
            pos[e.u] = e.path[len - 1].slice();
            return;
          }
-@@ -11912,7 +15673,8 @@ const SquadView = (() => {
+@@ -11912,7 +15698,8 @@ const SquadView = (() => {
            // a bullet is there almost as it leaves; the Scope Rifle takes a breath first
            const gun = GUNS.has(e.w);
            const wind = e.w === 'scope' ? MS.scopeWind : MS.rWind;
@@ -4780,7 +4866,7 @@ index 4a14e6e..e8ede8e 100644
            parent = add({ kind: 'attack', dur: e.w === 'scope' ? MS.scopeShot : ranged ? Math.max(MS.ranged, contact + 160) : MS.melee, contact, c1: contact, rel: wind, list: [{ ei: i, off: contact }], e });
            return;
          }
-@@ -11930,7 +15692,28 @@ const SquadView = (() => {
+@@ -11930,7 +15717,28 @@ const SquadView = (() => {
            return;
          }
          if (t === 'drop') {
@@ -4810,7 +4896,7 @@ index 4a14e6e..e8ede8e 100644
            return;
          }
          if (t === 'pick') {
-@@ -11946,6 +15729,63 @@ const SquadView = (() => {
+@@ -11946,6 +15754,63 @@ const SquadView = (() => {
            pos[e.u] = e.at.slice();
            return;
          }
@@ -4874,7 +4960,7 @@ index 4a14e6e..e8ede8e 100644
          // the Diamond Hand's gun (engine 21): its bullets ride on the burst, one after
          // another
          if (t === 'spray') {
-@@ -12195,7 +16035,8 @@ const SquadView = (() => {
+@@ -12195,7 +16060,8 @@ const SquadView = (() => {
      return {
        u: R.start.map((s) => ({
          id: s.u, team: s.team, side: sideOf(s.team), cap: s.cap, cls: s.cls, wpn: s.wpn, gear: s.gear, pow: s.pow, tac: s.tac,
@@ -4884,7 +4970,7 @@ index 4a14e6e..e8ede8e 100644
          face: 1, mv: null, atk: null, flash: -1e9, hpFrom: s.hp, hpT: -1e9, hop: null, koT: -1e9, nap: -1e9, hurt: -1e9, mark: -1e9,
          dug: onTile('trench', s.x, s.y), ammo: nearCrate(s.team, s.x, s.y), riseT: -1e9, jerk: null,
        })),
-@@ -12212,6 +16053,14 @@ const SquadView = (() => {
+@@ -12212,6 +16078,14 @@ const SquadView = (() => {
        works: {},
        // the Diggers' pits (engine 10): { x, y, team, open }
        pits: [],
@@ -4899,7 +4985,7 @@ index 4a14e6e..e8ede8e 100644
      };
    }
    function fold(S, e) {
-@@ -12304,6 +16153,10 @@ const SquadView = (() => {
+@@ -12304,6 +16178,10 @@ const SquadView = (() => {
        case 'slam':
        case 'singed':
        case 'bullet':
@@ -4910,7 +4996,7 @@ index 4a14e6e..e8ede8e 100644
          U[e.d].hp = e.hp;
          if (e.res === 'absorb') U[e.d].st.bubble = false;
          // tangled in the wire (engine 15) till its next turn is over
-@@ -12334,7 +16187,11 @@ const SquadView = (() => {
+@@ -12334,7 +16212,11 @@ const SquadView = (() => {
        }
        // a Builder's works: its squad's cannon a stage further, or a sandbag of its wall
        case 'craft':
@@ -4923,7 +5009,7 @@ index 4a14e6e..e8ede8e 100644
          else if (e.what === 'repair') {
            // patched up (engine 15): back in action as soon as it has HP
            const w = S.works[e.w];
-@@ -12388,17 +16245,109 @@ const SquadView = (() => {
+@@ -12388,17 +16270,109 @@ const SquadView = (() => {
          S.sprung.honeypot = true;
          break;
        // a squad's perk for the round, out of its crate
@@ -4980,7 +5066,7 @@ index 4a14e6e..e8ede8e 100644
 +        break;
 +      case 'pizza':
 +        S.pizzas[e.team] = { team: e.team, x: e.at[0], y: e.at[1], slices: e.slices };
-         break;
++        break;
 +      case 'slice': {
 +        const z = S.pizzas[e.team];
 +        if (z) z.slices = e.left;
@@ -5019,7 +5105,7 @@ index 4a14e6e..e8ede8e 100644
 +        if (e.t === 'unleash') g.caged = false;
 +        if (e.t === 'dogdone') g.done = true;
 +        if (e.path && e.path.length) [g.x, g.y] = e.path[e.path.length - 1];
-+        break;
+         break;
 +      }
        // a one-shot memepower spent, for its chip in the roster
        case 'airdrop':
@@ -5035,7 +5121,7 @@ index 4a14e6e..e8ede8e 100644
          break;
        // the contested five: laid, claimed, grown, knocked at and down
        case 'props':
-@@ -12592,8 +16541,13 @@ const SquadView = (() => {
+@@ -12592,8 +16566,13 @@ const SquadView = (() => {
      bag: [['.n.n.', '.nnn.', 'nNNNn', 'nNyNn', '.nnn.'], { n: '#8C5A2B', N: '#D9A05B', y: '#FFD447' }],
      gas: [['.r...', 'rRr..', 'rRr.r', 'rrrrr', 'rrr..'], { r: '#E2566E', R: '#FFB3C0' }],
      ngmi: [['r...r', '.r.r.', '..r..', '.r.r.', 'r...r'], { r: '#FF5C77' }],
@@ -5050,7 +5136,7 @@ index 4a14e6e..e8ede8e 100644
    const statusCache = {};
    function statusImg(s) {
      if (statusCache[s]) return statusCache[s];
-@@ -12610,9 +16564,50 @@ const SquadView = (() => {
+@@ -12610,9 +16589,50 @@ const SquadView = (() => {
    function fxOK(important) {
      return important || P.speed < 4;
    }
@@ -5103,7 +5189,7 @@ index 4a14e6e..e8ede8e 100644
    }
    // Play an effect's frames over `dur`, centred on a point. Frames are drawn at
    // their own size and never scaled by a fraction: half a pixel of blur undoes the
-@@ -12706,7 +16701,16 @@ const SquadView = (() => {
+@@ -12706,7 +16726,16 @@ const SquadView = (() => {
    function closeUp(t0, dur, cx, cy, o) {
      if (!P || P.calm || P.speed >= 4 || P.seeking) return;
      const opt = o || {};
@@ -5121,7 +5207,7 @@ index 4a14e6e..e8ede8e 100644
      P.shots.push({ t0, t1: t0 + dur, cx, cy, follow: opt.follow || null });
      if (opt.slow) P.slows.push({ t0: opt.slow[0], t1: opt.slow[1], f: opt.f || 0.35 });
    }
-@@ -12903,7 +16907,8 @@ const SquadView = (() => {
+@@ -12903,7 +16932,8 @@ const SquadView = (() => {
  
    // ---- drawing one frame
    function drawWeapon(x, u, ox, oy, pose, t) {
@@ -5131,7 +5217,7 @@ index 4a14e6e..e8ede8e 100644
      if (!ARMS_SPR[w]) return;
      const face = u.face;
      const hx = face > 0 ? ox + 15 : ox;
-@@ -12968,6 +16973,19 @@ const SquadView = (() => {
+@@ -12968,6 +16998,19 @@ const SquadView = (() => {
        const back = w === 'rifle' ? kick(a.c1) + kick(a.c1 + gap) + kick(a.c1 + 2 * gap) : kick(a.c1);
        const [kx, ky] = fwd(back);
        drawArmsDir(x, w, hx + kx, hy - 2 + ky, d);
@@ -5151,7 +5237,7 @@ index 4a14e6e..e8ede8e 100644
      } else if (w === 'bow') {
        drawArmsDir(x, w, hx, hy - 2, d);
        if (e < a.rel) {
-@@ -13055,6 +17073,19 @@ const SquadView = (() => {
+@@ -13055,6 +17098,19 @@ const SquadView = (() => {
      }
      drawRing(x, p.x + 8, p.y, u.side, p.hop + extra > 2 ? 0.55 : 0.95);
      const S = P.spr[u.id];
@@ -5171,7 +5257,7 @@ index 4a14e6e..e8ede8e 100644
      const spr = S.get(u.face, moodOf(u, t, now));
      const flashing = !P.calm && t - u.flash >= 0 && t - u.flash < 70 * P.speed;
      const img = flashing ? S.white : spr;
-@@ -13068,6 +17099,73 @@ const SquadView = (() => {
+@@ -13068,6 +17124,73 @@ const SquadView = (() => {
      if (inHand) drawHandFront(x, held, ox, oy, t);
      else drawWeapon(x, u, ox, oy, pose, t);
      // lasting looks
@@ -5245,7 +5331,7 @@ index 4a14e6e..e8ede8e 100644
      if (u.st.feather) {
        const k = Math.floor(now / 200) & 1;
        x.fillStyle = '#FFFFFF';
-@@ -13333,7 +17431,7 @@ const SquadView = (() => {
+@@ -13333,7 +17456,7 @@ const SquadView = (() => {
          const by = (j + 0.5 - TOP / 4) / 4;
          const out = (Math.max(Math.abs(bx - c), Math.abs(by - c)) - w) * 4;
          const n = Math.sin(i * 0.55 + tt * 1.3) * Math.cos(j * 0.45 - tt * 0.9) + Math.sin((i + j) * 0.21 + tt * 0.7);
@@ -5254,7 +5340,7 @@ index 4a14e6e..e8ede8e 100644
          const deep = v >= 1;
          const a = v <= 0 ? 0 : v < 0.5 ? 70 : !deep ? 112 : ((i + j + (still ? 0 : Math.floor(tt * 3))) & 3) === 0 ? 150 : 128;
          const o = (j * W + i) * 4;
-@@ -14123,55 +18221,199 @@ const SquadView = (() => {
+@@ -14123,55 +18246,199 @@ const SquadView = (() => {
      return true;
    }
    // ---- a Builder's cannon on the board (engine 9): in its row (the lower of its two),
@@ -5374,7 +5460,7 @@ index 4a14e6e..e8ede8e 100644
 +      x.fillRect(bx + 1, by + 1, bw, 2);
 +      x.fillStyle = wk.hp * 2 > max ? '#FFD447' : '#FF5C77';
 +      x.fillRect(bx + 1, by + 1, fill, 2);
-     }
++    }
 +    // going up a stage: its parts drop in (to its contact, when the stage is done)
 +    if (live && ov.bld && t >= ov.bld.t0 && t < ov.bld.hit) {
 +      drawBuild(x, ov.bld, big ? px : px - CP, big ? py : py - CP, t);
@@ -5405,7 +5491,7 @@ index 4a14e6e..e8ede8e 100644
 +        if (firing && fe < 0 && fe >= -ov.wind) x.drawImage(fxFrame('cannonShot', 2 + (Math.floor(-fe / (40 * ov.k)) % 3)), px + sx + 20, py + kick + (up ? 24 : 14));
 +      }
 +      return;
-+    }
+     }
 +    const ox = px - CP + sx;
 +    const oy = py - CP;
 +    const hurt = gunHurt(wk, max);
@@ -5431,11 +5517,11 @@ index 4a14e6e..e8ede8e 100644
 +      x.drawImage(fxFrame('cannonC', fi * 12 + 9), ox, oy);
 +      if (!P.calm) for (let j = 0; j < 2; j++) x.drawImage(fxFrame('puff', Math.floor(t / 180 + j * 3) % 6), px + W / 2 - 8 + (j * 2 - 1) * 4, py - 2 - ((Math.floor(t / 60) + j * 9) % 10));
 +      return;
-     }
++    }
 +    if (stage < 3) {
 +      x.drawImage(fxFrame('cannonC', fi * 12 + stage - 1), ox, oy);
 +      return;
-+    }
+     }
 +    // the finished gun: its shadow (it stays put), the shot and the keg, the carriage
 +    // and its wheels, the barrel and its band
 +    blob(x, px + A.shadow[0], py + A.shadow[1], A.shadow[2], A.shadow[3], '#1B1229', 0.3);
@@ -5485,7 +5571,7 @@ index 4a14e6e..e8ede8e 100644
    function worksBeat(b, T, k) {
      const S = P.S;
      const e = b.e;
-@@ -14198,9 +18440,16 @@ const SquadView = (() => {
+@@ -14198,9 +18465,16 @@ const SquadView = (() => {
          addParts(4, cx, cy, e.what === 'wall' ? [OC.skL, OC.sk] : [OC.wdL, OC.wd, '#FFD447'], 0.05, 0.0003, 300 * k, h, true, [Math.PI, Math.PI * 2]);
          atClock(h, () => sfx('thud'));
        }
@@ -5505,7 +5591,7 @@ index 4a14e6e..e8ede8e 100644
          addFx(T, b.dur, (x, kk, el) => {
            const done = el >= b.contact ? e.stage : e.stage - 1;
            const w = e.of * 5 - 1;
-@@ -14213,50 +18462,194 @@ const SquadView = (() => {
+@@ -14213,50 +18487,194 @@ const SquadView = (() => {
              x.fillRect(x0 + s * 5, y0, 4, 3);
            }
          });
@@ -5525,11 +5611,12 @@ index 4a14e6e..e8ede8e 100644
 +          const base = big ? fi * 24 + step * 6 : fi * 40 + step * 10;
 +          const land0 = T + b.contact * 0.2;
 +          const gap = n > 1 ? (b.contact * 0.67) / (n - 1) : 0;
-+          const bld = { big, base, n, t0: T + b.contact * 0.08, hit: T + b.contact, land0, gap, drop: Math.min(130 * k, b.contact * 0.18), gk: (big ? 'bigUp' : 'gunUp') + base };
++          const bld = { big, base, n, T, t0: T + b.contact * 0.08, hit: T + b.contact, land0, gap, drop: Math.min(130 * k, b.contact * 0.18), gk: (big ? 'bigUp' : 'gunUp') + base };
 +          ovOf('cannon' + e.w).bld = bld;
 +          // its first stage has nothing on the board till the contact: drawn on the floor
++          // (on bld's own clock, which a change of speed moves along with the fx)
 +          if (from === 0) addFx(T, b.contact, (x, kk, el) => {
-+            if (!P.calm && T + el >= bld.t0) drawBuild(x, bld, big ? box.px : box.px - CP, big ? box.py : box.py - CP, T + el);
++            if (!P.calm && bld.T + el >= bld.t0) drawBuild(x, bld, big ? box.px : box.px - CP, big ? box.py : box.py - CP, bld.T + el);
 +          }, true);
 +          // a puff of dust as each part lands
 +          const W = big ? 48 : 32;
@@ -5557,7 +5644,7 @@ index 4a14e6e..e8ede8e 100644
 -      ovOf('cannon' + e.w).fireT = T;
 -      sfx('boom');
 +      // it winds up (the fuse burns down), and at the end of that it goes off
-+      const wind = MS.cannonWind * k;
++      const wind = Math.min(MS.cannonWind * k, b.contact * 0.35);
 +      const TS = T + wind;
 +      const A = CANNON_ART[up ? 'up' : 'down'];
 +      const ov = ovOf('cannon' + e.w);
@@ -5598,10 +5685,9 @@ index 4a14e6e..e8ede8e 100644
 +      const back = (el) => (e.big ? (el < 60 * k ? 3 : el < 150 * k ? 2 : el < 240 * k ? 1 : 0) : gunKick(el, k, RM) + gunRoll(el, k));
 +      // the flash: white-hot, the flame thrown out, coming apart
 +      const FL = 50 * k;
-+      const MF = CANNON_ART.fx.muzzleFlash[up ? 'up' : 'down'];
 +      addFx(TS, FL * 4, (x, kk, el) => {
 +        const q = back(el);
-+        x.drawImage(fxFrame('cannonFx', (up ? 0 : 4) + Math.min(3, Math.floor(el / FL))), Math.round(mx - ddx * q) - MF.anchor[0], Math.round(my - ddy * q) - MF.anchor[1]);
++        x.drawImage(fxFrame('cannonFx', (up ? 0 : 20) + (e.big ? 2 : aim) * 4 + Math.min(3, Math.floor(el / FL))), Math.round(mx - ddx * q) - 24, Math.round(my - ddy * q) - 24);
 +      });
 +      // the smoke rolling out of it into a ring and drifting off, thinning
 +      const SM = MS.gunSmoke * k;
@@ -5611,8 +5697,8 @@ index 4a14e6e..e8ede8e 100644
 +        x.drawImage(fxFrame('cannonSmoke', f), Math.round(mx + ddx * d2) - 12, Math.round(my + ddy * d2 - kk * 5) - 12);
 +      });
 +      // and a thin wisp off the muzzle for a while after
-+      const WS = MS.gunWisp * k;
-+      addFx(TS + 260 * k, WS, (x, kk, el) => {
++      const WS = Math.min(MS.gunWisp * k, b.dur - wind - 260 * k);
++      if (WS >= 120 * k) addFx(TS + 260 * k, WS, (x, kk, el) => {
 +        const q = back(el + 260 * k);
 +        const X = mx - ddx * q;
 +        const Y = my - ddy * q;
@@ -5720,7 +5806,7 @@ index 4a14e6e..e8ede8e 100644
    // ---- the engine 7 trench kit on the board
    // A shot at something that is not where the beat's target Blub stands (a Decoy
    // Blub), or at a Blub the smoke swallows it on the way to: the shooter draws, then an
-@@ -14671,11 +19064,16 @@ const SquadView = (() => {
+@@ -14671,11 +19089,16 @@ const SquadView = (() => {
      const kd = drop >= 1 ? 1 : clamp(drop * N - r, 0, 1);
      if (kd <= 0) return;
      const dy = Math.round((1 - kd) * -18);
@@ -5740,7 +5826,7 @@ index 4a14e6e..e8ede8e 100644
    }
    // A rectangle filled to `a` (0 to 1) with the ordered dither rather than drawn
    // see-through: rubber on the road, a mark wearing off.
-@@ -14699,9 +19097,7 @@ const SquadView = (() => {
+@@ -14699,9 +19122,7 @@ const SquadView = (() => {
      const id = key + '|' + step;
      let c = ghostCache.get(id);
      if (c) return c;
@@ -5751,7 +5837,7 @@ index 4a14e6e..e8ede8e 100644
      const g = c.getContext('2d');
      g.drawImage(img, 0, 0);
      const d = g.getImageData(0, 0, c.width, c.height);
-@@ -15061,8 +19457,7 @@ const SquadView = (() => {
+@@ -15061,8 +19482,7 @@ const SquadView = (() => {
      if (shot && !P.buf) P.buf = canvas(CW, CH);
      const x = shot ? P.buf.getContext('2d') : P.ctx;
      const S = P.S;
@@ -5761,7 +5847,7 @@ index 4a14e6e..e8ede8e 100644
      x.fillStyle = '#120A1C';
      x.fillRect(0, 0, CW, CH);
      if (!P.map) return;
-@@ -15108,7 +19503,7 @@ const SquadView = (() => {
+@@ -15108,7 +19528,7 @@ const SquadView = (() => {
        }
        drawCraters(x);
        drawSink(x, t, now);
@@ -5770,7 +5856,7 @@ index 4a14e6e..e8ede8e 100644
        drawShells(x, t, now, true);
      }
      // rows, back to front: the row's blocks and objects first, then the units
-@@ -15156,19 +19551,22 @@ const SquadView = (() => {
+@@ -15156,19 +19576,22 @@ const SquadView = (() => {
        if (sk && r === sk.row) x.drawImage(fxFrame('exitsign', 0), sk.x0 + SIGN_X, sk.y0 + SIGN_Y);
        for (const c of S.cats) if (scr(c.x, c.y)[1] === r) inRow(x, r, drop, () => drawCatapult(x, c, t));
        for (const p of S.props) if (scr(p.x, p.y)[1] === r) inRow(x, r, drop, () => drawProp(x, p, t, now));
@@ -5800,7 +5886,7 @@ index 4a14e6e..e8ede8e 100644
      // units with a block right in front of them get their outline drawn over it
      for (const u of S.u) {
        if (!u.alive || !u._b) continue;
-@@ -15181,14 +19579,14 @@ const SquadView = (() => {
+@@ -15181,14 +19604,14 @@ const SquadView = (() => {
        }
      }
      // the overlay pass: nothing hides these
@@ -5823,7 +5909,7 @@ index 4a14e6e..e8ede8e 100644
      P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
      for (let i = P.parts.length - 1; i >= 0; i--) {
        const p = P.parts[i];
-@@ -15227,9 +19625,10 @@ const SquadView = (() => {
+@@ -15227,9 +19650,10 @@ const SquadView = (() => {
          x.fillRect(b.ox + 8, ay + 3, 1, 1);
        }
      }
@@ -5835,7 +5921,7 @@ index 4a14e6e..e8ede8e 100644
        if (m.line) {
          x.globalAlpha = 0.75;
          x.fillStyle = m.c;
-@@ -15240,13 +19639,14 @@ const SquadView = (() => {
+@@ -15240,13 +19664,14 @@ const SquadView = (() => {
      }
      for (const n of P.nums) {
        const e = t - n.t0;
@@ -5851,7 +5937,7 @@ index 4a14e6e..e8ede8e 100644
      P.nums = P.nums.filter((n) => t - n.t0 < 600 * Math.max(1, P.speed / 2));
      x.setTransform(1, 0, 0, 1, 0, 0);
      const fe = t - P.flashT;
-@@ -15261,7 +19661,14 @@ const SquadView = (() => {
+@@ -15261,7 +19686,14 @@ const SquadView = (() => {
    // the close-up: the window round the action at twice the size, bars in and out
    function cutIn(shot, t) {
      const c = P.ctx;
@@ -5867,23 +5953,117 @@ index 4a14e6e..e8ede8e 100644
      const W = CW / 2;
      const H = CH / 2;
      const sx = clamp(Math.round(fx - W / 2), 0, CW - W);
-@@ -15467,6 +19874,8 @@ const SquadView = (() => {
-   // Each squad's perk comes down on its own side as the round starts: a crate on a
-   // parachute, green for a buff and red for a nerf, swaying down onto the tile of
-   // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
+@@ -15388,100 +19820,1317 @@ const SquadView = (() => {
+       });
+     }
+   }
+-  // the sandbag tile right next to the target, between it and the shooter (screen px)
+-  function sandBetween(u, d) {
+-    const far = Math.max(Math.abs(u.x - d.x), Math.abs(u.y - d.y));
+-    let best = null;
+-    let bd = 1e9;
+-    for (let dy = -1; dy <= 1; dy++)
+-      for (let dx = -1; dx <= 1; dx++) {
+-        const x = d.x + dx;
+-        const y = d.y + dy;
+-        if ((!dx && !dy) || !P.sandCell.has(y * N + x)) continue;
+-        if (Math.max(Math.abs(u.x - x), Math.abs(u.y - y)) >= far) continue;
+-        const dd = Math.hypot(u.x - x, u.y - y);
+-        if (dd < bd) {
+-          bd = dd;
+-          best = [x, y];
+-        }
++  // the sandbag tile right next to the target, between it and the shooter (screen px)
++  function sandBetween(u, d) {
++    const far = Math.max(Math.abs(u.x - d.x), Math.abs(u.y - d.y));
++    let best = null;
++    let bd = 1e9;
++    for (let dy = -1; dy <= 1; dy++)
++      for (let dx = -1; dx <= 1; dx++) {
++        const x = d.x + dx;
++        const y = d.y + dy;
++        if ((!dx && !dy) || !P.sandCell.has(y * N + x)) continue;
++        if (Math.max(Math.abs(u.x - x), Math.abs(u.y - y)) >= far) continue;
++        const dd = Math.hypot(u.x - x, u.y - y);
++        if (dd < bd) {
++          bd = dd;
++          best = [x, y];
++        }
++      }
++    return best ? tileC(best[0], best[1]) : null;
++  }
++
++  // The Blub that opens its squad's crate (the engine's pick: the nearest) walks over
++  // the start board (round rock, solid objects and the others), stands beside it a
++  // moment to pry the lid, and walks back to its spot before the fight starts. Sets
++  // its walk; returns { open: ms after the landing the lid springs, at: where it
++  // stands then (screen pixels) }, or null when there is nobody to send.
++  function crateTrip(e, T, until, k) {
++    const u = e.u >= 0 ? P.S.u[e.u] : null;
++    if (!u || !u.alive || P.calm) return null;
++    const R = P.rd.R;
++    const [ax, ay] = e.at;
++    const key = (x, y) => y * N + x;
++    const block = new Set();
++    for (const o of R.objs || []) if (SE.OBJECT_STATS[o.k] && SE.OBJECT_STATS[o.k].solid) for (const c of o.cells) block.add(key(c[0], c[1]));
++    for (const s of R.start) if (s.u !== u.id) block.add(key(s.x, s.y));
++    block.add(key(ax, ay));
++    const free = (x, y) => x >= 0 && y >= 0 && x < N && y < N && R.tiles[key(x, y)] !== SE.BLOCK && R.tiles[key(x, y)] !== SE.SAND && !block.has(key(x, y));
++    // breadth first from where it stands to the nearest free tile beside the crate
++    const prev = new Map([[key(u.x, u.y), -1]]);
++    const q = [[u.x, u.y]];
++    let goal = null;
++    for (let h = 0; h < q.length && !goal; h++) {
++      const [x, y] = q[h];
++      if (Math.max(Math.abs(x - ax), Math.abs(y - ay)) === 1) {
++        goal = [x, y];
++        break;
++      }
++      for (let dy = -1; dy <= 1; dy++)
++        for (let dx = -1; dx <= 1; dx++) {
++          const nx = x + dx;
++          const ny = y + dy;
++          if ((dx || dy) && free(nx, ny) && !prev.has(key(nx, ny))) {
++            prev.set(key(nx, ny), key(x, y));
++            q.push([nx, ny]);
++          }
++        }
++    }
++    if (!goal) return null;
++    const path = [];
++    for (let c = key(goal[0], goal[1]); c >= 0; c = prev.get(c)) path.unshift([c % N, Math.floor(c / N)]);
++    const out = path.map(([x, y]) => scr(x, y));
++    const back = out.slice(0, -1).reverse();
++    const n = out.length - 1;
++    // the walk, a beat at the crate, and the walk back, all before the fight starts
++    let step = MS.tile * k;
++    const rest = Math.max(2, Math.round((520 * k) / step));
++    const room = until - 260 * k;
++    if ((2 * n + rest) * step > room) step = Math.max(40, room / (2 * n + rest));
++    const pts = out.concat(Array(rest).fill(out[out.length - 1]), back);
++    u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
++    const face = u.face;
++    const [sx] = scr(ax, ay);
++    if (sx !== out[out.length - 1][0]) u.face = sx > out[out.length - 1][0] ? 1 : -1;
++    atClock(T + step * (pts.length - 1), () => (u.face = face));
++    const [ex, ey] = out[out.length - 1];
++    return { open: n * step + 140 * k, at: [ex * TILE + 8, TOP + ey * TILE + 8] };
++  }
++  // Each squad's perk comes down on its own side as the round starts: a crate on a
++  // parachute, green for a buff and red for a nerf, swaying down onto the tile of
++  // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
 +  // Engine 22: a golden crate under a gold canopy, a beam of light following it down
 +  // and gold glitter falling off it.
-   function perkFall(b, T, k) {
-     if (P.calm) return;
-     const HIT = MS.perksHit * k;
-@@ -15474,8 +19883,18 @@ const SquadView = (() => {
-       const e = P.rd.R.ev[it.ei];
-       if (!e || e.t !== 'perk' || !e.at) continue;
-       const [cx, cy] = tileC(e.at[0], e.at[1]);
--      const fr = e.kind === 'buff' ? 0 : 2;
++  function perkFall(b, T, k) {
++    if (P.calm) return;
++    const HIT = MS.perksHit * k;
++    for (const it of b.list) {
++      const e = P.rd.R.ev[it.ei];
++      if (!e || e.t !== 'perk' || !e.at) continue;
++      const [cx, cy] = tileC(e.at[0], e.at[1]);
 +      const gold = e.kind === 'gold';
 +      const fr = gold ? 6 : e.kind === 'buff' ? 0 : 2;
-       addFx(T, HIT, (x, kk) => blob(x, cx, cy + 6, Math.round(3 + kk * 6), 1, '#1B1229', 0.12 + kk * 0.25), true);
++      addFx(T, HIT, (x, kk) => blob(x, cx, cy + 6, Math.round(3 + kk * 6), 1, '#1B1229', 0.12 + kk * 0.25), true);
 +      if (gold) {
 +        // the beam: a column of gold light onto the tile, brightest as it lands
 +        addFx(T, HIT + 260 * k, (x, kk) => {
@@ -5893,13 +6073,13 @@ index 4a14e6e..e8ede8e 100644
 +        }, true);
 +        for (let q = 0; q < 6; q++) addParts(2, cx, TOP + ((cy - TOP) * q) / 6, ['#FFD447', '#FFF3B0', '#FFFFFF'], 0.03, 0.00012, 700 * k, T + (HIT * q) / 6, false);
 +      }
-       addFx(T, HIT, (x, kk, el) => {
-         const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
-         x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
-@@ -15483,16 +19902,1232 @@ const SquadView = (() => {
-     }
-     sfx('read');
-   }
++      addFx(T, HIT, (x, kk, el) => {
++        const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
++        x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
++      });
++    }
++    sfx('read');
++  }
 +  // The golden crate (engine 22): it lands shut with a glint running over it; the Blub
 +  // it is meant for walks over and prises the lid, and it bursts open in a shower of
 +  // gold with a beam straight up, the drop's card rising out of it to hang there till
@@ -6835,7 +7015,35 @@ index 4a14e6e..e8ede8e 100644
 +      if (t < flick) {
 +        if (!fall) x.drawImage(fxFrame('flipcoin', 3), Math.round(ux + face * 8 - 8), Math.round(uy - 6));
 +        return;
-+      }
+       }
+-    return best ? tileC(best[0], best[1]) : null;
+-  }
+-
+-  // The Blub that opens its squad's crate (the engine's pick: the nearest) walks over
+-  // the start board (round rock, solid objects and the others), stands beside it a
+-  // moment to pry the lid, and walks back to its spot before the fight starts. Sets
+-  // its walk; returns { open: ms after the landing the lid springs, at: where it
+-  // stands then (screen pixels) }, or null when there is nobody to send.
+-  function crateTrip(e, T, until, k) {
+-    const u = e.u >= 0 ? P.S.u[e.u] : null;
+-    if (!u || !u.alive || P.calm) return null;
+-    const R = P.rd.R;
+-    const [ax, ay] = e.at;
+-    const key = (x, y) => y * N + x;
+-    const block = new Set();
+-    for (const o of R.objs || []) if (SE.OBJECT_STATS[o.k] && SE.OBJECT_STATS[o.k].solid) for (const c of o.cells) block.add(key(c[0], c[1]));
+-    for (const s of R.start) if (s.u !== u.id) block.add(key(s.x, s.y));
+-    block.add(key(ax, ay));
+-    const free = (x, y) => x >= 0 && y >= 0 && x < N && y < N && R.tiles[key(x, y)] !== SE.BLOCK && R.tiles[key(x, y)] !== SE.SAND && !block.has(key(x, y));
+-    // breadth first from where it stands to the nearest free tile beside the crate
+-    const prev = new Map([[key(u.x, u.y), -1]]);
+-    const q = [[u.x, u.y]];
+-    let goal = null;
+-    for (let h = 0; h < q.length && !goal; h++) {
+-      const [x, y] = q[h];
+-      if (Math.max(Math.abs(x - ax), Math.abs(y - ay)) === 1) {
+-        goal = [x, y];
+-        break;
 +      if (t < hit) {
 +        const [cx, cy, f] = coinAt(t);
 +        // its shadow: smaller the higher it is
@@ -6850,7 +7058,15 @@ index 4a14e6e..e8ede8e 100644
 +          x.fillRect(Math.round(cx - 5), Math.round(cy - 4), 3, 1);
 +        }
 +        return;
-+      }
+       }
+-      for (let dy = -1; dy <= 1; dy++)
+-        for (let dx = -1; dx <= 1; dx++) {
+-          const nx = x + dx;
+-          const ny = y + dy;
+-          if ((dx || dy) && free(nx, ny) && !prev.has(key(nx, ny))) {
+-            prev.set(key(nx, ny), key(x, y));
+-            q.push([nx, ny]);
+-          }
 +      // down: a roll on its edge, a wobble that dies away, flat on its face
 +      const e2 = t - hit;
 +      const roll = 260 * k;
@@ -6912,7 +7128,7 @@ index 4a14e6e..e8ede8e 100644
 +        if (e3 < gone * 0.2) {
 +          x.drawImage(Math.floor(e3 / (60 * k)) & 1 ? S2.white : img, 0, 0, 16, 20, X, Y, 16, 20);
 +          return;
-+        }
+         }
 +        // dissolve: an ordered pattern eats the sprite, the pixels it takes drift up
 +        const g = (e3 / gone - 0.2) / 0.8;
 +        const ctx = x;
@@ -6926,9 +7142,43 @@ index 4a14e6e..e8ede8e 100644
 +      });
 +      addParts(20, ux, uy - 4, ['#FFFFFF', '#FFD447', '#C9C9D6'], 0.03, -0.00012, 1000 * k, flat + 200 * k, true, [-Math.PI, 0]);
 +      label(flat + 520 * k, 'ELIMINATED', '#FF5C77', ux, uy - 34, true);
-+    }
+     }
+-    if (!goal) return null;
+-    const path = [];
+-    for (let c = key(goal[0], goal[1]); c >= 0; c = prev.get(c)) path.unshift([c % N, Math.floor(c / N)]);
+-    const out = path.map(([x, y]) => scr(x, y));
+-    const back = out.slice(0, -1).reverse();
+-    const n = out.length - 1;
+-    // the walk, a beat at the crate, and the walk back, all before the fight starts
+-    let step = MS.tile * k;
+-    const rest = Math.max(2, Math.round((520 * k) / step));
+-    const room = until - 260 * k;
+-    if ((2 * n + rest) * step > room) step = Math.max(40, room / (2 * n + rest));
+-    const pts = out.concat(Array(rest).fill(out[out.length - 1]), back);
+-    u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
+-    const face = u.face;
+-    const [sx] = scr(ax, ay);
+-    if (sx !== out[out.length - 1][0]) u.face = sx > out[out.length - 1][0] ? 1 : -1;
+-    atClock(T + step * (pts.length - 1), () => (u.face = face));
+-    const [ex, ey] = out[out.length - 1];
+-    return { open: n * step + 140 * k, at: [ex * TILE + 8, TOP + ey * TILE + 8] };
 +    return true;
-+  }
+   }
+-  // Each squad's perk comes down on its own side as the round starts: a crate on a
+-  // parachute, green for a buff and red for a nerf, swaying down onto the tile of
+-  // its deploy rows the engine chose. It lands at the beat's contact (fx 'perk').
+-  function perkFall(b, T, k) {
+-    if (P.calm) return;
+-    const HIT = MS.perksHit * k;
+-    for (const it of b.list) {
+-      const e = P.rd.R.ev[it.ei];
+-      if (!e || e.t !== 'perk' || !e.at) continue;
+-      const [cx, cy] = tileC(e.at[0], e.at[1]);
+-      const fr = e.kind === 'buff' ? 0 : 2;
+-      addFx(T, HIT, (x, kk) => blob(x, cx, cy + 6, Math.round(3 + kk * 6), 1, '#1B1229', 0.12 + kk * 0.25), true);
+-      addFx(T, HIT, (x, kk, el) => {
+-        const sway = Math.round(Math.sin(el / (230 * k) + e.team) * 4 * (1 - kk));
+-        x.drawImage(fxFrame('airdrop', fr), cx - 16 + sway, Math.round(lerp(TOP - 40, cy - 26, kk * kk)));
 +  // the Shiba Inu's scenes: the cage bursts, a run and a bite, the trot home
 +  function dogBeat(b, T, k) {
 +    const e = b.e;
@@ -6953,7 +7203,7 @@ index 4a14e6e..e8ede8e 100644
 +        shake(hit);
 +        flash(hit);
 +        hold(60);
-+      });
+       });
 +      addParts(6, cx, cy - 6, ['#FFD447', '#C98A12'], 0.09, 0.0006, 520 * k, hit, true, [-Math.PI * 0.9, -Math.PI * 0.1]);
 +      ringFx(hit, cx, cy, 380 * k, '#FF8A3D', 3, 18, true, 0.6);
 +      for (const s of [-1, 1]) addFx(hit, 500 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + s * (5 + (el * 0.03) / k)), cy - 6));
@@ -7103,11 +7353,12 @@ index 4a14e6e..e8ede8e 100644
 +    if (glint) {
 +      x.fillStyle = '#FFFFFF';
 +      x.fillRect(X + 3, Y, 1, 1);
-+    }
-+  }
+     }
+-    sfx('read');
+   }
    // The round card turns into the perks: each squad's, its colour, what it does.
    function showPerkBanner() {
-     const ch = P.rd.R.chest;
+@@ -15489,10 +21138,21 @@ const SquadView = (() => {
      if (!ch) return;
      const b2 = D.ban;
      b2.textContent = '';
@@ -7130,7 +7381,7 @@ index 4a14e6e..e8ede8e 100644
        const kind = m.buff ? 'buff' : 'nerf';
        const row = el('div', 'sqv-pu perk ' + (kind === 'buff' ? 'good' : 'bad'));
        row.append(icon(kind, m[kind], 32));
-@@ -15503,7 +21138,7 @@ const SquadView = (() => {
+@@ -15503,7 +21163,7 @@ const SquadView = (() => {
      }
      b2.className = 'sqv-ban on perks';
      const mine = ch.teams[P.me];
@@ -7139,7 +7390,7 @@ index 4a14e6e..e8ede8e 100644
      say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
    }
    // a beat starts: poses, reticles, telegraphs and beams that lead up to the event
-@@ -15543,6 +21178,12 @@ const SquadView = (() => {
+@@ -15543,6 +21203,12 @@ const SquadView = (() => {
      }
      if (P.calm) return;
      if (b.kind === 'rocket') return rocketScene(b, T, k);
@@ -7152,7 +7403,7 @@ index 4a14e6e..e8ede8e 100644
      if (arsenalBeat(b, T, k)) return;
      if (kitBeat(b, T, k)) return;
      if (worksBeat(b, T, k)) return;
-@@ -15662,7 +21303,8 @@ const SquadView = (() => {
+@@ -15662,7 +21328,8 @@ const SquadView = (() => {
            oy = b.end[1] - dy;
          }
          const travel = b.contact - b.rel;
@@ -7162,7 +7413,7 @@ index 4a14e6e..e8ede8e 100644
          else if (e.kind === 'ranged') {
            // shots from up on a watchtower start higher and lob down
            const arc = 4 + len / 8 + (u._b && u._b.lift >= TOWER_LIFT ? 7 : 0);
-@@ -15882,10 +21524,15 @@ const SquadView = (() => {
+@@ -15882,10 +21549,15 @@ const SquadView = (() => {
      const U = S.u;
      const k = (b && b.k) || 1;
      const live = !P.seeking && !P.calm;
@@ -7179,7 +7430,7 @@ index 4a14e6e..e8ede8e 100644
        if (!P.calm) {
          u.mv = { pts, t0: T, step, dur: step * (pts.length - 1) };
          const [lx, ly] = pts[pts.length - 1];
-@@ -15910,7 +21557,6 @@ const SquadView = (() => {
+@@ -15910,7 +21582,6 @@ const SquadView = (() => {
        P.curveDur = 1100 * k;
      }
      if (e.t === 'nuke') P.pillFrom = S.curve ? S.curve.at : null;
@@ -7187,7 +7438,7 @@ index 4a14e6e..e8ede8e 100644
      // what hurt a Blub last, for the line when it is knocked out without an attacker
      if (['fog', 'shell', 'mine', 'snag', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'singed'].includes(e.t)) P.cause[e.d] = e.t;
      if (e.t === 'blowup') P.cause[e.u] = 'blowup';
-@@ -15925,7 +21571,25 @@ const SquadView = (() => {
+@@ -15925,7 +21596,25 @@ const SquadView = (() => {
      }
      // the Boom Pack's Blub is gone in its own blast
      if (e.t === 'blowup' && live) U[e.u].air = [T, 1e12];
@@ -7213,7 +7464,7 @@ index 4a14e6e..e8ede8e 100644
      if (e.t === 'ko') {
        const u = U[e.u];
        u.koT = T;
-@@ -15954,14 +21618,17 @@ const SquadView = (() => {
+@@ -15954,14 +21643,17 @@ const SquadView = (() => {
      P.dirty = true;
      if (P.calm) return;
      fx(e, T, b, k);
@@ -7233,7 +7484,7 @@ index 4a14e6e..e8ede8e 100644
      switch (e.t) {
        case 'attack': {
          const u = U[e.u];
-@@ -16080,8 +21747,15 @@ const SquadView = (() => {
+@@ -16080,8 +21772,15 @@ const SquadView = (() => {
        case 'zap':
        case 'blasted':
        case 'cannonball':
@@ -7249,7 +7500,7 @@ index 4a14e6e..e8ede8e 100644
          const [dx, dy] = centreOf(d);
          const top = (d._b ? d._b.oy : dy - 13) - 2;
          if (e.t === 'cannonball') {
-@@ -16842,6 +22516,26 @@ const SquadView = (() => {
+@@ -16842,6 +22541,26 @@ const SquadView = (() => {
          shake(T + MS.sprayHit * k);
          return;
        }
@@ -7276,7 +7527,7 @@ index 4a14e6e..e8ede8e 100644
        // a round of it, on the Blub it sprays
        case 'bullet': {
          const d = U[e.d];
-@@ -16941,18 +22635,29 @@ const SquadView = (() => {
+@@ -16941,18 +22660,29 @@ const SquadView = (() => {
        // walks over and pries the lid, the perk's card rises out of it and hangs there
        // over the crate until the fight starts, and the Blub walks back to its spot.
        case 'perk': {
@@ -7309,7 +7560,7 @@ index 4a14e6e..e8ede8e 100644
          addFx(T, until, (x, kk, el) => {
            if (el < open) {
              // shut, with a wobble once the Blub gets its paws on the lid
-@@ -16964,7 +22669,7 @@ const SquadView = (() => {
+@@ -16964,7 +22694,7 @@ const SquadView = (() => {
            const e2 = el - open;
            const up = Math.min(1, e2 / (380 * k));
            const bob = P.calm ? 0 : Math.round(Math.sin(e2 / (260 * k)) * 1.5);
@@ -7318,7 +7569,7 @@ index 4a14e6e..e8ede8e 100644
            x.fillStyle = INK;
            x.fillRect(cx - 18, iy - 2, 36, 36);
            x.fillStyle = red ? '#E2566E' : '#4FB36B';
-@@ -17219,18 +22924,25 @@ const SquadView = (() => {
+@@ -17219,18 +22949,25 @@ const SquadView = (() => {
          sfx('thud');
          return;
        }
@@ -7351,7 +7602,7 @@ index 4a14e6e..e8ede8e 100644
          }
          return;
        }
-@@ -17258,11 +22970,54 @@ const SquadView = (() => {
+@@ -17258,11 +22995,54 @@ const SquadView = (() => {
        // buff and red for a nerf, swings down out of the sky onto one Blub, its shadow
        // sharpening under it; it lands, pops open, and the perk's name goes up over the
        // Blub (what it does lands with it: the heal, the HP, the status)
@@ -7407,7 +7658,7 @@ index 4a14e6e..e8ede8e 100644
          const [cx0, cy0] = centreOf(u);
          const y0 = TOP - 36;
          const col = good ? '#4BE08F' : '#FF5C77';
-@@ -17272,7 +23027,11 @@ const SquadView = (() => {
+@@ -17272,7 +23052,11 @@ const SquadView = (() => {
            const [cx, cy] = centreOf(u);
            blob(x, cx, cy + 6, Math.round(2 + kk * 6), 1, '#1B1229', 0.1 + kk * 0.22);
          }, true);
@@ -7420,7 +7671,7 @@ index 4a14e6e..e8ede8e 100644
            const [cx, cy] = centreOf(u);
            const sway = Math.round(Math.sin(el / (200 * k)) * 4 * (1 - kk)) + Math.round(side * 10 * (1 - kk));
            x.drawImage(fxFrame('airdrop', good ? 0 : 2), cx - 16 + sway, Math.round(lerp(y0, cy - 28, kk * kk)));
-@@ -18248,7 +24007,8 @@ const SquadView = (() => {
+@@ -18248,7 +24032,8 @@ const SquadView = (() => {
          const [cx, cy] = tileC(e.at[0], e.at[1]);
          addParts(10, cx, cy + 6, ['#FFE3EA', '#FFF3B0', '#FFFFFF'], 0.05, 0.0002, 380 * k, T, true, [Math.PI, Math.PI * 2]);
          ringFx(T, cx, cy + 6, 300 * k, '#FFF3B0', 3, 12, true);
@@ -7430,7 +7681,7 @@ index 4a14e6e..e8ede8e 100644
          sfx('sift');
          say(nameOf('item', e.item) + ' landed in the middle.');
          return;
-@@ -18310,7 +24070,7 @@ const SquadView = (() => {
+@@ -18310,7 +24095,7 @@ const SquadView = (() => {
    }
  
    // a knock-out without an attacker: say what did it (the mist, a shell, a mine, the wire)
@@ -7439,7 +7690,7 @@ index 4a14e6e..e8ede8e 100644
    // calm markers: a shell's target (red corners), where it landed (a red cross), a mine (pink)
    const MARKS = {};
    function markImg(kind) {
-@@ -18669,6 +24429,12 @@ const SquadView = (() => {
+@@ -18669,6 +24454,12 @@ const SquadView = (() => {
        if (P && document.hidden && !P.paused) {
          P.paused = true;
          paintPlay();
@@ -7452,7 +7703,7 @@ index 4a14e6e..e8ede8e 100644
        }
      });
      return D;
-@@ -18879,7 +24645,7 @@ const SquadView = (() => {
+@@ -18879,7 +24670,7 @@ const SquadView = (() => {
    }
  
    // ---- text: ticker, log and the screen-reader line
@@ -7461,7 +7712,7 @@ index 4a14e6e..e8ede8e 100644
    function log(e) {
      if (!LOGGED.has(e.t)) return;
      if (e.t === 'attack' && e.n === 1) return;
-@@ -18940,16 +24706,16 @@ const SquadView = (() => {
+@@ -18940,16 +24731,16 @@ const SquadView = (() => {
        R.memeChips = {};
        const team = side === 'you' ? P.me : 1 - P.me;
        const m = ch && ch.teams && ch.teams[team];
@@ -7482,7 +7733,7 @@ index 4a14e6e..e8ede8e 100644
          R.meme.append(c);
          R.memeChips[id] = c;
        }
-@@ -18999,6 +24765,26 @@ const SquadView = (() => {
+@@ -18999,6 +24790,26 @@ const SquadView = (() => {
          R.list.append(b);
          R.rows.push({ id, b, hp, bar, sts, key: '' });
        }
@@ -7509,7 +7760,7 @@ index 4a14e6e..e8ede8e 100644
      });
    }
    function updateRosters() {
-@@ -19016,13 +24802,15 @@ const SquadView = (() => {
+@@ -19016,13 +24827,15 @@ const SquadView = (() => {
        R.rows.forEach((r) => {
          const u = S.u[r.id];
          if (u.alive) alive[u.side]++;
@@ -7527,7 +7778,7 @@ index 4a14e6e..e8ede8e 100644
          if (key === r.key) return;
          r.key = key;
          r.hp.textContent = '';
-@@ -19033,6 +24821,7 @@ const SquadView = (() => {
+@@ -19033,6 +24846,7 @@ const SquadView = (() => {
          else if (u.tent) r.hp.append(el('span', 'long', 'In the tent'), el('span', 'short', 'TENT'));
          else if (u.moon) r.hp.append(el('span', 'long', 'On the moon'), el('span', 'short', 'MOON'));
          else if (u.pit) r.hp.append(el('span', 'long', 'In a pit'), el('span', 'short', 'PIT'));
@@ -7535,7 +7786,7 @@ index 4a14e6e..e8ede8e 100644
          else r.hp.append(el('span', 'long', 'Knocked out'), el('span', 'short', 'KO'));
          r.bar.style.width = Math.round((100 * u.hp) / u.max) + '%';
          r.b.classList.toggle('ko', !u.alive);
-@@ -19051,8 +24840,9 @@ const SquadView = (() => {
+@@ -19051,8 +24865,9 @@ const SquadView = (() => {
          r.b.setAttribute('aria-label', P.names[r.id] + (r.id % 5 === 0 ? ' (captain)' : '') + ', ' + nameOf('cls', u.cls) + ', ' + (u.alive ? u.hp + ' of ' + u.max + ' HP' : u.fell ? 'down the Exit Liquidity hole' : u.tent ? 'in the Field Hospital' : u.moon ? 'gone to the moon' : u.pit ? 'fallen into a pit' : 'knocked out') + (sts.length ? ', ' + sts.map((s) => STATUS_NAME[s] || s).join(', ') : '') + '. Show build.');
        }),
      );
@@ -7547,7 +7798,7 @@ index 4a14e6e..e8ede8e 100644
    }
    // a roster tap: light the unit up on the board for 1.5 s and show its build
    function inspect(id) {
-@@ -19359,6 +25149,19 @@ const SquadView = (() => {
+@@ -19359,6 +25174,19 @@ const SquadView = (() => {
      P.map = r.map;
      setupObjs(r.R);
      P.S = freshState(r.R, P.sideOf);
@@ -7567,7 +7818,7 @@ index 4a14e6e..e8ede8e 100644
      // units hop in from the back rows first
      const order = P.S.u.map((u) => u).sort((a, b) => {
        const [, ay] = scr(a.x, a.y);
-@@ -19417,13 +25220,22 @@ const SquadView = (() => {
+@@ -19417,13 +25245,22 @@ const SquadView = (() => {
      P.raf = requestAnimationFrame(frame);
      const dt = Math.min(50, P.last ? now - P.last : 16);
      P.last = now;
@@ -7597,7 +7848,7 @@ index 4a14e6e..e8ede8e 100644
    }
    function advance(dt) {
      if (P.phase === 'intro') {
-@@ -19445,8 +25257,12 @@ const SquadView = (() => {
+@@ -19445,8 +25282,12 @@ const SquadView = (() => {
      const Q = P.rd.Q;
      while (P.qi < Q.length && Q[P.qi].at <= P.clock) {
        const q = Q[P.qi++];
@@ -7612,7 +7863,18 @@ index 4a14e6e..e8ede8e 100644
      }
      placeMarks();
    }
-@@ -20200,6 +26016,15 @@ const SquadView = (() => {
+@@ -20003,6 +25844,10 @@ const SquadView = (() => {
+       Object.values(P.ov).forEach((v) => {
+         sh(v, 'fireT');
+         sh(v.wob, 't0');
++        // the cannon's: a hit's shake, a repair, a stage going up
++        sh(v, 'hitT');
++        sh(v.fix, 't0');
++        if (v.bld) ['t0', 'hit', 'land0', 'T'].forEach((f) => sh(v.bld, f));
+       });
+       ['shakeT', 'flashT', 'itemT', 'mistT'].forEach((f) => P[f] != null && (P[f] += shift));
+       // the director's cuts and slow spells, what waits for its moment on the clock,
+@@ -20200,6 +26045,15 @@ const SquadView = (() => {
          rekt: `One Blub starts ${R.rektHp} HP down.`,
          ngmi: R.ngmiMiss === 1 ? 'The first attack always misses.' : `The first ${R.ngmiMiss} attacks always miss.`,
        },
@@ -7628,7 +7890,7 @@ index 4a14e6e..e8ede8e 100644
      };
      return (T[kind] && T[kind][id]) || descOf(kind, id);
    }
-@@ -20415,7 +26240,7 @@ const SquadView = (() => {
+@@ -20415,7 +26269,7 @@ const SquadView = (() => {
      if (open && P) fillInfo();
    }
    // what Round info shows: the round, and the chest's hidden events gone off so far
@@ -7637,7 +7899,7 @@ index 4a14e6e..e8ede8e 100644
    function fillInfo() {
      const r = P && P.rounds[P.ri];
      if (!r || !D) return;
-@@ -20473,12 +26298,23 @@ const SquadView = (() => {
+@@ -20473,12 +26327,23 @@ const SquadView = (() => {
          if (shown) row('ev', 'ev', v.id, 'Event' + (v.turn ? ' · turn ' + v.turn : ''), nameOf('ev', v.id), descOf('ev', v.id));
          else row('ev hid', null, null, 'Event', 'A hidden event', 'Nobody knows what or where until it goes off.');
        }
@@ -7662,7 +7924,7 @@ index 4a14e6e..e8ede8e 100644
    }
  
    // ---- round intro and round end
-@@ -20570,7 +26406,14 @@ const SquadView = (() => {
+@@ -20570,7 +26435,14 @@ const SquadView = (() => {
    }
    function totals() {
      const t = [...Array(10)].map(() => ({ dmg: 0, kills: 0, healed: 0, taken: 0 }));
@@ -7678,7 +7940,7 @@ index 4a14e6e..e8ede8e 100644
      return t;
    }
    // the MVP: damage + 10 x knock-outs + healed + taken / 2, from the winning side
-@@ -21324,6 +27167,8 @@ const SquadView = (() => {
+@@ -21324,6 +27196,8 @@ const SquadView = (() => {
      const dropsOf = (good) => (SE.DROPS || []).filter((d) => !!d[2] === good).map((d) => [d[0], d[1], d[3]]);
      section(o.buffsTitle || 'Supply drops: green crates', dropsOf(true), 'buff');
      section(o.nerfsTitle || 'Supply drops: red crates', dropsOf(false), 'nerf');

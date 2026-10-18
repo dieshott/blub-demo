@@ -146,3 +146,9 @@ wijzigingen eerst over naar de bron en sync pas daarna.
 - `MS` kreeg alleen nieuwe sleutels (`gunKick`, `gunRoll`, `gunSmoke`, `gunWisp`,
   `gunShake`, `gunFix`). Geen bestaande timing is veranderd. Gemeten tekenkosten:
   1,12 ms per frame tegen 1,10 ms voorheen.
+- Na de review: een snelheidswissel verschuift ook de eigen klokken van het kanon
+  (`hitT`, `fix.t0` en `bld.*`), zodat een afgebouwd kanon zijn bouw niet opnieuw
+  afspeelt. De lont neemt hooguit 35% van de vluchttijd, waardoor korte schoten hun
+  boog houden. Het mondingsvuur draait mee met de loop (`cannonFx`: 2 richtingen ×
+  5 hoeken × 4 frames, gedraaid rond de monding). De frames van de Big Gun worden
+  maar één keer opgebouwd (`bigGrid`). Het rookpluimpje stopt met de beat.
