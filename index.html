@@ -4005,14 +4005,13 @@ const RULES = lock({
   // clear line, rayDmg, and raySplash on every enemy beside the one it hits.
   rayRange: 5, rayDmg: 8, raySplash: 2,
   // Coin Flip: a golden coin for the Blub nearest the crate (never the Boom Pack). It
-  // keeps it for when it is in trouble: right after a hit leaves it at coinAt% HP or
-  // less (or at the start of turn coinBy at the latest) it flips it. Heads (a Blub's
+  // flips it at the start of the next turn (engine 29; coinAt and coinBy, the old 'in
+  // trouble' moment and deadline, are no longer used). Heads (a Blub's
   // head): a doppelganger of it joins the squad beside it, full HP, the same build (no
   // trench job), coinHp more HP than its Blub and a bubble shield: a golden double.
   // Skull (its other side, tails before engine 29): the Blub that flipped it is out of
   // the round. Each as likely, from the chest's own stream. Knocked out before it has
-  // flipped it, it flips it as it goes down: heads still brings its double; the skull
-  // changes nothing any more.
+  // flipped it, the coin is lost (engine 29: it used to be flipped as it went down).
   coinAt: 35, coinBy: 8, coinHp: 18,
   // Pizza Phone: an old golden phone for the Blub nearest the crate. As the fight starts
   // it calls for a pizza, and on turn pizzaTurn a white delivery van that has seen
@@ -4411,7 +4410,7 @@ const GOLDS = lock([
   // (engine 29: the Blub on the phone throws slices, and the badly hurt walk further for one)
   ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad. Your Blub on the phone keeps a stack of them on it: at the start of each of its turns it throws one to whoever is hurt worst within ${RULES.pizzaToss} tiles at ${RULES.pizzaAt}% HP or less (itself too), and still gets its turn. A Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back to the box for one (at ${RULES.pizzaLow}% or less from up to two moves away, over two turns), and one that starts its turn beside the box grabs one on its way. Eaten up, the box goes.`],
   // (the coin's other side is a skull, engine 29: the texts say so)
-  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: once a hit leaves it at ${RULES.coinAt}% HP or less (by turn ${RULES.coinBy} at the latest, or ${RULES.goldGrace} turns after it is opened if that is later) it flips it. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Skull: the Blub that flipped it is out of the round. Fifty-fifty.`],
+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: it flips it at the start of the next turn, and if it is knocked out before that, the coin is lost. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Skull: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. The moment it is opened its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -5042,7 +5041,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       out.dog = ring.find(([x, y]) => inside(x, y) && occ[idx(x, y)] < 0 && !solidTile(tiles[idx(x, y)]) && tiles[idx(x, y)] !== WATER) || at.slice();
     }
     push({ t: 'perk', team: t, kind: 'gold', id: g, at, u: u.id, by: opener.id, n: turn, src, ...out });
-    if (g === 'coin') coins[t] = { by: u, v: makeDouble(t, u), done: false, flipBy: Math.max(RULES.coinBy, turn + RULES.goldGrace) };
+    // (engine 29: flipped at the start of the next turn, whatever brought it)
+    if (g === 'coin') coins[t] = { by: u, v: makeDouble(t, u), done: false, flipBy: turn + 1 };
     if (g === 'pizza') {
       pizzas[t] = { team: t, by: u, called: false, c: -1, x: -1, y: -1, was: GRASS, slices: 0, due: Math.max(RULES.pizzaTurn, turn + RULES.pizzaWait) };
       callPizza();
@@ -5191,7 +5191,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (by) stats[by.id].kills++;
     push({ t: 'ko', u: d.id, by: by ? by.id : -1 });
     // the golden coin still in its paws (engine 22): it flips it as it goes down
-    if (coins[d.team] && coins[d.team].by === d && !coins[d.team].done) flipCoins(d.team, true);
+    // (engine 29: knocked out before it has flipped it, the coin is lost for good)
+    if (coins[d.team] && coins[d.team].by === d && !coins[d.team].done) {
+      coins[d.team].done = true;
+      push({ t: 'coinlost', u: d.id, team: d.team });
+    }
     // a Green Candle's rider knocked out: the candle dumps (engine 19)
     if (d.ride) dump(d.ride);
     lastBoom(d);
@@ -5233,7 +5237,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     // a Miner hurt to tunnelAt% or less tunnels away on its next turn
     if (d.alive && d.pow === 'miner' && !d.tunneled && d.hp * 100 <= d.max * RULES.tunnelAt) d.tunnel = 1;
     // in trouble with the golden coin (engine 22): it flips it
-    if (d.alive && coins[d.team]) coinHurt(d);
+    // (engine 29: no flip when hurt any more; it waits for the start of the next turn)
     // (never the Blub up in the Diamond Hand: diamond hands, engine 21)
     if (d.alive && meme[d.team].nerf === 'paper' && !meme[d.team].paper && !anchored(d) && d.hp * 100 < d.max * RULES.paperAt) {
       meme[d.team].paper = 1;
@@ -7868,11 +7872,6 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
     return null;
   }
-  // its Blub hurt badly enough: flip it now (from afterHit), or by coinBy anyway
-  function coinHurt(d) {
-    const c = coins[d.team];
-    if (c && c.by === d && !c.done && d.alive && d.hp * 100 <= d.max * RULES.coinAt) flipCoins(d.team);
-  }
   function flipCoins(only, fall) {
     for (const c of coins) {
       if (!c || c.done || (over >= 0 && !fall) || (only != null && c.v.team !== only)) continue;
@@ -8415,7 +8414,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
   }
   function runEvents(turn) {
-    // a golden drop's coin is flipped by its deadline at the latest (engine 28)
+    // a golden drop's coin is flipped at the start of the turn after it was opened (engine 29)
     for (const c of coins) if (c && !c.done && turn >= c.flipBy) flipCoins(c.v.team);
     deliverPizza(turn);
     memeTurn(turn);
@@ -13767,8 +13766,11 @@ const SquadView = (() => {
           5: ['...AAAA...', '..AwWWSA..', '.AwWWWWSA.', '.AkkWWkkA.', '.AkkWWkkA.', '.AWWkkWSA.', '..AWWWSA..', '..AkWWkA..', '..AkSSkA..', '...AAAA...'],
           6: ['..AAAAAA..', '.AwwWWWWA.', 'AwWWWWWWSA', 'AWkkWWkkSA', 'AWkkWWkkSA', 'AWWWkkWWSA', '.AWWWWWSA.', '.AWkWWkSA.', '.ASkSSkSA.', '..AAAAAA..'],
         }[i];
+        // (engine 29: struck in the gold, in relief like the head: bone white becomes
+        // pale gold, its shadow side darker gold; the sockets, nose and teeth stay dark)
+        const GOLDEN = { w: 'w', W: 'Y', S: 'o', k: 'k', A: 'A' };
         SKULL.forEach((r, j) => {
-          for (let k = 0; k < r.length; k++) if (r[k] !== '.') FG.put(g, 3 + k, 3 + j, r[k]);
+          for (let k = 0; k < r.length; k++) if (r[k] !== '.') FG.put(g, 3 + k, 3 + j, GOLDEN[r[k]] || r[k]);
         });
       }
       return FG.outline(g);
@@ -14405,6 +14407,9 @@ const SquadView = (() => {
       case 'toss':
         return (e.u === e.d ? u + ' wolfs down a slice of pizza off its stack' : u + ' throws ' + d + ' a slice of pizza') + (e.left ? ' (' + e.left + ' left).' : ': that was the last one.');
       // the Coin Flip (engine 22); its other side is a skull (engine 29)
+      // knocked out before it flipped it (engine 29): the coin is lost
+      case 'coinlost':
+        return 'The coin rolls out of ' + u + "'s paws as it goes down: lost.";
       case 'coin':
         if (e.fall) return e.heads ? u + ' flips the coin as it goes down: HEADS! Its double takes its place.' : u + ' flips the coin as it goes down: the skull. Nothing left to lose.';
         return e.heads ? u + ' flips the coin: HEADS! A doppelganger joins the fight.' : u + ' flips the coin: SKULL! It flips itself right out of the round.';
@@ -25019,7 +25024,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee']);
+  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'coinlost', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -26403,7 +26408,7 @@ const SquadView = (() => {
         // (engine 29: the slices it throws)
         pizza: `Your Blub calls for pizza: ${R.pizzaWait} turns later a van drops a box on your rows, ${R.pizzaSlices} slices of ${R.pizzaHp} HP. It throws one a turn to a hurt Blub near it, and the badly hurt walk back for more.`,
         // (its other side a skull: engine 29)
-        coin: `Kept for when its Blub is in trouble, then flipped. Heads: a golden double of it joins you. Skull: that Blub is out.`,
+        coin: `Flipped at the start of the next turn (lost if its Blub is knocked out first). Heads: a golden double of it joins you. Skull: that Blub is out.`,
         raygun: `Your mid-range Blub (else long, else short) trades its weapon for it: blue slime, ${R.rayDmg} damage at ${R.rayRange} tiles and ${R.raySplash} splash.`,
         shiba: `Let out at once: every turn it runs at your target and bites, ${R.shibaDmg} damage and less dodge (${R.shibaBites} bites).`,
         blueprint: `A second Builder in a golden hard hat: with your Builder it builds a 3x3 Big Gun (${R.bigDmg} damage + ${R.bigSplash} splash), alone the 2x2 cannon.`,
