@@ -5681,9 +5681,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
     // never on to a tile the mist takes by next turn, unless nearer the centre than where
     // it stands (engine 27); a walk cut short there stops short of any screen too
-    const from = RING[idx(u.x, u.y)] + (out ? 1 : 0);
-    while (n > 0 && (occ[path[n - 1]] >= 0 || worse(path[n - 1], from))) {
-      if (worse(path[n - 1], from)) cut = false;
+    const ring0 = RING[idx(u.x, u.y)];
+    const from = ring0 + (out ? 1 : 0);
+    // (out of the mist, never to a tile no nearer the centre beside a screen: caught there, it stays)
+    const stuck = (c) => out && RING[c] >= ring0 && danger(c) && screened(u, c);
+    while (n > 0 && (occ[path[n - 1]] >= 0 || worse(path[n - 1], from) || stuck(path[n - 1]))) {
+      if (worse(path[n - 1], from) || stuck(path[n - 1])) cut = false;
       n--;
     }
     if (!n) return false;
@@ -6563,9 +6566,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   function leaveMist(u, turn) {
     if (!danger(idx(u.x, u.y))) return false;
     const safe = (x, y) => !danger(idx(x, y));
-    // a safe tile it reaches this turn first (engine 28), else the cheapest way out; the
-    // next one at the same cost when a screen or a trap cuts the walk to the first
-    const go = (P) => P.found.some((goal) => walk(u, route(P, goal), { t: 'flee', u: u.id, at: xyOf(goal) }, true));
+    // a safe tile it reaches this turn first (engine 28), else the cheapest way out; of
+    // those at the same cost, first one whose way no screen or trap cuts
+    const go = (P) => {
+      const clear = P.found.map((goal) => !route(P, goal).some((c) => trap(u, c) || screened(u, c)));
+      const order = P.found.filter((g, i) => clear[i]).concat(P.found.filter((g, i) => !clear[i]));
+      return order.some((goal) => walk(u, route(P, goal), { t: 'flee', u: u.id, at: xyOf(goal) }, true));
+    };
     if (!go(search(u, u.move, safe, true)) && !go(search(u, 999, safe))) return false;
     if (!u.alive || over >= 0) return true;
     if (u.cls === 'sweet' && medic(u, true, turn)) return true;
@@ -7866,7 +7873,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         v.bench = false;
         occ[idx(v.x, v.y)] = v.id;
         living[v.team].push(v);
-        push({ t: 'coin', u: u.id, heads: 1, c: v.id, to, ...(fall ? { fall: 1 } : {}) });
+        push({ t: 'coin', u: u.id, heads: 1, c: v.id, to, hp: v.hp, ...(fall ? { fall: 1 } : {}) });
         continue;
       }
       push({ t: 'coin', u: u.id, heads: heads ? 1 : 0 });
@@ -8505,8 +8512,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   function fetcher(k) {
     const can = (v) => v.alive && !v.ride && !anchored(v) && !(v.pow === 'gambler' && gambling(v));
     if (k.by && can(k.by) && !pinned(k.by)) return k.by;
-    const next = living[k.team].filter((v) => can(v) && !pinned(v) && cheb(v.x, v.y, k.x, k.y) <= RULES.boxReach).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
+    // (not into the enemy: once it has had a fetcher, it waits while one stands within 2 of it)
+    const held = k.had && living[1 - k.team].some((g) => cheb(g.x, g.y, k.x, k.y) <= 2);
+    const next = held ? null : living[k.team].filter((v) => can(v) && !pinned(v) && cheb(v.x, v.y, k.x, k.y) <= RULES.boxReach).sort((a, b) => cheb(a.x, a.y, k.x, k.y) - cheb(b.x, b.y, k.x, k.y) || a.id - b.id)[0] || null;
     if (next || !k.by || !can(k.by)) k.by = next;
+    if (k.by) k.had = true;
     return k.by;
   }
   function boxTurn(turn) {
@@ -13993,6 +14003,7 @@ const SquadView = (() => {
           v.x = e.to[0];
           v.y = e.to[1];
           v.dug = false;
+          v.hp = e.hp != null ? e.hp : v.max;
         } else if (!e.heads && !e.fall) {
           u.alive = false;
           u.hp = 0;
@@ -16900,7 +16911,6 @@ const SquadView = (() => {
     const x = shot ? P.buf.getContext('2d') : P.ctx;
     const S = P.S;
     freshCtx(x);
-    if (shot) freshCtx(P.ctx);
     x.fillStyle = '#120A1C';
     x.fillRect(0, 0, CW, CH);
     if (!P.map) return;
@@ -17009,7 +17019,7 @@ const SquadView = (() => {
       }
       if (ol) for (const o of ol) guard(x, () => drawObj(x, o, 'front', t, now, intro));
     }
-    drawMist(x, t, now);
+    guard(x, () => drawMist(x, t, now));
     // units with a block right in front of them get their outline drawn over it
     for (const u of S.u) {
       if (!u.alive || !u._b) continue;
@@ -17022,14 +17032,14 @@ const SquadView = (() => {
       }
     }
     // the overlay pass: nothing hides these
-    drawFud(x, t, now);
-    drawSmoke(x, t, now);
-    drawWeather(x, t, now);
-    drawCurve(x, t, now);
-    drawSights(x, now);
-    drawPacks(x, now);
+    guard(x, () => drawFud(x, t, now));
+    guard(x, () => drawSmoke(x, t, now));
+    guard(x, () => drawWeather(x, t, now));
+    guard(x, () => drawCurve(x, t, now));
+    guard(x, () => drawSights(x, now));
+    guard(x, () => drawPacks(x, now));
     for (const f of P.fx) if (!f.under && !f.top && t >= f.t0) drawFx(x, f, t);
-    drawShells(x, t, now, false);
+    guard(x, () => drawShells(x, t, now, false));
     P.fx = P.fx.filter((f) => t - f.t0 <= f.dur);
     for (let i = P.parts.length - 1; i >= 0; i--) {
       const p = P.parts[i];
@@ -17071,6 +17081,7 @@ const SquadView = (() => {
     if (!intro || t > P.rd.introLen - 400) for (const u of S.u) if (u.alive && !u.gone && !airborne(u, t)) guard(x, () => drawBar(x, u, t));
     // calm playback: this turn's results stay as markers
     for (const m of P.marks) {
+      if (!m.line && !m.img) continue;
       if (m.line) {
         x.globalAlpha = 0.75;
         x.fillStyle = m.c;
@@ -17081,7 +17092,7 @@ const SquadView = (() => {
     }
     for (const n of P.nums) {
       const e = t - n.t0;
-      if (e < 0) continue;
+      if (e < 0 || !n.img) continue;
       const dur = 600 * Math.max(1, P.speed / 2);
       if (e > dur) continue;
       x.globalAlpha = e > dur * 0.7 ? 1 - (e - dur * 0.7) / (dur * 0.3) : 1;
@@ -17103,7 +17114,14 @@ const SquadView = (() => {
   // the close-up: the window round the action at twice the size, bars in and out
   function cutIn(shot, t) {
     const c = P.ctx;
-    const [fx, fy] = shot.follow ? shot.follow(t) : [shot.cx, shot.cy];
+    let at = null;
+    try {
+      at = shot.follow ? shot.follow(t) : null;
+    } catch (err) {
+      fault(err);
+    }
+    const [fx, fy] = at || [shot.cx, shot.cy];
+    freshCtx(c);
     const W = CW / 2;
     const H = CH / 2;
     const sx = clamp(Math.round(fx - W / 2), 0, CW - W);
@@ -21857,6 +21875,12 @@ const SquadView = (() => {
       if (P && document.hidden && !P.paused) {
         P.paused = true;
         paintPlay();
+        const rec = P.clip && P.clip.rec;
+        try {
+          if (rec && rec.state === 'recording') rec.pause();
+        } catch (err) {
+          /* the clip runs on */
+        }
       }
     });
     return D;

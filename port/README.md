@@ -108,3 +108,15 @@ wijzigingen eerst over naar de bron en sync pas daarna.
    over naar `lib/squad.mjs` (engine) en `src/squad/*` (view).
 2. Draai daarna `npm run sync` en vergelijk de nieuwe `index.html` met deze. Op
    wat de sync zelf genereert na hoort het verschil leeg te zijn.
+
+### 6. Tweede reviewronde
+- Ophalen: als er al een ophaler is geweest, gaat de plicht niet meer over zolang
+  er een vijand binnen 2 tegels van de krat staat (`k.had`). Rondes waarin een team
+  twee of meer ophalers verliest: van 15 naar 1 per 3000.
+- `leaveMist` kiest eerst een uitweg waar geen screen of val op ligt. `walk(..., out)`
+  stopt nooit zijwaarts in de mist naast een screen.
+- De Coin Flip-dubbelganger komt met zijn HP in beeld (`coin.hp`), niet meer op 0.
+- Close-up: het zichtbare canvas wordt pas in `cutIn` gereset. De overlays zijn
+  gewrapt in een guard, en een fout in `follow` valt terug op het vaste punt. Een
+  fout tijdens een close-up laat het veld dus niet meer leeg.
+- Een verborgen tab pauzeert ook de clip-opname.
