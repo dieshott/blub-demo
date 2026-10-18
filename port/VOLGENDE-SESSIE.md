@@ -43,7 +43,7 @@ Gemeten in engine 28 (2402 pizzadozen):
   (`search(u, u.move, …)`), de Blub op 60% HP of minder staat en er niemand in
   reikwijdte is. Blubs die verder weg staan, komen nooit terug.
 
-Voorgesteld mechanisme, liefst een combinatie:
+Voorgesteld mechanisme, een combinatie. **De eigenaar is akkoord met dit voorstel.**
 - **Bezorgen:** de Blub met de telefoon gooit één keer per beurt een punt naar de
   zwaarst gewonde teamgenoot binnen 3 tegels die op 60% HP of minder staat. Dat
   kost zijn beurt niet, en er vliegt een punt pizza door de lucht.
@@ -57,6 +57,49 @@ Eén regel: `diamondDmg: 2` wordt `diamondDmg: 3` (RULES, rond regel 3963). De t
 in het spel leest het getal uit RULES en past zich dus vanzelf aan. Daarna de
 winkans meten van het team dat de Diamond Hand claimt.
 
+## 4. Coin Flip: munt wordt een doodshoofd
+Wens: de muntzijde (nu de `$` van $BLUB) wordt een kruis of doodshoofd, omdat munt
+betekent dat de Blub uit de ronde ligt.
+- De art staat in `FX_ART.flipcoin` (rond regel 13658, 16 px, 7 frames):
+  - frame 0: kop (de Blub);
+  - frames 1–5: de draaiing;
+  - frame 6: munt, nu de `$`.
+- Teken een doodshoofd op frame 6 (en het begin ervan op frames 4–5): wit/`S` met
+  `k`-oogkassen, of een zwart kruis op goud. Mijn voorstel is een doodshoofd: dat leest
+  op 16 px duidelijker dan een kruis, en een kruis lijkt op het rode kruis van de
+  Medic.
+- Pas ook het icoon (`ICONS.gold.coin` / `gb_coin`) en de teksten aan, waar die
+  "tails" of de `$` noemen.
+
+## 5. Big Gun (3x3): de Blub met de Blueprint zit erin en is deels beschermd
+Wens: de Big Gun opnieuw tekenen in de stijl van het nieuwe 2x2-kanon. De Blub die de
+gouden Blueprint krijgt, gaat in het kanon zitten en is daar deels beschermd tegen
+schade, tot het kanon uitgeschakeld is of hij doodgaat.
+
+Uitwerking:
+- **Engine:**
+  - Zodra de Big Gun af is, stapt de Blueprint-Blub (de `crew`, of de `engineer`
+    als er geen eigen Builder is) erin, als een `ride`. Hij beweegt niet meer en
+    bedient het kanon.
+  - Schade aan die Blub wordt verminderd met `bigGuard`%. Voorstel: 50%.
+  - Hij stapt eruit (en vecht weer gewoon) zodra het kanon op 0 HP staat
+    (`broken`), en tot een reparatie.
+  - Gaat hij KO, dan is het kanon niet bemand. Het vuurt dan minder vaak of niet,
+    en dat moet nog gebalanceerd worden.
+  - Zijn eigen wapen gebruikt hij niet. Mogelijk krijgt de Big Gun een iets kortere
+    reload zolang er iemand in zit.
+  - Hergebruik waar het kan de ride-logica van de Green Candle en de Diamond Hand
+    (`ride`, `rideOk`, `dump`, `anchored`).
+- **View:**
+  - De Blub zichtbaar in de stuurstoel of achter een schild van de Big Gun.
+  - Een schild-icoon bij zijn HP-balk zolang hij beschermd is.
+  - Bij `broken` springt hij eruit.
+  - De nieuwe 3x3-tekening heeft dezelfde lagen als het 2x2-kanon: onderstel,
+    wielen, loop met gouden band, schade, wrak en bouwfases.
+- **Balans meten:** de winkans van het team met de Blueprint (nu een gouden drop
+  met +6,7 punten winkans gemiddeld), de schade die de schutter incasseert, en hoe
+  vaak het kanon tot het einde van de ronde bemand blijft.
+
 ## Suggesties
 1. **Perks in kratten voelen zwak** (review, 24.000 rondes): WAGMI, Pump, Dev Wallet,
    Paper Hands en Gas Fees maken nauwelijks verschil (rond ±0,5 procentpunt). Sniper
@@ -69,8 +112,7 @@ winkans meten van het team dat de Diamond Hand claimt.
 
    Dit verandert de regen ook mee. Kies dus bewust, of maak er waarden speciaal
    voor kansdrops van.
-2. **De Big Gun** heeft nog zijn oude tekening, terwijl het 2x2-kanon nu
-   gedetailleerd is. Teken hem in dezelfde stijl: 3x3, met een gouden band.
+2. (De Big Gun staat nu als punt 5 hierboven.)
 3. **Bouwfase 2 van het kanon** zie je nooit, want een bouw duurt maar 2 stappen.
    Maak de bouw visueel 3 stappen, of laat fase 2 kort tussendoor zien.
 4. **De dubbelganger** van de Coin Flip wint nog 64,6% van de rondes na kop
