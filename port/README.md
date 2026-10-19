@@ -183,3 +183,37 @@ wijzigingen eerst over naar de bron en sync pas daarna.
 - `diamondDmg` 2 → 3. Het team dat hem claimt wint nu 55,5% (was 48,9%).
 - Coin Flip: de muntzijde is een doodshoofd (`FX_ART.flipcoin` frames 4–6). Alle
   teksten zeggen "Skull" in plaats van "Tails".
+
+### Big Gun: nieuwe art en een vergrendelde schutter (engine 29)
+- Nieuwe 3x3-art (`BIG_ART`, `bigImg`, `bigWheel`, `bigPut`, `BIG_STAGES`): een zwaar
+  belegeringskanon met gouden banden en mondingsrem, spaakwielen, een gepantserde
+  koepel met luik, kogels en kruitvaten. Het heeft 4 bouwfases, twee schadeniveaus,
+  een wrak en 5 richthoeken.
+- De schutter (`RULES.bigBoard: 2`, `bigManned: 4`, `bigGuard: 50`): de Blueprint-
+  Blub klimt in de afgebouwde Big Gun en zit daar LOCKED IN. Hij bedient het kanon
+  (+4 schade per schot) en krijgt 50% minder schade. Er zijn drie manieren waarop het
+  eindigt:
+  - wordt het kanon uitgeschakeld, dan wordt hij eruit geslingerd;
+  - gaat hij zelf KO, dan staat het kanon onbemand;
+  - komt de mist eraan, dan breekt hij uit en sloopt het kanon van binnenuit.
+- Events: `gunner` (in/uit) en `breakout`. View: de beats `gunin`, `breakout` en
+  `gunout`, met een close-up van het opsluiten (luik dicht, klemmen, "LOCKED IN",
+  slot-icoon) en van het uitbreken (schudden, bouten, luik eraf, rook, wrak).
+- Gemeten: het team dat de Blueprint opent wint 59,2% (was 58,6%). Bij 70% van de
+  afgebouwde kanonnen stapt de schutter in en hij blijft er gemiddeld 10 beurten in.
+  60% van de schutters breekt uit bij de mist.
+
+### Rookbom (engine 29)
+- De rookbom gaat ook af als een vijand binnen `smokeStep: 1` tegel komt. `smokeNear`
+  gaat van 2 naar 3. Hij rolt uit tot een rookmuur (`smokeWall: 5` breed,
+  `smokeDeep: 2` diep, gericht naar de vijand). 91,7% van de rookbommen gaat nu af
+  (was 57,8%). Het team met een rookbom wint 52,4%, tegen 49,7% zonder.
+- Muren die elkaar raken, worden als één bank getekend (`wallBanks`, `bankOf`,
+  `drawWallBank`): één rand, en hoger langs de naad. Als ze samenkomen verschijnt
+  "WALL OF SMOKE!". Met de huidige kit (elk object één keer per team) komt dit
+  alleen voor als er ooit meer rookbommen per team worden toegestaan.
+
+### Coin Flip (engine 29)
+- De Blub flipt de munt aan het begin van de volgende beurt (`flipBy = turn + 1`).
+  Gaat hij eerder KO, dan is de munt weg (`coinlost`). Het doodshoofd is in goud
+  gestempeld.

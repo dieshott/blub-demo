@@ -1,5 +1,8 @@
 # Volgende sessie: werkplan
 
+**Status (19 okt): punten 1 t/m 6 zijn gebouwd en live (engine 29), net als de rookbom
+met nabijheidstrigger en rookmuur. Open staan alleen nog de suggesties onderaan.**
+
 Startpunt: `main` op 35c186b (engine 28, twee reviewrondes, het nieuwe kanon).
 **Let op:** de bronrepo kent engine 28 en het nieuwe kanon nog niet. Een `npm run
 sync` overschrijft ze, tenzij ze eerst zijn overgezet (zie `port/README.md` en
