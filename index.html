@@ -3917,8 +3917,20 @@ const RULES = lock({
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // engine 7. The Smoke Pot pops at the first arrow or bullet that flies at a Blub of
   // its squad within smokeNear tiles of it; the cloud (smokeRing tiles round it) hangs
-  // for the rest of that turn and smokeTurns more.
-  smokeNear: 2, smokeRing: 1, smokeTurns: 2,
+  // for the rest of that turn and smokeTurns more. (engine 29: smokeNear 3, was 2: even with
+  // the pot out in front and the near trigger, 2 left one pot in seven never going off)
+  smokeNear: 3, smokeRing: 1, smokeTurns: 2,
+  // engine 29 (the owner): it also pops as soon as an enemy Blub comes within smokeStep
+  // tiles of it (walking past, knocked, landing there), and either way the cloud rolls
+  // out into a wall across the lane: smokeWall tiles wide along the pot's row and
+  // smokeDeep rows deep from there towards the side the enemy came from (floor only),
+  // on top of the tiles round the pot. Blubs walk through it like any smoke.
+  // Measured (6000 rounds, a pot forced into one side's kit): 92% of pots go off (58%
+  // before), a third of them by an enemy coming close; the pot's squad wins 52.4% (52.5%
+  // with another object in its place, 49.7% with none), the same either side of the
+  // arena. A wall 3 to 7 wide made no real difference to that, so it is 5, and the cloud
+  // still hangs smokeTurns (2) turns more: a defensive object, not a must-pick.
+  smokeStep: 1, smokeWall: 5, smokeDeep: 2,
   // Smoke (engine 14): an arrow or bullet that flies into a cloud, out of one or through
   // one (from farther than a tile) goes blind and hits blindHit% of the time, whatever
   // the cover (the cannon's shots alike); Smoke Goggles see through it
@@ -4298,7 +4310,8 @@ const OBJECTS = lock([
   ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
   ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
-  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. The first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it is lost in the smoke: the pot pops, and for the rest of that turn and ${RULES.smokeTurns} more a cloud hangs over it and the tiles around it. An arrow or bullet that flies into the cloud, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it.`],
+  // (engine 29: both ways it goes off, and the wall it raises)
+  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. It pops as soon as an enemy Blub comes within ${RULES.smokeStep === 1 ? 'a tile' : RULES.smokeStep + ' tiles'} of it, or at the first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it (that one is lost in the smoke). Then a wall of smoke rolls out across the lane, ${RULES.smokeWall} tiles wide and ${RULES.smokeDeep} deep towards the enemy, over the pot and the tiles around it, for the rest of that turn and ${RULES.smokeTurns} more. Blubs walk through it, but an arrow or bullet that flies into the smoke, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it.`],
   ['decoy', 'Decoy Blub', `A dummy in your colours, also out in no man's land; nobody walks through it. Enemy shooters that can hit it from 2 tiles or more take it for a Blub and shoot it first, unless an enemy stands right next to them. It falls apart after ${RULES.decoyHp} damage.`],
   ['hospital', 'Field Hospital', `A tent on your own rows; nobody walks through it. The first Blub of yours knocked out is carried to it on a stretcher, and ${RULES.hospTurns} turns later it is back on its feet beside the tent with ${RULES.hospHp} HP. (Not one that blew itself up, and not after turn ${TURNS - RULES.hospTurns - 1}, when it could not make it back in time.)`],
 ]);
@@ -5574,6 +5587,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         d.y = ny;
         occ[idx(nx, ny)] = d.id;
         push({ t: 'knock', u: u.id, d: d.id, from, to: [nx, ny] });
+        // (engine 29: knocked up to the other side's Smoke Pot, it sets it off)
+        nearPot(d, nx, ny, from[1]);
         arrive(d);
         checkOver();
       } else {
@@ -5717,6 +5732,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     // a Brawler tears through the other side's wire (engine 26): it loses the wire's HP once and walks on
     const torn = u.cls === 'fierce' ? path.slice(0, n).find((c) => wireT[c] >= 0 && wireT[c] !== u.team) : undefined;
     const end = path[n - 1];
+    // (engine 29: the row it sets off from, for which way a Smoke Pot's wall faces)
+    const fy = u.y;
     occ[idx(u.x, u.y)] = -1;
     u.x = end % SIZE;
     u.y = (end - u.x) / SIZE;
@@ -5724,6 +5741,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     u.moved = true;
     if (note) push(note);
     if (loud) push({ t: 'move', u: u.id, path: path.slice(0, n).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
+    // engine 29: every step it takes past the other side's Smoke Pot counts, not just the last
+    if (pots.length) for (let k = 0; k < n; k++) nearPot(u, path[k] % SIZE, (path[k] - (path[k] % SIZE)) / SIZE, k ? (path[k - 1] - (path[k - 1] % SIZE)) / SIZE : fy);
     if (torn !== undefined) {
       hurt(u, RULES.wireDmg, 'snag', objs.find((o) => o.k === 'wire' && o.cells.includes(torn)), { torn: 1 });
       if (!u.alive) return true;
@@ -6262,21 +6281,45 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // ---- the engine 7 trench kit
   // The Smoke Pot pops: the shot that set it off is lost, and the cloud comes up over
   // it and the tiles round it (smokeRing) for the rest of the turn and smokeTurns more.
-  function popSmoke(o, u, d) {
-    u.attacked = true;
+  // engine 29: d null when an enemy Blub (u) came too close instead, at (x, y) on its way
+  // from row fy; the cloud rolls out into a wall (smokeWall, smokeDeep) facing it
+  function popSmoke(o, u, d, x0, y0, fy) {
+    if (d) u.attacked = true;
     o.pop = true;
     o.until = now + RULES.smokeTurns;
     o.cloud = [];
     const R = RULES.smokeRing;
-    for (let y = o.at[1] - R; y <= o.at[1] + R; y++)
-      for (let x = o.at[0] - R; x <= o.at[0] + R; x++) if (inside(x, y)) o.cloud.push(idx(x, y));
+    const [px, py] = o.at;
+    for (let y = py - R; y <= py + R; y++)
+      for (let x = px - R; x <= px + R; x++) if (inside(x, y)) o.cloud.push(idx(x, y));
+    // engine 29: the wall faces the enemy: the rows from the pot's towards where it is (or
+    // came from, level with the pot; else towards the other side's end of the arena)
+    const ey = d ? u.y : y0;
+    const dir = Math.sign(ey - py) || Math.sign((d ? u.y : fy) - py) || (o.team === 0 ? -1 : 1);
+    const H = RULES.smokeWall >> 1;
+    for (let k = 0; k < RULES.smokeDeep; k++)
+      for (let x = px - H; x <= px + H; x++) {
+        const y = py + dir * k;
+        if (!inside(x, y)) continue;
+        const c = idx(x, y);
+        if (!solidTile(tiles[c]) && o.cloud.indexOf(c) < 0) o.cloud.push(c);
+      }
     for (const c of o.cloud) {
       smokeT[c]++;
       fog[c] = BLOCK;
     }
     clouds++;
     fogMemo.fill(0);
-    push({ t: 'smoke', on: 1, o: o.id, u: u.id, d: d.id, w: u.wpn, until: o.until, cells: o.cloud.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
+    const cells = o.cloud.map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]);
+    if (d) push({ t: 'smoke', on: 1, o: o.id, u: u.id, d: d.id, w: u.wpn, until: o.until, cells, dir });
+    else push({ t: 'smoke', on: 1, o: o.id, u: u.id, near: 1, at: [x0, y0], until: o.until, cells, dir });
+  }
+  // engine 29: an enemy Blub that comes within smokeStep tiles of a Smoke Pot sets it off,
+  // whatever brought it there; fy, the row it came from (no draws: nothing random in it)
+  const pots = objs.filter((o) => o.k === 'smoke');
+  function nearPot(u, x, y, fy) {
+    if (!pots.length || !u.alive || over >= 0) return;
+    for (const o of pots) if (!o.pop && o.team !== u.team && cheb(x, y, o.at[0], o.at[1]) <= RULES.smokeStep) popSmoke(o, u, null, x, y, fy);
   }
   // at the start of a turn: a cloud whose time is up lifts
   function smokeTurn(turn) {
@@ -7239,6 +7282,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     occ[c] = u.id;
     u.moved = true;
     push({ t: 'burrow', u: u.id, from, to: [u.x, u.y], why });
+    // (engine 29: coming up by the other side's Smoke Pot sets it off)
+    nearPot(u, u.x, u.y, from[1]);
   }
   // tunnelling a gem over: up beside the ally, on the side farthest from the enemy
   function tunnelTo(u, v) {
@@ -7486,6 +7531,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   function whaleTurn(e, turn) {
     if (turn !== RULES.whaleTurn) return;
     push({ t: 'whale', at: e.cells[0] });
+    const shoved = [];
     for (const team of [0, 1]) {
       const dir = team === 0 ? 1 : -1;
       const mine = U.filter((u) => u.alive && u.team === team && !anchored(u) && !u.ride).sort((a, b) => (b.y - a.y) * dir || a.id - b.id);
@@ -7501,9 +7547,14 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
           occ[c] = u.id;
           moved++;
         }
-        if (moved) push({ t: 'shove', u: u.id, to: [u.x, u.y], n: moved });
+        if (moved) {
+          push({ t: 'shove', u: u.id, to: [u.x, u.y], n: moved });
+          shoved.push([u, u.y - dir * moved]);
+        }
       }
     }
+    // (engine 29: washed up by the other side's Smoke Pot, it sets it off, once the wave is done)
+    for (const [u, fy] of shoved) nearPot(u, u.x, u.y, fy);
   }
 
   // ---- Moon Rocket. It stands on its pad from the start and lifts off on its turn
@@ -7624,6 +7675,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     const by = hit ? hit.y : y;
     for (const v of U) if (v.alive && v !== u && v !== hit && over < 0 && cheb(v.x, v.y, bx, by) <= 1) hurt(v, RULES.lamboBang, 'singed', null);
     checkOver();
+    // (engine 29: thrown out by the other side's Smoke Pot, the driver sets it off)
+    nearPot(u, u.x, u.y, from[1]);
   }
 
   // ---- Rug Pull. A tile in no man's land that looks like any other until the first
@@ -7711,6 +7764,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         u.skip = 0;
         push({ t: 'mended', u: u.id, o: g.o.id, to, hp: u.hp });
       } else push({ t: 'unrug', u: u.id, to });
+      // (engine 29: put down by the other side's Smoke Pot, it sets it off)
+      nearPot(u, u.x, u.y, u.y);
     }
   }
 
@@ -7772,6 +7827,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     occ[idx(u.x, u.y)] = u.id;
     if (d.alive && over < 0) pure(u, d, RULES.sendDmg, 'stunt');
     checkOver();
+    // (engine 29: landing by the other side's Smoke Pot sets it off)
+    nearPot(u, u.x, u.y, from[1]);
   }
 
   // ---- The contested five. Each stands on the centre line from the start, a solid
@@ -7896,6 +7953,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         occ[idx(v.x, v.y)] = v.id;
         living[v.team].push(v);
         push({ t: 'coin', u: u.id, heads: 1, c: v.id, to, hp: v.hp, ...(fall ? { fall: 1 } : {}) });
+        // (engine 29: a double that turns up by the other side's Smoke Pot sets it off)
+        nearPot(v, v.x, v.y, v.y);
         continue;
       }
       push({ t: 'coin', u: u.id, heads: heads ? 1 : 0 });
@@ -8177,6 +8236,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       p.size = 1;
       push({ t: 'grow', id: p.id, size: p.size });
     }
+    // (engine 29: up there by the other side's Smoke Pot, it sets it off)
+    nearPot(v, v.x, v.y, from[1]);
   }
   // Diamond Hands (engine 21): its Blub, up in the hand on its tower, works the gun on
   // its turn: diamondShots of diamondDmg at one enemy within diamondRange that it can
@@ -8261,6 +8322,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     push({ t: 'moon', u: v.id, id: p.id, from: [p.x, p.y], to, hit: hit.map((w) => w.id) });
     for (const w of hit) if (w.alive && over < 0) pure(v, w, RULES.candleSlam, 'slam');
     checkOver();
+    // (engine 29: landing by the other side's Smoke Pot sets it off)
+    nearPot(v, v.x, v.y, p.y);
   }
   function claimTurn(turn) {
     for (const p of props) {
@@ -8972,7 +9035,13 @@ function objectSpots(kind, units, r) {
   else if (kind === 'sandbags') spots = [...lane(10), ...lane(11), ...row(12)];
   // the smoke pot and the decoy out in front in the middle lanes (where the first
   // arrows fly), the hospital beside the shooters and medics
-  else if (kind === 'smoke') spots = [...lane(10), ...lane(11), ...row(12)];
+  // (engine 29: the pot right at the front, the three middle lanes first, where the enemy
+  // walks past it; the same draws as before, only in another order)
+  else if (kind === 'smoke') {
+    const l9 = lane(9);
+    const mid = (p) => (p[0] >= 6 && p[0] <= 8 ? 0 : 1);
+    spots = [...l9.slice(0, 5).sort((p, q) => mid(p) - mid(q)), ...l9.slice(5), ...lane(10), ...row(11)];
+  }
   else if (kind === 'hospital') spots = [...around(back), ...around(units)];
   else if (kind === 'decoy') spots = [...lane(10), ...lane(9), ...row(11)];
   else spots = [...lane(9), ...lane(10), ...row(11), ...row(12)];
@@ -13385,6 +13454,34 @@ const SquadView = (() => {
       for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) if (g[y][x] === 'k') g[y][x] = 'x';
       return g;
     }],
+    // engine 29: a lump of a Smoke Pot's wall, one on every tile it covers, 32 across so
+    // the lumps run into each other: pale billows with a blush of pink in the middle tones,
+    // piled up off the floor and lit from the top left, a seam where each sits on the next.
+    // Four looks of 8 frames: three tall ones for the wall's own rows and a low one for the
+    // tiles behind the pot; 0-3 swelling up out of the pot's puff, 4-7 churning. Its foot
+    // is at (16, 28), half a tile under the tile's middle. No ink of its own: smogWk is its
+    // outline, drawn under the whole bank first, so the bank has one edge, not one a lump.
+    smogW: [32, 32, (i) => {
+      const g = FG.grid(32);
+      const v = Math.floor(i / 8);
+      const j = i % 8;
+      const s = j < 4 ? 0.4 + j * 0.17 : 1;
+      const w = j < 4 ? 0 : Math.sin((j - 4) * 1.6 + v * 2) * 1.1;
+      const R = ['s', 'S', 'e', 'z', 'w'];
+      // [x, y, r]: the big one in the middle, one either side, one or two on top
+      const L = [
+        [[16, 19, 8], [8.5, 22, 6], [24, 21.5, 6.5], [13, 12.5, 5.5], [21, 14, 4.5]],
+        [[15.5, 18.5, 8.5], [24, 22, 6], [8, 21.5, 5.5], [19, 11.5, 5], [10.5, 14.5, 4]],
+        [[16.5, 19.5, 7.5], [9, 21, 6.5], [25, 22.5, 5.5], [15.5, 11.5, 5.5], [23, 15, 4]],
+        [[16, 20.5, 7.5], [8.5, 22.5, 5.5], [23.5, 22.5, 6], [12.5, 15, 5], [20.5, 16, 4.5]],
+      ][v];
+      L.forEach(([x, y, r], n) => FG.billow(g, 16 + (x - 16) * s + (n % 2 ? w : -w), 28 - (28 - y) * s + (n % 3 ? 0 : w * 0.5), r * s, R));
+      // the foot of the pile in its own shade, a step darker, so it sits on the floor
+      const dark = { w: 'z', z: 'e', e: 'S', S: 'S', s: 's' };
+      for (let y = 25; y < 32; y++) for (let x = 0; x < 32; x++) if (g[y][x] !== '.' && (y > 25 || (x + y) % 2)) g[y][x] = dark[g[y][x]];
+      return g;
+    }],
+    smogWk: [32, 32, (i) => FG.outline(FX_ART.smogW[2](i)).map((r) => r.map((c) => (c === '.' ? c : 'x')))],
     // The moon a Blub goes to on the rocket: a pale gold disc lit from the top left,
     // pitted with craters
     moon: [1, 48, () => {
@@ -14372,7 +14469,9 @@ const SquadView = (() => {
         return u + ' wades into the Liquidity Pool to stake.';
       // the engine 7 trench kit
       case 'smoke':
-        return e.on ? u + "'s " + (e.w === 'bow' ? 'arrow' : 'shot') + ' at ' + d + ' is lost in the smoke: ' + (ob ? lb(ob.team) + "'s" : 'a') + ' Smoke Pot pops!' : 'The smoke clears.';
+        // engine 29: an enemy walking up to the pot sets it off too, and either way a wall rolls out
+        if (e.on && e.near) return u + ' steps too close to ' + (ob ? lb(ob.team) + "'s" : 'a') + ' Smoke Pot: it pops and a wall of smoke rolls out!';
+        return e.on ? u + "'s " + (e.w === 'bow' ? 'arrow' : 'shot') + ' at ' + d + ' is lost in the smoke: ' + (ob ? lb(ob.team) + "'s" : 'a') + ' Smoke Pot pops and a wall of smoke rolls out!' : 'The smoke clears.';
       case 'decoy':
         return e.hp ? u + ' shoots ' + (ob ? lb(ob.team) + "'s" : 'the') + ' Decoy Blub (-' + e.dmg + ').' : u + ' shoots the Decoy Blub to pieces. It was a dummy all along!';
       case 'stretcher':
@@ -15513,6 +15612,11 @@ const SquadView = (() => {
     // its cloud clearing, a Decoy Blub falling apart, the stretcher on its way to the
     // tent (in at stretcherHit), and the way back out of it
     smokePop: 1100, smokeOff: 450, decoyDown: 700, stretcher: 1500, stretcherHit: 1150, mended: 1250, mendedHit: 520, grenade: 1250, grenadeHit: 420,
+    // engine 29: an enemy too close to a Smoke Pot: it rattles, spits sparks and hisses,
+    // and pops at smokeHiss; its wall rolls out a lump a tile, each swelling up over
+    // smokeLump, all of it out by smokeRoll after the pop; when it lifts it thins away
+    // over smokeFade (no beat waits on the last three)
+    smokeNear: 1650, smokeHiss: 650, smokeRoll: 720, smokeLump: 300, smokeFade: 800,
     // the chest's pill: a reading each turn, a longer one once it locks on, and the
     // graduation itself, which is the biggest single thing that happens in a round
     // nukeHit is the drop: a twitch, up off the chart, a beat of empty sky while the
@@ -15625,7 +15729,8 @@ const SquadView = (() => {
   const ROUND_BUDGET = 40000;
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
-  const KEEP_TIME = new Set(['box', 'gopen', 'gamble', 'pill', 'burst', 'oneshot', 'pillend', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
+  // (engine 29: smokenear too, a Smoke Pot an enemy walked up to rattling till it pops)
+  const KEEP_TIME = new Set(['box', 'gopen', 'gamble', 'pill', 'burst', 'oneshot', 'pillend', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'sendit', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'smokenear', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow || !!b.keep;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
@@ -16088,6 +16193,12 @@ const SquadView = (() => {
         if (t === 'smoke' || t === 'decoy') {
           if (t === 'smoke' && !e.on) {
             add({ kind: 'smokeoff', dur: MS.smokeOff, contact: 0, list: [{ ei: i, off: 0 }], e });
+            return;
+          }
+          // engine 29: an enemy came too close: the pot rattles and hisses, and pops at contact
+          if (t === 'smoke' && e.near) {
+            parent = null;
+            add({ kind: 'smokenear', dur: MS.smokeNear, contact: MS.smokeHiss, list: [{ ei: i, off: MS.smokeHiss }], e, actors: [e.u] });
             return;
           }
           const o = t === 'decoy' ? (R.objs || []).find((v) => v.id === e.o) : null;
@@ -16698,7 +16809,8 @@ const SquadView = (() => {
       // the engine 7 trench kit
       case 'smoke':
         if (e.on) {
-          S.smoke = S.smoke.concat([{ o: e.o, cells: e.cells }]);
+          // (engine 29: till when it hangs, so its last turn shows thinner)
+          S.smoke = S.smoke.concat([{ o: e.o, cells: e.cells, until: e.until, dir: e.dir }]);
           S.smokeUsed[e.o] = 1;
         } else S.smoke = S.smoke.filter((c) => c.o !== (e.g != null ? 'g' + e.g : e.o));
         break;
@@ -19001,14 +19113,251 @@ const SquadView = (() => {
     const S = P.S;
     if (!S.smoke || !S.smoke.length) return;
     const f = P.calm ? 0 : Math.floor(now / 320) % fxCount('smog');
+    // engine 29: two or more Smoke Pot walls that touch are one bank (wallBanks)
+    const banks = wallBanks(S.smoke);
     for (const c of S.smoke) {
       // (a Digger's grenade cloud has no pot: it centres on where it was thrown)
       const o = c.at ? { at: c.at } : objById(c.o);
       if (!o) continue;
       const ov = ovOf(c.o);
       const el = ov.smokeT == null ? 1e9 : t - ov.smokeT;
-      drawSmog(x, o, el < 0 ? 1 : clamp(el / 360, 0, 1), f, c.cells);
+      // engine 29: a Smoke Pot's cloud is a wall, rolling out of the pot (thinner in the
+      // last turn it hangs)
+      if (!c.at) {
+        const bank = banks.get(c);
+        if (bank) {
+          if (bank[0] === c) drawWallBank(x, bank, t, now);
+        } else drawPotWall(x, c, o, el < 0 ? 1e9 : el, ov.smokeK || 1, now, S.turn >= c.until ? 0.5 : 0.74, 0);
+      } else drawSmog(x, o, el < 0 ? 1 : clamp(el / 360, 0, 1), f, c.cells);
     }
+  }
+  // engine 29: Smoke Pot walls that touch (a tile of one beside or on a tile of another,
+  // either side's) make one bank: each wall to the list of the walls in its bank, the
+  // lowest pot first (a wall on its own is not in the map)
+  function wallBanks(list) {
+    const walls = list.filter((c) => !c.at && c.cells && c.cells.length);
+    const out = new Map();
+    if (walls.length < 2) return out;
+    const near = (a, b) => a.cells.some(([ax, ay]) => b.cells.some(([bx, by]) => Math.abs(ax - bx) <= 1 && Math.abs(ay - by) <= 1));
+    const seen = new Set();
+    for (const w of walls) {
+      if (seen.has(w)) continue;
+      const bank = [w];
+      seen.add(w);
+      for (let i = 0; i < bank.length; i++)
+        for (const v of walls) if (!seen.has(v) && near(bank[i], v)) {
+          seen.add(v);
+          bank.push(v);
+        }
+      if (bank.length < 2) continue;
+      bank.sort((a, b) => a.o - b.o);
+      for (const v of bank) out.set(v, bank);
+    }
+    return out;
+  }
+  // engine 29: the tiles of a bank of walls, worked out once for that set of walls: a lump
+  // on every tile (once, however many walls cover it), each with every wall that covers it
+  // and how many tiles out from that wall's pot it is; the seam (tiles where two walls meet:
+  // covered by two, or beside another wall's tile), where the bank stands taller; one edge
+  // round the lot; and the tiles it covers
+  function bankOf(bank) {
+    const key = bank.map((c) => c.o).join(',') + ':' + (P.flip ? 1 : 0);
+    if (bank[0].bank && bank[0].bank.key === key) return bank[0].bank;
+    const tiles = new Map();
+    bank.forEach((c, wi) => {
+      const o = objById(c.o);
+      if (!o) return;
+      for (const [tx, ty] of c.cells) {
+        const id = ty * N + tx;
+        let m = tiles.get(id);
+        if (!m) {
+          const [X, Y] = tileC(tx, ty);
+          const wall = !c.dir || ty === o.at[1] || ty === o.at[1] + c.dir;
+          m = { tx, ty, X, Y, v: wall ? (tx * 7 + ty * 3 + o.id) % 3 : 3, ph: (tx * 5 + ty * 11) % 4, by: [], seam: false };
+          tiles.set(id, m);
+        }
+        m.by.push([wi, Math.max(Math.abs(tx - o.at[0]), Math.abs(ty - o.at[1]))]);
+      }
+    });
+    const mask = new Uint8Array(N * N);
+    const has = new Set();
+    for (const m of tiles.values()) {
+      mask[m.ty * N + m.tx] = 1;
+      has.add(scr(m.tx, m.ty).join(','));
+    }
+    for (const m of tiles.values()) {
+      if (m.by.length > 1) m.seam = true;
+      else
+        for (let dy = -1; dy <= 1 && !m.seam; dy++)
+          for (let dx = -1; dx <= 1 && !m.seam; dx++) {
+            const n = tiles.get((m.ty + dy) * N + m.tx + dx);
+            if (n && n.by.some(([wi]) => wi !== m.by[0][0])) m.seam = true;
+          }
+      if (m.seam) m.v = m.v === 3 ? 0 : m.v;
+    }
+    const lumps = [...tiles.values()].sort((a, b) => a.Y - b.Y || a.X - b.X);
+    const edges = [];
+    for (const m of lumps) {
+      const [sx, sy] = scr(m.tx, m.ty);
+      const px = sx * TILE;
+      const py = TOP + sy * TILE;
+      if (!has.has(sx + ',' + (sy - 1))) edges.push(px, py, 1);
+      if (!has.has(sx + ',' + (sy + 1))) edges.push(px, py + TILE - 1, 1);
+      if (!has.has(sx - 1 + ',' + sy)) edges.push(px, py, 0);
+      if (!has.has(sx + 1 + ',' + sy)) edges.push(px + TILE - 1, py, 0);
+    }
+    bank[0].bank = { key, lumps, edges, mask };
+    return bank[0].bank;
+  }
+  // engine 29: a bank of walls, drawn as one: each lump swells up when the first wall to
+  // reach its tile gets there (each wall rolls out of its own pot as alone); the whole bank
+  // drifts and churns together; where the walls meet (the seam) a second lump stands on
+  // top, rising as the later wall arrives, with a heave that runs through the bank
+  // then; one edge round it all. Thinner once every wall in it is in its last turn.
+  function drawWallBank(x, bank, t, now) {
+    const S = P.S;
+    const B = bankOf(bank);
+    const calm = P.calm;
+    const walls = bank.map((c) => {
+      const ov = ovOf(c.o);
+      const steps = c.cells.reduce((s, [tx, ty]) => {
+        const o = objById(c.o);
+        return o ? Math.max(s, Math.abs(tx - o.at[0]), Math.abs(ty - o.at[1])) : s;
+      }, 0);
+      const k = ov.smokeK || 1;
+      return { t0: ov.smokeT == null ? -1e9 : ov.smokeT, k, gap: steps ? ((MS.smokeRoll - MS.smokeLump) / steps) * k : 0 };
+    });
+    const a = bank.every((c) => S.turn >= c.until) ? 0.5 : 0.74;
+    const id0 = +bank[0].o || 0;
+    const dx = calm ? 0 : Math.round(Math.sin(now / 1700 + id0) * 1.4);
+    const dy = calm ? 0 : Math.round(Math.sin(now / 2300 + id0 * 2) * 0.8);
+    const churn = calm ? 0 : Math.floor(now / 360);
+    // when each lump comes up, and when the seam closes (the last wall in reaches it)
+    let seamT = -1e9;
+    let out = true;
+    const at = (m) => {
+      let best = 1e12;
+      let last = -1e12;
+      for (const [wi, step] of m.by) {
+        const w = walls[wi];
+        const s0 = w.t0 + step * w.gap;
+        best = Math.min(best, s0);
+        last = Math.max(last, s0);
+      }
+      return [best, last];
+    };
+    for (const m of B.lumps) if (m.seam) seamT = Math.max(seamT, at(m)[1], ...m.by.map(([wi]) => walls[wi].t0));
+    const heave = calm ? 0 : t - seamT;
+    for (let pass = 0; pass < 2; pass++)
+      for (const m of B.lumps) {
+        const e = calm ? 1e9 : t - at(m)[0];
+        if (e < 0) {
+          out = false;
+          continue;
+        }
+        const g = calm ? 1 : e / (MS.smokeLump * walls[m.by[0][0]].k);
+        if (g < 1) out = false;
+        const fr = g < 1 ? Math.min(3, Math.floor(g * 4)) : 4 + ((churn + m.ph) % 4);
+        // the heave as the seam closes: a pixel up through the bank, out from the seam
+        const hv = heave >= 0 && heave < 520 ? Math.round(Math.sin(Math.PI * clamp((heave - (m.seam ? 0 : 120)) / 400, 0, 1)) * (m.seam ? 2 : 1)) : 0;
+        x.drawImage(fadeOf(fxFrame(pass ? 'smogW' : 'smogWk', m.v * 8 + fr), a), m.X - 16 + dx, m.Y - 20 + dy - hv);
+        // the seam stands taller: a second lump on top, rising as the walls meet
+        if (m.seam && (calm || heave >= 0)) {
+          const r = calm ? 1 : clamp(heave / 360, 0, 1);
+          const lift = Math.round(5 * r + (r < 1 ? 0 : Math.sin(now / 900 + m.ph) * 0.6));
+          x.drawImage(fadeOf(fxFrame(pass ? 'smogW' : 'smogWk', ((m.v + 1) % 3) * 8 + (r < 1 ? Math.min(3, Math.floor(r * 4)) : 4 + ((churn + m.ph + 2) % 4))), a), m.X - 16 + dx, m.Y - 20 + dy - lift - 4);
+        }
+      }
+    // a Blub in there shows as a faint outline in its colours: hidden, but not gone
+    x.globalAlpha = 0.5;
+    for (const u of S.u) if (u.alive && u._b && B.mask[u.y * N + u.x]) x.drawImage(P.spr[u.id].line[u.side], u._b.ox - 1, u._b.oy - 1);
+    x.globalAlpha = 1;
+    if (!out) return;
+    x.fillStyle = '#EEEEF5';
+    const E = B.edges;
+    for (let j = 0; j < E.length; j += 3)
+      for (let i = 1; i < TILE; i += 4) {
+        if (E[j + 2]) x.fillRect(E[j] + i, E[j + 1], 2, 1);
+        else x.fillRect(E[j], E[j + 1] + i, 1, 2);
+      }
+  }
+  // engine 29: what a Smoke Pot's wall is made of, worked out once a cloud: a lump on every
+  // tile, in the order they are drawn (the back of the screen first), each with how many
+  // tiles out from the pot it is (it rolls out a tile at a time), its look (a tall one on
+  // the wall's own rows, a low one behind the pot) and its own beat of churning; the edge
+  // of its tiles, as dashes along each side; and which tiles it covers
+  function potWallOf(c, o) {
+    if (c.wall && c.wall.flip === P.flip) return c.wall;
+    const lumps = [];
+    const has = new Set(c.cells.map(([tx, ty]) => scr(tx, ty).join(',')));
+    const edges = [];
+    const mask = new Uint8Array(N * N);
+    let steps = 0;
+    for (const [tx, ty] of c.cells) {
+      const [X, Y] = tileC(tx, ty);
+      const step = Math.max(Math.abs(tx - o.at[0]), Math.abs(ty - o.at[1]));
+      steps = Math.max(steps, step);
+      mask[ty * N + tx] = 1;
+      const wall = !c.dir || ty === o.at[1] || ty === o.at[1] + c.dir;
+      lumps.push({ X, Y, step, v: wall ? (tx * 7 + ty * 3 + o.id) % 3 : 3, ph: (tx * 5 + ty * 11) % 4 });
+      // its sides with no smoke beyond them: x, y, along x? (three numbers a side)
+      const [sx, sy] = scr(tx, ty);
+      const px = sx * TILE;
+      const py = TOP + sy * TILE;
+      if (!has.has(sx + ',' + (sy - 1))) edges.push(px, py, 1);
+      if (!has.has(sx + ',' + (sy + 1))) edges.push(px, py + TILE - 1, 1);
+      if (!has.has(sx - 1 + ',' + sy)) edges.push(px, py, 0);
+      if (!has.has(sx + 1 + ',' + sy)) edges.push(px + TILE - 1, py, 0);
+    }
+    lumps.sort((a, b) => a.Y - b.Y || a.X - b.X);
+    c.wall = { flip: P.flip, lumps, edges, steps, mask };
+    return c.wall;
+  }
+  // engine 29: draw the wall `el` ms after it popped (k: the beat's pace): each lump
+  // swells up in turn, a tile further out every gap; the whole bank drifts a pixel or so
+  // (all together, so the dither's gaps line up and a Blub in there still shows through
+  // them); a: how thick it is; q, 0 to 1 as it dissolves when it lifts (the ends first,
+  // each lump rising a little as it thins). The lumps' outlines go down first, then the
+  // lumps over them, so the bank has one edge.
+  function drawPotWall(x, c, o, el, k, now, a, q) {
+    const W = potWallOf(c, o);
+    const calm = P.calm;
+    const gap = W.steps ? (MS.smokeRoll - MS.smokeLump) / W.steps : 0;
+    const dx = calm ? 0 : Math.round(Math.sin(now / 1700 + o.id) * 1.4);
+    const dy = calm ? 0 : Math.round(Math.sin(now / 2300 + o.id * 2) * 0.8);
+    const churn = calm ? 0 : Math.floor(now / 360);
+    let out = true;
+    const L = W.lumps;
+    for (let pass = 0; pass < 2; pass++)
+      for (let i = 0; i < L.length; i++) {
+        const m = L[i];
+        const e = el - m.step * gap * k;
+        if (e < 0) {
+          out = false;
+          continue;
+        }
+        const g = calm ? 1 : e / (MS.smokeLump * k);
+        if (g < 1) out = false;
+        const fr = g < 1 ? Math.min(3, Math.floor(g * 4)) : 4 + ((churn + m.ph) % 4);
+        // dissolving: the ends go first
+        const mq = q > 0 ? clamp(q * 1.7 - (1 - m.step / Math.max(1, W.steps)) * 0.7, 0, 1) : 0;
+        if (mq >= 1) continue;
+        x.drawImage(fadeOf(fxFrame(pass ? 'smogW' : 'smogWk', m.v * 8 + fr), a * (1 - mq)), m.X - 16 + dx, m.Y - 20 + dy - Math.round(mq * 4));
+      }
+    if (q > 0) return;
+    // a Blub in there shows as a faint outline in its colours: hidden, but not gone
+    x.globalAlpha = 0.5;
+    for (const u of P.S.u) if (u.alive && u._b && W.mask[u.y * N + u.x]) x.drawImage(P.spr[u.id].line[u.side], u._b.ox - 1, u._b.oy - 1);
+    x.globalAlpha = 1;
+    // the edge of its tiles (they decide which shots fly), once it is all out
+    if (!out) return;
+    x.fillStyle = '#EEEEF5';
+    const E = W.edges;
+    for (let j = 0; j < E.length; j += 3)
+      for (let i = 1; i < TILE; i += 4) {
+        if (E[j + 2]) x.fillRect(E[j] + i, E[j + 1], 2, 1);
+        else x.fillRect(E[j], E[j + 1] + i, 1, 2);
+      }
   }
   function drawSmog(x, o, a, f, cells) {
     const [cx, cy] = tileC(o.at[0], o.at[1]);
@@ -19096,6 +19445,32 @@ const SquadView = (() => {
     }
     if (b.kind === 'mended') {
       P.actors = [e.u];
+      return true;
+    }
+    // engine 29: an enemy came too close to a Smoke Pot: it rattles on the spot (drawObj),
+    // its fuse spits sparks and a hiss of smoke curls up off it, HSSS, and the Blub that set
+    // it off starts; it pops at the beat's contact (fx 'smoke')
+    if (b.kind === 'smokenear') {
+      const o = objById(e.o);
+      if (!o) return true;
+      const ov = ovOf(e.o);
+      const hiss = b.contact * k;
+      ov.ratT = T;
+      ov.ratDur = hiss;
+      const fx0 = o.px + 11;
+      const fy0 = o.py;
+      for (let j = 0; j * 100 * k < hiss; j++) addParts(3, fx0, fy0, ['#FFD447', '#FFFFFF', '#FF8A3D'], 0.07, 0.0004, 240 * k, T + j * 100 * k, true, [Math.PI * 1.15, Math.PI * 1.85]);
+      for (let j = 0; j * 150 * k < hiss; j++) {
+        const sway = j % 2 ? 1 : -1;
+        addFx(T + j * 150 * k, 520 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(fx0 - 8 + Math.sin(kk * 5) * 2 * sway), Math.round(fy0 - 10 - kk * 12)));
+      }
+      label(T, 'HSSS', '#EEEEF5', o.px + 8, above(o.py - 12), true);
+      const u = S.u[e.u];
+      if (u) {
+        const [ux, uy] = centreOf(u);
+        label(T + 120 * k, '!', '#FFD447', ux, above((u._b ? u._b.oy : uy - 13) - 4));
+      }
+      sfx('fuse');
       return true;
     }
     return b.kind === 'smokeoff';
@@ -19561,7 +19936,23 @@ const SquadView = (() => {
         x.drawImage(a.c, sx, 0, 3, a.c.height, X + a.ox + sx, Y + a.oy + off, 3, a.c.height);
       }
     } else if (rock >= 0 && rock < 420) x.drawImage(a.c, X + a.ox + Math.round(Math.sin(rock / 35) * 2 * (1 - rock / 420)), Y + a.oy);
-    else x.drawImage(a.c, X + a.ox, Y + a.oy);
+    else if (o.k === 'smoke' && ov && ov.ratT != null && !P.calm && t >= ov.ratT && t < ov.ratT + ov.ratDur) {
+      // engine 29: an enemy too close: the pot rattles on the spot, a hop now and then,
+      // its fuse fizzing fast, till it pops
+      const r = t - ov.ratT;
+      const rx = Math.floor(r / 45) % 2 ? 1 : -1;
+      const ry = Math.floor(r / 45) % 3 === 2 ? -1 : 0;
+      x.drawImage(a.c, X + a.ox + rx, Y + a.oy + ry);
+      if (layer === 'back') {
+        const hot = Math.floor(r / 60) % 2;
+        x.fillStyle = hot ? '#FFFFFF' : colors.gold;
+        x.fillRect(X + 10 + rx, Y + ry, 2, 2);
+        x.fillStyle = hot ? colors.gold : '#FF8A3D';
+        x.fillRect(X + 11 + rx + (hot ? 1 : 0), Y - 1 + ry, 1, 1);
+        x.fillRect(X + 9 + rx, Y - (hot ? 2 : 1) + ry, 1, 1);
+      }
+      return;
+    } else x.drawImage(a.c, X + a.ox, Y + a.oy);
     if (layer !== 'back') return;
     if (o.k === 'smoke' && !P.S.smokeUsed[o.id]) {
       // the fuse's spark
@@ -19747,6 +20138,8 @@ const SquadView = (() => {
     const shot = shotAt(t);
     if (shot && !P.buf) P.buf = canvas(CW, CH);
     const x = shot ? P.buf.getContext('2d') : P.ctx;
+    // (engine 29: the frame's time, for effects that drift with it, as the Smoke Pot's wall thinning away)
+    P.rnow = now;
     const S = P.S;
     freshCtx(x);
     x.fillStyle = '#120A1C';
@@ -22142,10 +22535,85 @@ const SquadView = (() => {
         if (!o) return;
         const [cx, cy] = tileC(o.at[0], o.at[1]);
         if (!e.on) {
+          // engine 29: a pot's wall thins away in a dither, its ends first
+          const on = e.g == null && P.rd && P.rd.R ? P.rd.R.ev.find((v) => v.t === 'smoke' && v.on && v.o === e.o) : null;
+          if (on) {
+            const c = { o: e.o, cells: on.cells, until: on.until, dir: on.dir };
+            addFx(T, MS.smokeFade * k, (x, kk) => drawPotWall(x, c, o, 1e9, 1, P.rnow || 0, 0.5, Math.max(0.001, kk)));
+            return;
+          }
           addFx(T, MS.smokeOff * k, (x, kk, el) => drawSmog(x, o, 1 - kk, Math.floor(el / 320) % fxCount('smog'), null));
           return;
         }
-        ovOf(e.o).smokeT = T;
+        const ov = ovOf(e.o);
+        ov.smokeT = T;
+        // engine 29: the wall rolls out of it (drawPotWall), a puff running ahead along the
+        // pot's row each way to where it ends
+        ov.smokeK = k;
+        // engine 29: rolling into a wall that is already up, the two close into one bank:
+        // a burst of puffs along the seam as it closes, and WALL OF SMOKE! over it
+        const meet = (S.smoke || []).filter((c) => !c.at && c.o !== e.o && c.cells && c.cells.some(([ax, ay]) => e.cells.some(([bx, by]) => Math.abs(ax - bx) <= 1 && Math.abs(ay - by) <= 1)));
+        if (meet.length && e.cells) {
+          const seam = e.cells.filter(([ax, ay]) => meet.some((c) => c.cells.some(([bx, by]) => Math.abs(ax - bx) <= 1 && Math.abs(ay - by) <= 1)));
+          const far = Math.max(1, ...e.cells.map(([tx, ty]) => Math.max(Math.abs(tx - o.at[0]), Math.abs(ty - o.at[1]))));
+          let sx = 0;
+          let sy = 0;
+          seam.forEach(([tx, ty], j) => {
+            const [px, py] = tileC(tx, ty);
+            sx += px / seam.length;
+            sy += py / seam.length;
+            const step = Math.max(Math.abs(tx - o.at[0]), Math.abs(ty - o.at[1]));
+            const when = T + ((MS.smokeRoll - MS.smokeLump) * (step / far) + MS.smokeLump) * k;
+            for (const s of [-1, 1]) addFx(when + j * 20 * k, 520 * k, (x2, kk, el) => x2.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(px - 8 + s * (2 + (el * 0.03) / k)), Math.round(py - 14 - (el * 0.02) / k)));
+          });
+          const close = T + MS.smokeRoll * k;
+          label(close, 'WALL OF SMOKE!', '#FFFFFF', Math.round(sx), above(Math.round(sy) - 26), true);
+          ringFx(close, Math.round(sx), Math.round(sy) + 2, 420 * k, '#EEEEF5', 3, 22, false, 0.5);
+          atClock(close, () => sfx('thud'));
+        }
+        for (const side of [-1, 1]) {
+          let far = 0;
+          for (const [tx, ty] of e.cells) if (ty === o.at[1] && (tx - o.at[0]) * side > far) far = (tx - o.at[0]) * side;
+          if (!far) continue;
+          const [ex] = tileC(o.at[0] + side * far, o.at[1]);
+          addFx(T + 40 * k, (MS.smokeRoll - 60) * k, (x, kk) => {
+            const q = 1 - (1 - kk) * (1 - kk);
+            x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(lerp(cx, ex, q)) - 8, cy - 14 + Math.round(Math.sin(kk * 9) * 1.5));
+          });
+        }
+        // an enemy too close: POP, the lid flies off, a flash of white and a burst of
+        // puffs all round, a ring rolling out over the floor
+        if (e.near) {
+          const fl = o.px + 8 > CW / 2 ? -1 : 1;
+          addFx(T, 600 * k, (x, kk) => {
+            const X = Math.round(cx + fl * kk * 12);
+            const Y = Math.round(cy - 8 - Math.sin(kk * Math.PI) * 16 + kk * 10);
+            x.fillStyle = INK;
+            x.fillRect(X - 3, Y - 1, 6, 3);
+            x.fillStyle = '#C9C9D6';
+            x.fillRect(X - 2, Y, 4, 1);
+            x.fillStyle = '#FFFFFF';
+            x.fillRect(X - 2, Y, 1, 1);
+          });
+          addFx(T, 150 * k, (x, kk) => {
+            const r = 3 + Math.round(kk * 6);
+            x.fillStyle = '#FFFFFF';
+            x.fillRect(cx - r, cy - 6, 2 * r + 1, 3);
+            x.fillRect(cx - 1, cy - 5 - r, 3, 2 * r + 1);
+            x.fillRect(cx - r + 2, cy - 7 - r + 2, 2 * r - 3, 2 * r - 3);
+          });
+          for (let j = 0; j < 10; j++) {
+            const a = (j / 10) * Math.PI * 2;
+            addFx(T + j * 14 * k, 560 * k, (x, kk, el) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(cx - 8 + Math.cos(a) * (3 + (el * 0.036) / k)), Math.round(cy - 10 + Math.sin(a) * (2 + (el * 0.022) / k))));
+          }
+          addParts(10, cx, cy - 4, ['#FFFFFF', '#EEEEF5', '#C9C9D6', '#FFE3EA'], 0.09, 0.0002, 420 * k, T, true);
+          ringFx(T, cx, cy + 2, 440 * k, '#EEEEF5', 4, 28, false, 0.6);
+          ringFx(T + 90 * k, cx, cy + 2, 380 * k, '#FFE3EA', 3, 18, false, 0.5);
+          label(T, 'POP!', '#FFFFFF', cx, above(cy - 22), true);
+          shake(T);
+          sfx('thud');
+          return;
+        }
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
         for (let j = 0; j < 8; j++) {
