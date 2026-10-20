@@ -540,6 +540,8 @@ body.no-scroll{overflow:hidden}
 /* Round info (engine 27): one small toggle above the arena, closed by default; its
    panel opens over the board and says what the round adds */
 .sqv-info{grid-area:info;position:relative;z-index:5;display:flex;justify-content:flex-start;padding:3px 8px 0;min-width:0}
+/* a match under older rules: no rounds, so no Round info (its place kept) */
+.sqv-info[hidden]{display:flex;visibility:hidden}
 .sqv-ib{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:2px 8px 2px 10px;background:#2B1D3F;border:2px solid #000;cursor:pointer;
   box-shadow:inset 0 -3px 0 #E2566E;font-family:var(--f-display);font-size:8px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;color:#F6EEFF}
 .sqv-ib .sqv-bt{display:inline;font:inherit}
@@ -675,8 +677,6 @@ body.no-scroll{overflow:hidden}
 .sqv-pk{font-family:var(--f-display);font-size:7px;line-height:1.6;color:var(--ink-soft,#B9A9D6);text-transform:uppercase;letter-spacing:.08em}
 .sqv-pu strong{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.5;color:#fff}
 .sqv-pd{font-family:var(--f-data);font-size:17px;line-height:1.05;color:#D9CDEA}
-/* the perks as the round starts: in the middle, clear of both crates, green and red */
-.sqv-ban.perks{top:50%}
 .sqv-pu.perk.good{box-shadow:inset 4px 0 0 #4FB36B}
 .sqv-pu.perk.bad{box-shadow:inset 4px 0 0 #E2566E}
 .sqv-pu.perk.good .sqv-pk{color:#9FE3A8}.sqv-pu.perk.bad .sqv-pk{color:#FF9AA8}
@@ -3806,7 +3806,9 @@ const SquadEngine = (() => {
 // is made, team B looks at the board turned around too, so neither side is
 // favoured by the order tiles happen to be numbered in.
 
-const SQUAD_ENGINE = 29;
+// (engine 29: the other session's line, recovered from the demo build; engine 30: the Pop
+// Mine pair and the cleanSquad slide of our engine 28 on top, and the `rules` argument)
+const SQUAD_ENGINE = 30;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -3846,7 +3848,8 @@ function rng(seed) {
 }
 // every round has its own random streams: 1 the arena, 2 the fight, 3 the power-up,
 // 4 the chest (preRoll: which events fall, where and when, and each team's buff and nerf),
-// 5 the chest's effects, 6 the supply drops of a rainy round (DROP_SALT)
+// 5 the chest's effects, 6 the supply drops of a rainy round (DROP_SALT), 7 the chance
+// drops (BOX_SALT), 8 the Gambler's wheel (GAMBLE_SALT)
 function subSeed(seed, round, salt) {
   let h = (seed | 0) ^ Math.imul(round + 1, 0x9e3779b1) ^ Math.imul(salt, 0x85ebca77);
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
@@ -3910,10 +3913,15 @@ const RULES = lock({
   wireDmg: 3, wireAvoid: 2, wireTake: 25,
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
-  // the Pop Mine (engine 13: one strong mine instead of three small ones): mineDmg on
-  // the enemy that steps on it, mineSplash on its squad beside it; it always lies on
-  // clear ground (the ground makes way)
-  mineDmg: 10, mineSplash: 4,
+  // the Pop Mine (engine 13: one strong mine instead of three small ones; engine 30, the
+  // owner: two strong mines side by side, a tile between them, each going off once):
+  // mineDmg on the enemy that steps on one, mineSplash on its squad beside it; they always
+  // lie on clear ground (the ground makes way). Tuned in the lab (19 Oct 2026, on our
+  // engine 28, designed field): 16/3 gives the pair an average gain of +1.5 (the objects'
+  // mean +0.1), +8.7 against melee-heavy rivals and +10.3 against a Charge rush, +2.6 at
+  // worst (shooter-heavy rivals); 18/2 made it a must-have (+2.1), 14/2 missed the strong
+  // case (+7.4); it never hurts its own side, so it has no bad case to bring
+  mineDmg: 16, mineSplash: 3,
   ammo: 1, // Blubs that start next to the ammo crate hit this much harder
   // engine 7. The Smoke Pot pops at the first arrow or bullet that flies at a Blub of
   // its squad within smokeNear tiles of it; the cloud (smokeRing tiles round it) hangs
@@ -4036,14 +4044,14 @@ const RULES = lock({
   // clear line, rayDmg, and raySplash on every enemy beside the one it hits.
   rayRange: 5, rayDmg: 8, raySplash: 2,
   // Coin Flip: a golden coin for the Blub nearest the crate (never the Boom Pack). It
-  // flips it at the start of the next turn (engine 29; coinAt and coinBy, the old 'in
-  // trouble' moment and deadline, are no longer used). Heads (a Blub's
-  // head): a doppelganger of it joins the squad beside it, full HP, the same build (no
-  // trench job), coinHp more HP than its Blub and a bubble shield: a golden double.
+  // flips it at the start of its next turn (engine 29, whatever its HP; the old 'in
+  // trouble' moment and deadline, coinAt and coinBy, went in engine 30). Heads (a Blub's
+  // head): a doppelganger of it joins the squad beside it, the same build (no trench
+  // job), coinHp more HP than its Blub and a bubble shield: a golden double.
   // Skull (its other side, tails before engine 29): the Blub that flipped it is out of
   // the round. Each as likely, from the chest's own stream. Knocked out before it has
   // flipped it, the coin is lost (engine 29: it used to be flipped as it went down).
-  coinAt: 35, coinBy: 8, coinHp: 18,
+  coinHp: 18,
   // Pizza Phone: an old golden phone for the Blub nearest the crate. As the fight starts
   // it calls for a pizza, and on turn pizzaTurn a white delivery van that has seen
   // better days comes along the squad's back edge and puts the box down on a free tile
@@ -4326,7 +4334,7 @@ const OBJECTS = lock([
   ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit. A Brawler tears through: it loses the ${RULES.wireDmg} HP and walks on.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
-  ['mines', 'Pop Mine', `One hidden mine, also out in no man's land. The first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
+  ['mines', 'Pop Mine', `Two hidden mines side by side, a tile between them, also out in no man's land. Each goes off once: the first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
   ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
   // (engine 29: both ways it goes off, and the wall it raises)
@@ -4340,7 +4348,7 @@ const OBJECT_STATS = lock({
   wire: { cells: [-2, -1, 0, 1, 2], stand: 1, out: 1 },
   mortar: { cells: [0], solid: 1 },
   trench: { cells: [-1, 0, 1], stand: 1 },
-  mines: { cells: [0], out: 1 },
+  mines: { cells: [0, 2], out: 1 },
   crate: { cells: [0], solid: 1 },
   shaft: { cells: [0], stand: 1 },
   smoke: { cells: [0], stand: 1, out: 1 },
@@ -4441,8 +4449,9 @@ const GOLDS = lock([
   ['pill', 'Pump.fun Pill', `A green and white capsule, the Bonding Curve Nuke's little sister. Your rifle Blub takes it (else a Scope Rifle, else your hardest hitter, and it comes with a rifle). When the enemy comes within ${RULES.pillNear} tiles it swallows it and goes berserk: it rushes up to ${RULES.pillDash} tiles into their ground and sprays round after round until it has done ${RULES.pillMin}% to ${RULES.pillMax}% of a Blub's HP in damage. Then they shoot it down, one shot.`],
   // (engine 29: the Blub on the phone throws slices, and the badly hurt walk further for one)
   ['pizza', 'Pizza Phone', `An old golden phone. The moment it is opened your Blub calls for a pizza, and ${RULES.pizzaWait} turns later (in turn ${RULES.pizzaTurn} at the earliest) a battered white delivery van pulls up along your back edge and drops the box on your own rows. ${RULES.pizzaSlices} slices of ${RULES.pizzaHp} HP for the whole squad. Your Blub on the phone keeps a stack of them on it: at the start of each of its turns it throws one to whoever is hurt worst within ${RULES.pizzaToss} tiles at ${RULES.pizzaAt}% HP or less (itself too), and still gets its turn. A Blub at ${RULES.pizzaAt}% HP or less with nobody to fight walks back to the box for one (at ${RULES.pizzaLow}% or less from up to two moves away, over two turns), and one that starts its turn beside the box grabs one on its way. Eaten up, the box goes.`],
-  // (the coin's other side is a skull, engine 29: the texts say so)
-  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate, kept for when it is in trouble: it flips it at the start of the next turn, and if it is knocked out before that, the coin is lost. Heads, a Blub's head: a doppelganger of it joins your squad right beside it, full HP, the same build (but no trench job). Skull: the Blub that flipped it is out of the round. Fifty-fifty.`],
+  // (the coin's other side is a skull, engine 29; engine 30: flipped at the start of its
+  // next turn, coinHp more HP, the texts say so)
+  ['coin', 'Coin Flip', `A golden coin for the Blub nearest the crate: it flips it at the start of its next turn, and if it is knocked out before that, the coin is lost. Heads, a Blub's head: a golden double of it joins your squad right beside it, with ${RULES.coinHp} more HP than its Blub and a bubble shield, the same build (but no trench job). Skull: the Blub that flipped it is out of the round. Fifty-fifty.`],
   ['raygun', 'Ray Gun', `The ray gun. A Blub that fights from mid range trades its weapon for it (else one from long range, else one from close by): it fires blobs of blue slime ${RULES.rayRange} tiles, ${RULES.rayDmg} damage, and the slime splashes ${RULES.raySplash} on every enemy beside its target.`],
   ['shiba', 'Shiba Inu', `A cage, and a very angry Shiba Inu in it. The moment it is opened its Blub lets it out, and at the end of every turn it runs up to ${RULES.shibaRun} tiles at the enemy your squad is going for and bites: ${RULES.shibaDmg} damage, and that Blub dodges ${RULES.shibaShake}% less till its next turn is over. After ${RULES.shibaBites} bites it trots back, very pleased with itself. Too quick for anybody to hit.`],
   ['blueprint', 'Big Gun Blueprint', `A golden hard hat and a blueprint. A Blub with no trench job becomes a Builder too (+${RULES.workHp} HP) and keeps its weapon. With your own Builder the two build a 3x3 Big Gun together, a stage each a turn: every ${RULES.bigReload} turns it fires at the nearest enemy within ${RULES.bigRange} tiles, ${RULES.bigDmg} damage and ${RULES.bigSplash} on everyone beside it, behind a wall of three sandbags. Once it is built your golden Builder climbs in and the hatch is clamped shut: LOCKED IN. It works the gun (+${RULES.bigManned} a hit) and takes ${RULES.bigGuard}% less damage, and it only gets out when the gun is knocked out, or when the pink mist comes for it: then it breaks out, wrecking the gun from the inside. On its own it builds the 2x2 cannon: it shells what comes and its wall covers the squad.`],
@@ -4581,23 +4590,46 @@ function cleanSquad(raw) {
   // the trench kit: up to two different objects on the squad's own rows
   const rawObjs = raw.objs === undefined ? [] : raw.objs;
   if (!Array.isArray(rawObjs) || rawObjs.length > OBJECTS_MAX) return null;
-  const objs = [];
   const kinds = new Set();
   const used = new Set();
+  const list2 = [];
   for (const o of rawObjs) {
     // an object out of the kit for now: the squad simply goes without it
     if (o && typeof o === 'object' && OBJECTS_OFF.includes(o.k)) continue;
     if (!o || typeof o !== 'object' || !has(OBJECTS, o.k) || kinds.has(o.k)) return null;
-    const cells = objCells(o);
-    if (!cells) return null;
-    for (const [cx, cy] of cells) {
-      const c = idx(cx, cy);
-      if (used.has(c) || (!OBJECT_STATS[o.k].stand && taken.has(c))) return null;
-      used.add(c);
-    }
+    const S = OBJECT_STATS[o.k];
+    if (!Number.isInteger(o.x) || !Number.isInteger(o.y) || o.x < 0 || o.x >= SIZE || !(S.out ? OBJECT_ROWS : DEPLOY_ROWS).includes(o.y)) return null;
     kinds.add(o.k);
-    objs.push({ k: o.k, x: o.x, y: o.y });
+    list2.push({ k: o.k, x: o.x, y: o.y });
   }
+  const free = (k, cells) => cells && cells.every(([cx, cy]) => !used.has(idx(cx, cy)) && (OBJECT_STATS[k].stand || !taken.has(idx(cx, cy))));
+  const claim = (cells) => cells.forEach(([cx, cy]) => used.add(idx(cx, cy)));
+  // The one-piece objects as placed, and the first tile of each pair (engine 30: the Pop
+  // Mine takes a tile and the one two along): all as before. Then each pair's second
+  // tile. A pair saved before engine 30 may have it off the arena or on something else:
+  // then the pair moves left along its row (or else right) to the first place where both
+  // its tiles are free; with none, the squad goes without it.
+  const pair = (o) => OBJECT_STATS[o.k].cells.length === 2;
+  for (const o of list2) {
+    const cells = pair(o) ? [[o.x, o.y]] : objCells(o);
+    if (!free(o.k, cells)) return null;
+    claim(cells);
+  }
+  for (const o of list2) {
+    if (!pair(o)) continue;
+    used.delete(idx(o.x, o.y));
+    const tries = [];
+    for (let x = o.x; x >= 0; x--) tries.push(x);
+    for (let x = o.x + 1; x < SIZE; x++) tries.push(x);
+    const x = tries.find((x) => free(o.k, objCells({ k: o.k, x, y: o.y })));
+    if (x === undefined) {
+      o.drop = true;
+      continue;
+    }
+    o.x = x;
+    claim(objCells(o));
+  }
+  const objs = list2.filter((o) => !o.drop).map((o) => ({ k: o.k, x: o.x, y: o.y }));
   if (!zoneOpen(objs)) return null;
   // the captain's command (none is fine too)
   const cmd = raw.cmd === undefined || raw.cmd === '' ? '' : raw.cmd;
@@ -4807,7 +4839,17 @@ function lineOfSight(tiles, ax, ay, bx, by) {
 // from (CHEST_POOL by default; tests of the events out for now pass EVENTS). `drops`:
 // a rainy round's supply drops (true); 'dry' draws and tells them but leaves their
 // effects out, false leaves them out altogether (both for tests and balance runs).
-function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_ON, drops = true) {
+// `rules` (engine 30, the start of a rule set: each unpredictable element is to become
+// switchable per competition): { perks } the old crate for the whole squad as the round
+// starts (RULES.teamCrate), { chance } the chance drops (RULES.chancePct > 0; off, their
+// draws still roll, so nothing else changes, but no crate comes down), { fetch } a chance
+// drop's crate landing near its Blub for its squad to fetch (RULES.boxFetch). Left out,
+// each is as RULES has it; nothing in the pages passes it yet.
+function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_ON, drops = true, rules = {}) {
+  const rs = rules || {};
+  const perksOn = rs.perks !== undefined ? !!rs.perks : RULES.teamCrate;
+  const chanceOn = rs.chance !== undefined ? !!rs.chance : RULES.chancePct > 0;
+  const fetchOn = rs.fetch !== undefined ? !!rs.fetch : RULES.boxFetch;
   const r = rng(subSeed(seed, round, 2));
   // makeMap builds a fresh arena every call: this round may dig objects into it
   const { theme, tiles } = makeMap(seed, round);
@@ -4840,7 +4882,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // comes from EFFECT_SALT, which leaves the fight's own stream untouched: the same
   // match with the chest off rolls bit for bit the same, and balance can compare them.
   // (a list of events instead of true: the chest draws from that pool, e.g. all of EVENTS)
-  const spin = chest ? chestSpin(seed, round, Array.isArray(chest) ? chest : CHEST_POOL) : null;
+  const spin = chest ? chestSpin(seed, round, Array.isArray(chest) ? chest : CHEST_POOL, perksOn) : null;
   const cr = rng(subSeed(seed, round, EFFECT_SALT));
   const meme = [0, 1].map((t) => (spin ? { buff: spin.teams[t].buff, nerf: spin.teams[t].nerf, gold: spin.teams[t].gold || null, turn: spin.teams[t].turn, opened: 0 } : { buff: null, nerf: null, gold: null, turn: 0, opened: 0 }));
   // the Alpha Leak: the chest's for a squad, or a supply drop's from the turn it lands
@@ -4981,8 +5023,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         }
       const at = free.length ? free[Math.floor(cr() * free.length)] : null;
       // (engine 28: drawn as ever, so the effects' stream rolls the same, but only put
-      // down with RULES.teamCrate on)
-      if (!RULES.teamCrate) continue;
+      // down with RULES.teamCrate on, or `rules.perks`)
+      if (!perksOn) continue;
       const squad = U.filter((u) => u.team === t);
       const by = !at ? null : goldBy(t, meme[t].gold, at) || squad.reduce((a, b) => (cheb(b.x, b.y, at[0], at[1]) < cheb(a.x, a.y, at[0], at[1]) ? b : a));
       crates[t] = { at, by };
@@ -5017,7 +5059,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   const pizzaAt = (c) => pizzas.some((z) => z && z.c === c);
   const start = U.map((u) => ({ u: u.id, team: u.team, cap: u.id === u.team * TEAM, cls: u.cls, wpn: u.wpn, gear: u.gear, pow: u.pow, tac: u.tac, stn: u.stn, x: u.x, y: u.y, hp: u.hp, max: u.max, mv: u.move, bubble: u.bubble, ...(u.bench ? { bench: 1, of: u.of } : {}) }));
   push({ t: 'round', n: round + 1, theme, weather, powerup, chest: spin });
-  if (spin && RULES.teamCrate)
+  if (spin && perksOn)
     for (const t of [0, 1]) {
       const m = meme[t];
       if (!crates[t]) continue;
@@ -6924,7 +6966,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (c === CENTRE || c === rug || c === honey || cats.includes(c) || padAt.includes(c) || pizzaAt(c) || boxOn(c)) return false;
     if ((item && idx(item.x, item.y) === c) || props.some((p) => p.c === c) || (lambo && lambo.at === c)) return false;
     if (crater && crater.cells.indexOf(c) >= 0) return false;
-    return !objs.some((o) => o.k === 'smoke' && o.cells[0] === c);
+    return !objs.some((o) => o.k === 'smoke' && o.cells.indexOf(c) >= 0);
   }
   // tiles a Builder may put something solid on: free floor with nobody on it, and the
   // arena still one piece with all of them built on
@@ -8770,7 +8812,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // engine 29: a Blub a crate can fall straight onto (boxFetch off): not one up on a Green
   // Candle or in the Diamond Hand, nor a Gambler still at its wheel
   // (nor the Big Gun's gunner, locked in its cupola)
-  const boxLands = (v) => RULES.boxFetch || (!v.ride && !v.gun && !(v.pow === 'gambler' && gambling(v)));
+  const boxLands = (v) => fetchOn || (!v.ride && !v.gun && !(v.pow === 'gambler' && gambling(v)));
   function boxTurn(turn) {
     for (const t of [0, 1]) {
       const rolls = [];
@@ -8778,7 +8820,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       const a = boxR();
       const b = boxR();
       const c = boxR();
-      if (boxes[t] || over >= 0) continue;
+      // (engine 30: `rules.chance` off, the draws above roll all the same, and nothing lands)
+      if (boxes[t] || over >= 0 || !chanceOn) continue;
       // (engine 29: the first of the squad that rolled one and that it can land on; the
       // draws above are the same whoever that is, or if it is nobody this turn)
       let u = null;
@@ -8788,7 +8831,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
       if (!u) continue;
       // (engine 29: boxFetch off, it comes down on the Blub's own tile)
-      const at = RULES.boxFetch ? boxSpot(u, turn, a) : [u.x, u.y];
+      const at = fetchOn ? boxSpot(u, turn, a) : [u.x, u.y];
       if (!at) continue;
       // (a golden one is kept for this crate: the next its squad has not had, engine 28)
       const gold = boxGold[t] && goldFor(t, boxGold[t]);
@@ -8797,7 +8840,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       const list = good ? DROP_GOOD : DROP_BAD;
       const k = { team: t, x: at[0], y: at[1], c: idx(at[0], at[1]), good, gold, kind: gold ? null : list[Math.floor(c * list.length)], by: null, done: false, turn };
       boxes[t] = k;
-      if (!RULES.boxFetch) {
+      if (!fetchOn) {
         dropBox(u, k, turn);
         continue;
       }
@@ -9146,7 +9189,9 @@ function randomSquad(r) {
     const kind = kinds.splice(Math.floor(r() * kinds.length), 1)[0];
     for (const at of objectSpots(kind, units, r)) {
       const o = { k: kind, x: at[0], y: at[1] };
-      if (cleanSquad({ units, objs: [...objs, o] })) {
+      // (just where it was put: never a pair cleanSquad would move)
+      const c = cleanSquad({ units, objs: [...objs, o] });
+      if (c && c.objs && c.objs.length === objs.length + 1 && [...objs, o].every((q, i) => c.objs[i].x === q.x && c.objs[i].y === q.y)) {
         objs.push(o);
         break;
       }
@@ -9193,7 +9238,10 @@ function objectSpots(kind, units, r) {
   else if (kind === 'hospital') spots = [...around(back), ...around(units)];
   else if (kind === 'decoy') spots = [...lane(10), ...lane(9), ...row(11)];
   else spots = [...lane(9), ...lane(10), ...row(11), ...row(12)];
-  return [...spots, ...row(13), ...row(14)];
+  const all = [...spots, ...row(13), ...row(14)];
+  // a pair (engine 30: the Pop Mine) straddles the spot: its first tile left of it, its
+  // second right of it
+  return OBJECT_STATS[kind] && OBJECT_STATS[kind].cells.length === 2 ? all.map(([x, y]) => [x - 1, y]) : all;
 }
 
 // ---- the chest spin. Everything a round throws on the arena, settled before a
@@ -9201,7 +9249,7 @@ function objectSpots(kind, units, r) {
 // buff and nerf, and the cards that scroll past on every band. It is a pure function
 // of the seed and the round, so the server, both pages and a replay that jumps
 // straight to turn 12 all draw exactly the same spin.
-function chestSpin(seed, round = 0, pool = CHEST_POOL) {
+function chestSpin(seed, round = 0, pool = CHEST_POOL, perks = RULES.teamCrate) {
   const r = rng(subSeed(seed, round, CHEST_SALT));
   const mid = (SIZE - 1) / 2;
   const pct = () => Math.floor(r() * 100);
@@ -9244,7 +9292,8 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
 
   // one buff and one nerf per squad, drawn on their own: both may get the same (engine
   // 28: drawn as ever, so the chest's stream rolls the same, but only handed out with
-  // RULES.teamCrate on; the golden drops come from the chance drops and the Gambler)
+  // RULES.teamCrate on, or `perks`: simulateRound passes its `rules.perks`; the golden
+  // drops come from the chance drops and the Gambler)
   const teams = [0, 1].map(() => {
     const green = r() < 0.5;
     const buff = green ? one(BUFFS) : null;
@@ -9252,7 +9301,7 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
     const t = { buff, nerf, gold: null, turn: 0 };
     if (buff === 'airdrop') t.turn = RULES.airdropFrom + Math.floor(r() * (RULES.airdropTo - RULES.airdropFrom + 1));
     // (with no crate for the squad, no buff or nerf for it either: engine 28)
-    if (!RULES.teamCrate) Object.assign(t, { buff: null, nerf: null, turn: 0 });
+    if (!perks) Object.assign(t, { buff: null, nerf: null, turn: 0 });
     return t;
   });
 
@@ -9272,7 +9321,7 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL) {
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, mistSafe, inMist, CHEST_ON, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, GOLDS, EVENTS_OFF, CHEST_POOL, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, DROP_SALT, DROPS, mistDmg, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, POW_SPARE_SHOT, spareFor, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, mistSafe, inMist, CHEST_ON, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, EVENTS_OFF, CHEST_POOL, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, DROP_SALT, BOX_SALT, GAMBLE_SALT, DROPS, mistDmg, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, POW_SPARE_SHOT, spareFor, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -9616,9 +9665,10 @@ const SquadView = (() => {
       // Foxhole: a dug pit with a sandbag lip
       trench: ['............', '............', '.kkkkkkkkkk.', 'kYNNkYNNkYNk', 'kkkkkkkkkkkk',
         'kTTTTTTTTTTk', 'kTnTnTnTnTTk', 'kTNTNTNTNTTk', 'kkkkkkkkkkkk', 'kYNNkYNNkYNk', 'kNnNkNnNkNnk', 'kkkkkkkkkkkk'],
-      // Pop Mines: a buried disc with a pink bubble about to pop
-      mines: ['......kkk...', '.....kPwPk..', '.....kPPpk..', '......kkk...', '.....k......',
-        '...kkkkkk...', '..kSSFSSSk..', '.ksSSSSSssk.', '.kssssssssk.', 'kcckkkkkkcck', '.cc......cc.', '............'],
+      // Pop Mine (engine 30: a pair): two buried discs a tile apart, each with a pink
+      // bubble about to pop
+      mines: ['..kkk.......', '.kPwPk......', '.kPPpk..kkk.', '..kkk..kPwPk', '...k...kPPpk',
+        '........kkk.', '.........k..', '.kkk....kkk.', 'kSFSk..kSFSk', 'ksSsk..ksSsk', 'kcckk..kkcck', '.cc......cc.'],
       // Ammo Crate: an open crate full of shells, stencilled
       crate: ['.kkkkkkkkk..', '.kNNNNNNNk..', '.knnnnnnnk..', 'kkykykykykk.', 'kkokokokokk.',
         'kkkkkkkkkkk.', 'kNNNNNNNNNk.', 'kNNNffNNNNk.', 'knnnffnnnnk.', 'kNNffffNNNk.', 'knnnnnnnnnk.', 'kkkkkkkkkkk.'],
@@ -20586,6 +20636,7 @@ const SquadView = (() => {
               p.list.push({ ei: i, off: MS.dropTwo });
               p.contact += MS.dropTwo;
               p.dur += MS.dropTwo;
+              if (p.actors && !p.actors.includes(e.u)) p.actors.push(e.u);
               return;
             }
             if (t === 'heal' || t === 'wagmi' || t === 'rekt' || t === 'paper') {
@@ -21648,7 +21699,7 @@ const SquadView = (() => {
     // engine 29: locked in the Big Gun, a padlock
     locked: [['.sss.', '.s.s.', 'yyyyy', 'yykyy', 'ooooo'], { s: '#C9C9D6', y: '#FFD447', k: '#1B1229', o: '#C98A12' }],
   };
-  const STATUS_NAME = { locked: 'locked in the Big Gun: every hit does ' + SE.RULES.bigGuard + '% less', pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin, for when it is in trouble', hardhat: 'golden hard hat: a Builder too', pump: 'pumped: more damage', bag: 'bagholder: less move', gas: 'gas fees: its power comes later and costs HP', ngmi: 'NGMI: its next attack misses', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
+  const STATUS_NAME = { locked: 'locked in the Big Gun: every hit does ' + SE.RULES.bigGuard + '% less', pill: 'the Pump.fun Pill, for when the enemy comes', pumped: 'pumped: berserk', coin: 'a golden coin: it flips it at the start of its next turn', hardhat: 'golden hard hat: a Builder too', pump: 'pumped: more damage', bag: 'bagholder: less move', gas: 'gas fees: its power comes later and costs HP', ngmi: 'NGMI: its next attack misses', dug: 'dug in', ammo: 'extra ammo', honey: 'stuck in honey: cannot attack', paper: 'paper hands: running away', laser: 'laser eyes: more reach and damage, half the dodge', rugged: 'rugged: out of the fight for now' };
   const statusCache = {};
   function statusImg(s) {
     if (statusCache[s]) return statusCache[s];
@@ -26845,39 +26896,16 @@ const SquadView = (() => {
       x.fillRect(X + 3, Y, 1, 1);
     }
   }
-  // The round card turns into the perks: each squad's, its colour, what it does.
-  function showPerkBanner() {
+  // The perks of the round (only where a round still has the crate for the whole
+  // squad: rules.perks, off since engine 28). Nothing covers the arena at a round's
+  // start (engine 27, the owner): no card over it; the perks are in Round info and the
+  // rosters' chips, and the screen reader hears the own squad's.
+  function sayPerks() {
     const ch = P.rd.R.chest;
-    if (!ch) return;
-    const b2 = D.ban;
-    b2.textContent = '';
-    const golden = ch.teams.some((m) => m.gold);
-    b2.append(el('b', 'sqv-bh', (golden ? 'GOLDEN DROP · ROUND ' : 'AIRDROP · ROUND ') + (P.ri + 1)));
-    for (const side of ['rival', 'you']) {
-      const t = side === 'you' ? P.me : 1 - P.me;
-      const m = ch.teams[t];
-      // the golden drop (engine 22)
-      if (m.gold) {
-        const row = el('div', 'sqv-pu perk gold');
-        row.append(icon('gold', m.gold, 32));
-        const tx = el('div', '');
-        tx.append(el('span', 'sqv-pk', P.sideLabels[side] + ' · golden drop'), el('strong', '', nameOf('gold', m.gold)), el('span', 'sqv-pd', shortOf('gold', m.gold)));
-        row.append(tx);
-        b2.append(row);
-        continue;
-      }
-      const kind = m.buff ? 'buff' : 'nerf';
-      const row = el('div', 'sqv-pu perk ' + (kind === 'buff' ? 'good' : 'bad'));
-      row.append(icon(kind, m[kind], 32));
-      const tx = el('div', '');
-      tx.append(el('span', 'sqv-pk', P.sideLabels[side] + (kind === 'buff' ? ' · buff' : ' · nerf')), el('strong', '', nameOf(kind, m[kind])), el('span', 'sqv-pd', shortOf(kind, m[kind])));
-      row.append(tx);
-      b2.append(row);
-    }
-    b2.className = 'sqv-ban on perks';
+    if (!ch || !ch.teams) return;
     const mine = ch.teams[P.me];
-    const mk = mine.gold ? 'gold' : mine.buff ? 'buff' : 'nerf';
-    say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
+    const mk = mine.gold ? 'gold' : mine.buff ? 'buff' : mine.nerf ? 'nerf' : null;
+    if (mk) say(P.sideLabels.you + ' gets ' + nameOf(mk, mine[mk]) + ': ' + shortOf(mk, mine[mk]), true);
   }
   // a beat starts: poses, reticles, telegraphs and beams that lead up to the event
   function beginBeat(b, T) {
@@ -28460,7 +28488,7 @@ const SquadView = (() => {
       case 'perk': {
         if (P.perkBan !== T && e.n == null) {
           P.perkBan = T;
-          showPerkBanner();
+          sayPerks();
         }
         memePop(e.team, e.id, false);
         if (!e.at) return;
@@ -30386,7 +30414,7 @@ const SquadView = (() => {
     intro: ['Squad Arena', 'Two squads of five Blubs, built beforehand, fight it out on their own. There is nothing to click in the fight: it all comes down to how a squad is built.'],
     chest: ['The chest', 'Before every round it throws in 1 to 3 events: the counter says how many, then each one spins. Some stand on the arena, some strike later, and traps stay hidden.'],
     arena: ['The arena', 'A new one every round. Rock stops Blubs and shots, a bush hides whoever stands in it, the rainbow water heals a Blub that rests in it, and a terrace gives a bow more reach.'],
-    kit: ['The trench kit', 'Each squad digs in up to two objects before the fight: sandbags, barbed wire, mines, a mortar, a watchtower, a smoke pot, a decoy, a field hospital and more.'],
+    kit: ['The trench kit', 'Each squad digs in up to two objects before the fight: sandbags, barbed wire, a pair of mines, a mortar, a watchtower, a smoke pot, a decoy, a field hospital and more.'],
     roles: ['Roles', 'Brawlers charge in, Guardians hold the line and take arrows for a friend, Skirmishers shoot from afar, Medics heal, and Tricksters slip round to the back line.'],
     powers: ['Powers and commands', 'Every Blub has a power: a freeze, a storm, a cannon to build, pits to dig, a shield... and once a round the captain calls a command to the whole squad.'],
     ko: ['Out!', 'A squad wins the round once the other has nobody left standing, or with more of its HP left when turn ' + SE.TURNS + ' is over. A best of 3 brings a second and third arena.'],
@@ -30918,6 +30946,11 @@ const SquadView = (() => {
     D.logBox.textContent = '';
     D.live.textContent = '';
     D.opts.classList.remove('open');
+    // Round info starts shut and empty for every match (a match under older rules
+    // has no rounds to tell of: oldRules hides it)
+    setInfo(false);
+    D.infoBox.textContent = '';
+    D.info.hidden = false;
     // what the Share button hands out: given by the page (SquadHall), else none
     P.share = typeof match.share === 'function' ? match.share : null;
     D.bShare.hidden = !P.share;
@@ -30958,6 +30991,14 @@ const SquadView = (() => {
     buildIntro();
     tourSay('intro');
     D.root.focus();
+    // a match opened while the page still loads (a #watch link) loses the focus to the
+    // body once loading ends: take it back, so Space skips the intro and the keys work
+    if (document.readyState !== 'complete') {
+      const mine = P;
+      window.addEventListener('load', () => setTimeout(() => {
+        if (P === mine && D && (!document.activeElement || document.activeElement === document.body)) D.root.focus();
+      }, 0), { once: true });
+    }
     P.raf = requestAnimationFrame(frame);
   }
 
@@ -31206,13 +31247,21 @@ const SquadView = (() => {
     P.signAt = 0;
     P.holdT = 0;
     P.seeking = true;
+    P.calmFresh = false;
     const Q = P.rd.Q;
-    while (P.qi < Q.length && Q[P.qi].at < T) {
+    // A jump to a turn lands on its start: what falls on T itself is applied too when it
+    // belongs to that turn's own beat ('turn', or the whole 'cturn' when calm) or to a
+    // beat begun before T, so the board and the label show turn n, not the end of n-1.
+    // Any other beat that begins at T is left for the clock.
+    const due = (q) => q.at < T || (q.at === T && q.b && (q.b.kind === 'turn' || q.b.kind === 'cturn' || q.b.t < T));
+    while (P.qi < Q.length && due(Q[P.qi])) {
       const q = Q[P.qi++];
       if (q.ei == null) beginBeat(q.b, q.at);
       else applyEv(q.ei, q.at, q.b);
     }
     P.seeking = false;
+    // a calm turn is one beat: its summary and markers, as when it is played
+    if (P.beat && P.beat.kind === 'cturn' && P.beat.t === T) calmTurn(P.beat);
     P.clock = T;
     P.fightShown = T >= (P.rd.fightAt || P.rd.introLen);
     P.mistTo = undefined;
@@ -31230,6 +31279,8 @@ const SquadView = (() => {
     P.textDirty = true;
     P.dirty = true;
     P.pipKey = '';
+    // (now, not on the next tick: a paused board shows them too)
+    placeMarks();
   }
   function turnList() {
     return P.rd.turns;
@@ -32110,8 +32161,12 @@ const SquadView = (() => {
   // what Round info shows: the round, and the chest's hidden events gone off so far
   const infoKey = () => P.ri + ':' + Object.keys((P.S && P.S.sprung) || {}).join() + ':' + ((P.S && P.S.boxLog) || []).map((k) => k.st).join() + ':' + ((P.S && P.S.goldLog) || []).length;
   function fillInfo() {
+    if (!D) return;
     const r = P && P.rounds[P.ri];
-    if (!r || !D) return;
+    if (!r) {
+      D.infoBox.textContent = '';
+      return;
+    }
     P.infoFor = infoKey();
     const R = r.R;
     const RU = SE.RULES;
@@ -32128,7 +32183,9 @@ const SquadView = (() => {
       box.append(it);
       return it;
     };
-    box.append(el('p', 'sqv-ih', 'Round ' + (P.ri + 1) + (P.rounds.length > 1 ? ' of ' + P.rounds.length : '')));
+    // (a best of 3 says "of 3", never how many rounds were played: that gives away
+    // whether a third one comes)
+    box.append(el('p', 'sqv-ih', 'Round ' + (P.ri + 1) + (P.bo === 3 ? ' of 3' : '')));
     row('theme', null, null, 'Arena', nameOf('theme', R.theme), THEME_LINE[R.theme] || '');
     const sky = R.weather || 'clear';
     row('sky ' + sky, null, null, 'Sky', nameOf('sky', sky), descOf('sky', sky));
@@ -32155,6 +32212,8 @@ const SquadView = (() => {
     }
     // a hidden event of the chest is told once it has gone off on screen
     const chestGone = (id) => !!(P.S && P.S.sprung && P.S.sprung[id]);
+    // (the squads' perk crates at the start only when the round played them: rules.perks)
+    const perksOn = (R.ev || []).some((e) => e.t === 'perk' && e.n == null);
     // the chest: its events (a hidden one stays a secret until it goes off) and the perk
     // crate each squad gets as the round starts
     const ch = R.chest;
@@ -32166,7 +32225,7 @@ const SquadView = (() => {
         if (shown) row('ev', 'ev', v.id, 'Event' + (v.turn ? ' · turn ' + v.turn : ''), nameOf('ev', v.id), descOf('ev', v.id));
         else row('ev hid', null, null, 'Event', 'A hidden event', 'Nobody knows what or where until it goes off.');
       }
-      for (const [t, lbl] of RU.teamCrate ? [[P.me, P.sideLabels.you], [1 - P.me, P.sideLabels.rival]] : []) {
+      for (const [t, lbl] of perksOn ? [[P.me, P.sideLabels.you], [1 - P.me, P.sideLabels.rival]] : []) {
         const tm = ch.teams && ch.teams[t];
         const k = tm && (tm.buff || tm.nerf);
         if (k) row('perk ' + (tm.buff ? 'buff' : 'nerf'), tm.buff ? 'buff' : 'nerf', k, lbl + ' · ' + (tm.buff ? 'green crate' : 'red crate'), nameOf(tm.buff ? 'buff' : 'nerf', k), descOf(tm.buff ? 'buff' : 'nerf', k));
@@ -32520,6 +32579,10 @@ const SquadView = (() => {
   }
   function oldRules(stored) {
     P.phase = 'outro';
+    // no rounds to replay, so no Round info: shut, emptied and out of reach
+    setInfo(false);
+    D.infoBox.textContent = '';
+    D.info.hidden = true;
     const o = D.over;
     o.textContent = '';
     o.hidden = false;
@@ -33379,9 +33442,26 @@ const SquadHall = (() => {
   // only the start tiles matter for where objects may go
   // (powers a squad may have, so the check is only about where things stand)
   const posOnly = units => units.map((u, i) => ({cls: 'fierce', wpn: 'sword', gear: 'boots', pow: ['rage', 'rage', 'nap', 'nap', 'bubble'][i] || 'rage', tac: 'nearest', trn: {}, x: u.x, y: u.y}));
-  const kitOk = (units, objs) => !!E.cleanSquad({units: posOnly(units), objs: objs.map(o => ({k: o.k, x: o.x, y: o.y}))});
+  // the kit lies exactly as the engine plays it: every object kept, every one on its own spot
+  // (engine 30: cleanSquad quietly slides a pair whose second tile is off the board, on another
+  // object or, for the mines, on a Blub; a spot like that is not one the builder may offer)
+  const kitOk = (units, objs) => {
+    const c = E.cleanSquad({units: posOnly(units), objs: objs.map(o => ({k: o.k, x: o.x, y: o.y}))});
+    const kept = (c && c.objs) || [];
+    return !!c && kept.length === objs.length && kept.every((q, i) => q.k === objs[i].k && q.x === objs[i].x && q.y === objs[i].y);
+  };
+  // only for a saved squad (cleanDraft): the kit with one more object as the engine keeps it,
+  // where they were put or (a pair saved before engine 30) moved along its row as cleanSquad
+  // moves it, an object it goes without left out; null when the squad would not be valid
+  function fitObj(units, objs, c){
+    const sq = E.cleanSquad({units: posOnly(units), objs: [...objs, c].map(o => ({k: o.k, x: o.x, y: o.y}))});
+    return sq ? (sq.objs || []).map(o => ({k: o.k, x: o.x, y: o.y})) : null;
+  }
   const ROW_NAME = {9: 'no man’s land, far row', 10: 'no man’s land, middle row', 11: 'no man’s land, near row', 12: 'front row', 13: 'middle row', 14: 'back row'};
-  const spotName = o => 'column ' + (o.x + 1) + ', ' + ROW_NAME[o.y];
+  // (engine 30: the Pop Mine is a pair, a tile apart: both columns)
+  // (a Blub's spot too: spotName(u) has no k, so no pair)
+  const isPair = k => !!OST(k) && OST(k).cells.length === 2;
+  const spotName = o => (isPair(o.k) ? 'columns ' + (o.x + 1) + ' and ' + (o.x + OST(o.k).cells[1] + 1) : 'column ' + (o.x + 1)) + ', ' + ROW_NAME[o.y];
   // why an object may not lie there ('' when it may); objs: the squad's objects (its own old spot does not count)
   function objWhy(o, units, objs){
     const n = OBJ[o.k][1], S = OST(o.k), others = objs.filter(p => p.k !== o.k);
@@ -33483,8 +33563,8 @@ const SquadHall = (() => {
     const objs = [];
     raw.objs.slice(0, 8).forEach(o => {
       if (!o || typeof o !== 'object' || !OBJ[o.k] || OFF.includes(o.k) || objs.length >= KMAX || objs.some(p => p.k === o.k)) return;
-      const c = {k: o.k, x: Math.floor(+o.x), y: Math.floor(+o.y)};
-      if (kitOk(units, [...objs, c])) objs.push(c);
+      const kept = fitObj(units, objs, {k: o.k, x: Math.floor(+o.x), y: Math.floor(+o.y)});
+      if (kept) objs.splice(0, objs.length, ...kept);
     });
     return {units, objs, cmd};
   }
@@ -33606,7 +33686,9 @@ const SquadHall = (() => {
   // Recalibrate when the engine or the ROLE presets change: for SQUAD_ENGINE 27 (the mist
   // border, the smaller chest, supply drops) measured again on 73 squads (40 random, 33
   // designed) against a field of 66, half random and half designed, both sides: the fit
-  // moved from 0.488 to 0.474, the shown % off by 4.4 points on average.
+  // moved from 0.488 to 0.474, the shown % off by 4.4 points on average. Checked again for
+  // SQUAD_ENGINE 28 (no start perks, field crates, the pairs) the same way: the fit is
+  // 0.4675, the shown % off by 4.2 points on average, so 0.474 stays.
   // Runs in slices of at most 12 ms; your own squad goes first. Zero database commands.
   const EST_N = 192, EST_RANGE = 7, EST_CAL = 0.474, EST_OPP = 48;
   let gauntlet = null;
@@ -33801,7 +33883,7 @@ const SquadHall = (() => {
   // an object on a canvas: its art across its tiles (mines: one each), standing on its row
   function paintObj(x, o, geo, alpha){
     const c = objArt(o.k), [lo, hi] = spanOf(o.k), s = geo.cw / 16;
-    const each = o.k === 'mines' || c.width < (hi - lo + 1) * 16 - 4;
+    const each = c.width < (hi - lo + 1) * 16 - 4;
     const tiles = each ? OST(o.k).cells.map(dx => [o.x + dx, o.x + dx]) : [[o.x + lo, o.x + hi]];
     x.globalAlpha = alpha == null ? 1 : alpha;
     tiles.forEach(([a, b]) => {
@@ -34352,19 +34434,19 @@ const SquadHall = (() => {
       st.ptr = e.pointerType; st.justSel = false;
       if (!e.isPrimary) return;
       // an object being moved can still be dragged itself; any other press is a tap that places it
-      if (st.place){ if (k < 0 && o && o.k === st.place) drag = {obj: o.k, x, y, moved: false}; return; }
+      if (st.place){ if (k < 0 && o && o.k === st.place) drag = {obj: o.k, x, y, dx: x - o.x, moved: false}; return; }
       if (k >= 0){
         // a lifted Blub waits for the click on the other one (a swap); no drag then
         if (st.lift && k !== st.sel) return;
         drag = {k, x, y, moved: false};
         if (k !== st.sel){ select(k); st.justSel = true; }
-      } else if (o) drag = {obj: o.k, x, y, moved: false};
+      } else if (o) drag = {obj: o.k, x, y, dx: x - o.x, moved: false};
     });
     grid.addEventListener('pointermove', e => {
       const cell = cellOf(e), at = cell ? [+cell.dataset.x, +cell.dataset.y] : null;
       if (drag){
         if (at && (at[0] !== drag.x || at[1] !== drag.y)) drag.moved = true;
-        if (drag.obj){ if (drag.moved){ st.place = drag.obj; st.hover = at; paintBoard(); } return; }
+        if (drag.obj){ if (drag.moved){ st.place = drag.obj; st.hover = at ? [at[0] - drag.dx, at[1]] : null; paintBoard(); } return; }
         R.cells.forEach(n => n.classList.toggle('drop', n === cell && !(+n.dataset.x === drag.x && +n.dataset.y === drag.y)));
         // the Blub itself goes along, floating over the tile it would land on
         if (drag.moved){
@@ -34382,9 +34464,9 @@ const SquadHall = (() => {
       if (!drag) return;
       const d0 = drag; drag = null; R.cells.forEach(n => n.classList.remove('drop'));
       if (st.drag){ st.drag = null; paintBoard(); }
-      if (e.type !== 'pointerup' || !d0.moved){ if (d0.obj && d0.moved){ st.place = null; st.hover = null; paintBoard(); } return; }
+      if (e.type !== 'pointerup' || !d0.moved){ if (d0.obj && d0.moved){ st.place = null; st.hover = null; paintBoard(); keepFocus(renderKit); } return; }
       const cell = cellOf(e);
-      if (d0.obj){ if (cell) st.noClick = performance.now() + 500; if (!cell || !placeObj(d0.obj, +cell.dataset.x, +cell.dataset.y)){ st.place = null; st.hover = null; paintBoard(); renderStrip(); } return; }
+      if (d0.obj){ if (cell) st.noClick = performance.now() + 500; if (!cell || !placeObj(d0.obj, +cell.dataset.x - d0.dx, +cell.dataset.y)){ st.place = null; st.hover = null; paintBoard(); renderStrip(); keepFocus(renderKit); } return; }
       if (cell){ place(+cell.dataset.x, +cell.dataset.y); st.noClick = performance.now() + 500; }
     };
     addEventListener('pointerup', endDrag); addEventListener('pointercancel', endDrag);
@@ -34809,11 +34891,11 @@ const SquadHall = (() => {
   }
   function objFacts(k){
     const S = OST(k), n = S.cells.length;
-    return [k === 'mines' ? n + ' mines' : n === 1 ? '1 tile' : n + ' tiles', S.solid ? 'nobody walks through' : S.stand ? 'Blubs may start on it' : 'hidden', S.out ? 'also in no man’s land' : 'on your own rows'].join(' · ');
+    return [n === 2 ? 'two ' + (k === 'mines' ? 'mines' : 'tiles') + ', a tile apart' : n === 1 ? '1 tile' : n + ' tiles', S.solid ? 'nobody walks through' : S.stand ? 'Blubs may start on it' : 'hidden', S.out ? 'also in no man’s land' : 'on your own rows'].join(' · ');
   }
   // 'c8 · back': a short start tile for slots and the sheet
   const ROW_SHORT = {9: 'far', 10: 'centre', 11: 'near', 12: 'front', 13: 'mid', 14: 'back'};
-  const shortSpot = o => 'c' + (o.x + 1) + ' · ' + ROW_SHORT[o.y];
+  const shortSpot = o => 'c' + (o.x + 1) + (o.k && OBJ[o.k] && isPair(o.k) ? '+' + (o.x + OST(o.k).cells[1] + 1) : '') + ' · ' + ROW_SHORT[o.y];
   // a soft hyphen in long words, so 'Watchtower' breaks as 'Watch-tower' in a narrow slot
   const shy = s => s.replace(/([A-Za-z]{5})([A-Za-z]{5,})/g, '$1\u00AD$2');
   function renderKit(){
