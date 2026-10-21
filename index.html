@@ -587,6 +587,9 @@ body.no-scroll{overflow:hidden}
 .sqv-mc.nerf{--mc:#E2566E}.sqv-mc.gold{--mc:#FFD447}
 .sqv-mc.used{filter:grayscale(1);opacity:.45}
 .sqv-mc.popped{animation:sqv-mcpop .7s steps(7,end)}
+@keyframes sqv-mcpop2{0%{transform:translateY(0);outline:2px solid #FFF3B0}30%{transform:translateY(-6px);outline:2px solid #FFF3B0}60%{transform:translateY(0)}80%{transform:translateY(-2px)}100%{transform:translateY(0);outline:0 solid transparent}}
+.sqv-mc.popped2{animation:sqv-mcpop2 .7s steps(7,end)}
+@media (prefers-reduced-motion:reduce){.sqv-mc.popped2{animation:none}}
 @keyframes sqv-mcpop{0%{transform:translateY(0);outline:2px solid #FFF3B0}30%{transform:translateY(-6px);outline:2px solid #FFF3B0}60%{transform:translateY(0)}80%{transform:translateY(-2px)}100%{transform:translateY(0);outline:0 solid transparent}}
 @media (prefers-reduced-motion:reduce){.sqv-mc.popped{animation:none}}
 .sqv-kc{display:inline-flex;align-items:center;gap:5px;min-width:0;padding:2px 6px 2px 2px;background:#2B1D3F;border:2px solid #000;font-family:var(--f-data);font-size:16px;line-height:1;color:#F6EEFF;white-space:nowrap}
@@ -733,7 +736,7 @@ body.no-scroll{overflow:hidden}
 .sqv-seg b{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.55);opacity:0}
 .sqv-seg b.on{opacity:1}
 .sqv-seg.off{background:repeating-linear-gradient(90deg,#2B1D3F 0 4px,#1b1129 4px 8px);opacity:.6}
-.sqv-segl{position:absolute;right:2px;top:-1px;font-family:var(--f-display);font-size:7px;line-height:8px;color:#1B1129;text-shadow:none;pointer-events:none}
+.sqv-segl{position:absolute;right:2px;top:-1px;font-family:var(--f-display);font-size:7px;line-height:8px;color:#FFD447;background:#1B1129;padding:0 2px;text-shadow:none;pointer-events:none;z-index:1}
 .sqv-btns{display:flex;gap:4px;align-items:center;justify-content:center;flex-wrap:nowrap;min-width:0}
 .sqv-b{flex:none;min-width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 8px;background:#3E2C58;border:3px solid #000;cursor:pointer;
   box-shadow:inset 3px 3px 0 #5E4A8A,inset -3px -3px 0 #2B1D3F}
@@ -807,7 +810,7 @@ body.no-scroll{overflow:hidden}
   .sqv-ctl{background:none;border:0;padding:10px 0 0;width:var(--arena-w,auto);justify-self:center}
   .sqv-prog{height:22px}
   .sqv-seg{height:12px}
-  .sqv-segl{font-size:8px;top:-12px;right:0;color:#F6EEFF;text-shadow:1px 1px 0 #000}
+  .sqv-segl{font-size:8px;top:-12px;right:0;color:#F6EEFF;background:none;padding:0;text-shadow:1px 1px 0 #000}
   .sqv-btns{gap:8px;flex-wrap:wrap}
   .sqv-bt{display:inline}
   .sqv-more{display:none}
@@ -1072,11 +1075,14 @@ body.no-scroll{overflow:hidden}
 @keyframes sqv-popA{0%{transform:scale(1.8);color:#fff}100%{transform:none}}
 @keyframes sqv-popB{0%{transform:scale(1.8);color:#fff}100%{transform:none}}
 .sqv-sc b{display:inline-block}
-.sqv-ros.won .sqv-rh{animation:sqv-won .3s steps(2) 5}
-@keyframes sqv-won{0%{background:#3A2A12;box-shadow:inset 0 -4px 0 var(--gold)}100%{}}
+.sqv-ros.wonA .sqv-rh{animation:sqv-wonA .3s steps(2) 5}.sqv-ros.wonB .sqv-rh{animation:sqv-wonB .3s steps(2) 5}
+@keyframes sqv-wonA{0%{background:#3A2A12;box-shadow:inset 0 -4px 0 var(--gold)}100%{}}
+@keyframes sqv-wonB{0%{background:#3A2A12;box-shadow:inset 0 -4px 0 var(--gold)}100%{}}
+/* the banners keep a layer of their own, so showing one commits no new layer */
+.sqv-ban{will-change:transform}
 .sqv.calm .sqv-r.act .sqv-rp canvas{animation:none}
 @media (prefers-reduced-motion:reduce){
-  .sqv-r.hitA,.sqv-r.hitB,.sqv-r.healA,.sqv-r.healB,.sqv-r.ko,.sqv-r.ko::after,.sqv-r.act .sqv-rp canvas,.sqv-sc b.popA,.sqv-sc b.popB,.sqv-ros.won .sqv-rh{animation:none}
+  .sqv-r.hitA,.sqv-r.hitB,.sqv-r.healA,.sqv-r.healB,.sqv-r.ko,.sqv-r.ko::after,.sqv-r.act .sqv-rp canvas,.sqv-sc b.popA,.sqv-sc b.popB,.sqv-ros.wonA .sqv-rh,.sqv-ros.wonB .sqv-rh{animation:none}
   .sqv-hb i,.sqv-hb i.g{transition:none}
 }
 /* mid: the tall cards with a smaller portrait, for a roster of 72 to 91 px (layout()) */
@@ -1100,9 +1106,11 @@ body.no-scroll{overflow:hidden}
 .sqv-call span{overflow:hidden;text-overflow:ellipsis}
 .sqv-call canvas{width:16px;height:20px;image-rendering:pixelated;flex:none}
 .sqv-call.you{box-shadow:inset 0 -2px 0 var(--you),2px 2px 0 #000;color:var(--you-l)}
-.sqv-call.rival{box-shadow:inset 0 -2px 0 var(--riv),2px 2px 0 #000;color:#FFB08A}
+.sqv-call.rival{box-shadow:inset 0 -2px 0 var(--riv),2px 2px 0 #000;color:var(--riv-t)}
 .sqv-call.on{display:flex;animation:sqvCall .3s steps(3) both}
 @keyframes sqvCall{0%{transform:translateX(-50%) translateY(-8px) scale(.8)}60%{transform:translateX(-50%) translateY(1px) scale(1.06)}100%{transform:translateX(-50%) translateY(0) scale(1)}}
+.sqv-call.on.b{animation-name:sqvCallB}
+@keyframes sqvCallB{0%{transform:translateX(-50%) translateY(-8px) scale(.8)}60%{transform:translateX(-50%) translateY(1px) scale(1.06)}100%{transform:translateX(-50%) translateY(0) scale(1)}}
 .sqo-pump{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;font-family:var(--f-data);font-size:17px;color:#D9CDEA}
 .sqo-pump .sqv-pcv{width:auto;height:44px;max-width:100%}
 .sqo-turnpt.up{color:#5BE37A}.sqo-turnpt.down{color:#FF9DB0}
@@ -1144,6 +1152,10 @@ body.no-scroll{overflow:hidden}
 .sqv-ptray canvas{width:12px!important;height:12px!important;image-rendering:pixelated;filter:drop-shadow(1px 1px 0 #000)}
 .sqv-r.yay .sqv-rp{animation:sqvYay .45s steps(3) 2}
 .sqv-r.ugh .sqv-rp{animation:sqvUgh .3s steps(3) 3}
+.sqv-r.yayB .sqv-rp{animation:sqvYayB .45s steps(3) 2}
+.sqv-r.ughB .sqv-rp{animation:sqvUghB .3s steps(3) 3}
+@keyframes sqvYayB{50%{transform:translateY(-4px)}}
+@keyframes sqvUghB{33%{transform:translateX(-2px)}66%{transform:translateX(2px)}}
 @keyframes sqvYay{50%{transform:translateY(-4px)}}
 @keyframes sqvUgh{33%{transform:translateX(-2px)}66%{transform:translateX(2px)}}
 .sqv-init{display:flex;align-items:center;gap:2px;margin-left:auto;min-width:0;overflow:hidden;padding:2px 4px;background:#120a1c;border:2px solid #000}
@@ -1155,7 +1167,7 @@ body.no-scroll{overflow:hidden}
 .sqv-ini.done{opacity:.35}
 .sqv-ini.now{outline:2px solid var(--gold);outline-offset:-1px}
 @media (max-width:520px){.sqv-ini,.sqv-ini canvas{width:12px;height:15px}.sqv-init b{display:none}}
-@media (prefers-reduced-motion:reduce){.sqv-r.yay .sqv-rp,.sqv-r.ugh .sqv-rp{animation:none}}
+@media (prefers-reduced-motion:reduce){.sqv-r.yay .sqv-rp,.sqv-r.ugh .sqv-rp,.sqv-r.yayB .sqv-rp,.sqv-r.ughB .sqv-rp{animation:none}}
 @media (max-width:420px){.sqv-turn .tw{display:none}.sqv-bar{gap:8px}}
 
 /* ---------- squad arena hall (src/squad/hall.css) ---------- */
@@ -2083,6 +2095,7 @@ body.no-scroll{overflow:hidden}
 .sq-pathx{min-width:44px}
 @media (max-width:560px){.sq-stsl{display:none}}
 .sq-frp [data-k="frsign"]{align-self:flex-start;width:auto}
+.sq-msg.note{color:#D6F2EE}
 /* lane D4: a step card's sub-line stays inside its card and ends in an ellipsis, never cut
    at both ends (a long Blub name, a long plan name) */
 .sq-tabs [role="tab"],.sq-tabs [role="tab"] > *{min-width:0}
@@ -2107,6 +2120,9 @@ body.no-scroll{overflow:hidden}
 .sq-pyay{display:grid;gap:8px;justify-items:start;padding:12px;background:#0F2E33;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold)}
 .sq-pyay b{font-family:var(--f-display);font-weight:400;font-size:14px;color:var(--gold);text-shadow:2px 2px 0 #000}
 .sq-pyay span{font-family:var(--f-data);font-size:18px;color:var(--sq-text)}
+.sq-bhelp summary{display:inline-flex;align-items:center;min-height:40px;font-family:var(--f-data);font-size:18px;color:#9FE3D9;cursor:pointer}
+.sq-bhelp summary:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.sq-bhelp[open] summary{color:#fff}
 
 /* ---------- the home page (src/squad/home.js): the game in chapters ---------- */
 .show{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -2420,8 +2436,8 @@ body.no-scroll{overflow:hidden}
       <div class="team-bar" id="mkTeam" role="tablist" aria-label="Your team"></div>
       <div class="team-acts"><p class="note dark" id="mkTeamNote">Your captain: a little tougher in duels (+2 HP).</p><button type="button" class="btn small" id="mkCaptain" hidden>Make captain</button></div>
       <canvas id="mkCv" width="64" height="56" aria-label="Preview of your Blub. Click to make it jump."></canvas>
-      <div class="plate" id="mkPlate">Nameless</div>
-      <div class="name-row"><label for="mkName">Name</label><input id="mkName" maxlength="14" autocomplete="off" spellcheck="false" placeholder="e.g. Bloop"><button type="button" class="btn small" id="mkRandom">Surprise me</button></div>
+      <div class="plate" id="mkPlate">Blub</div>
+      <div class="name-row"><label for="mkName">Name</label><input id="mkName" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Blub"><button type="button" class="btn small" id="mkRandom">Surprise me</button></div>
       <p class="note dark mk-mood" id="mkMood"></p>
       <button type="button" class="btn gold" id="mkSave">Save team</button>
       <p class="note dark" id="mkMsg" aria-live="polite"></p>
@@ -2913,7 +2929,7 @@ const scene=(()=>{
   let lo=0, hi=0, plateR=0;   // where the Blub may walk (canvas px), and the copy plate's right edge (stage px)
   const bg=document.createElement('canvas'), bgx=bg.getContext('2d');
   const bc=document.createElement('canvas'); bc.width=16;bc.height=15; const bcx=bc.getContext('2d');
-  let PX=4,w=0,h=0,gy=0,S=3,t=0,running=true;
+  let PX=4,w=0,h=0,gy=0,S=3,t=0,running=false;
   let slabs=[],cubes=[],rays=[],backP=[],frontP=[],tufts=[],flowers=[],petals=[],motes=[],coins=[],hearts=[];
   const b={x:0,y:0,tx:0,hop:0,squash:0,blink:0,nextBlink:120,eL:0,eR:0,look:0,hype:0,wander:0,air:false,jy:0,jv:0,top:0};
   let mouse=null;
@@ -2995,8 +3011,19 @@ const scene=(()=>{
     draw();
   }
   function sway(ph,k,amp){return RM?0:Math.round(Math.sin(t*.025+ph+k*.08)*amp);}
+  // a coral's pixels once on a little canvas of its own; each frame it is drawn row by row, every row
+  // swaying as one (the same pixels as drawing them one by one, at a fraction of the calls)
+  function plantRows(p){
+    if(p.rows)return p.rows;
+    let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;const f={};
+    p.px.forEach(q=>{x0=Math.min(x0,q.x);x1=Math.max(x1,q.x);y0=Math.min(y0,q.y);y1=Math.max(y1,q.y);f[q.y]=q.f;});
+    const c=document.createElement('canvas');c.width=x1-x0+1;c.height=y1-y0+1;const g=c.getContext('2d');
+    p.px.forEach(q=>{g.fillStyle=q.c;g.fillRect(q.x-x0,q.y-y0,1,1);});
+    return p.rows={c,x0,y0,ys:Object.keys(f).map(Number),f};
+  }
   function drawPlants(list){
-    list.forEach(p=>{if(!p.off)p.px.forEach(q=>{ctx.fillStyle=q.c;ctx.fillRect(p.x+q.x+(RM?0:Math.round(Math.sin(t*.025+p.ph+q.y*.08)*2.2*Math.pow(q.f,1.4))),p.y+q.y,1,1);});});
+    list.forEach(p=>{if(p.off)return;const R=plantRows(p),W=R.c.width;
+      R.ys.forEach(y=>ctx.drawImage(R.c,0,y-R.y0,W,1,p.x+R.x0+(RM?0:Math.round(Math.sin(t*.025+p.ph+y*.08)*2.2*Math.pow(R.f[y],1.4))),p.y+y,W,1));});
   }
   function drawTufts(front){
     tufts.forEach(tf=>{if((tf.y>b.y)!==front)return;tf.bl.forEach(bl=>{const s=RM?0:Math.sin(t*.03+tf.ph+bl.dx*.4)*bl.h*.3;ctx.fillStyle=bl.c;for(let k=0;k<bl.h;k++)ctx.fillRect(tf.x+bl.dx+Math.round(s*k/bl.h),tf.y-k,1,1);});});
@@ -3041,8 +3068,11 @@ const scene=(()=>{
     if(!hint.hidden)pin(hint,10*PX);
   }
   // a note above the Blub, kept inside the stage and off the copy plate; beside the Blub when there is no room above
+  // (its size is read once for each text and look, not every frame: a read would lay the page out again)
   function pin(el,gap){
-    const ew=el.offsetWidth, eh=el.offsetHeight, W=w*PX, H=h*PX, cx=b.x*PX, top=b.top*PX;
+    const key=el.textContent+'|'+el.className;
+    if(el._pinK!==key){el._pinK=key;el._pinS=[el.offsetWidth,el.offsetHeight];}
+    const ew=el._pinS[0], eh=el._pinS[1], W=w*PX, H=h*PX, cx=b.x*PX, top=b.top*PX;
     let x=cx-ew/2, y=top-gap-eh, side=false;
     if(y<4){side=true;y=Math.max(4,Math.min(H-eh-4,top+2));const off=8*S*PX+6;x=cx+off+ew<=W-4?cx+off:cx-off-ew;}
     x=Math.max(plateR,Math.min(W-ew-4,x));
@@ -3070,7 +3100,11 @@ const scene=(()=>{
     hearts.forEach(hh=>{hh.y-=.35;hh.x+=Math.sin(t*.1+hh.ph)*.2;hh.life--;}); hearts=hearts.filter(hh=>hh.life>0);
     if(coins.length>120)coins.splice(0,coins.length-120);
   }
-  function loop(){ if(running){step();draw();} requestAnimationFrame(loop); }
+  // it only runs while the stage is on screen: in view, its page shown, the tab in front (no frame is asked for otherwise)
+  let seen=false,raf=0;
+  const shown=()=>seen&&!RM&&!document.hidden&&hero.getClientRects().length>0;
+  function wake(){running=shown();if(running&&!raf)raf=requestAnimationFrame(loop);}
+  function loop(){raf=0;if(!running||(t%60===0&&!shown())){running=false;return;}step();draw();raf=requestAnimationFrame(loop);}
   // never higher than the room above its head: the short stages (phones, tablets, returning visits) keep it in view
   // (gravity .28 per frame: a start speed of sqrt(2*.28*room)-.14 peaks right at the top of the stage)
   function jump(power=1){if(b.air)return;const room=Math.max(0,b.top-1);b.air=true;b.jy=0;b.jv=-Math.min(3.2*power*(S/3+.4),Math.max(0,Math.sqrt(2*.28*room)-.14));}
@@ -3093,11 +3127,13 @@ const scene=(()=>{
       if(RM)draw();
     } else {b.tx=clampX(p.x);b.wander=300;if(RM){b.x=b.tx;draw();}}
   });
-  new IntersectionObserver(es=>{running=es[0].isIntersecting&&!RM;},{threshold:0}).observe(hero);
-  addEventListener('resize',()=>{clearTimeout(build.t);build.t=setTimeout(build,150);});
+  new IntersectionObserver(es=>{seen=es[0].isIntersecting;wake();},{threshold:0}).observe(hero);
+  document.addEventListener('visibilitychange',wake);
+  addEventListener('hashchange',()=>setTimeout(wake,0));
+  addEventListener('resize',()=>{bub._pinK=hint._pinK=null;clearTimeout(build.t);build.t=setTimeout(build,150);});
   // the plate changes size when the fonts arrive and when the greeting gets the captain's name
-  if(copy&&window.ResizeObserver)new ResizeObserver(()=>{limits();if(RM)draw();}).observe(copy);
-  build(); if(!RM)requestAnimationFrame(loop);
+  if(copy&&window.ResizeObserver)new ResizeObserver(()=>{bub._pinK=hint._pinK=null;limits();if(RM)draw();}).observe(copy);
+  build(); wake();
   return {hype(){b.hype=150;jump(1.3);emitCoins(14);say('PUMP! blub!');achieve('pump','Achievement unlocked!','First Pump Spotted','rocket');}};
 })();
 let pets=0;
@@ -3107,13 +3143,18 @@ document.querySelectorAll('#cto .ic[data-spr]').forEach(el=>{if(SPR[el.dataset.s
 
 /* ================= the road through The Sift: src/squad/home.js (owner, 13 Oct 2026) ================= */
 // the roadmap's night sky: stars over the whole section
-(function stars(){const c=$('#stars'),x=c.getContext('2d'),r=rng(77);let st=[];
+(function stars(){const c=$('#stars'),x=c.getContext('2d'),r=rng(77);let st=[],seen=false,raf=0;
   function size(){const R=c.parentElement.getBoundingClientRect();c.width=Math.ceil(R.width/4);c.height=Math.ceil(R.height/4);
     st=[];for(let i=0;i<c.width*c.height/120;i++)st.push({x:Math.floor(r()*c.width),y:Math.floor(r()*c.height),p:r()*6,b:r()<.15});}
   function d(tt){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{const a=.25+.75*Math.abs(Math.sin(tt/900+s.p));x.fillStyle=s.b?`rgba(255,211,221,${a})`:`rgba(189,231,255,${a*.7})`;x.fillRect(s.x,s.y,1,1);
-    if(s.b&&a>.9){x.fillRect(s.x-1,s.y,3,1);x.fillRect(s.x,s.y-1,1,3);}});if(!RM)requestAnimationFrame(d);}
+    if(s.b&&a>.9){x.fillRect(s.x-1,s.y,3,1);x.fillRect(s.x,s.y-1,1,3);}});raf=0;if(on())raf=requestAnimationFrame(d);}
+  // twinkling only while the sky is on screen and the tab in front; one still frame otherwise
+  const on=()=>seen&&!RM&&!document.hidden&&c.getClientRects().length>0;
+  function wake(){if(!raf&&on())raf=requestAnimationFrame(d);}
+  new IntersectionObserver(es=>{seen=es[0].isIntersecting;wake();}).observe(c);
+  document.addEventListener('visibilitychange',wake);addEventListener('hashchange',()=>setTimeout(wake,0));
   // the section grows once the road is drawn in it: the sky grows along
-  size();addEventListener('resize',size);if(window.ResizeObserver)new ResizeObserver(()=>{const R=c.parentElement.getBoundingClientRect();if(Math.ceil(R.height/4)!==c.height||Math.ceil(R.width/4)!==c.width)size();}).observe(c.parentElement);requestAnimationFrame(d);})();
+  size();addEventListener('resize',size);if(window.ResizeObserver)new ResizeObserver(()=>{const R=c.parentElement.getBoundingClientRect();if(Math.ceil(R.height/4)!==c.height||Math.ceil(R.width/4)!==c.width)size();}).observe(c.parentElement);raf=requestAnimationFrame(d);})();
 
 /* ================= footer ground with sleeping Blub ================= */
 (function ground(){const c=$('#ground'),x=c.getContext('2d');
@@ -3137,7 +3178,10 @@ renderStats(); drawChart();
 pullMarket();pullWeek();
 setInterval(()=>{if(!document.hidden){pullMarket();pullWeek();}},60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-mk.at>60000)pullMarket();});
-if(!RM)setInterval(()=>{blinkOn=!blinkOn;if(mk.ok)drawChart();},500);
+// (the last point blinks only while the chart is on screen and the tab in front)
+let chartSeen=false;
+if(window.IntersectionObserver)new IntersectionObserver(es=>{chartSeen=es[0].isIntersecting;}).observe(cv);else chartSeen=true;
+if(!RM)setInterval(()=>{if(!chartSeen||document.hidden)return;blinkOn=!blinkOn;if(mk.ok)drawChart();},500);
 window.BLUB={SPR,paint,icon,achieve,toast,rng,nf,siftTree,siftSlab,siftGround,SIFT_FAR,SIFT_MID,SIFT_SKY};
 })();
 </script>
@@ -3648,7 +3692,8 @@ function setMode(m){ S.mode = m; }
 function apiFail(e){
   const st = e && e.status, code = e && e.code;
   if (st === 401){ applyMe(null); Wallet.prompt('Your session ended. Connect your wallet again.'); return; }
-  const t = st === 429 ? 'Easy there. Too many requests, try again in a moment.'
+  // (a 429 with a reason of its own, like the save cooldown's "Wait 10 seconds", says it)
+  const t = st === 429 && (code === 'rate_limited' || !code) ? 'Easy there. Too many requests, try again in a moment.'
     : code === 'not_holder' ? 'Only $BLUB holders can do this, and this wallet holds no $BLUB yet.'
     : (e && e.message) || 'Something went wrong. Try again in a moment.';
   status(t); notify('That did not work', t);
@@ -3715,7 +3760,7 @@ const Maker = (() => {
   function stash(){ if (team) team[sel] = {name: cleanName(nameIn.value), look: {...look}, style, build: cleanBuild(build, style)}; }
   function loadMember(i){
     sel = i; const m = team[i];
-    look = {...m.look}; style = cleanStyle(m.style); build = cleanBuild(m.build, style); nameIn.value = m.name; plate.textContent = m.name || 'Nameless';
+    look = {...m.look}; style = cleanStyle(m.style); build = cleanBuild(m.build, style); nameIn.value = m.name; plate.textContent = m.name || 'Blub';
     mood(); renderTiles(); renderTeam(); kick();
   }
   function renderTeam(){
@@ -3723,9 +3768,9 @@ const Maker = (() => {
     teamBar.textContent = '';
     team.forEach((m, i) => {
       const b = el('button'); b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(i === sel));
-      b.setAttribute('aria-label', (m.name || 'Nameless') + (i ? ', team mate ' + i : ', captain')); b.tabIndex = i === sel ? 0 : -1;
+      b.setAttribute('aria-label', (m.name || 'Blub') + (i ? ', team mate ' + i : ', captain')); b.tabIndex = i === sel ? 0 : -1;
       if (!i){ const c = crownIcon(); c.classList.add('cap'); b.append(c); }
-      b.append(blubKit(m.look, m.build, {style: m.style}), el('span', '', m.name || '…'));
+      b.append(blubKit(m.look, m.build, {style: m.style}), el('span', '', m.name || 'Blub'));
       b.onclick = () => { if (i === sel) return; stash(); loadMember(i); msg.textContent = ''; };
       teamBar.append(b);
     });
@@ -3791,7 +3836,7 @@ const Maker = (() => {
     const s = STYLE[style]; moodBox.textContent = '';
     moodBox.append(el('b', '', s.n), ', like every ' + s.r + ': ' + s.d.charAt(0).toLowerCase() + s.d.slice(1) + ' The personality comes with the role picked in Skills.');
   }
-  nameIn.addEventListener('input', () => { plate.textContent = cleanName(nameIn.value) || 'Nameless'; dirty = true; draft(); });
+  nameIn.addEventListener('input', () => { plate.textContent = cleanName(nameIn.value) || 'Blub'; dirty = true; draft(); });
   nameIn.addEventListener('blur', () => { nameIn.value = cleanName(nameIn.value); });
   nameIn.addEventListener('keydown', e => { if (e.key === 'Enter') save(); });
   $('#mkRandom').onclick = () => {
@@ -3806,7 +3851,7 @@ const Maker = (() => {
   async function save(quick){
     if (saving) return;
     if (Date.now() - lastSave < 1500){ msg.textContent = 'One moment…'; return; }
-    const nm = cleanName(nameIn.value); nameIn.value = nm; plate.textContent = nm || 'Nameless';
+    const nm = cleanName(nameIn.value); nameIn.value = nm; plate.textContent = nm || 'Blub';
     stash();
     if (quick === true){
       const shown = myTeam();
@@ -3981,7 +4026,9 @@ async function setProfile(name){
   const was = S.player;
   S.player = nm;
   if (S.mode === 'local'){ saveLocal(); return {ok: true, local: true, note: 'Saved in this browser.'}; }
-  if (!S.saved) return {ok: true, local: true, note: 'It goes along when you save your team on the Team page.'};
+  // (a wallet with no team on the server yet: the name is sent with its first team save, PUT /blub with
+  // player, the one command; nothing is written before that, and a reload forgets it)
+  if (!S.saved) return {ok: true, local: true, pending: true, note: 'Not saved yet: your profile name is saved together with your team. Save your team on the Team page (Looks, Save team) and it goes along.'};
   if (await persistMe()) return S.mode === 'wallet' ? {ok: true} : {ok: true, local: true, note: 'Saved in this browser'};
   S.player = was;
   return {ok: false, error: 'The profile name was not saved. Try again in a moment.'};
@@ -4117,7 +4164,7 @@ const lock = (o) => {
 const RULES = lock({
   captainHp: 2, // the captain (unit 0) is a little tougher
   brawlerMelee: 2, // Brawlers: extra damage with melee weapons
-  tricksterOpener: 5, // Tricksters: their first close-up hit each round
+  tricksterOpener: 7, // Tricksters: their first close-up hit each round (engine 32: 7, was 5)
   extraAction: 25, // Tricksters: chance of a second action
   guardianSoak: 1, // Guardians: allies next to them take this much less
   doze: 2, // Guardians left alone heal this much a turn
@@ -4157,7 +4204,9 @@ const RULES = lock({
   sandCover: 25, // a fighter next to its own sandbags dodges arrows and bullets this much more
   sandSoak: 2, // Blubs of its squad next to the sandbags take this much less from every hit
   wallSoak: 1,
-  towerRange: 2, towerDmg: 3, towerDodge: 30,
+  // (engine 32: towerRange 1, was 2: a Trench Rifle on a watchtower on Defend won 75% against
+  // the other hill-climbed champions, beating every one; with 1, 67% and no longer all)
+  towerRange: 1, towerDmg: 3, towerDodge: 30,
   towerHold: 2, // a shooter on a watchtower holds it while enemies are this many tiles beyond its reach
   // Barbed wire lies out in the open: the other side plans its way as if crossing it
   // took wireAvoid steps more. One that does cross gets tangled (engine 15): it stops
@@ -4599,7 +4648,7 @@ const POWERUP_TURN = 3;
 // when a Blub may start on it, `out` when it may lie in no man's land.
 const OBJECTS = lock([
   ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit (not from a fighter's charging blow). Your fighters (reach 2 or less) next to it dig in: ${RULES.wallSoak} less again, and they dodge arrows and bullets ${RULES.sandCover}% more from every side. A shooter leaning out over it to shoot gets only the first.`],
-  ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
+  ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange === 1 ? 'a tile' : RULES.towerRange + ' tiles'} more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
   ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when the way round is short, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit. A Brawler tears through: it loses the ${RULES.wireDmg} HP and walks on.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
@@ -5356,7 +5405,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // the Blub whose turn it is, marked busy by anything it does itself (engine 25: no turn
   // goes to waste); what happens to it, or what its gear does by itself, does not count
   let actor = null;
-  const NOT_DONE = { act: 1, skip: 1, status: 1, turn: 1, ready: 1 };
+  const NOT_DONE = { act: 1, skip: 1, status: 1, turn: 1, ready: 1, order: 1 };
   const BY_ITSELF = { doze: 1, pillow: 1, potion: 1, nap: 1 };
   const did = (e) => {
     if (actor && e.u === actor.id && !NOT_DONE[e.t] && !(e.t === 'heal' && BY_ITSELF[e.src])) actor.busy = true;
@@ -5799,15 +5848,16 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     return true;
   }
   // pure damage (storms, splashes, zaps, bumps): only a bubble stops it
-  function pure(u, d, dmg, kind) {
-    if (copiumOn(d)) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
+  // (final: the Pump.fun Pill's one shot, engine 32: no soak takes anything off it)
+  function pure(u, d, dmg, kind, final) {
+    if (copiumOn(d) && !final) dmg = Math.max(1, dmg - Math.floor((dmg * RULES.copiumSoak) / 100));
     if (d.bubble) {
       d.bubble = false;
       push({ t: kind, u: u.id, d: d.id, dmg: 0, hp: d.hp, res: 'absorb' });
       return;
     }
     // locked in the Big Gun (engine 29): its cupola keeps bigGuard% of it off ('saved')
-    const saved = gunSave(d, dmg);
+    const saved = final ? 0 : gunSave(d, dmg);
     dmg = Math.min(d.hp, dmg - saved);
     d.hp -= dmg;
     d.hurt = true;
@@ -6050,7 +6100,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       return;
     }
     // the Boom Pack does not swing: next to an enemy, it goes off when that is worth it
-    if (W(u).boom) return blastWorth(u, u.x, u.y) >= boomNeed(u) ? blowUp(u) : null;
+    // (engine 32: held, tangled or caught it gets no better spot: beside an enemy it settles
+    // for boomLast, as when it is hurt)
+    if (W(u).boom) return blastWorth(u, u.x, u.y) >= (stuckBoom(u) ? RULES.boomLast : boomNeed(u)) ? blowUp(u) : null;
     // the Scope Rifle: a turn to reload, a turn to aim, and then the shot
     if (W(u).cycle) {
       const v = scopeTurn(u, d);
@@ -6504,6 +6556,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       for (const c of seen(P)) {
         const x = c % SIZE;
         const y = (c - x) / SIZE;
+        // (engine 32: only to a tile it has a shot from; else it shoots from where it stands)
+        if (!list.some((v) => canHit(u, x, y, v))) continue;
         let gap = 99;
         for (const v of list) gap = Math.min(gap, cheb(x, y, v.x, v.y));
         const score = gap * 10 + (canHit(u, x, y, target) ? 5 : 0) - (danger(c) ? 1000 : 0);
@@ -6512,7 +6566,16 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
           best = c;
         }
       }
-      if (best >= 0 && bs >= 20 && walk(u, route(P, best))) return hitAround(u, target);
+      if (best >= 0 && bs >= 20 && walk(u, route(P, best))) {
+        // (engine 32: the page draws that step as a feint)
+        if (loud)
+          for (let k = ev.length - 1; k >= 0; k--)
+            if (ev[k].t === 'move' && ev[k].u === u.id) {
+              ev[k].feint = 1;
+              break;
+            }
+        return hitAround(u, target);
+      }
       if (!u.alive) return;
     }
     // its stance (engine 16): Defend and Control keep to their ground, Evade keeps out
@@ -6592,6 +6655,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       return true;
     }
     if (!inZone(u, u.x, u.y)) {
+      // (engine 32) off its ground with an enemy in reach: it strikes first and goes back
+      // next turn (it walked away and left that one unhit)
+      const near = inReach(u);
+      if (near.length) {
+        attack(u, chooseTarget(u, near));
+        return true;
+      }
       // onto its ground: the tile of it nearest its target
       P = search(u, 999, (x, y) => inZone(u, x, y));
       let best = -1;
@@ -7480,6 +7550,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   }
   // what a blast has to be worth: boomWorth, or just boomLast once its Blub is down to
   // half or the mist is in
+  const stuckBoom = (u) => (u.tangled >= now || u.caught >= now || foes(u).some((g) => g.cls === 'sleepy' && cheb(g.x, g.y, u.x, u.y) <= 1)) && foes(u).some((v) => cheb(u.x, u.y, v.x, v.y) <= 1);
   const boomNeed = (u) => (u.hp * 2 <= u.max || misty ? RULES.boomLast : RULES.boomWorth);
   // The Boom Pack's turn: it goes off where a blast is worth the most, here or anywhere
   // it gets to this turn, when that is worth it. Not worth it yet but beside an enemy,
@@ -8372,6 +8443,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         lambo = { at: c, under };
       } else tiles[c] = under;
     }
+    // (engine 32) whether it really parked there, for the page: skip, it never stood there
+    push({ t: 'park', at: [c % SIZE, (c - (c % SIZE)) / SIZE], ...(lambo ? {} : { skip: 1 }) });
   }
   // Nobody has climbed in by lamboAt: then the Lambo turns up for a Blub of its own
   // choosing, right where it stands, and it floors it from there. Whoever drives it
@@ -8829,7 +8902,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       if (pick) {
         u.bubble = false;
         u.totem = false;
-        pure(pick, u, u.hp, 'oneshot');
+        pure(pick, u, u.hp, 'oneshot', true);
         // that shot was its next move
         if (pick.alive) pick.skip = 1;
         checkOver();
@@ -10575,8 +10648,14 @@ const SquadView = (() => {
       const dx = x1 - x0;
       const dy = y1 - y0;
       const l2 = dx * dx + dy * dy || 1;
-      for (let y = 0; y < g.length; y++)
-        for (let x = 0; x < g.length; x++) {
+      // (Engine 31 view: only the box round the stroke, not the whole grid; the same pixels)
+      const m = w / 2 + 1;
+      const ya = Math.max(0, Math.floor(Math.min(y0, y1) - m));
+      const yb = Math.min(g.length - 1, Math.ceil(Math.max(y0, y1) + m));
+      const xa = Math.max(0, Math.floor(Math.min(x0, x1) - m));
+      const xb = Math.min(g.length - 1, Math.ceil(Math.max(x0, x1) + m));
+      for (let y = ya; y <= yb; y++)
+        for (let x = xa; x <= xb; x++) {
           const k = clamp(((x + 0.5 - x0) * dx + (y + 0.5 - y0) * dy) / l2, 0, 1);
           if (Math.hypot(x + 0.5 - (x0 + dx * k), y + 0.5 - (y0 + dy * k)) <= w / 2) FG.put(g, x, y, c);
         }
@@ -10635,12 +10714,30 @@ const SquadView = (() => {
     },
     // a filled polygon, corners in pixel coordinates (a pixel's middle is +0.5)
     poly(g, pts, c) {
-      for (let y = 0; y < g.length; y++)
-        for (let x = 0; x < g.length; x++) {
+      // (Engine 31 view: only the polygon's own box is tested, not the whole grid; a
+      // pixel outside it is never inside, so the same pixels are filled)
+      let x0 = 1e9;
+      let y0 = 1e9;
+      let x1 = -1e9;
+      let y1 = -1e9;
+      for (const q of pts) {
+        if (q[0] < x0) x0 = q[0];
+        if (q[0] > x1) x1 = q[0];
+        if (q[1] < y0) y0 = q[1];
+        if (q[1] > y1) y1 = q[1];
+      }
+      const ya0 = Math.max(0, Math.floor(y0) - 1);
+      const yb0 = Math.min(g.length - 1, Math.ceil(y1) + 1);
+      const xa0 = Math.max(0, Math.floor(x0) - 1);
+      const xb0 = Math.min(g.length - 1, Math.ceil(x1) + 1);
+      for (let y = ya0; y <= yb0; y++)
+        for (let x = xa0; x <= xb0; x++) {
           let inn = false;
           for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
-            const [xa, ya] = pts[a];
-            const [xb, yb] = pts[b];
+            const xa = pts[a][0];
+            const ya = pts[a][1];
+            const xb = pts[b][0];
+            const yb = pts[b][1];
             if (ya > y + 0.5 !== yb > y + 0.5 && x + 0.5 < ((xb - xa) * (y + 0.5 - ya)) / (yb - ya) + xa) inn = !inn;
           }
           if (inn) FG.put(g, x, y, c);
@@ -17578,18 +17675,8 @@ const SquadView = (() => {
     // 4 the wreck: bonnet sprung, a front wheel gone, the nose on the floor.
     lambo: [5, 32, (i) => {
       let g = FG.grid(32);
-      const poly = (pts, c) => {
-        for (let y = 0; y < 32; y++)
-          for (let x = 0; x < 32; x++) {
-            let inn = false;
-            for (let a = 0, b = pts.length - 1; a < pts.length; b = a++) {
-              const [xa, ya] = pts[a];
-              const [xb, yb] = pts[b];
-              if (ya > y + 0.5 !== yb > y + 0.5 && x + 0.5 < ((xb - xa) * (y + 0.5 - ya)) / (yb - ya) + xa) inn = !inn;
-            }
-            if (inn) FG.put(g, x, y, c);
-          }
-      };
+      // (Engine 31 view: FG.poly, which tests only the polygon's own box)
+      const poly = (pts, c) => FG.poly(g, pts, c);
       const rect = (x0, y0, w, h, c) => {
         for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) FG.put(g, x, y, c);
       };
@@ -19586,17 +19673,99 @@ const SquadView = (() => {
   ICONS.gold = {};
   for (const [id] of SE.GOLDS || []) Object.defineProperty(ICONS.gold, id, { enumerable: true, get: () => (FX_ART['gb_' + id] ? FX_ART['gb_' + id][2](0).map((r) => r.join('')) : null) });
   // frame `i` of an effect, painted once and kept
+  // the effect palette as 32-bit pixels (RGBA in memory, read little-endian)
+  let IPW = null;
+  function ipWords() {
+    if (IPW) return IPW;
+    IPW = {};
+    for (const ch in IP) {
+      const h = IP[ch];
+      if (typeof h !== 'string' || !/^#[0-9a-f]{6}$/i.test(h)) continue;
+      const v = parseInt(h.slice(1), 16);
+      IPW[ch] = ((255 << 24) | ((v & 255) << 16) | (v & 0xff00) | (v >> 16)) >>> 0;
+    }
+    return IPW;
+  }
   function fxFrame(id, i) {
     const key = id + ':' + i;
     let c = fxCache.get(key);
     if (c) return c;
     const [n, size, draw] = FX_ART[id];
     c = canvas(size, size);
-    paintRows(c.getContext('2d'), draw(clamp(i, 0, n - 1)).map((r) => r.join('')), IP, 0, 0, 1);
+    // (Engine 31 view) written as pixels in one go, not a fillRect a pixel: the mushroom
+    // cloud's 128x128 frames took 40-52 ms each on a slowed phone
+    const rows = draw(clamp(i, 0, n - 1));
+    const g = c.getContext('2d');
+    const img = g.createImageData(size, size);
+    const px = new Uint32Array(img.data.buffer);
+    const pal = ipWords();
+    for (let j = 0; j < rows.length && j < size; j++) {
+      const r = rows[j];
+      const w = Math.min(size, r.length);
+      for (let k = 0; k < w; k++) {
+        const v = pal[r[k]];
+        if (v) px[j * size + k] = v;
+      }
+    }
+    g.putImageData(img, 0, 0);
     fxCache.set(key, c);
     return c;
   }
   const fxCount = (id) => FX_ART[id][0];
+  // (Engine 31 view) Effect art is painted the first time a frame is asked for, and a
+  // few of its pictures take tens of milliseconds (the whale, the mushroom cloud, the
+  // Lambo): painted in the middle of their own scene, that was a dropped frame or five.
+  // So each round queues what its events will need and paints it ahead, a frame at a
+  // time, in the browser's idle time. Nothing changes on screen.
+  const FX_WARM = {
+    curve: ['nuke', 'mushroom', 'kaboom'], nuke: ['nuke', 'mushroom', 'kaboom'],
+    whale: ['whale', 'spout', 'fluke', 'splash', 'wave'],
+    lambo: ['lambo', 'bang', 'wheel', 'flame', 'stunt'],
+    rocket: ['rocket', 'flame'], rug: ['rug'], bait: ['honeypot', 'bee'], honey: ['honeypot', 'bee'],
+    claim: ['candle', 'moon', 'diamond', 'mgun'], ride: ['candle', 'moon', 'diamond', 'mgun'],
+    sink: ['sink', 'exitsign'], fud: ['smog'], smoke: ['smog', 'smogW', 'smogWk'],
+    pill: ['pill', 'pillTilt', 'pumppill'], coin: ['flipcoin', 'coin'],
+    phone: ['van', 'pizzabox', 'pizzaslice'], unleash: ['shiba', 'cage'],
+    craft: ['cannonC', 'cannonB', 'cannonW', 'cannonFx', 'cannonSmoke', 'cannonShot', 'cannonUp', 'bigUp'],
+    drop: ['airdrop'], box: ['airdrop'], perk: ['gb_pill', 'gb_pizza', 'gb_coin', 'gb_raygun', 'gb_scar', 'gb_shiba', 'gb_blueprint'],
+  };
+  const warmQ = [];
+  let warmOn = false;
+  function warmFx(R) {
+    const ids = new Set(['puff', 'airdrop']);
+    for (const e of R.ev) for (const id of FX_WARM[e.t] || []) ids.add(id);
+    for (const c of (R.chest && R.chest.events) || []) for (const id of FX_WARM[c.id] || []) ids.add(id);
+    for (const id of ids) {
+      if (!FX_ART[id]) continue;
+      for (let i = 0; i < FX_ART[id][0]; i++) if (!fxCache.has(id + ':' + i)) warmQ.push(id, i);
+    }
+    if (warmQ.length && !warmOn) {
+      warmOn = true;
+      warmLater();
+    }
+  }
+  function warmLater() {
+    if (window.requestIdleCallback) requestIdleCallback(warmStep, { timeout: 250 });
+    else setTimeout(warmStep, 60);
+  }
+  function warmStep(dl) {
+    // one frame at least, then on while the idle time lasts (8 ms when the browser
+    // found none and the timeout called it: a busy phone gets there too)
+    const end = performance.now() + (dl && !dl.didTimeout && dl.timeRemaining ? dl.timeRemaining() - 2 : 8);
+    let n = 0;
+    while (warmQ.length && (n === 0 || performance.now() < end)) {
+      const id = warmQ.shift();
+      const i = warmQ.shift();
+      try {
+        fxFrame(id, i);
+      } catch (err) {
+        /* drawn when it is needed instead */
+      }
+      n++;
+    }
+    if (warmQ.length) warmLater();
+    else warmOn = false;
+  }
 
   const iconCache = new Map();
   function iconSrc(kind, id) {
@@ -23342,6 +23511,26 @@ const SquadView = (() => {
     }
   }
 
+  // the acting Blub's name: its first eight letters on a dark tag edged in its team's
+  // colour (cached per name and colour)
+  const TAGS = new Map();
+  function nameTag(u) {
+    const name = String(P.names[u.id] || 'Blub').toUpperCase().replace(/[^A-Z0-9 !?.'-]/g, '').slice(0, 8) || 'BLUB';
+    const col = colors[u.side].light;
+    const key = name + '|' + col;
+    let c = TAGS.get(key);
+    if (c) return c;
+    const t = pxText(name, '#FFFFFF', 1);
+    c = canvas(t.width + 4, t.height + 2);
+    const g = c.getContext('2d');
+    g.fillStyle = INK;
+    g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = col;
+    g.fillRect(0, c.height - 1, c.width, 1);
+    g.drawImage(t, 2, 0);
+    TAGS.set(key, c);
+    return c;
+  }
   function corners(x, x0, y0, w, h, col, len) {
     x.fillStyle = col;
     const L = len || 3;
@@ -25553,8 +25742,27 @@ const SquadView = (() => {
       x.fillRect(x0, y0, w, h);
       return;
     }
-    const lim = a * 16;
-    for (let yy = Math.round(y0); yy < y0 + h; yy++) for (let xx = Math.round(x0); xx < x0 + w; xx++) if (FG.BAYER[(yy & 3) * 4 + (xx & 3)] < lim) x.fillRect(xx, yy, 1, 1);
+    // (Engine 31 view) one fill with a 4x4 Bayer pattern of the level, the same pixels
+    // as one fillRect a pixel: the close-up's white cut over the whole board took up to
+    // 30,000 of those a frame
+    const n = Math.min(16, Math.ceil(a * 16));
+    const xs = Math.round(x0);
+    const ys = Math.round(y0);
+    x.fillStyle = ditherPat(x, col, n);
+    x.fillRect(xs, ys, Math.ceil(x0 + w) - xs, Math.ceil(y0 + h) - ys);
+  }
+  const DITHER = new Map();
+  function ditherPat(x, col, n) {
+    const key = col + '|' + n;
+    let p = DITHER.get(key);
+    if (p) return p;
+    const c = canvas(4, 4);
+    const g = c.getContext('2d');
+    g.fillStyle = col;
+    for (let i = 0; i < 16; i++) if (FG.BAYER[i] < n) g.fillRect(i & 3, i >> 2, 1, 1);
+    p = x.createPattern(c, 'repeat');
+    DITHER.set(key, p);
+    return p;
   }
   // A sprite with the ordered dither cut into it, so `a` (0 to 1) of it is left:
   // how afterimages trail and how words leave, never as a see-through smear.
@@ -25939,8 +26147,13 @@ const SquadView = (() => {
   function render(now) {
     const t = P.clock;
     const shot = shotAt(t);
-    if (shot && !P.buf) P.buf = canvas(CW, CH);
-    const x = shot ? P.buf.getContext('2d') : P.ctx;
+    // (Engine 31 view) a close-up is the browser's zoom on the arena (cssCut): the board
+    // is drawn once, straight to the screen. Only while a clip records, which copies the
+    // screen's canvas, is it drawn into P.buf and blown up by hand (cutIn).
+    const byHand = !!(shot && P.clip);
+    if (byHand && !P.buf) P.buf = canvas(CW, CH);
+    const x = byHand ? P.buf.getContext('2d') : P.ctx;
+    if (!shot && D.cv.style.transform) cssCut(null);
     // (engine 29: the frame's time, for effects that drift with it, as the Smoke Pot's wall thinning away)
     P.rnow = now;
     const S = P.S;
@@ -26089,13 +26302,23 @@ const SquadView = (() => {
       x.fillRect(Math.round(p.x + p.vx * e), Math.round(p.y + p.vy * e + 0.5 * p.g * e * e), p.s, p.s);
     }
     x.globalAlpha = 1;
-    // acting unit: gold corner brackets
+    // acting unit: gold corner brackets. (Engine 31 view) They breathe a pixel in and
+    // out, a gold edge goes round the Blub, and its name hangs under its feet on a tag in
+    // its team's colour: whose turn it is, and who that is, read at a glance on a phone
     if (!intro)
       for (const id of P.actors) {
         const u = S.u[id];
         if (!u || !u.alive || !u._b) continue;
         const b = u._b;
-        corners(x, b.ox - 2, b.oy + 2, 20, b.fy - b.oy + 1, '#FFD447', 3);
+        const br = P.calm ? 0 : (now >> 8) & 1;
+        corners(x, b.ox - 2 - br, b.oy + 2 - br, 20 + 2 * br, b.fy - b.oy + 1 + 2 * br, '#FFD447', 3);
+        if (!b.seat) {
+          x.globalAlpha = 0.7;
+          x.drawImage(P.spr[u.id].line.gold, b.ox - 1, b.oy - 1);
+          x.globalAlpha = 1;
+          const tag = nameTag(u);
+          x.drawImage(tag, clamp(Math.round(b.ox + 8 - tag.width / 2), 0, CW - tag.width), Math.min(CH - tag.height, b.fy + 4));
+        }
       }
     // a roster tap highlights one unit for 1.5 s
     if (P.pick && now - P.pick.t < 1500) {
@@ -26145,23 +26368,57 @@ const SquadView = (() => {
       x.fillRect(0, 0, CW, CH);
       x.globalAlpha = 1;
     }
-    if (shot) cutIn(shot, t);
+    if (byHand) {
+      if (D.cv.style.transform) cssCut(null);
+      cutIn(shot, t);
+    } else if (shot) cssCut(shot, t);
   }
-  // the close-up: the window round the action at twice the size, bars in and out
-  function cutIn(shot, t) {
+  // the close-up as a zoom: the arena's canvas scaled 2x round the window, clipped to
+  // it (clip-path is in the canvas's own pixels, so it lands on the stage's box); its
+  // bars and white cut are drawn into the window at half size
+  function cssCut(shot, t) {
+    const cv = D.cv;
+    if (!shot) {
+      cv.style.transform = '';
+      cv.style.clipPath = '';
+      return;
+    }
+    const W = CW / 2;
+    const H = CH / 2;
+    const [sx, sy] = shotWin(shot, t);
+    const s = (parseFloat(cv.style.width) || CW) / CW;
+    cv.style.transformOrigin = '0 0';
+    cv.style.transform = 'scale(2) translate(' + -sx * s + 'px,' + -sy * s + 'px)';
+    cv.style.clipPath = 'inset(' + sy * s + 'px ' + (CW - sx - W) * s + 'px ' + (CH - sy - H) * s + 'px ' + sx * s + 'px)';
     const c = P.ctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    const e = t - shot.t0;
+    const bar = Math.round(6 * Math.min(1, e / 90, (shot.t1 - t) / 90));
+    c.fillStyle = '#000000';
+    c.fillRect(sx, sy, W, bar);
+    c.fillRect(sx, sy + H - bar, W, bar);
+    if (e < 50) ditherRect(c, sx, sy, W, H, '#FFFFFF', 0.5 * (1 - e / 50));
+  }
+  // where the close-up's window sits: round what it follows, inside the board
+  function shotWin(shot, t) {
     let at = null;
     try {
       at = shot.follow ? shot.follow(t) : null;
     } catch (err) {
       fault(err);
     }
-    const [fx, fy] = at || [shot.cx, shot.cy];
+    const fx = at ? at[0] : shot.cx;
+    const fy = at ? at[1] : shot.cy;
+    return [clamp(Math.round(fx - CW / 4), 0, CW / 2), clamp(Math.round(fy - CH / 4), 0, CH / 2)];
+  }
+  // the close-up drawn by hand (while a clip records): the window round the action at
+  // twice the size, bars in and out
+  function cutIn(shot, t) {
+    const c = P.ctx;
+    const [sx, sy] = shotWin(shot, t);
     freshCtx(c);
     const W = CW / 2;
     const H = CH / 2;
-    const sx = clamp(Math.round(fx - W / 2), 0, CW - W);
-    const sy = clamp(Math.round(fy - H / 2), 0, CH - H);
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.imageSmoothingEnabled = false;
     c.drawImage(P.buf, sx, sy, W, H, 0, 0, W * 2, H * 2);
@@ -31379,6 +31636,14 @@ const SquadView = (() => {
     });
     card.addEventListener('click', () => (card.hidden = true));
     window.addEventListener('resize', () => P && layout());
+    // (Engine 31 view) the browser's Back (or any other move of the address) closes the
+    // theater; not a match that was opened by that same move (a #watch link: the page's
+    // router opens it first, in the same event)
+    const onNav = () => {
+      if (P && performance.now() - P.openedAt > 250) finish();
+    };
+    window.addEventListener('hashchange', onNav);
+    window.addEventListener('popstate', onNav);
     document.addEventListener('visibilitychange', () => {
       if (P && document.hidden && !P.paused) {
         P.paused = true;
@@ -31496,15 +31761,16 @@ const SquadView = (() => {
   // ---- the guided first match (match.tour): a card over the board at the moments that
   // teach the game, each once; the fight holds still while one is up (a tap on Got it,
   // or a while of reading). One that comes while another is up waits its turn.
+  // (Engine 31 view: one or two short lines a card, readable on a phone at a glance)
   const TOUR = {
-    intro: ['Squad Arena', 'Two squads of five Blubs, built beforehand, fight it out on their own. There is nothing to click in the fight: it all comes down to how a squad is built.'],
-    chest: ['The chest', 'Before every round it throws in 1 to 3 events: the counter says how many, then each one spins. Some stand on the arena, some strike later, and traps stay hidden.'],
-    arena: ['The arena', 'A new one every round. Rock stops Blubs and shots, a bush hides whoever stands in it, the rainbow water heals a Blub that rests in it, and a terrace gives a bow more reach.'],
-    kit: ['The trench kit', 'Each squad digs in up to two objects before the fight: sandbags, barbed wire, a pair of mines, a mortar, a watchtower, a smoke pot, a decoy, a field hospital and more.'],
-    roles: ['Roles', 'Brawlers charge in, Guardians hold the line and take arrows for a friend, Skirmishers shoot from afar, Medics heal, and Tricksters slip round to the back line.'],
-    powers: ['Powers and commands', 'Every Blub has a power: a freeze, a storm, a cannon to build, pits to dig, a shield... and once a round the captain calls a command to the whole squad.'],
-    ko: ['Out!', 'A squad wins the round once the other has nobody left standing, or with more of its HP left when turn ' + SE.TURNS + ' is over. A best of 3 brings a second and third arena.'],
-    end: ['Your turn', 'Now your own five: "Now play with your team" sends them against a bot squad, free. Their looks, skills and strategy are on the Team page.'],
+    intro: ['Squad Arena', 'Five against five, fighting on their own. How a squad is built decides it.'],
+    chest: ['The chest', 'Every round brings surprises: some on the arena, some later.'],
+    arena: ['The arena', 'Rock blocks, bushes hide, rainbow water heals, terraces give reach.'],
+    kit: ['The trench kit', 'Each squad digs in up to two objects: mines, wire, a tower and more.'],
+    roles: ['Roles', 'Brawler, Guardian, Skirmisher, Medic, Trickster: each fights its own way.'],
+    powers: ['Powers and commands', 'Every Blub has a power. Once a round the captain calls a command.'],
+    ko: ['Out!', 'Knock all five out, or lead on HP after turn ' + SE.TURNS + '.'],
+    end: ['Your turn', 'Your own five next, free against bots. Build them on the Team page.'],
   };
   function tourSay(key) {
     if (!P || !P.tour || P.tour.seen[key] || P.seeking || !TOUR[key]) return;
@@ -31707,9 +31973,10 @@ const SquadView = (() => {
     const R = team === P.me ? D.you : D.them;
     const c = R && R.memeChips && R.memeChips[id];
     if (!c || P.seeking) return;
-    c.classList.remove('popped');
-    void c.offsetWidth;
-    c.classList.add('popped');
+    // (lane D) two classes in turn with twin keyframes: the pop starts over without a forced layout
+    const b = c.classList.contains('popped');
+    c.classList.remove('popped', 'popped2');
+    c.classList.add(b ? 'popped2' : 'popped');
     if (spent) c.classList.add('used');
   }
   function buildRosters() {
@@ -32049,7 +32316,7 @@ const SquadView = (() => {
       fx: [], parts: [], nums: [], marks: [], decals: [], actors: [], sayQ: [], sayT: 0, logLines: [], ticker: '',
       craters: [], shells: [], ov: {}, cause: {}, objs: [], objRows: [], objCell: new Map(), sandCell: new Set(),
       shakeT: -1e9, flashT: -1e9, itemT: -1e9, sfxLast: 0, sfxPend: null, phase: 'intro', ri: 0, clock: 0, qi: 0,
-      prevFocus: document.activeElement, raf: 0, last: 0,
+      prevFocus: document.activeElement, raf: 0, last: 0, openedAt: performance.now(),
     };
     P.calm = P.rm || P.userCalm;
     // the guided first match: what it has told already, and what waits its turn
@@ -32084,6 +32351,9 @@ const SquadView = (() => {
     P.share = typeof match.share === 'function' ? match.share : null;
     D.bShare.hidden = !P.share;
     P.ctx = D.cv.getContext('2d');
+    // (no close-up left over from the last match)
+    D.cv.style.transform = '';
+    D.cv.style.clipPath = '';
     applyPalette();
     paintPlay();
     paintToggles();
@@ -32179,6 +32449,7 @@ const SquadView = (() => {
     }
     if (!r.map) r.map = prepMap(r.R, P.flip, r.R.theme);
     P.map = r.map;
+    warmFx(r.R);
     setupObjs(r.R);
     P.S = freshState(r.R, P.sideOf);
     // the Coin Flip's doppelganger (engine 22): its Blub's look, its name with a II; and
@@ -33433,10 +33704,12 @@ const SquadView = (() => {
     const side = P.sideOf(e.winner);
     // (Engine 31 view) the winning side's roster lights up
     if (!P.seeking) {
+      // (two class names in turn start the flash over without forcing a layout)
       const box = (side === 'you' ? D.you : D.them).box;
-      box.classList.remove('won');
-      void box.offsetWidth; // (once a round: starts the flash over)
-      box.classList.add('won');
+      const again = box.classList.contains('wonA');
+      D.you.box.classList.remove('wonA', 'wonB');
+      D.them.box.classList.remove('wonA', 'wonB');
+      box.classList.add(again ? 'wonB' : 'wonA');
     }
     // the score with this round counted (its end event applies just after this beat starts)
     const sc = [0, 0];
@@ -34435,9 +34708,9 @@ const SquadView = (() => {
       C.append(pc);
     }
     C.append(el('span', '', text));
-    C.className = 'sqv-call ' + (side || '');
-    void C.offsetWidth;
-    C.className = 'sqv-call on ' + (side || '');
+    // (two classes in turn, twin keyframes: it pops in again without a forced layout)
+    M.flip = !M.flip;
+    C.className = 'sqv-call on ' + (M.flip ? 'b ' : '') + (side || '');
     const ms = Math.max(650, 1500 / Math.max(1, P.speed));
     M.until = now + ms;
     M.prio = prio;
@@ -34712,11 +34985,12 @@ const SquadView = (() => {
     });
     // the Blub's own description for screen readers stays in the log; the face reacts
     if (P.seeking || P.calm) return;
-    r.b.classList.remove('yay', 'ugh');
-    void r.b.offsetWidth;
-    r.b.classList.add(good ? 'yay' : 'ugh');
+    // (two classes in turn, twin keyframes: no forced layout to start it over)
+    r.yayB = !r.yayB;
+    r.b.classList.remove('yay', 'ugh', 'yayB', 'ughB');
+    r.b.classList.add((good ? 'yay' : 'ugh') + (r.yayB ? 'B' : ''));
     clearTimeout(r.trayT);
-    r.trayT = setTimeout(() => r.b.classList.remove('yay', 'ugh'), 900);
+    r.trayT = setTimeout(() => r.b.classList.remove('yay', 'ugh', 'yayB', 'ughB'), 900);
   }
   function memeTrayClear() {
     if (D) D.root.querySelectorAll('.sqv-ptray').forEach((t) => t.remove());
@@ -35697,6 +35971,13 @@ const SquadHall = (() => {
   }
   const est = new Map(), estQ = [];
   let estT = 0;
+  // (lane A5) the estimates and the matchups run in the browser's idle time, a slice at a time
+  // (at most 12 ms, less when the browser says it has less), and wait while no hall page is on
+  // screen or the tab is in the background, looking again once a second; they go on where they
+  // stopped, and a squad's result is kept by its key, so the numbers come out the same
+  const idleSoon = fn => (window.requestIdleCallback ? requestIdleCallback(fn, {timeout: 300}) : setTimeout(fn, 0));
+  const estHold = () => document.hidden || !onScreen();
+  const sliceOf = dl => (dl && typeof dl.timeRemaining === 'function' && !dl.didTimeout ? Math.max(4, Math.min(12, dl.timeRemaining())) : 12);
   const sqSig = sq => JSON.stringify([sq.units, sq.objs || [], sq.cmd || '']);
   // resolves to {level 0-4, pct, lo, hi}; first: jump the queue (the squad you are building)
   function estimate(sq, first){
@@ -35712,14 +35993,15 @@ const SquadHall = (() => {
     }
     const at = estQ.indexOf(job);
     if (first && at > 0){ estQ.splice(at, 1); estQ.unshift(job); }
-    if (estQ.length && !estT) estT = setTimeout(estStep, 0);
+    if (estQ.length && !estT) estT = idleSoon(estStep);
     return job.p;
   }
-  function estStep(){
+  function estStep(dl){
     estT = 0;
+    if (estHold()){ estT = setTimeout(estStep, 1000); return; }
     if (!gauntlet) gauntlet = buildGauntlet();
-    const t0 = performance.now(), G = gauntlet.length;
-    while (estQ.length && performance.now() - t0 < 12){
+    const t0 = performance.now(), G = gauntlet.length, budget = sliceOf(dl);
+    while (estQ.length && performance.now() - t0 < budget){
       const j = estQ[0], g = (j.n >> 2) % G, k = (j.n >> 1) & 1, side = j.n & 1, seed = (((g + 1) * 1000003 + k * 7919) % 2147483000) + 1;
       const r = E.simulateRound(side ? gauntlet[g] : j.sq, side ? j.sq : gauntlet[g], seed, k, true);
       if (r.winner === side) j.w++;
@@ -35729,7 +36011,7 @@ const SquadHall = (() => {
       const pct = Math.min(100, Math.round(j.w * EST_CAL));
       j.done({level: tierOf(pct), pct, lo: Math.max(0, pct - EST_RANGE), hi: Math.min(100, pct + EST_RANGE)});
     }
-    if (estQ.length) estT = setTimeout(estStep, 0);
+    if (estQ.length) estT = idleSoon(estStep);
   }
   // ---- the matchup at a glance (lane D, engine 31): your squad against one other squad, 24
   // practice rounds on fixed seeds, played from both sides, in the same 12 ms slices as the
@@ -35748,15 +36030,16 @@ const SquadHall = (() => {
       if (h2h.size > 40) h2h.delete(h2h.keys().next().value);
       h2hQ.push(job);
     }
-    if (h2hQ.length && !h2hT) h2hT = setTimeout(h2hStep, 0);
+    if (h2hQ.length && !h2hT) h2hT = idleSoon(h2hStep);
     return job.p;
   }
-  function h2hStep(){
+  function h2hStep(dl){
     h2hT = 0;
     // the strength estimate first
     if (estQ.length || estT){ h2hT = setTimeout(h2hStep, 60); return; }
-    const t0 = performance.now();
-    while (h2hQ.length && performance.now() - t0 < 12){
+    if (estHold()){ h2hT = setTimeout(h2hStep, 1000); return; }
+    const t0 = performance.now(), budget = sliceOf(dl);
+    while (h2hQ.length && performance.now() - t0 < budget){
       const j = h2hQ[0], side = j.n & 1, k = (j.n >> 1) & 1, seed = (((j.n >> 1) + 1) * 2654435 % 2147483000) + 7;
       const r = E.simulateRound(side ? j.b : j.a, side ? j.a : j.b, seed, k, true);
       if (r.winner === side) j.w++;
@@ -35765,7 +36048,7 @@ const SquadHall = (() => {
       const pct = Math.round((100 * j.w) / j.n);
       j.done({w: j.w, n: j.n, pct, word: pct >= 60 ? 'Favoured' : pct <= 40 ? 'Tough' : 'Even'});
     }
-    if (h2hQ.length) h2hT = setTimeout(h2hStep, 0);
+    if (h2hQ.length) h2hT = idleSoon(h2hStep);
   }
   const ODDS_CLS = {Favoured: 'up', Even: 'even', Tough: 'down'};
   // a chip: '…' while it works, then 'Your odds 62% · Favoured'
@@ -35840,13 +36123,15 @@ const SquadHall = (() => {
   }
   let sT = 0;
   function strengthSoon(){
-    clearTimeout(sT);
     // no estimates (a few hundred simulated rounds) for visitors who never open the hall
-    if (!st.seenOnce) return;
+    if (!st.seenOnce){ clearTimeout(sT); return; }
     const sq = E.cleanSquad(squadOf(st.draft));
-    if (!sq){ st.strength = -1; st.sSig = ''; paintBar(); return; }
+    if (!sq){ clearTimeout(sT); st.strength = -1; st.sSig = ''; paintBar(); return; }
     const sig = sqSig(sq);
+    // (lane A5: the same squad again keeps the estimate it asked for; clearing it first left the
+    // meter at 'working it out' for good when the hall asked twice, as it does on opening)
     if (sig === st.sSig) return;
+    clearTimeout(sT);
     st.sSig = sig; st.strength = null; paintBar();
     sT = setTimeout(() => estimate(sq, true).then(r => { if (st.sSig === sig){ rated(sig, r); st.strength = r; paintBar(); renderChalSquad(); } }), 400);
   }
@@ -36502,7 +36787,9 @@ const SquadHall = (() => {
     R.kitDesc = h('div', {class: 'sq-kd', id: 'sqKitDesc'});
     R.kitSide = h('div', {class: 'sq-kside'}, R.kitDesc, h('div', {class: 'sq-autos'}, h('span', {class: 'sq-lbl', id: 'sqAutoT'}, 'Auto-arrange'), forms));
     R.help = h('p', {class: 'sq-desc', id: 'sqBoardHelp'}, helpText());
-    zone.append(head, h('div', {class: 'sq-dgrid'}, h('div', {class: 'sq-dmain'}, R.bStrip, R.frame), R.kitSide), R.help);
+    // (lane D5) the how-to folds away under one line, no wall of text under the board; the
+    // board still points at it for screen readers
+    zone.append(head, h('div', {class: 'sq-dgrid'}, h('div', {class: 'sq-dmain'}, R.bStrip, R.frame), R.kitSide), h('details', {class: 'sq-bhelp'}, h('summary', {'data-k': 'bhelp'}, 'How to move things'), R.help));
     R.boardBox = board; R.cv = cv; R.grid = grid;
     // tap / click, keyboard and drag (mouse, pen and finger: a cell with a Blub or an
     // object on it does not scroll the page, so a finger on it drags; the empty ones do)
@@ -37963,11 +38250,15 @@ const SquadHall = (() => {
   // times a second (bubbles, the glint), the creatures and the small badges every half second
   const rankLive = new Set();
   let rankT = 0, rankTick = 0;
+  // (lane A5) a medal or badge off screen is not painted (it is painted for the tick it is
+  // at once it comes back, so it looks the same); rankOff holds the ones off screen
+  const rankOff = new WeakSet();
+  const rankIO = window.IntersectionObserver ? new IntersectionObserver(es => es.forEach(e => (e.isIntersecting ? rankOff.delete(e.target) : rankOff.add(e.target)))) : null;
   function stepRanks(){
     rankTick++;
     for (const c of rankLive){
       if (!c.isConnected){ rankLive.delete(c); continue; }
-      if (document.hidden || calm() || !c.offsetParent) continue;
+      if (document.hidden || calm() || rankOff.has(c) || !c.offsetParent) continue;
       if (c.width === 48) Emblem.paint(c, +c.dataset.rank, rankTick);
       else if (rankTick % 4 === 0) paintRank(c, +c.dataset.rank, (rankTick >> 2) & 1);
     }
@@ -37989,22 +38280,46 @@ const SquadHall = (() => {
     if (big) Emblem.paint(c, +c.dataset.rank, calm() ? 0 : rankTick);
     else paintRank(c, +c.dataset.rank, calm() ? 0 : (rankTick >> 2) & 1);
     rankLive.add(c);
+    if (rankIO) rankIO.observe(c);
     if (!rankT) rankT = setInterval(stepRanks, 125);
     return c;
   }
   // the ranks panel: a row per creature (Whale at the top), its three grades, yours marked
+  // (lane A5) the ranks panel's 18 medals take a phone over a second to draw: the list is drawn
+  // when it comes near the screen (its page shown), the same list then as before
+  let ranksIO = null, ranksNear = false, rankGen = 0;
   function renderRanks(){
     if (!R.rankL) return;
+    if (!ranksNear && window.IntersectionObserver){
+      if (!ranksIO){
+        ranksIO = new IntersectionObserver(es => { if (es[0].isIntersecting && !ranksNear){ ranksNear = true; ranksIO.disconnect(); renderRanks(); } }, {rootMargin: '600px 0px'});
+        ranksIO.observe(R.rankL);
+      }
+      return;
+    }
     // yours: your group's rank, or in the preview (no league yet) the example's Bronze Shrimp
     const preview = typeof SquadNet.league !== 'function' || !SquadNet.ready();
     const me = SquadNet.me(), g = st.league && me ? groupIn(st.league, me) : null, mine = g ? g.d : preview ? myRank() || 1 : 0;
     if (R.rankL.childElementCount && R.rankL.dataset.mine === String(mine)) return;
     R.rankL.dataset.mine = String(mine); R.rankL.textContent = '';
+    // (lane A5) a medal takes a phone tens of ms to draw the first time: each one gets a task of
+    // its own, top row first, in a blank canvas of its size till then (nothing moves)
+    const gen = ++rankGen, slots = [];
     ANIMALS.map((an, a) => [an, a]).reverse().forEach(([an, a]) => R.rankL.append(h('li', null, h('b', null, an),
       h('span', {class: 'sq-rankg'}, ...TIERS.map((t, k) => {
-        const d = a * 3 + k + 1;
-        return h('span', {class: 'sq-rankb' + (d === mine ? ' me' : ''), title: DIVS[d - 1] + (d === 1 ? ': where everyone starts' : d === DIVS.length ? ': the top' : '')}, divBadge(d, 96), h('small', null, d === mine ? 'You' : t));
+        const d = a * 3 + k + 1, slot = document.createElement('canvas');
+        slot.width = slot.height = 48; slot.className = 'sq-lgb spr sq-lgbig'; slot.style.width = slot.style.height = '96px'; slot.setAttribute('aria-hidden', 'true');
+        slots.push([slot, d]);
+        return h('span', {class: 'sq-rankb' + (d === mine ? ' me' : ''), title: DIVS[d - 1] + (d === 1 ? ': where everyone starts' : d === DIVS.length ? ': the top' : '')}, slot, h('small', null, d === mine ? 'You' : t));
       })))));
+    const next = () => {
+      if (gen !== rankGen) return;
+      const one = slots.shift();
+      if (!one) return;
+      if (one[0].isConnected) one[0].replaceWith(divBadge(one[1], 96));
+      if (slots.length) setTimeout(next, 0);
+    };
+    setTimeout(next, 0);
   }
   // a bot's mark in the rankings: a small robot head
   const BOT_ROWS = ['.....RR.....', '.....kk.....', '.kkkkkkkkkk.', 'kGGGGGGGGGGk', 'kGkkkkkkkkGk', 'kGkCCkkCCkGk', 'kGkCCkkCCkGk', 'kGkkkkkkkkGk', 'kGGGGGGGGGGk', 'kGGkWkWkWGGk', 'kGGGGGGGGGGk', '.kkkkkkkkkk.'];
@@ -38329,6 +38644,9 @@ const SquadHall = (() => {
   function frToday(L){
     const now = Date.now(), today = E.leagueDay(now), week = E.leagueWeek(now), me = SquadNet.me(), box = h('div', {class: 'lg-days'});
     if (L.members.length < 2){ box.append(h('p', {class: 'sq-desc'}, 'Invite a friend: the league plays as soon as it has two players.')); return box; }
+    // (QA, 21 Oct 2026) nothing played this week yet (a league made after today's run): there
+    // is no day to ask for, and asking only got a 404 the browser logged on every visit
+    if (Array.isArray(L.table) && !L.table.length){ box.append(h('p', {class: 'sq-desc'}, 'Today’s matches are played just after midnight UTC.')); return box; }
     const D = dayOf('fl/' + L.code + '/' + week + '.' + today, () => SquadNet.friends.day(L.code, week, today));
     const G = D ? dayGames(D, me, week, E.friendGroup(L.code), L.name + ' · ' + DAY_NAMES[today]) : null;
     if (D === undefined) box.append(h('p', {class: 'sq-desc'}, 'Loading today’s matches…'));
@@ -38615,11 +38933,13 @@ const SquadHall = (() => {
     if (!R.profIn || st.profSaving) return;
     const p = SquadNet.profile();
     if (!p){ SquadNet.signIn('Sign in to set your profile name.'); return; }
-    st.profSaving = true; say(R.profMsg, 'Saving…');
+    st.profSaving = true; say(R.profMsg, 'Saving…'); R.profMsg.classList.remove('note');
     let r;
     try { r = await SquadNet.setProfile(R.profIn.value); } catch { r = {ok: false, error: 'The profile name was not saved. Try again in a moment.'}; }
     st.profSaving = false;
-    say(R.profMsg, r.ok ? r.note || (cleanName(R.profIn.value) ? 'Saved. The rankings show it.' : 'Saved. The rankings show your wallet address.') : r.error, r.ok);
+    say(R.profMsg, r.ok ? r.note || (cleanName(R.profIn.value) ? 'Saved. The rankings show it.' : 'Saved. The rankings show your wallet address.') : r.error, r.ok && !r.pending);
+    // (lane A5: not saved yet, waiting on the team's first save: neither a success nor an error)
+    R.profMsg.classList.toggle('note', !!(r.ok && r.pending));
     renderProfile(); renderLeague(); renderTop();
   }
 
@@ -42808,6 +43128,19 @@ const VIEWS = {team: $('#team'), practice: $('#practice'), rankings: $('#ranking
 const ALIAS = {make: 'team', arena: 'practice', meadow: 'practice', play: 'practice', duels: 'practice', ranks: 'rankings', league: 'rankings'};
 const viewOf = h => VIEWS[h] ? h : ALIAS[h] || '';
 function go(id){ try { history.pushState(null, '', '#' + id); } catch {} route(id); }
+// The hall (src/squad/hall.js) is built at once when one of its pages is open; on the home page it
+// waits until one of its pages opens, or ten seconds and then a quiet moment. Building it draws every
+// rank's medal, over a second of a phone's main thread at load, and nothing on the home page needs it.
+let hallAsked = false, hallIdle = 0;
+function hallReady(){
+  hallAsked = true;
+  // (a hall page open from the start: built, then shown, as the router would have shown it had the hall been there)
+  const open = Object.keys(VIEWS).find(k => !VIEWS[k].hidden);
+  if (open){ SquadHall.ready(); if (open !== 'admin') SquadHall.show(open, location.hash.slice(1)); return; }
+  if (hallIdle) return;
+  const go = () => SquadHall.ready();
+  hallIdle = setTimeout(() => (window.requestIdleCallback ? requestIdleCallback(go, {timeout: 5000}) : go()), 10000);
+}
 function route(hh){
   const h = typeof hh === 'string' ? hh : location.hash.slice(1);
   if (h.startsWith('duel=') || h.startsWith('squad=')){ const code = parseCode(h.slice(h.indexOf('=') + 1)); route('practice'); if (code) SquadHall.openInvite(code); return; }
@@ -42822,7 +43155,7 @@ function route(hh){
   document.querySelectorAll('[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav === v ? 'page' : 'false'));
   if (v){
     // the hall opens the team page on the right tab (#make: the looks)
-    if (v === 'admin') openAdmin(); else SquadHall.show(v, h);
+    if (v === 'admin') openAdmin(); else { if (hallAsked) SquadHall.ready(); SquadHall.show(v, h); }
     requestAnimationFrame(() => window.scrollTo(0, 0));
   } else {
     if (was) dispatchEvent(new Event('resize'));
@@ -42987,7 +43320,7 @@ function localMode(){
   const d = lsGet(), L = d && d.local;
   if (L){ S.name = cleanName(L.name); S.look = wearable(cleanLook(L.look)); S.saved = !!L.saved && S.name.length > 1; S.style = cleanStyle(L.style); S.build = cleanBuild(L.build, S.style); S.squad = Array.isArray(L.squad) ? cleanSquad(L.squad, 'local', S.style) : null; S.player = cleanName(L.player); }
   Maker.adopt(!!S.saved); if (!S.saved) Maker.loadDraft(d && d.draft);
-  Wallet.render(); heroHello(); SquadHall.ready();
+  Wallet.render(); heroHello(); hallReady();
 }
 function applyMe(me){
   if (me && typeof me.address === 'string' && ADDR_RE.test(me.address)){
@@ -43044,7 +43377,7 @@ async function boot(){
   S.api = true;
   applyMe(me);
   await pullMeadow();
-  SquadHall.ready();
+  hallReady();
   // the list is cached at the edge, so this costs (almost) no database commands
   setInterval(() => { if ((!$('#team').hidden || !$('#practice').hidden || !$('#rankings').hidden) && !document.hidden) pullMeadow(); }, 120000);
 }
