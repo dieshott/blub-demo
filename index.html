@@ -25622,6 +25622,12 @@ const SquadView = (() => {
     // (Engine 31 view) the engine parks it only where it may (no rock, sandbags, wire or
     // mine, the arena still in one piece); a parked car always drives by lamboAt, so a
     // round that reached that turn without a 'lambo' event never had one on the board
+    // (engine 32) the engine says it: 'park' when the car stands there, with skip when
+    // it never did; the guess below stays for a round stored under older rules
+    if (R.lamboOn === undefined) {
+      const pk = R.ev.find((v) => v.t === 'park');
+      if (pk) R.lamboOn = !pk.skip;
+    }
     if (R.lamboOn === undefined) {
       const [ax, ay] = e.cells[0];
       const t0 = R.tiles[ay * N + ax];
@@ -34788,6 +34794,17 @@ const SquadView = (() => {
       if (P.S) P.S.u.forEach((v) => v.alive && v.team === e.team && memeEmote(v.id, (v.id % 5) * 90));
       return;
     }
+    // engine 32: the Skirmisher's step back is a feint: a hop and a tiny NOPE
+    if (e.t === 'move' && e.feint && !P.seeking && !P.calm && P.speed < 4 && P.S && P.S.u[e.u]) {
+      const u = P.S.u[e.u];
+      const T = q && q.at != null ? q.at : P.clock;
+      window.__sqvFeints = (window.__sqvFeints || 0) + 1; // (a test can count them, like __sqvFaults)
+      if (!u.hop || P.clock - u.hop.t0 >= u.hop.dur) u.hop = { kind: 'toss', t0: T, dur: 240, h: 4 };
+      atClock(T + 60, () => {
+        const [cx, cy] = centreOf(u);
+        label(T + 60, 'NOPE', '#BDE7FF', cx, above(cy - 22), false);
+      });
+    }
     if (e.t === 'turn') M.acts = 0;
     if (e.t === 'act') M.acts = (M.acts || 0) + 1;
     if (e.t === 'perk' && e.kind === 'gold' && e.u >= 0 && R.start[e.u]) memeTray(e.u, 'gold', e.id, true);
@@ -35611,6 +35628,10 @@ const SquadHall = (() => {
     if (u.every(v => v.stn === 'evade')) out.push('All five on Evade: nobody holds the line. Put a fighter or two on Attack.');
     if (Math.max(...xs) - Math.min(...xs) >= 12) out.push('Your Blubs start far apart and fight one at a time: keep them closer together.');
     (d.objs || []).forEach(o => { if (OUT_BEST.includes(o.k) && o.y >= 12) out.push(outTip(o.k)); });
+    // (lane D, engine 32) two kit traps: warn only, never block
+    const kit = k => (d.objs || []).some(o => o.k === k);
+    if (kit('shaft') && !u.some(v => v.pow === 'miner')) out.push('A Mine Shaft needs a Miner: give one Blub the Miner power, or dig in something else.');
+    if (kit('tower') && !u.some(v => v.wpn === 'bow' || v.wpn === 'wand')) out.push('A Watchtower needs a shooter with a bow or wand to stand on it.');
     return out;
   }
   const roleUnit = (cls, x, y) => { const P = ROLE[cls]; return {cls, wpn: P.wpn, gear: P.gear, pow: P.pow, tac: P.tac, stn: P.stn || 'attack', trn: {...P.trn}, x, y}; };
