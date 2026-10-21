@@ -146,7 +146,7 @@ p{margin:0}
 .nav-menu a:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
 @media (max-width:700px){.nav-about{position:static}.nav-menu{left:12px;right:12px;width:auto}}
 /* the smallest phones: Buy waits in the About menu ($BLUB, live) */
-@media (max-width:440px){.nav-menu{left:10px;right:10px}}
+@media (max-width:480px){.nav-menu{left:10px;right:10px}}
 @media (max-width:400px){.nav-cta .btn.pink{display:none}}
 /* the wallet button: "Connect wallet", or your address with a green light; narrower, just its icon */
 .btn.wbtn{--bg:#EDE7FF;--hi:#FFFFFF;--lo:#A99CC9;gap:8px}
@@ -159,11 +159,17 @@ p{margin:0}
 @media (max-width:860px){.wbtn-t{display:none}.nav .btn.wbtn{gap:4px}}
 .nav .btn[aria-current="page"]{transform:translateY(3px);box-shadow:inset 4px 4px 0 var(--lo),inset -4px -4px 0 var(--hi),0 2px 0 var(--ink)}
 /* narrower: smaller buttons, the logo without its name, and "Buy $BLUB" says just "Buy";
-   on a phone "Rankings" says "Rank" */
-@media (max-width:700px){.logo span{display:none}.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
-@media (max-width:440px){.nav-long{display:none}.nav .wrap{gap:10px}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
-/* a moderator has a sixth button (Admin): on a phone Buy makes room */
-@media (max-width:700px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
+   on a phone "Rankings" says "Rank" (the steps where the row fits, measured from 340 to
+   1000 px for a guest, a signed-in wallet and a moderator) */
+@media (max-width:760px){.logo span{display:none}.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
+@media (max-width:480px){.nav-long{display:none}.nav .wrap{gap:10px}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
+@media (max-width:370px){.nav .wrap{gap:6px}.nav-cta{gap:4px}}
+/* a moderator has a sixth button (Admin): up to a small laptop Buy makes room (it waits in
+   the About menu as $BLUB live); on phones Admin waits in the About menu too
+   (#navAdminItem.mod shows only there) */
+@media (max-width:920px){.nav:has(#navAdmin:not([hidden])) .nav-cta .btn.pink{display:none}}
+#navAdminItem.mod{display:none}
+@media (max-width:520px){.nav-cta #navAdmin{display:none}#navAdminItem.mod{display:block}}
 
 /* ---------- hero ---------- */
 /* Phones and tablets: the stage (sky, terraces and the one blue Blub) on top, the copy on a solid band under it,
@@ -2207,7 +2213,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&d.local.saved))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span>Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">admin sandbox</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <div class="nav-about" id="navAbout"><button type="button" class="logo nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub" title="About Blub"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
@@ -3488,7 +3494,12 @@ const API = (() => {
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     const r = await fetch('/api/' + path, {method, credentials:'same-origin', headers, body: body === undefined ? undefined : JSON.stringify(body)});
     let data = null; try { data = await r.json(); } catch {}
-    if (!r.ok){ const e = new Error((data && data.error) || ('Request failed (' + r.status + ')')); e.status = r.status; e.code = data && data.code; e.duel = data && data.duel; throw e; }
+    if (!r.ok){
+      const e = new Error((data && data.error) || ('Request failed (' + r.status + ')')); e.status = r.status; e.code = data && data.code; e.duel = data && data.duel;
+      // what an admin refusal says along (the field, since when it is locked, the version, the state, the wallet)
+      if (data) for (const k of ['field', 'since', 'v', 'st', 'want', 'wallet', 'minAge']) if (data[k] !== undefined) e[k] = data[k];
+      throw e;
+    }
     return data;
   }
   return {
@@ -3502,7 +3513,10 @@ const API = (() => {
     save: (name, look, style, build, squad, strats, player) => call('PUT', 'blub', {name, look, style, build, squad, ...(strats ? {strats} : {}), ...(player ? {player} : {})}),
     team: () => call('GET', 'team'),
     remove: addr => call('DELETE', 'blub/' + encodeURIComponent(addr)),
-    // the moderators' panel (public/admin.js, lib/admin.mjs)
+    // the moderators' panel (public/admin.js, lib/admin.mjs): its server adapter sends every
+    // request through here, to admin/<path> (a path starting with / goes as it is: the
+    // public day of a competition)
+    admin: (method, path, body) => call(method, path[0] === '/' ? path.slice(1) : 'admin/' + path, body),
     adminOverview: () => call('GET', 'admin/overview'),
     adminPlayer: addr => call('GET', 'admin/player/' + encodeURIComponent(addr)),
     adminLeague: what => call('POST', 'admin/league', {do: what}),
@@ -5199,7 +5213,11 @@ const RULE_SET = lock([
   { id: 'mistTurn', name: 'Pink mist', text: 'The turn the pink mist starts closing in from the edge.', kind: 'list', options: [12, 14, 16], def: MIST_TURN },
 ].map(lock));
 // only known keys, and for each only a value its kind allows (a set: known ids, each once,
-// in the catalog's order); anything else is left out, and left out is the default
+// in the catalog's order); anything else is left out, and left out is the default. Beside
+// RULE_SET, `mapSeed` (a whole number 0 to 2^31 - 1): a competition's fixed arena
+// (lib/compday.mjs matchArena), the map, the sky and the power-up drawn from it instead
+// of the match's seed, which still draws the fight; no rule, no preset, not in the words
+const MAP_SEED_MAX = 0x7fffffff;
 function cleanRules(obj) {
   const out = {};
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return out;
@@ -5212,6 +5230,7 @@ function cleanRules(obj) {
       if (r.options.includes(v)) out[r.id] = v;
     } else if (Array.isArray(v) && v.length <= r.options.length && v.every((x) => typeof x === 'string')) out[r.id] = r.options.filter((x) => v.includes(x));
   }
+  if (Number.isInteger(obj.mapSeed) && obj.mapSeed >= 0 && obj.mapSeed <= MAP_SEED_MAX) out.mapSeed = obj.mapSeed;
   return out;
 }
 
@@ -5232,7 +5251,8 @@ const RULE_PRESETS = lock(
 
 // the preset a rule set is (its id), else null: a custom one
 function rulePreset(rules) {
-  const key = JSON.stringify(cleanRules(rules));
+  const { mapSeed, ...rs } = cleanRules(rules);
+  const key = JSON.stringify(rs);
   const p = RULE_PRESETS.find((v) => JSON.stringify(v.rules) === key);
   return p ? p.id : null;
 }
@@ -5274,6 +5294,7 @@ function ruleChanges(rules) {
 // drop's crate landing near its Blub for its squad to fetch (RULES.boxFetch). Left out,
 // each is as RULES has it; nothing in the pages passes it yet. Engine 31: every key of
 // RULE_SET (above), read through cleanRules, so an unknown key or value is the default.
+// `mapSeed` there: the map, the sky and the power-up from it, the rest from `seed`.
 function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_ON, drops = true, rules = {}) {
   const rs = cleanRules(rules);
   const perksOn = rs.perks !== undefined ? rs.perks : RULES.teamCrate;
@@ -5294,10 +5315,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   const inMistR = (x, y, turn) => inMist(x, y, turn + MIST_TURN - mt);
   const mistDmgR = (turn) => mistDmg(turn + MIST_TURN - mt);
   const r = rng(subSeed(seed, round, 2));
+  // the arena's own seed: the match's, or a competition's fixed arena (mapSeed)
+  const ms = rs.mapSeed !== undefined ? rs.mapSeed : seed;
   // makeMap builds a fresh arena every call: this round may dig objects into it
-  const { theme, tiles } = makeMap(seed, round);
-  const weather = rs.weather && rs.weather !== 'random' ? rs.weather : weatherOf(seed, round);
-  const powerup = POWERUPS[Math.floor(rng(subSeed(seed, round, 3))() * POWERUPS.length)][0];
+  const { theme, tiles } = makeMap(ms, round);
+  const weather = rs.weather && rs.weather !== 'random' ? rs.weather : weatherOf(ms, round);
+  const powerup = POWERUPS[Math.floor(rng(subSeed(ms, round, 3))() * POWERUPS.length)][0];
   const loud = !quiet;
   const U = [];
   const occ = new Int8Array(N).fill(-1);
@@ -10000,7 +10023,7 @@ function chestSpin(seed, round = 0, pool = CHEST_POOL, perks = RULES.teamCrate) 
 
   return { engine: SQUAD_ENGINE, count, events, teams, reels, stop: REEL_STOP };
 }
-return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, mistSafe, inMist, CHEST_ON, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, SCAR, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, EVENTS_OFF, CHEST_POOL, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, DROP_SALT, BOX_SALT, GAMBLE_SALT, DROPS, mistDmg, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, POW_SPARE_SHOT, spareFor, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, RULE_SET, cleanRules, RULE_PRESETS, rulePreset, ruleChanges, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
+return Object.freeze({SQUAD_ENGINE, SIZE, TEAM, TURNS, MIST_TURN, DEPLOY_ROWS, mistSafe, inMist, CHEST_ON, rng, subSeed, RULES, PLAYSTYLES, STYLE_STATS, WEAPONS, WEAPON_STATS, TOOL, RAYGUN, SCAR, GEAR, POWERS, TACTICS, STANCES, COMMANDS, TRAINING, CAPTAIN_HP, TRAIN_POINTS, TRAIN_MAX, POWERUPS, POWERUP_TURN, OBJECTS, OBJECT_STATS, OBJECTS_MAX, OBJECTS_OFF, OBJECT_ROWS, TERRAIN, EVENTS, EVENT_STATS, BUFFS, NERFS, EVENTS_OFF, CHEST_POOL, GOLDS, CHEST_SALT, EFFECT_SALT, EVENT_MAX, REEL_LEN, REEL_STOP, EVENT_ROWS, PAIR_ROWS, WEATHER, WEATHER_SALT, DROP_SALT, BOX_SALT, GAMBLE_SALT, DROPS, mistDmg, weatherOf, THEMES, RECRUIT_NAMES, GRASS, BLOCK, BUSH, WATER, HIGH, SAND, cleanSquad, POW_SPARE, POW_SPARE_SHOT, spareFor, capPowers, objCells, engineerOf, unitStats, makeMap, lineOfSight, RULE_SET, MAP_SEED_MAX, cleanRules, RULE_PRESETS, rulePreset, ruleChanges, simulateRound, PLAN_MAX, matchRounds, cleanPlan, playedOf, LEAGUE_GROUP, LEAGUE_DAY, leagueDay, leagueWeekStart, leagueWeek, roundPairs, dayRounds, leagueSeed, leagueGroup, friendGroup, leagueBotSquad, randomSquad, objectSpots, chestSpin});
 })();
 
 /* Squad Arena view: the 5v5 theater. Source of truth for the arena renderer;
@@ -43185,25 +43208,134 @@ function route(hh){
   }
 }
 /* =====================================================================
-   ADMIN: the moderators' panel (#admin). Only a moderator's wallet (S.admin,
-   from /api/me) fetches public/admin.js, the first time it opens; the server
-   checks every request again (lib/admin.mjs). Everyone else sees a note.
+   ADMIN: the moderators' panel (#admin). A moderator's wallet (S.admin, from
+   /api/me) opens public/admin.js on the server adapter: every request goes to
+   /api/admin/*, and the server checks each one again (lib/admin.mjs). Everyone
+   else (the demo, local mode, a guest, a wallet that is not a moderator) gets
+   a 4-digit pad: the code opens the same panel on the sandbox backend
+   (public/admin-local.js: data in this browser only). The code is remembered
+   in this browser (lsPatch admPin) until the panel's Lock button; it never
+   gives server rights. The gate itself makes no API call.
    ===================================================================== */
+const DEMO_PIN = '1111'; // temporary (owner, 19 Oct 2026): opens the browser-local sandbox only, never the server
 let adminMod = null;
+const adminLoad = () => adminMod ? Promise.resolve(adminMod) : import('./admin.js').then(m => (adminMod = m));
+function adminCtx(){
+  // ls: the page's own storage (lsGet/lsPatch), where the panel remembers its tab and step;
+  // apiFail: a 401 from the server ends the moderator's session the way the rest of the page does;
+  // mint: the $BLUB contract (the payout card's copy button); watchLink: a shared match's link
+  return {API, E: SquadEngine, View: SquadView, Hall: SquadHall, lookCanvas, cleanLook, cleanName, memberOf, mates: cleanSquad, me: () => S.addr, docs: () => S.docs, mode: () => S.mode, ls: {get: lsGet, patch: lsPatch}, apiFail,
+    mint: ((document.getElementById('caText') || {}).textContent || '').trim(), watchLink: typeof SquadNet.watchLink === 'function' ? SquadNet.watchLink : null};
+}
+function adminCss(){
+  if (document.getElementById('adminCss')) return;
+  const l = document.createElement('link'); l.id = 'adminCss'; l.rel = 'stylesheet'; l.href = 'admin.css'; document.head.append(l);
+}
 function openAdmin(){
   const root = $('#adminRoot'); if (!root) return;
-  if (!S.admin){
-    root.textContent = '';
-    const p = document.createElement('p'); p.className = 'adm-note';
-    p.textContent = S.mode === 'wallet' ? 'This page is for moderators, and this wallet is not one.' : 'This page is for moderators. Connect a moderator’s wallet to open it.';
-    root.append(p);
-    if (S.mode !== 'wallet' && S.api){ const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small gold'; b.textContent = 'Connect wallet'; b.onclick = () => Wallet.prompt('Connect a moderator’s wallet to open the admin panel.'); root.append(b); }
+  const failed = () => { root.textContent = 'The admin panel did not load. Reload the page to try again.'; };
+  if (S.admin){
+    // the real panel: one line picks the server adapter
+    const ctx = adminCtx();
+    adminLoad().then(m => { ctx.adapter = m.serverAdapter(API, () => S.addr); m.open(root, ctx); }).catch(failed);
     return;
   }
-  const ctx = {API, E: SquadEngine, View: SquadView, Hall: SquadHall, lookCanvas, cleanLook, cleanName, memberOf, mates: cleanSquad, me: () => S.addr, docs: () => S.docs};
-  (adminMod ? Promise.resolve(adminMod) : import('./admin.js').then(m => (adminMod = m)))
-    .then(m => m.open(root, ctx))
+  // the sign-in has not come back yet: applyMe opens the panel again when it has
+  if (S.mode === 'boot'){ root.textContent = ''; const p = document.createElement('p'); p.className = 'adm-note'; p.textContent = 'Checking your wallet…'; root.append(p); return; }
+  const d = lsGet();
+  if (d && d.admPin === 1) return openSandbox(root);
+  adminPad(root);
+}
+// the About Blub menu's Admin entry where there is no server (the demo, local mode)
+// (mod: a moderator's entry on the real site, shown only on the smallest phones, where the header's
+// Admin button makes room; null takes it out again when the moderator signs out)
+function adminMenuItem(mod){
+  const ul = $('#navAboutMenu ul'), had = $('#navAdminItem');
+  if (mod === null){ if (had && had.classList.contains('mod')) had.remove(); return; }
+  if (!ul || had) return;
+  const li = document.createElement('li'), a = document.createElement('a'), i = document.createElement('i'), b = document.createElement('b'), sm = document.createElement('small');
+  a.href = '#admin'; a.dataset.nav = 'admin'; a.id = 'navAdminItem';
+  i.dataset.ic = 'lock'; i.setAttribute('aria-hidden', 'true');
+  // the lock icon the wallet dialog already drew
+  const src = document.querySelector('[data-ic="lock"] canvas');
+  if (src){ const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; c.getContext('2d').drawImage(src, 0, 0); i.append(c); }
+  b.textContent = 'Admin'; sm.textContent = mod ? 'The moderators’ panel' : 'The panel on example data, behind a 4-digit code';
+  if (mod){ a.removeAttribute('id'); li.id = 'navAdminItem'; li.className = 'mod'; }
+  a.append(i, b, sm); li.append(a); ul.append(li);
+}
+// the panel on the sandbox backend (admin-local.js); Lock in its footer brings the pad back
+function openSandbox(root){
+  const ctx = adminCtx();
+  ctx.lock = () => { lsPatch({admPin: 0}); openAdmin(); };
+  adminLoad().then(async m => { ctx.adapter = (await import('./admin-local.js')).localAdapter(ctx); m.open(root, ctx); })
     .catch(() => { root.textContent = 'The admin panel did not load. Reload the page to try again.'; });
+}
+// the 4-digit pad: four boxes, digits and Enter from the keyboard, Clear and Open
+function adminPad(root){
+  adminCss();
+  root.textContent = '';
+  const box = document.createElement('div'); box.className = 'adm-gate';
+  const head = document.createElement('div'); head.className = 'sec-head sq-head';
+  head.innerHTML = '<div><span class="eyebrow">Sandbox</span><h2 id="adminTitle">Admin</h2></div>';
+  const note = document.createElement('p'); note.className = 'adm-note';
+  note.textContent = 'Sandbox. The code opens a copy of the panel on data in this browser only; the real panel needs a moderator wallet.';
+  const pad = document.createElement('div'); pad.className = 'adm-pad'; pad.setAttribute('role', 'group'); pad.setAttribute('aria-label', '4-digit code');
+  const msg = document.createElement('p'); msg.className = 'sq-msg'; msg.setAttribute('aria-live', 'polite');
+  const cells = [0, 1, 2, 3].map(i => {
+    const c = document.createElement('input'); c.type = 'text'; c.inputMode = 'numeric'; c.maxLength = 1; c.autocomplete = 'off'; c.pattern = '[0-9]*';
+    c.setAttribute('aria-label', 'Digit ' + (i + 1) + ' of 4'); return c;
+  });
+  const code = () => cells.map(c => c.value).join('');
+  const clear = (focus) => { cells.forEach(c => { c.value = ''; }); if (focus !== false) cells[0].focus(); };
+  const wrong = () => {
+    msg.textContent = 'Not that code'; msg.classList.add('bad');
+    pad.classList.remove('shake'); void pad.offsetWidth; pad.classList.add('shake');
+    clear();
+  };
+  const submit = () => {
+    if (code().length < 4){ cells[cells.findIndex(c => !c.value)].focus(); return; }
+    if (code() !== DEMO_PIN) return wrong();
+    lsPatch({admPin: 1});
+    openSandbox(root);
+  };
+  cells.forEach((c, i) => {
+    c.oninput = () => {
+      c.value = c.value.replace(/\D/g, '').slice(-1);
+      if (c.value && i < 3) cells[i + 1].focus();
+      if (code().length === 4) submit();
+    };
+    c.onkeydown = e => {
+      if (e.key === 'Enter'){ e.preventDefault(); submit(); }
+      else if (e.key === 'Backspace' && !c.value && i > 0){ e.preventDefault(); cells[i - 1].value = ''; cells[i - 1].focus(); }
+      else if (e.key === 'ArrowLeft' && i > 0) cells[i - 1].focus();
+      else if (e.key === 'ArrowRight' && i < 3) cells[i + 1].focus();
+    };
+    c.onpaste = e => {
+      const t = (e.clipboardData && e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 4);
+      if (!t) return; e.preventDefault(); clear(false); [...t].forEach((ch, k) => { cells[k].value = ch; }); cells[Math.min(3, t.length)].focus(); if (t.length === 4) submit();
+    };
+    pad.append(c);
+  });
+  const row = document.createElement('div'); row.className = 'adm-row';
+  const bClear = document.createElement('button'); bClear.type = 'button'; bClear.className = 'btn small'; bClear.textContent = 'Clear'; bClear.onclick = () => { msg.textContent = ''; clear(); };
+  const bOpen = document.createElement('button'); bOpen.type = 'button'; bOpen.className = 'btn small gold'; bOpen.textContent = 'Open'; bOpen.onclick = submit;
+  row.append(bClear, bOpen);
+  box.append(head, note, pad, row, msg);
+  // a signed-in wallet that is no moderator: say so, so the pad is not taken for the way in
+  if (S.api && S.mode === 'wallet' && !S.admin){
+    const no = document.createElement('p'); no.className = 'adm-note adm-notmod'; no.setAttribute('role', 'status');
+    const a = String(S.addr || '');
+    no.textContent = 'This wallet' + (a ? ' (' + a.slice(0, 4) + '…' + a.slice(-4) + ')' : '') + ' is not a moderator: the code opens the sandbox only.';
+    note.after(no);
+  }
+  if (S.api && S.mode !== 'wallet'){ const b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'Connect a moderator wallet'; b.onclick = () => Wallet.prompt('Connect a moderator’s wallet to open the real admin panel.'); box.append(b); }
+  root.append(box);
+  // focus stays in the pad: the browser drops a focus given while the page still loads,
+  // so it is given again once it has (unless the visitor went somewhere else meanwhile)
+  const keep = () => { const a = document.activeElement; if (box.isConnected && (!a || a === document.body)) (cells.find(c => !c.value) || cells[3]).focus(); };
+  cells[0].focus();
+  if (document.readyState !== 'complete') addEventListener('load', () => setTimeout(keep), {once: true});
+  requestAnimationFrame(keep);
 }
 addEventListener('hashchange', () => route());
 addEventListener('popstate', () => route());
@@ -43342,19 +43474,24 @@ function localMode(){
   if (L){ S.name = cleanName(L.name); S.look = wearable(cleanLook(L.look)); S.saved = !!L.saved && S.name.length > 1; S.style = cleanStyle(L.style); S.build = cleanBuild(L.build, S.style); S.squad = Array.isArray(L.squad) ? cleanSquad(L.squad, 'local', S.style) : null; S.player = cleanName(L.player); }
   Maker.adopt(!!S.saved); if (!S.saved) Maker.loadDraft(d && d.draft);
   Wallet.render(); heroHello(); hallReady();
+  // no server: Admin leads to the sandbox behind the 4-digit code. It waits in the About
+  // Blub menu (the header row has no room for a sixth button on a phone or a tablet)
+  adminMenuItem();
+  if (!$('#admin').hidden) setTimeout(openAdmin);
 }
 function applyMe(me){
   if (me && typeof me.address === 'string' && ADDR_RE.test(me.address)){
     S.addr = me.address; S.admin = me.admin === true;
-    // the admin panel opened before the sign-in came back: now it can
-    if (S.admin && !$('#admin').hidden) setTimeout(openAdmin);
     setMode('wallet');
   } else {
     S.addr = null; S.admin = false; S.saved = false; S.squad = null; S.teamAt = ''; S.strats = null;
     setMode('guest');
   }
+  // the admin page opened before the sign-in came back: now the panel (a moderator) or the pad
+  if (!$('#admin').hidden) setTimeout(openAdmin);
   Wallet.render();
   const na = $('#navAdmin'); if (na) na.hidden = !S.admin;
+  adminMenuItem(S.admin ? true : null);
   // signed in or out: the hall's sign-in buttons, first steps and league say so at once
   SquadHall.render();
 }

@@ -14,6 +14,9 @@ block from The Sift, the pink dimension.
 - **Rankings**: the weekly league (played in your browser here), the 18 ranks
   from Bronze Shrimp to Gold Whale and the duel season.
 - **The coin**: live market numbers from DexScreener.
+- **Admin panel** (`#admin`, behind a 4-digit code): a sandbox of the weekly
+  competitions on example data, kept in your own browser only. It never
+  reaches a server and gives no rights anywhere.
 
 Test phase: everything runs in your browser and nothing is stored on a
 server. Wallet sign-in, online duels and the weekly league open at launch.
