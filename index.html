@@ -1130,7 +1130,7 @@ body.no-scroll{overflow:hidden}
 .sqv-flip{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;pointer-events:none;z-index:3;line-height:1}
 .sqv-frow{display:flex;align-items:center;gap:4px;padding:3px 6px;background:#1b1129;border:2px solid #000;box-shadow:2px 2px 0 #000}
 .sqv-frow b{font-family:var(--f-display);font-weight:400;font-size:8px;color:#fff;margin-right:4px;white-space:nowrap}
-.sqv-frow.you b{color:var(--you-l)}.sqv-frow.rival b{color:#FFB08A}
+.sqv-frow.you b{color:var(--you-l)}.sqv-frow.rival b{color:var(--riv-t)}
 .sqv-fc{position:relative;display:block;width:30px;height:20px;transform-style:preserve-3d;animation:sqvFlip .36s steps(4) both}
 .sqv-fc span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;border:2px solid #000;backface-visibility:hidden}
 .sqv-frow.you .sqv-fc span{background:var(--you-d)}.sqv-frow.rival .sqv-fc span{background:var(--riv-d)}
@@ -1156,6 +1156,7 @@ body.no-scroll{overflow:hidden}
 .sqv-ini.now{outline:2px solid var(--gold);outline-offset:-1px}
 @media (max-width:520px){.sqv-ini,.sqv-ini canvas{width:12px;height:15px}.sqv-init b{display:none}}
 @media (prefers-reduced-motion:reduce){.sqv-r.yay .sqv-rp,.sqv-r.ugh .sqv-rp{animation:none}}
+@media (max-width:420px){.sqv-turn .tw{display:none}.sqv-bar{gap:8px}}
 
 /* ---------- squad arena hall (src/squad/hall.css) ---------- */
 /* clip sideways only: overflow hidden would make the section a scroll box and stop the sticky five and bar */
@@ -1676,7 +1677,7 @@ body.no-scroll{overflow:hidden}
 .sq-orow.own{background:#16304A}
 .sq-ocap{position:relative;width:44px;height:48px;display:grid;place-items:end center;background:#0B1F23;border:2px solid #000}
 .sq-ocap canvas{width:32px;height:40px}
-.sq-otag{position:absolute;left:-4px;top:-6px;font-style:normal;font-family:var(--f-display);font-size:7px;background:var(--team-b);color:#fff;border:2px solid #000;padding:1px 2px}
+.sq-otag{position:absolute;left:-4px;top:-6px;font-style:normal;font-family:var(--f-display);font-size:7px;background:var(--team-b);color:#1A1030;border:2px solid #000;padding:1px 2px}
 .sq-ot{display:flex;flex-direction:column;gap:2px;min-width:0}
 .sq-ot b{font-family:var(--f-display);font-weight:400;font-size:10px;line-height:1.5;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sq-ot span{font-family:var(--f-data);font-size:18px;line-height:1.05;color:var(--sq-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1979,7 +1980,7 @@ body.no-scroll{overflow:hidden}
 .sq-sts.done::before{content:'✓ '}
 .sq-tabs [aria-selected="true"] .sq-std{color:#5A4510}
 .sq-tabs [aria-selected="true"] .sq-sts{color:#1A1030}
-.sq-new{position:absolute;right:-6px;top:-10px;padding:3px 5px;font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#E2566E;border:2px solid #000;box-shadow:2px 2px 0 #000;animation:sqNew 1.4s steps(2) infinite}
+.sq-new{position:absolute;right:-6px;top:-10px;padding:3px 5px;font-family:var(--f-display);font-size:7px;line-height:1;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#B8324A;border:2px solid #000;box-shadow:2px 2px 0 #000;animation:sqNew 1.4s steps(2) infinite}
 @keyframes sqNew{50%{transform:translateY(-3px)}}
 @media (prefers-reduced-motion:reduce){.sq-new{animation:none}}
 /* a phone: the picture over the title, and how far you are; the number and the line go */
@@ -1995,7 +1996,7 @@ body.no-scroll{overflow:hidden}
 /* a newcomer's guide over the five (until dismissed, or all three steps opened) */
 .sq-guide{display:grid;gap:10px;margin:0 0 14px;padding:14px 16px;background:linear-gradient(135deg,#1C4C55,#12323A);border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold),0 4px 0 #000}
 .sq-guide[hidden]{display:none}
-.sq-guide h4{margin:0;font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.4;color:var(--gold);text-shadow:2px 2px 0 #000}
+.sq-guide h4,.sq-guide h3.sq-guideh{margin:0;font-family:var(--f-display);font-weight:400;font-size:12px;line-height:1.4;color:var(--gold);text-shadow:2px 2px 0 #000}
 .sq-gsteps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .sq-gsteps li{display:flex;align-items:center;gap:10px;font-family:var(--f-data);font-size:18px;line-height:1.05;color:#fff}
 .sq-gsteps canvas{width:28px;height:28px;flex:none}
@@ -2082,6 +2083,30 @@ body.no-scroll{overflow:hidden}
 .sq-pathx{min-width:44px}
 @media (max-width:560px){.sq-stsl{display:none}}
 .sq-frp [data-k="frsign"]{align-self:flex-start;width:auto}
+/* lane D4: a step card's sub-line stays inside its card and ends in an ellipsis, never cut
+   at both ends (a long Blub name, a long plan name) */
+.sq-tabs [role="tab"],.sq-tabs [role="tab"] > *{min-width:0}
+.sq-tabs [role="tab"] .sq-stx{justify-self:stretch;max-width:100%}
+.sq-tabs [role="tab"] .sq-sts{display:block;align-self:stretch;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+/* lane D5: Start here, one clear next step at a time: three pips for the progress, a done
+   step folded to its title on a phone, the steps after the next one quieter, and the
+   'All set!' moment when all three are done */
+.sq-pathn{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.sq-ppips{display:inline-flex;gap:3px}
+.sq-ppips i{width:10px;height:10px;background:#0A1C20;border:2px solid #000;box-shadow:inset 0 0 0 1px #2E5A5E}
+.sq-ppips i.on{background:var(--gold);box-shadow:inset -2px -2px 0 #B07A0E}
+.sq-pstep.next ~ .sq-pstep:not(.done){opacity:.8}
+@media (max-width:760px){
+  .sq-pstep.done{grid-template-rows:auto;align-items:center;padding:8px 12px}
+  .sq-pstep.done .sq-ptx > :not(b){display:none}
+  .sq-pstep.done .btn{grid-column:auto;grid-row:1;justify-self:end;min-height:40px}
+  .sq-pstep.done{grid-template-columns:auto minmax(0,1fr) auto}
+  .sq-pstep.done .btn{grid-column:3}
+}
+.sq-path.all .sq-psteps{display:none}
+.sq-pyay{display:grid;gap:8px;justify-items:start;padding:12px;background:#0F2E33;border:3px solid #000;box-shadow:inset 0 0 0 2px var(--gold)}
+.sq-pyay b{font-family:var(--f-display);font-weight:400;font-size:14px;color:var(--gold);text-shadow:2px 2px 0 #000}
+.sq-pyay span{font-family:var(--f-data);font-size:18px;color:var(--sq-text)}
 
 /* ---------- the home page (src/squad/home.js): the game in chapters ---------- */
 .show{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -3468,7 +3493,13 @@ function lsPatch(p){ lsSet(Object.assign(lsGet() || {}, p)); }
 const Sfx = (() => {
   let ac = null, on = !(lsGet() || {}).mute, noiseBuf = null, mix = null, taps = null;
   const btns = [];
+  // (lane D4) no AudioContext before the visitor's first tap, click or key: a browser
+  // refuses to start one earlier and warns in the console; till then sounds are skipped
+  let armed = false;
+  const arm = () => { armed = true; ['pointerdown', 'keydown', 'touchstart'].forEach(t => window.removeEventListener(t, arm, true)); if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); };
+  ['pointerdown', 'keydown', 'touchstart'].forEach(t => window.addEventListener(t, arm, true));
   function ctx(){
+    if (!armed) return null;
     if (!ac){ const A = window.AudioContext || window.webkitAudioContext; if (!A) return null; try { ac = new A(); } catch { return null; } }
     if (ac.state === 'suspended') ac.resume().catch(() => {});
     return ac;
@@ -3518,11 +3549,50 @@ const Sfx = (() => {
     thud(){ tone(110, 60, .12, 'sine', .08); noise(.05, .04); },
     gem(){ notes([1319, 1568, 2093, 2637], .05, 'triangle', .04); },
     rumble(){ tone(70, 40, .5, 'sawtooth', .05); noise(.45, .04); },
+    // lane D3 (engine 31): the golden drops (the Shiba's woof, growl and bite, the Pizza
+    // Phone's ring and the van's honk, the Pill's gulp, the Coin Flip's ting and skull,
+    // the doppelganger's poof, the Ray Gun's pew, the Blue Scar's blob and its empty
+    // magazine, the Big Gun's LOCKED IN), the Gambler's wheel (a tick, a bust, ALL IN and
+    // the jackpot), crates landing green or red, the mist ring, the Smoke Pot's wall, the
+    // captain's four commands, and the meme layer's pop, cheer, FLAWLESS, MATCH POINT,
+    // the podium's crown and a rank-up
+    woof(){ tone(520, 360, .07, 'square', .045); noise(.03, .03); tone(560, 380, .08, 'square', .045, .11); },
+    grrr(){ tone(110, 90, .28, 'sawtooth', .04); noise(.25, .025); },
+    chomp(){ noise(.05, .07); tone(300, 120, .07, 'square', .05); noise(.04, .05, .07); },
+    ring(){ for (let i = 0; i < 4; i++) tone(1320 + (i & 1) * 220, 1320 + (i & 1) * 220, .05, 'square', .025, i * .06); },
+    honk(){ tone(392, 392, .12, 'square', .035); tone(494, 494, .12, 'square', .025); },
+    gulp(){ tone(420, 160, .12, 'sine', .07); tone(700, 1100, .06, 'sine', .03, .1); },
+    coin(){ tone(1976, 1976, .05, 'square', .03); tone(2637, 2637, .22, 'triangle', .04, .05); },
+    skull(){ notes([311, 262, 208], .12, 'sawtooth', .035); },
+    poof(){ noise(.18, .05); tone(300, 900, .16, 'sine', .04); },
+    pew(){ tone(1900, 240, .16, 'square', .03); tone(950, 120, .16, 'sine', .03); },
+    blop(){ tone(380, 900, .06, 'sine', .07); noise(.025, .03); },
+    clink(){ tone(2600, 2300, .04, 'triangle', .04); tone(2200, 2000, .05, 'triangle', .03, .09); },
+    lock(){ tone(180, 180, .05, 'square', .05); noise(.03, .04); tone(1250, 1250, .04, 'square', .03, .07); },
+    tick(){ tone(1500, 1500, .015, 'square', .02); },
+    bust(){ tone(247, 175, .14, 'square', .04); tone(185, 123, .2, 'square', .04, .13); },
+    allin(){ tone(98, 98, .12, 'sawtooth', .045); tone(131, 131, .12, 'sawtooth', .045, .14); tone(196, 147, .3, 'sawtooth', .045, .28); },
+    jackpot(){ notes([784, 988, 1175, 1568, 1976], .07, 'square', .04); noise(.15, .02, .3); },
+    chime(){ notes([880, 1175], .07, 'triangle', .05); },
+    buzz(){ tone(150, 140, .16, 'sawtooth', .035); },
+    mist(){ tone(140, 95, .55, 'sine', .06); noise(.4, .02, .05); },
+    puff(){ noise(.22, .035); tone(220, 140, .15, 'sine', .03); },
+    charge(){ notes([392, 523, 659, 784], .07, 'square', .04); },
+    hold(){ notes([294, 294, 392], .09, 'square', .04); },
+    focus(){ tone(1568, 1568, .05, 'square', .03); tone(2093, 2093, .07, 'square', .03, .07); },
+    digin(){ tone(196, 147, .12, 'square', .04); noise(.06, .04, .06); },
+    pop(){ tone(660, 990, .04, 'square', .02); },
+    cheer(){ notes([659, 784, 988], .05, 'triangle', .04); },
+    flawless(){ notes([1047, 1319, 1568, 2093], .06, 'triangle', .045); tone(2093, 2637, .3, 'sine', .02, .25); },
+    drum(){ for (let i = 0; i < 6; i++) noise(.03, .03 + i * .004, i * .045); tone(196, 196, .2, 'square', .035, .29); },
+    crown(){ tone(1568, 1568, .08, 'triangle', .04); tone(2093, 2093, .25, 'triangle', .04, .07); },
+    rankup(){ notes([523, 659, 784, 1047, 1319], .09, 'square', .04); },
   };
   const FIGHT = {hit:'hit', prank:'hit', crit:'crit', miss:'miss', block:'block', pop:'block', heal:'heal', nap:'heal', leech:'heal', apple:'heal', rain:'heal', charm:'heal', ko:'ko', power:'power', zap:'zap', stun:'zap', read:'read', sift:'sift'};
   function paint(){ btns.forEach(b => { b.textContent = on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(on)); }); }
   return {
-    play(k){ if (on && !document.hidden && S[k]) try { S[k](); } catch {} },
+    // (lane D3: a test can list what plays: set window.__sfxLog to an array)
+    play(k){ if (Array.isArray(window.__sfxLog) && S[k]) window.__sfxLog.push(k); if (on && !document.hidden && S[k]) try { S[k](); } catch {} },
     fight(e){ const k = FIGHT[e.t]; if (k) this.play(k); },
     bind(b){ btns.push(b); b.onclick = () => { on = !on; lsPatch({mute: !on}); paint(); if (on) S.click(); }; paint(); },
     // the sound as a stream, for a clip to record (null without Web Audio)
@@ -3578,8 +3648,7 @@ function setMode(m){ S.mode = m; }
 function apiFail(e){
   const st = e && e.status, code = e && e.code;
   if (st === 401){ applyMe(null); Wallet.prompt('Your session ended. Connect your wallet again.'); return; }
-  // (a 429 with a reason of its own, like the save cooldown's "Wait 10 seconds", says it)
-  const t = st === 429 && (code === 'rate_limited' || !code) ? 'Easy there. Too many requests, try again in a moment.'
+  const t = st === 429 ? 'Easy there. Too many requests, try again in a moment.'
     : code === 'not_holder' ? 'Only $BLUB holders can do this, and this wallet holds no $BLUB yet.'
     : (e && e.message) || 'Something went wrong. Try again in a moment.';
   status(t); notify('That did not work', t);
@@ -3988,7 +4057,7 @@ const SquadEngine = (() => {
 
 // (engine 29: the other session's line, recovered from the demo build; engine 30: the Pop
 // Mine pair and the cleanSquad slide of our engine 28 on top, and the `rules` argument)
-const SQUAD_ENGINE = 31;
+const SQUAD_ENGINE = 32;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -4082,15 +4151,19 @@ const RULES = lock({
   // Blub wades in to stake.
   poolYield: 2, poolMax: 4, poolDodge: 15, poolAt: 60,
   // the trench kit (OBJECTS): two per squad, dug in on its own three rows
-  sandCover: 25, // a Blub right behind sandbags dodges arrows this much more
+  // (engine 32: a fighter of its squad, reach 2 or less, next to its own wall dodges arrows
+  // and bullets this much more from any side, and takes wallSoak less again; the shooters
+  // that lean out over it to shoot only get the soak)
+  sandCover: 25, // a fighter next to its own sandbags dodges arrows and bullets this much more
   sandSoak: 2, // Blubs of its squad next to the sandbags take this much less from every hit
+  wallSoak: 1,
   towerRange: 2, towerDmg: 3, towerDodge: 30,
   towerHold: 2, // a shooter on a watchtower holds it while enemies are this many tiles beyond its reach
   // Barbed wire lies out in the open: the other side plans its way as if crossing it
   // took wireAvoid steps more. One that does cross gets tangled (engine 15): it stops
   // there and loses wireDmg, and till the end of its next turn it cannot move, cannot
   // dodge and takes wireTake% more from every hit.
-  wireDmg: 3, wireAvoid: 2, wireTake: 25,
+  wireDmg: 6, wireAvoid: 2, wireTake: 50,
   mortarTurn: 2, mortarReload: 4, mortarDmg: 2, mortarSplash: 1, mortarMin: 3, mortarMax: 7,
   foxhole: 100, // the first hit on a Blub that started in a foxhole does this share less (at least 1)
   // the Pop Mine (engine 13: one strong mine instead of three small ones; engine 30, the
@@ -4397,6 +4470,8 @@ const RULES = lock({
   // going back to); a gem is gemHeal HP and +gemDmg damage for whoever it is carried
   // to; hurt to tunnelAt% HP or less, it tunnels up to tunnelReach tiles away
   digGem: 40, digStone: 15, digSafe: 2, gemHeal: 8, gemDmg: 2, tunnelAt: 50, tunnelReach: 5,
+  // engine 32: a gem dug up on its own Mine Shaft is a big one, shaftHeal HP and shaftDmg damage more
+  shaftHeal: 6, shaftDmg: 1,
 });
 
 // ---- catalog: [id, name, description]; numbers below.
@@ -4523,16 +4598,16 @@ const POWERUP_TURN = 3;
 // where it is placed, in that row), `solid` when nobody can walk there, `stand`
 // when a Blub may start on it, `out` when it may lie in no man's land.
 const OBJECTS = lock([
-  ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit (not from a fighter's charging blow), and one right behind it dodges arrows ${RULES.sandCover}% more.`],
+  ['sandbags', 'Sandbag Wall', `Three tiles nobody walks through, also out in no man's land. Your Blubs next to it take ${RULES.sandSoak} less from every hit (not from a fighter's charging blow). Your fighters (reach 2 or less) next to it dig in: ${RULES.wallSoak} less again, and they dodge arrows and bullets ${RULES.sandCover}% more from every side. A shooter leaning out over it to shoot gets only the first.`],
   ['tower', 'Watchtower', `Needs a shooter on it at the start. With a bow or wand it holds the tower while enemies come: ${RULES.towerRange} tiles more reach, +${RULES.towerDmg} damage, it sees over walls and bushes, and arrows at it miss ${RULES.towerDodge}% more. Only for your own squad: to the other side it is a few planks.`],
-  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when it can, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit. A Brawler tears through: it loses the ${RULES.wireDmg} HP and walks on.`],
+  ['wire', 'Barbed Wire', `Five tiles in a row, also out in no man's land. Your Blubs slip through it; the other side walks around it when the way round is short, and one that crosses gets tangled: it stops there and loses ${RULES.wireDmg} HP, and till the end of its next turn it cannot move, cannot dodge and takes ${RULES.wireTake}% more from every hit. A Brawler tears through: it loses the ${RULES.wireDmg} HP and walks on.`],
   ['mortar', 'Trench Mortar', `Lobs a shell at the thickest group of enemies ${RULES.mortarMin}-${RULES.mortarMax} tiles away, from turn ${RULES.mortarTurn} and then every ${RULES.mortarReload} turns. It lands at the end of the turn: ${RULES.mortarDmg} damage, ${RULES.mortarSplash} around it.`],
   ['trench', 'Foxhole', `Three dug-in tiles to start in: the first hit on each Blub that starts there ${RULES.foxhole >= 100 ? 'does just 1 damage' : `does ${RULES.foxhole}% less`}.`],
   ['mines', 'Pop Mine', `Two hidden mines side by side, a tile between them, also out in no man's land. Each goes off once: the first enemy to step on it loses ${RULES.mineDmg} HP (its squad beside it ${RULES.mineSplash}) and stops.`],
   ['crate', 'Ammo Crate', `Every Blub that starts next to it hits +${RULES.ammo} harder all round.`],
-  ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there and keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
+  ['shaft', 'Mine Shaft', `An ore vein for a Miner: it digs up twice as much there, and a gem from the vein is a big one (+${RULES.shaftHeal} HP and +${RULES.shaftDmg} damage more). It keeps coming back to dig, walking or tunnelling down from up to ${RULES.tunnelReach} tiles away, and it hides there when hit.`],
   // (engine 29: both ways it goes off, and the wall it raises)
-  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. It pops as soon as an enemy Blub comes within ${RULES.smokeStep === 1 ? 'a tile' : RULES.smokeStep + ' tiles'} of it, or at the first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it (that one is lost in the smoke). Then a wall of smoke rolls out across the lane, ${RULES.smokeWall} tiles wide and ${RULES.smokeDeep} deep towards the enemy, over the pot and the tiles around it, for the rest of that turn and ${RULES.smokeTurns} more. Blubs walk through it, but an arrow or bullet that flies into the smoke, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it.`],
+  ['smoke', 'Smoke Pot', `One tile, also out in no man's land; Blubs may stand on it. It pops as soon as an enemy Blub comes within ${RULES.smokeStep === 1 ? 'a tile' : RULES.smokeStep + ' tiles'} of it, or at the first enemy arrow or bullet at a Blub of yours within ${RULES.smokeNear} tiles of it (that one is lost in the smoke). Then a wall of smoke rolls out across the lane, ${RULES.smokeWall} tiles wide and ${RULES.smokeDeep} deep towards the enemy, over the pot and the tiles around it, for the rest of that turn and ${RULES.smokeTurns} more. Blubs walk through it, but an arrow or bullet that flies into the smoke, out of it or through it goes blind and hits ${RULES.blindHit}% of the time, even from a watchtower (Smoke Goggles see through it); from right next to a Blub they still find it. The wall is one-way: your own Blubs shoot out of it at a Blub in the clear without going blind.`],
   ['decoy', 'Decoy Blub', `A dummy in your colours, also out in no man's land; nobody walks through it. Enemy shooters that can hit it from 2 tiles or more take it for a Blub and shoot it first, unless an enemy stands right next to them. It falls apart after ${RULES.decoyHp} damage.`],
   ['hospital', 'Field Hospital', `A tent on your own rows; nobody walks through it. The first Blub of yours knocked out is carried to it on a stretcher, and ${RULES.hospTurns} turns later it is back on its feet beside the tent with ${RULES.hospHp} HP. (Not one that blew itself up, and not after turn ${TURNS - RULES.hospTurns - 1}, when it could not make it back in time.)`],
 ]);
@@ -4970,7 +5045,7 @@ function buildTiles(theme, r) {
 const CONN_SEEN = new Uint8Array(N);
 // what simulateRound sets on a Blub during a fight, there from the start (undefined)
 const UNIT_LATER = Object.fromEntries(
-  ['foxhole', 'ammo', 'paper', 'pill', 'pillBy', 'exposed', 'exposedPct', 'bagCut', 'bagT', 'pumpT', 'ngmi', 'mag', 'scarWas', 'stuckSaid', 'sticky', 'spunAt', 'readyAt', 'pitTurn', 'of', 'gun', 'gas', 'charged', 'chargeHit', 'busy', 'brace', 'aim', 'tunneled', 'tangled', 'shaken', 'spins', 'mended', 'jeet', 'gren', 'gambled', 'crew', 'caught', 'boomed', 'bench', 'armed', 'ride', 'pits', 'gunner', 'gunDone', 'broken', 'puff', 'pumpUntil', 'leak', 'back', 'home'].map((k) => [k, undefined]),
+  ['foxhole', 'ammo', 'paper', 'pill', 'pillBy', 'exposed', 'exposedPct', 'bagCut', 'bagT', 'pumpT', 'ngmi', 'mag', 'scarWas', 'stuckSaid', 'sticky', 'spunAt', 'readyAt', 'pitTurn', 'of', 'gun', 'gas', 'charged', 'chargeHit', 'busy', 'brace', 'aim', 'tunneled', 'tangled', 'shaken', 'spins', 'mended', 'jeet', 'gren', 'gambled', 'crew', 'caught', 'boomed', 'bench', 'armed', 'ride', 'pits', 'gunner', 'gunDone', 'broken', 'puff', 'pumpUntil', 'leak', 'back', 'home', 'waited', 'waitAt', 'bigGem', 'evadeIdle', 'evadeAt', 'evadeIn'].map((k) => [k, undefined]),
 );
 // a round's memos of lines of sight and of lines through smoke (simulateRound)
 const LOS_MEMO = new Uint8Array(N * N);
@@ -5517,6 +5592,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // (engine 31 speed: the two memos are kept from round to round, wiped as a round starts)
   const losMemo = LOS_MEMO.fill(0);
   const forgetLines = () => losMemo.fill(0);
+  // the tiles under each squad's own Smoke Pot clouds (engine 32)
+  const potT = [new Uint8Array(N), new Uint8Array(N)];
   // Smoke Pot clouds: how many cover each tile, the same as a map for lineOfSight
   // (BLOCK under a cloud), and their lines traced once while they hang
   const smokeT = new Uint8Array(N);
@@ -5573,7 +5650,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     return onTower(u, x, y) || los(x, y, v.x, v.y);
   };
   // would u's arrow or bullet from (x, y) at v go blind in the smoke? (never with goggles)
-  const blindFrom = (u, x, y, v) => clouds > 0 && !!W(u).los && u.gear !== 'goggles' && smoked(x, y, v.x, v.y);
+  // (engine 32: a Smoke Pot's wall is one-way: its own squad shoots out of it at a Blub in the
+  // clear and does not go blind)
+  const blindFrom = (u, x, y, v) => clouds > 0 && !!W(u).los && u.gear !== 'goggles' && !(potT[u.team][idx(x, y)] && !smokeT[idx(v.x, v.y)]) && smoked(x, y, v.x, v.y);
   // a Blub in a cloud is hard to make out (engine 14): from farther than right next to
   // it, and without Smoke Goggles
   const veiled = (u, v) => clouds > 0 && smokeT[idx(v.x, v.y)] > 0 && u.gear !== 'goggles' && cheb(u.x, u.y, v.x, v.y) > 1;
@@ -5775,19 +5854,20 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     for (const o of objs) if (o.team === d.team) for (const c of o.cells) if (cheb(d.x, d.y, c % SIZE, (c - (c % SIZE)) / SIZE) <= 1) return true;
     return false;
   }
-  // a sandbag right next to the target, between it and the shooter (either squad's: engine
-  // 31's audit found the card says your own, but holding it to that lifts five archers past
-  // the presets' cap, 57.8 to 60.8%; left for the owner)
-  function behindSand(u, d) {
-    const far = cheb(u.x, u.y, d.x, d.y);
+  // a fighter's own Sandbag Wall right next to it (engine 32; before, any squad's sandbag
+  // between it and the shooter): the wall is cover from every side for the fighters of its
+  // squad. (Builder barricades are sandbags too.)
+  function behindSand(d) {
     for (let dy = -1; dy <= 1; dy++)
       for (let dx = -1; dx <= 1; dx++) {
         const x = d.x + dx;
         const y = d.y + dy;
-        if ((dx || dy) && inside(x, y) && sandT[idx(x, y)] && cheb(u.x, u.y, x, y) < far) return true;
+        if ((dx || dy) && inside(x, y) && sandT[idx(x, y)] === d.team + 1) return true;
       }
     return false;
   }
+  // a fighter next to its own squad's Sandbag Wall (not a Builder's barricade) digs in: wallSoak more
+  const byWall = (d) => W(d).range <= 2 && objs.some((o) => o.k === 'sandbags' && o.team === d.team && o.cells.some((c) => cheb(d.x, d.y, c % SIZE, (c - (c % SIZE)) / SIZE) <= 1));
   function bannerNear(u) {
     for (const v of living[u.team]) if (v !== u && v.gear === 'banner' && cheb(u.x, u.y, v.x, v.y) <= 2) return true;
     return false;
@@ -5825,7 +5905,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         cover = 1;
       }
       if (kind === 'ranged') {
-        if (sandT.length && behindSand(u, d) && RULES.sandCover > extra) {
+        if (sandT.length && W(d).range <= 2 && behindSand(d) && RULES.sandCover > extra) {
           extra = RULES.sandCover;
           cover = 2;
         }
@@ -5908,7 +5988,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (guardedBy(d)) dmg = Math.max(1, dmg - RULES.guardianSoak);
     // a fighter's blow under Charge! (engine 26) goes through sandbags and a brace
     const breach = u.charged && w.range <= 2;
-    if (RULES.sandSoak && bySand(d) && !breach) dmg = Math.max(1, dmg - RULES.sandSoak);
+    if (RULES.sandSoak && bySand(d) && !breach) dmg = Math.max(1, dmg - RULES.sandSoak - (byWall(d) ? RULES.wallSoak : 0));
     // Hold the line (the captain's command): every hit does less
     if (ordered(d.team, 'hold') && (d.stn === 'hold' || bySand(d) || byKit(d))) dmg = Math.max(1, dmg - RULES.holdSoak);
     // braced on its last turn (engine 25)
@@ -6534,6 +6614,15 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // enemy only for one already locked in a fight with its squad. It drifts towards
   // its target, never into the brawl.
   function evadeTurn(u, target) {
+    // (engine 32) a fighter (reach 2 or less) on Evade that has stood idle two turns in a row,
+    // nobody locked in a fight to slip in on, stops waiting for one: from then on it goes in
+    // as on Attack. No turn wasted
+    const fighter = W(u).range <= 2;
+    if (fighter && (u.evadeIn || (u.evadeAt === now - 1 && u.evadeIdle >= 2))) {
+      if (!u.evadeIn) push({ t: 'status', u: u.id, s: 'goin', on: true });
+      u.evadeIn = true;
+      return false;
+    }
     const list = foes(u);
     const G = RULES.evadeGap;
     const here = idx(u.x, u.y);
@@ -6557,7 +6646,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
     }
     if (best !== here) walk(u, route(P, best));
+    const dealt = u.dealt;
     if (u.alive && over < 0) hitAround(u, target);
+    if (fighter) {
+      // (turns in a row it neither moved nor hit anything)
+      u.evadeIdle = u.moved || u.dealt !== dealt ? 0 : (u.evadeAt === now - 1 ? u.evadeIdle : 0) + 1;
+      u.evadeAt = now;
+    }
     return true;
   }
   // ---- the Digger's pits (engine 10) and its smoke grenade (engine 14).
@@ -6818,6 +6913,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       }
     for (const c of o.cloud) {
       smokeT[c]++;
+      potT[o.team][c]++;
       fog[c] = BLOCK;
     }
     clouds++;
@@ -6837,7 +6933,10 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   function smokeTurn(turn) {
     for (const o of objs) {
       if (!o.cloud || turn <= o.until) continue;
-      for (const c of o.cloud) if (!--smokeT[c]) fog[c] = 0;
+      for (const c of o.cloud) {
+        potT[o.team][c]--;
+        if (!--smokeT[c]) fog[c] = 0;
+      }
       o.cloud = null;
       clouds--;
       fogMemo.fill(0);
@@ -7709,17 +7808,24 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   function gunnerTurn(u, turn) {
     const w = u.gun;
     u.busy = true;
-    if (danger(w.seat)) {
-      const to = outSpot(w, true);
-      if (!to) return;
-      // it wrecks the gun from the inside: 0 HP, out of action like one knocked out
-      const from = xyOf(w.seat);
-      w.hp = 0;
-      w.broken = true;
-      leaveGun(u, to);
-      push({ t: 'breakout', u: u.id, w: w.id, from, to });
-      push({ t: 'status', u: u.id, s: 'locked', on: false });
+    // (engine 32) it lays the gun: on its turn it calls the enemy in the gun's reach where
+    // the next shell does most (its hit and the burst round it, a knock-out counting more),
+    // and the gun fires there next instead of at the nearest
+    if (!danger(w.seat)) {
+      const v = layGun(w);
+      w.call = v ? v.id : -1;
+      if (v) push({ t: 'lay', u: u.id, w: w.id, d: v.id });
+      return;
     }
+    const to = outSpot(w, true);
+    if (!to) return;
+    // it wrecks the gun from the inside: 0 HP, out of action like one knocked out
+    const from = xyOf(w.seat);
+    w.hp = 0;
+    w.broken = true;
+    leaveGun(u, to);
+    push({ t: 'breakout', u: u.id, w: w.id, from, to });
+    push({ t: 'status', u: u.id, s: 'locked', on: false });
   }
   // out of the seat, onto `to` when it comes out standing
   function leaveGun(u, to) {
@@ -7768,13 +7874,47 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // see from its front within cannonRange, every cannonReload turns. Smoke throws it off
   // (engine 13): under a cloud, at an enemy in one or behind one, it fires blind and hits
   // blindHit% of the time; a miss lands on a tile beside that enemy.
+  // what the gun reaches from its muzzles: the enemies, each with how far
+  function gunSees(w) {
+    const cannonReach = w.big ? RULES.bigRange : RULES.cannonRange;
+    const out = [];
+    for (const v of living[1 - w.team]) {
+      let d = 99;
+      for (const m of w.muzzle) {
+        const [mx, my] = xyOf(m);
+        const dm = cheb(mx, my, v.x, v.y);
+        if (dm <= cannonReach && dm < d && los(mx, my, v.x, v.y)) d = dm;
+      }
+      if (d <= cannonReach) out.push(v);
+    }
+    return out;
+  }
+  // the gunner's call (engine 32): the most a shell does there, then the most hurt, then the unit
+  function layGun(w) {
+    if (w.stage < w.of || w.broken) return null;
+    const hit = RULES.bigDmg + RULES.bigManned;
+    let best = null;
+    let bs = -1;
+    for (const v of gunSees(w)) {
+      let sc = Math.min(hit, v.hp) + (hit >= v.hp ? RULES.boomKo : 0);
+      for (const o of living[1 - w.team]) if (o !== v && cheb(o.x, o.y, v.x, v.y) <= 1) sc += Math.min(RULES.bigSplash, o.hp);
+      if (sc > bs || (sc === bs && byHurt(v, best) < 0)) {
+        best = v;
+        bs = sc;
+      }
+    }
+    return best;
+  }
   function fireCannon(w, turn) {
     if (w.stage < w.of || w.broken || turn < w.next) return;
     // the Big Gun (engine 22) reaches farther and splashes
     const cannonReach = w.big ? RULES.bigRange : RULES.cannonRange;
     let best = null;
     let bd = 99;
-    for (const v of living[1 - w.team]) {
+    // (engine 32: where its gunner laid it, if that one is still in its reach)
+    const called = w.gunner && w.call >= 0 ? gunSees(w).find((v) => v.id === w.call) : null;
+    if (called) best = called;
+    else for (const v of living[1 - w.team]) {
       let d = 99;
       for (const m of w.muzzle) {
         const [mx, my] = xyOf(m);
@@ -7867,6 +8007,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     const roll = r() * 100;
     const found = roll < RULES.digGem * luck ? 'gem' : roll < (RULES.digGem + RULES.digStone) * luck ? 'stone' : '';
     u.pack = found;
+    // (engine 32: a gem out of its Mine Shaft is a big one)
+    u.bigGem = found === 'gem' && luck > 1;
     u.attacked = true;
     push({ t: 'dig', u: u.id, found, ...(luck > 1 ? { shaft: 1 } : {}) });
     return true;
@@ -7902,9 +8044,9 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       if (!u.alive || over >= 0 || !v.alive || cheb(u.x, u.y, v.x, v.y) > 1) return true;
     }
     u.pack = '';
-    push({ t: 'deliver', u: u.id, d: v.id, what: 'gem' });
-    heal(v, RULES.gemHeal, 'gem', u);
-    v.blade += RULES.gemDmg;
+    push({ t: 'deliver', u: u.id, d: v.id, what: 'gem', ...(u.bigGem ? { big: 1 } : {}) });
+    heal(v, RULES.gemHeal + (u.bigGem ? RULES.shaftHeal : 0), 'gem', u);
+    v.blade += RULES.gemDmg + (u.bigGem ? RULES.shaftDmg : 0);
     push({ t: 'status', u: v.id, s: 'blade', on: true });
     return true;
   }
@@ -19718,6 +19860,9 @@ const SquadView = (() => {
         if (e.on) return u + ' climbs into the Big Gun: LOCKED IN! It lays the gun (+' + SE.RULES.bigManned + ' a direct hit), and every hit on it does ' + SE.RULES.bigGuard + '% less.';
         if (e.why === 'down') return u + ' is thrown out of the wrecked Big Gun.';
         return 'The Big Gun stands unmanned: it shoots on by itself.';
+      // engine 32: the gunner calls where the next shell goes
+      case 'lay':
+        return u + ' lays the Big Gun on ' + d + '.';
       case 'breakout':
         return 'BREAK OUT! The mist is coming: ' + u + ' wrecks the Big Gun from the inside and bursts out of it.';
       case 'cannon':
@@ -19918,6 +20063,8 @@ const SquadView = (() => {
           pump: ' is pumped: +' + SE.RULES.pumpDmg + ' damage.', bag: ' is a bagholder: ' + SE.RULES.bagMove + ' less move.',
           gas: ' pays gas: its power comes later and costs ' + SE.RULES.gasHp + ' HP.',
           // engine 29
+          // engine 32: a fighter on Evade done waiting for a brawl
+          goin: ' is done waiting for a brawl and goes in.',
           locked: ' is locked in the Big Gun: every hit on it does ' + SE.RULES.bigGuard + '% less.', ngmi: ' is NGMI: its next attack misses.', laser: ' gets the laser eyes: +' + SE.RULES.laserRange + ' reach, +' + SE.RULES.laserDmg + ' damage, half the dodge.',
         };
         return u + (S[e.s] || ' changes.');
@@ -21214,14 +21361,16 @@ const SquadView = (() => {
           }
           // a rifle's burst: the next shots ride on the first, a beat apart
           if (t === 'attack' && p.kind === 'attack' && p.e.u === e.u && (e.w === 'rifle' || e.w === 'scar') && e.n >= 1) {
-            const off = p.contact + e.n * MS.burstGap;
+            // (Engine 31 view: counted from the beat's own first shot, for a burst a
+            // rage or a nap split into two beats)
+            const off = p.contact + (e.n - (p.e.n || 0)) * MS.burstGap;
             p.list.push({ ei: i, off });
             p.dur = Math.max(p.dur, off + 240);
             return;
           }
           // the Blue Scar's burst told (engine 31): with its last blob; the scene draws them all
           if (t === 'scar' && p.kind === 'attack' && p.e.u === e.u) {
-            const off = p.contact + (e.shots.length - 1) * MS.burstGap + 60;
+            const off = p.contact + (e.shots.length - 1 - (p.e.n || 0)) * MS.burstGap + 60;
             p.list.push({ ei: i, off });
             p.scar = e;
             p.dur = Math.max(p.dur, off + 240);
@@ -21427,7 +21576,9 @@ const SquadView = (() => {
         // another
         // the Blue Scar tossed (engine 31)
         if (t === 'scartoss') {
-          parent = add({ kind: 'scartoss', dur: MS.scarToss, contact: MS.scarTossHit, list: [{ ei: i, off: MS.scarTossHit }], e, actors: [e.u] });
+          // (Engine 31 view: its own weapon is back as the toss begins, so the Scar is never
+          // in its paw and in the air at once)
+          parent = add({ kind: 'scartoss', dur: MS.scarToss, contact: MS.scarTossHit, list: [{ ei: i, off: 0 }], e, actors: [e.u] });
           return;
         }
         if (t === 'spray') {
@@ -24375,7 +24526,7 @@ const SquadView = (() => {
       ringFx(slam, hx, hy - 1, 300 * k, '#FFF3B0', 4, 14, false, 0.5);
       // the clamps turn in, a spark off each
       for (const s2 of [-1, 1]) addParts(4, hx + s2 * 9, hy - 1, ['#FFD447', '#FFFFFF'], 0.06, 0.0003, 260 * k, slam + F, false);
-      atClock(slam + F, () => sfx('reload'));
+      atClock(slam + F, () => sfx('lock')); // lane D3
       label(slam + 40 * k, 'LOCKED IN', '#FFD447', hx, ly, true, 2);
       return;
     }
@@ -26348,7 +26499,7 @@ const SquadView = (() => {
         x.drawImage(ic, 0, 0, 32, 32, X - 8, Y - 8, 16, 16);
       });
       label(t0, 'RING RING', '#FFD447', cx, cy - 30, false);
-      atClock(t0, () => sfx('bell'));
+      atClock(t0, () => sfx('ring')); // lane D3
       label(t0 + fly + 60 * k, 'PIZZA PHONE', '#FFD447', trip.at[0], trip.at[1] - 34, true);
       return;
     }
@@ -26413,7 +26564,7 @@ const SquadView = (() => {
       for (let j = 0; j < 3; j++) {
         const t0 = T + open + (260 + j * 520) * k;
         label(t0, j === 1 ? 'GRRRR!' : 'WOOF!', '#FF8A3D', cx + (j - 1) * 6, cy - 36, j === 1, j === 1 ? 2 : 1);
-        atClock(t0, () => sfx('crit'));
+        atClock(t0, () => sfx(j === 1 ? 'grrr' : 'woof')); // lane D3
       }
       return;
     }
@@ -26517,10 +26668,16 @@ const SquadView = (() => {
   }
   // the burst: every blob as the engine rolled it (b.scar; else the scene's first)
   function scarShots(T, b, u, d, ux, uy, dx, dy, k) {
-    const shots = b.scar ? b.scar.shots : [[b.e.res, b.e.dmg]];
+    // (Engine 31 view: a beat that starts mid-burst draws its own blobs only)
+    const shots = b.scar ? b.scar.shots.slice(b.e.n || 0) : [[b.e.res, b.e.dmg]];
     const gap = MS.burstGap * k;
     const go = T + b.rel;
-    const fly = Math.max(80 * k, b.contact - b.rel);
+    // (the blob lands with its damage number)
+    const fly = Math.max(1, b.contact - b.rel);
+    // the muzzle: the tip of the rifle in its paw, 10 px along the aim
+    const aimL = Math.hypot(dx - ux, dy - uy) || 1;
+    const ax = ((dx - ux) / aimL) * 10;
+    const ay = ((dy - uy) / aimL) * 10;
     shots.forEach(([res, dmg], j) => {
       const hit = res !== 'miss' && res !== 'whiff' && res !== 'absorb';
       // a miss goes wide, one side or the other, and splashes on the floor past it
@@ -26529,16 +26686,16 @@ const SquadView = (() => {
       const ty = dy + (hit ? 0 : 5 - j);
       const t0 = go + j * gap;
       const t1 = t0 + fly;
-      const mx = ux + (dx >= ux ? 9 : -9);
-      const at = (kk) => [lerp(mx, tx, kk), lerp(uy - 4, ty, kk) - Math.sin(kk * Math.PI) * 3];
+      const mx = ux + (u.face < 0 ? -8 : 7) + ax;
+      const my = uy + 1 + ay;
+      const at = (kk) => [lerp(mx, tx, kk), lerp(my, ty, kk) - Math.sin(kk * Math.PI) * 3];
       if (!P.calm) {
         // the muzzle flash, a blue star at the end of the barrel
         addFx(t0, 90 * k, (x, kk) => {
           const ub = u._b;
           if (!ub) return;
-          const s = dx >= ux ? 1 : -1;
-          const fx = ub.ox + 8 + s * 9;
-          const fy = ub.oy + 10;
+          const fx = Math.round(ub.ox + (u.face < 0 ? 0 : 15) + ax);
+          const fy = Math.round(ub.oy + 13 + ay);
           x.fillStyle = kk < 0.4 ? '#FFFFFF' : '#86CBF3';
           x.fillRect(fx - 2, fy, 5, 1);
           x.fillRect(fx, fy - 2, 1, 5);
@@ -26547,7 +26704,7 @@ const SquadView = (() => {
             x.fillRect(fx - 1, fy - 1, 3, 3);
           }
         });
-        atClock(t0, () => sfx(j ? 'shot' : 'zap'));
+        atClock(t0, () => sfx('blop')); // lane D3
         addFx(t0, fly, (x, kk, el) => {
           const [X, Y] = at(kk);
           scarBlob(x, Math.round(X), Math.round(Y), Math.floor(el / 40) & 1);
@@ -26573,7 +26730,7 @@ const SquadView = (() => {
           });
       }
     });
-    if (b.scar && !b.scar.left) label(T + b.contact + shots.length * gap, 'EMPTY', '#86CBF3', ux, uy - 22, false);
+    // (the empty magazine is told once, by the toss: scarBeat's EMPTY!)
   }
   // the magazine: a blue pip a burst left over its head, a dark one for each burst gone
   function scarPips(x, left, ox, oy) {
@@ -26605,7 +26762,7 @@ const SquadView = (() => {
         const Y = Math.round(lerp(uy - 4, ly, kk) - Math.sin(kk * Math.PI) * 16);
         drawArmsDir(x, 'scar', X, Y, Math.floor(kk * 12) % 8);
       });
-      atClock(T + b.contact, () => sfx('thud'));
+      atClock(T + b.contact, () => sfx('clink')); // lane D3
       u.hop = { kind: 'toss', t0: T, dur: 220 * k, h: 3 };
     }
     // it lies there a while
@@ -26622,7 +26779,7 @@ const SquadView = (() => {
   // its target for a while (u.gooT)
   function slimeShot(t0, t1, u, ux, uy, tx, ty, hit, d, k) {
     const dur = Math.max(60, t1 - t0);
-    sfx('zap');
+    sfx('pew'); // lane D3
     const at = (kk) => [lerp(ux, tx, kk), lerp(uy - 3, ty, kk) - Math.sin(kk * Math.PI) * 4];
     // the drops it sheds on the way, falling as it flies on
     for (let q = 0; q < 5; q++) addParts(1, ...at(q / 5), ['#86CBF3', '#3E86C9'], 0.01, 0.0005, 380 * k, t0 + (dur * q) / 5, false, [Math.PI * 0.4, Math.PI * 0.6]);
@@ -26803,7 +26960,7 @@ const SquadView = (() => {
       });
       // its mouth open for it
       u.hurt = hit - 240 * k;
-      atClock(up, () => sfx('click'));
+      atClock(up, () => sfx('gulp')); // lane D3
       label(hit, 'GULP', '#D6F5DD', centreOf(u)[0], centreOf(u)[1] - 22, true);
       atClock(hit, () => {
         sfx('power');
@@ -26867,7 +27024,7 @@ const SquadView = (() => {
       const w = kl.wpn;
       const hit = T + b.contact;
       const aim = T + 650 * k;
-      const fly0 = w === 'scope' || w === 'rifle' ? hit - 280 * k : hit - 700 * k;
+      const fly0 = w === 'scope' || w === 'rifle' || w === 'scar' ? hit - 280 * k : hit - 700 * k;
       const arc = ['sword', 'daggers', 'spear', 'hammer', 'tool', 'boom', 'bow'].includes(w) ? 16 : w === 'wand' ? 4 : 0;
       const at = (t) => {
         const f = clamp((t - fly0) / (hit - fly0), 0, 1);
@@ -26889,7 +27046,7 @@ const SquadView = (() => {
         x.fillRect(kb.ox + 8 + kl.face * 7, kb.oy + 8 - s, 1, 3 + s * 2);
         x.fillRect(kb.ox + 7 + kl.face * 7 - s, kb.oy + 9, 3 + s * 2, 1);
         const db = d._b;
-        if (db && (w === 'scope' || w === 'rifle' || w === 'bow')) {
+        if (db && (w === 'scope' || w === 'rifle' || w === 'bow' || w === 'scar')) {
           x.fillStyle = '#FF2E4C';
           x.fillRect(db.ox + 7, db.oy + 7, 2, 2);
         }
@@ -26931,6 +27088,13 @@ const SquadView = (() => {
           }
           x.fillStyle = '#FFFFFF';
           x.fillRect(X - r + 2, Y - r + 2, 2, 1);
+        } else if (w === 'scar') {
+          // (Engine 31 view) the Blue Scar fires its blobs, three in a line: the rifle
+          // itself is not thrown
+          for (let j = 0; j < 3; j++) {
+            const [ax, ay] = at(t - j * 50 * k);
+            scarBlob(x, Math.round(ax), Math.round(ay), Math.floor(el / 40) & 1);
+          }
         } else if (w === 'raygun') {
           ditherRect(x, X - 8, Y - 8, 17, 17, '#86CBF3', 0.4);
           x.fillStyle = INK;
@@ -27031,7 +27195,7 @@ const SquadView = (() => {
       const [ux, uy] = centreOf(u);
       for (let j = 0; j < 2; j++) {
         label(T + j * 330 * k, 'RING', '#FFD447', ux + (j ? 9 : -9), uy - 24 - j * 4, false);
-        atClock(T + j * 330 * k, () => sfx('bell'));
+        atClock(T + j * 330 * k, () => sfx('ring')); // lane D3
       }
       // the bubble: white, a tail down to its Blub, a slice and x1 in it
       addFx(T + 700 * k, b.dur - 700 * k, (x, kk) => {
@@ -27098,7 +27262,7 @@ const SquadView = (() => {
       atClock(tStop, () => sfx('thud'));
       for (let j = 0; j < 2; j++) {
         label(tStop + (80 + j * 260) * k, 'HONK', '#FFF3B0', stopX + face * 18, gy - 46 - j * 5, true);
-        atClock(tStop + (80 + j * 260) * k, () => sfx('click'));
+        atClock(tStop + (80 + j * 260) * k, () => sfx('honk')); // lane D3
       }
       // the box: out of its back doors in an arc onto its tile
       const bx0 = stopX - face * 21;
@@ -27355,7 +27519,7 @@ const SquadView = (() => {
       const p = Math.floor(th / 45);
       if (p !== peg && spinning) {
         peg = p;
-        if (speed * k < 0.9) sfx('click');
+        if (speed * k < 0.9) sfx('tick'); // lane D3
       }
       const bulbs = done ? (Math.floor((t - w.t1) / (110 * k)) % 2 ? -1 : 1) : Math.floor(t / ((spinning ? 70 : 160) * k));
       drawWheel(x, wx, wy + dy, gy + dy, img, bulbs, spinning && th % 45 < 10 && speed * k < 0.9);
@@ -27440,7 +27604,7 @@ const SquadView = (() => {
       u.hop = { kind: 'toss', t0: flick - 90 * k, dur: 200 * k, h: 3 };
       label(flick, 'PING', '#FFF3B0', ux + face * 8, uy - 10, false);
     }
-    atClock(flick, () => sfx('click'));
+    atClock(flick, () => sfx('coin')); // lane D3
     // the coin: in its paw, then in the air turning over and over (slower as it comes
     // down), its shadow on the floor; then down, rolling, wobbling, flat
     const SPIN = [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1];
@@ -27490,7 +27654,7 @@ const SquadView = (() => {
     // the verdict, once it lies flat
     const flat = hit + 820 * k;
     atClock(flat, () => {
-      sfx(e.heads ? 'power' : 'ko');
+      sfx(e.heads ? 'coin' : 'skull'); // lane D3
       flash(flat);
       hold(110);
     });
@@ -27510,6 +27674,7 @@ const SquadView = (() => {
       addParts(24, tx, ty - 6, ['#FFD447', '#FFF3B0', '#FFFFFF', '#C98A12'], 0.09, 0.0002, 760 * k, flat + 120 * k, true);
       ringFx(flat + 480 * k, tx, ty + 4, 420 * k, '#FFD447', 3, 16, true, 0.5);
       label(flat + 520 * k, 'DOPPELGANGER!', '#FFD447', tx, ty - 30, true);
+      atClock(flat + 480 * k, () => sfx('poof')); // lane D3
     } else if (!e.heads && !fall) {
       // its Blub comes apart: white, then pixel by pixel, gone in a puff
       const S2 = P.spr[u.id];
@@ -27565,7 +27730,7 @@ const SquadView = (() => {
       label(T + 120 * k, 'CLICK', '#FFD447', cx, cy - 30, false);
       atClock(T + 300 * k, () => sfx('click'));
       atClock(hit, () => {
-        sfx('crit');
+        sfx('chomp'); // lane D3
         shake(hit);
         flash(hit);
         hold(60);
@@ -28453,7 +28618,7 @@ const SquadView = (() => {
           const close = T + MS.smokeRoll * k;
           label(close, 'WALL OF SMOKE!', '#FFFFFF', Math.round(sx), above(Math.round(sy) - 26), true);
           ringFx(close, Math.round(sx), Math.round(sy) + 2, 420 * k, '#EEEEF5', 3, 22, false, 0.5);
-          atClock(close, () => sfx('thud'));
+          atClock(close, () => sfx('puff')); // lane D3
         }
         for (const side of [-1, 1]) {
           let far = 0;
@@ -29602,7 +29767,7 @@ const SquadView = (() => {
           ringFx(T + 160 * k, mx, my + 4, 700 * k, '#FF5C77', 4, 14, false, 0.8);
           label(T + 200 * k, 'MARKED', '#FF5C77', mx, above(my - 22));
         }
-        sfx('bell');
+        sfx({ charge: 'charge', hold: 'hold', focus: 'focus', dig: 'digin' }[e.cmd] || 'bell'); // lane D3
         return;
       }
       // a hurt Blub heads into the rainbow water to stake: '$' over it, and the water it
@@ -29724,11 +29889,11 @@ const SquadView = (() => {
             addFx(T + c * 60 * k, 700 * k, (x, kk, el) => x.drawImage(fxFrame('coin', Math.floor(el / (70 * k)) % 4), Math.round(wx - 4 + (c - 2.5) * 6 * kk * 2), Math.round(wy - 10 - Math.sin(kk * Math.PI) * (16 + (c % 3) * 5) + kk * 14)));
           flash(T);
           hold(140);
-          sfx('win');
+          sfx('jackpot'); // lane D3
         } else {
           label(T, e.allIn ? 'BUST' : 'RED', '#FF5C77', wx, above(wy - 22), true, 2);
           addParts(8, wx, wy, ['#E2566E', '#FF9AA8'], 0.05, 0.0003, 420 * k, T, true);
-          sfx('miss');
+          sfx(e.allIn ? 'allin' : 'bust'); // lane D3
         }
         return;
       }
@@ -29765,7 +29930,7 @@ const SquadView = (() => {
           x.drawImage(kk < op ? img : ghostOf(img, good ? 'drop1' : 'drop3', 1 - (kk - op) / (1 - op)), cx - 16, cy - 26);
         });
         atClock(T + land, () => {
-          sfx(good ? 'power' : 'miss');
+          sfx(good ? 'chime' : 'buzz'); // lane D3
           const [cx, cy] = centreOf(u);
           // (engine 29: kept on the arena over a Blub on the top row)
           label(T + land, nameOf('drop', e.k).toUpperCase(), col, cx, above(cy - 24), true);
@@ -30801,7 +30966,7 @@ const SquadView = (() => {
         return;
       }
       case 'mist': {
-        sfx('zap');
+        sfx('mist'); // lane D3
         if (e.n === mistOf()) banner('The pink mist closes in!', 'pow', 'storm', 1500);
         // (Engine 31 view) every ring it closes: a pink pulse round the board's edge
         // (the first one has its banner too); none under calm playback
@@ -31462,7 +31627,7 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'coinlost', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee', 'gunner', 'breakout', 'scar', 'scartoss']);
+  const LOGGED = new Set(['box', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'coinlost', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'sendit', 'stunt', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee', 'gunner', 'lay', 'breakout', 'scar', 'scartoss']);
   function log(e) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
@@ -31738,7 +31903,12 @@ const SquadView = (() => {
       D.pips.setAttribute('aria-hidden', 'true');
     }
     const tn = S && P.phase === 'round' ? 'Turn ' + Math.max(1, S.turn) + '/' + SE.TURNS : P.phase === 'outro' ? 'Final' : P.chestOnly ? 'Round ' + (P.ri + 1) : 'Intro';
-    if (D.turn.textContent !== tn) D.turn.textContent = tn;
+    if (D.turn.textContent !== tn) {
+      // (Engine 31 view: on a narrow phone the word Turn gives its room to the title)
+      D.turn.textContent = '';
+      if (tn.startsWith('Turn ')) D.turn.append(el('span', 'tw', 'Turn '), tn.slice(5));
+      else D.turn.textContent = tn;
+    }
     const sc = scoreNow();
     if (D.title.textContent !== P.title) D.title.textContent = P.title;
     // (Engine 31 view) a score that goes up pops
@@ -32802,7 +32972,10 @@ const SquadView = (() => {
       k.setAttribute('aria-label', (i ? P.sideLabels.you : P.sideLabels.rival) + ' dug in: ' + kitOf(team).map((id) => nameOf('obj', id)).join(', '));
       return k;
     });
-    const fmt = (P.bo === 3 ? 'Best of 3' : 'Best of 1') + ' · ' + (P.kind === 'match' ? 'season rating' : P.kind === 'league' ? 'Weekly league · a win is 3 points, a loss 1' : P.kind === 'practice' ? 'Practice · nothing is saved' : 'Bot show · nothing is saved');
+    // (QA, 20 Oct 2026) a duel says whether it counts: the hall hands its rating over
+    // only when it is rated (teams a day old, twice a day a pair); a shared replay says neither
+    const mx = P.match && P.match.extra;
+    const fmt = (P.bo === 3 ? 'Best of 3' : 'Best of 1') + ' · ' + (P.kind === 'match' ? (!mx ? 'duel' : mx.rating ? 'season rating' : 'not rated') : P.kind === 'league' ? 'Weekly league · a win is 3 points, a loss 1' : P.kind === 'practice' ? 'Practice · nothing is saved' : 'Bot show · nothing is saved');
     const sub = el('p', 'sqi-sub', fmt);
     const skip = el('p', 'sqi-skip', 'Tap or press Space to skip');
     box.append(top, h, lr, rowR);
@@ -34178,6 +34351,10 @@ const SquadView = (() => {
     sleepy: ['huh? I won?', 'zzz… whatever'],
     cheeky: ['house always loses', 'ngmi lol'],
   };
+  // lane D3: the new sounds' places in the queue (sfx: one a frame, the higher wins; from 5
+  // up the 70 ms gap never drops them) and the few still heard at 8x
+  Object.assign(SFX_PRIO, { woof: 3, grrr: 3, chomp: 4, ring: 3, honk: 3, gulp: 4, coin: 4, skull: 5, poof: 3, pew: 3, blop: 2, clink: 1, lock: 4, tick: 1, bust: 4, allin: 5, jackpot: 6, chime: 3, buzz: 3, mist: 4, puff: 2, charge: 4, hold: 4, focus: 4, digin: 4, pop: 1, cheer: 3, flawless: 6, drum: 5, crown: 4 });
+  ['jackpot', 'allin', 'flawless', 'drum', 'skull'].forEach((k) => SFX_FAST.add(k));
   const MEME_CMD = { charge: 'CHARGE!', hold: 'HOLD THE LINE!', focus: 'FOCUS FIRE!', dig: 'DIG IN!' };
   // the viewer's share of the HP left (0-100) from a turn's hp list or an end's per-team hp
   function memeShare(R, hp, perTeam) {
@@ -34240,11 +34417,14 @@ const SquadView = (() => {
       x.fillRect(X, a, 3, b - a);
     }
   }
-  function memeSay(text, side, who, prio) {
+  function memeSay(text, side, who, prio, snd) {
     const M = P.mm;
     if (!M || P.seeking) return;
     const now = performance.now();
     if (M.until > now && prio < M.prio) return;
+    // (lane D3) its own sound, else a cheer for the big ones and a pop for the rest; the
+    // queue lets a louder moment of the same frame (a knock-out, a jackpot) win
+    sfx(snd || (prio >= 4 ? 'cheer' : prio >= 2 ? 'pop' : 'tick'));
     const C = memeDom().call;
     C.textContent = '';
     // (a Coin Flip doppelganger, engine 22, wears the look of the Blub it doubles)
@@ -34382,7 +34562,7 @@ const SquadView = (() => {
     if (e.t === 'end' && P.S && (e.winner === 0 || e.winner === 1)) P.S.u.forEach((v) => v.alive && v.team === e.winner && memeEmote(v.id, 150 + (v.id % 5) * 110));
     // a round won without losing a Blub
     if (e.t === 'end' && (e.winner === 0 || e.winner === 1) && e.reason !== 'time' && !M.lost[e.winner]) {
-      memeSay('FLAWLESS · ' + P.sideLabels[sideOf(e.winner)] + ' lost nobody', sideOf(e.winner), null, 6);
+      memeSay('FLAWLESS · ' + P.sideLabels[sideOf(e.winner)] + ' lost nobody', sideOf(e.winner), null, 6, 'flawless');
       return;
     }
     // the Trickster's second action: a wink
@@ -34609,7 +34789,7 @@ const SquadView = (() => {
       }
     }
     if (M.point && P.fightShown && P.clock < (P.rd.fightAt || P.rd.introLen) + 3000) {
-      memeSay(M.point, M.pointSide, null, 6);
+      memeSay(M.point, M.pointSide, null, 6, 'drum');
       M.point = '';
     }
     // a jump (a seek, a skip) is caught up without a word
@@ -34842,6 +35022,10 @@ const SquadView = (() => {
         if (k === 0) {
           const ct = still ? 1 : Math.max(0, Math.min(1, (t - 800) / 260));
           if (ct > 0) x.drawImage(crown, mx - 4, Math.round(fy - 24 - lift - (1 - ct) * 30));
+          if (ct >= 1 && !c.crowned && !still) {
+            c.crowned = true;
+            sfx('crown');
+          }
         }
       });
       // the losers, asleep, and their sign
@@ -36001,7 +36185,7 @@ const SquadHall = (() => {
     R.chips.textContent = '';
     R.chips.append(h('span', {class: 'sq-chip'}, vIcon('cls', u.cls, 16), CLS[u.cls][1]),
       h('span', {class: 'sq-hpmv'}, 'HP ', h('b', null, String(S.max)), ' · Move ', h('b', null, String(S.move))));
-    R.figCv.setAttribute('aria-label', m.name + ', ' + CLS[u.cls][1] + ' with ' + wpnName(u) + ', ' + GEAR[u.gear][1] + ' and ' + POW[u.pow][1]);
+    R.figSr.textContent = m.name + ', ' + CLS[u.cls][1] + ' with ' + wpnName(u) + ', ' + GEAR[u.gear][1] + ' and ' + POW[u.pow][1] + '.';
     drawFigure();
     [R.partsL, R.partsR].forEach(b => { b.textContent = ''; });
     PARTS.forEach(([p, label], n) => {
@@ -37183,7 +37367,9 @@ const SquadHall = (() => {
   function renderOpen(){ if (R.open) keepFocus(drawOpen); }
   function drawOpen(){
     const list = openList(), me = SquadNet.me(), now = Date.now(), box = R.open;
-    const total = Math.max(st.board.count, list.length);
+    // (QA, 20 Oct 2026) the board's count less the ones called off since it came: the
+    // heading kept saying 3 over an empty list
+    const total = Math.max(st.board.count - st.board.open.filter(d => st.gone.has(d.id)).length, list.length);
     box.textContent = ''; R.openN.textContent = total ? String(total) : '';
     if (!list.length) box.append(h('li', {class: 'sq-empty'}, !SquadNet.ready() ? SquadNet.offline : !st.boardAt ? 'Loading the board…' : boardFailed() ? 'The board did not load. It tries again in a minute.' : 'No open challenges. Throw down the first one!'));
     list.slice(0, 20).forEach(d => {
@@ -37321,7 +37507,7 @@ const SquadHall = (() => {
     act('Your strategy', 'gold', () => { closeModal(); location.hash = 'team'; });
     if (R.kroot) act('See the rankings', '', () => { closeModal(); reveal(R.lgP); });
     st.modal = 'week'; openModal();
-    Sfx.play(up ? 'win' : 'bell');
+    Sfx.play(up ? 'rankup' : 'bell'); // (lane D3: a rank-up fanfare)
   }
   // the small badges' sea creatures (12x12): two frames each, the shrimp flicks, the crab
   // snaps, the fish swims, the dolphin jumps, the shark bites, the whale spouts. The big
@@ -38438,7 +38624,19 @@ const SquadHall = (() => {
   }
 
   function renderMine(){ if (R.mine) keepFocus(drawMine); }
+  // (lane D4) the board this page already loads (0 more commands): your matches on it join
+  // "Your duels", also on a device that never saw them made (oldest first, so the newest
+  // ends on top)
+  function adoptBoard(){
+    const me = SquadNet.me(); if (!me) return;
+    const have = new Set(mine().map(m => m.id));
+    [...st.board.open, ...st.board.recent].reverse().forEach(d => {
+      if (have.has(d.id) || (d.c !== me && d.a !== me) || (d.state !== 'open' && d.state !== 'done')) return;
+      remember(d, d.c === me ? 'c' : 'a'); have.add(d.id);
+    });
+  }
   function drawMine(){
+    adoptBoard();
     const list = mine(), now = Date.now(), box = R.mine;
     box.textContent = '';
     if (!list.length){ box.append(h('li', {class: 'sq-empty'}, 'Your challenges and results show up here.')); return; }
@@ -38476,7 +38674,12 @@ const SquadHall = (() => {
       R.cBoHint.textContent = planHint(st.bo); R.cBoHint.hidden = !R.cBoHint.textContent;
       seg(R.cTaunt, TAUNTS.map((t, i) => [i, t]), () => st.taunt, v => { st.taunt = v; });
     });
-    const blubs = (SquadNet.blubs() || []).map(b => ({id: b.id, name: cleanName(b.name) || 'Blub'})).filter(b => ID_OK.test(b.id)).sort((a, b) => a.name.localeCompare(b.name));
+    // (lane D4) named as the rankings name them: the profile name, else the short wallet
+    // address, then the captain (where there are no wallets: the captain's name)
+    const blubs = (SquadNet.blubs() || []).filter(b => b && ID_OK.test(b.id)).map(b => {
+      const cap = cleanName(b.name) || 'Blub', player = cleanName(b.player);
+      return {id: b.id, name: SquadNet.walletIds ? (player || shortId(b.id)) + ' · Blub ' + cap : cap};
+    }).sort((a, b) => a.name.localeCompare(b.name));
     const sig = blubs.map(b => b.id + ':' + b.name).join('|');
     if (sig !== R.cSel.dataset.sig){
       R.cSel.dataset.sig = sig; R.cSel.textContent = '';
@@ -38679,14 +38882,19 @@ const SquadHall = (() => {
       }, {class: 'sq-pick' + (ok ? '' : ' off'), 'aria-disabled': ok ? null : 'true', 'data-k': 'pick:' + c.id});
       if (c.reroll) m.append(on ? 'Tap again to reroll' : 'Let luck build it');
       else if (!c.d) m.append('Empty slot');
-      if (ok) estimate(E.cleanSquad(squadOf(c.d))).then(l => { if (b.isConnected){ m.textContent = ''; m.append(meter(l, true)); if (c.reroll) m.append(h('small', null, on ? ' · tap to reroll' : '')); } });
+      // (lane D4) every ready squad shows its meter at once, working it out ('…') till its
+      // estimate comes in, and these jump the queue: no card looks as if it had none
+      const csq = ok ? E.cleanSquad(squadOf(c.d)) : null;
+      if (ok && !c.reroll) m.append(meter(csq ? null : -1, true));
+      else if (c.d && !ok) m.append('Not ready yet');
+      if (csq) estimate(csq, true).then(l => { if (b.isConnected){ m.textContent = ''; m.append(meter(l, true)); if (c.reroll) m.append(h('small', null, on ? ' · tap to reroll' : '')); } });
       // (lane D) against the challenger's captain's role: five of them, the only part of
       // their squad that is not secret
-      const foe = ok && st.rivalRole && CLS[st.rivalRole] ? monoFoe(st.rivalRole) : null;
+      const foe = csq && st.rivalRole && CLS[st.rivalRole] ? monoFoe(st.rivalRole) : null;
       if (foe){
         const chip = h('span', {class: 'sq-ctr sq-pctr'}, vIcon('cls', st.rivalRole, 14), h('b', null, '…'));
         b.append(chip);
-        matchup(E.cleanSquad(squadOf(c.d)), foe).then(r => {
+        matchup(csq, foe).then(r => {
           if (!chip.isConnected) return;
           chip.className = 'sq-ctr sq-pctr ' + ODDS_CLS[r.word];
           chip.lastChild.textContent = r.pct + '%';
@@ -39151,11 +39359,15 @@ const SquadHall = (() => {
   function pathDone(k){ const p = pathSeen(); if (!p[k]) lsPatch({sqPath: {...p, [k]: 1}}); renderPath(); }
   function renderPath(){
     if (!R.path) return;
-    const p = pathSeen(), done = [!!p.guided, practiceRec().w > 0, signedIn()];
-    R.path.hidden = !!p.hide || done.every(Boolean);
+    const p = pathSeen(), done = [!!p.guided, practiceRec().w > 0, signedIn()], all = done.every(Boolean);
+    // (lane D5) all three done: one small 'All set!' moment before the card goes for good
+    R.path.hidden = !!p.hide || (all && !!p.yay);
     if (R.path.hidden) return;
-    const next = done.indexOf(false);
-    R.pathN.textContent = done.filter(Boolean).length + ' of 3 done';
+    R.path.classList.toggle('all', all);
+    if (R.pathYay) R.pathYay.hidden = !all;
+    const next = done.indexOf(false), n = done.filter(Boolean).length;
+    R.pathN.textContent = '';
+    R.pathN.append(h('span', {class: 'sq-ppips', 'aria-hidden': 'true'}, ...done.map(d => h('i', {class: d ? 'on' : ''}))), n + ' of 3 done');
     R.pathSteps.forEach((li, i) => {
       li.classList.toggle('done', done[i]); li.classList.toggle('next', i === next);
       const b = li.querySelector('.btn');
@@ -39315,7 +39527,10 @@ const SquadHall = (() => {
     R.nameMsg = h('p', {class: 'sq-nmsg', id: 'sqNameMsg', 'aria-live': 'polite'});
     const pen = pixMap(PENCIL); pen.setAttribute('class', 'sq-pen spr'); pen.setAttribute('aria-hidden', 'true');
     R.chips = h('div', {class: 'sq-chips'});
-    R.figCv = h('canvas', {class: 'sq-fig spr', width: String(FIG_W), height: String(FIG_H), role: 'img'});
+    // (lane D5) the picture is for the eyes; its words are in R.figSr just before the parts,
+    // since a tab list may hold only tabs
+    R.figCv = h('canvas', {class: 'sq-fig spr', width: String(FIG_W), height: String(FIG_H), 'aria-hidden': 'true'});
+    R.figSr = h('p', {class: 'sr', id: 'sqFigSr'});
     R.partsL = h('div', {class: 'sq-parts'}); R.partsR = h('div', {class: 'sq-parts'});
     R.figRow = h('div', {class: 'sq-figrow', role: 'tablist', 'aria-label': 'Parts of this Blub'}, R.partsL, h('div', {class: 'sq-figbox'}, R.figCv), R.partsR);
     // arrow keys walk the six parts (and open each)
@@ -39329,7 +39544,7 @@ const SquadHall = (() => {
     });
     R.stats = h('div', {class: 'sq-stats'});
     // desktop: the numbers flank the parts and the figure (HP to Damage left, Dodge to Guard right)
-    R.figGrid = h('div', {class: 'sq-figgrid'}, R.figRow, R.stats);
+    R.figGrid = h('div', {class: 'sq-figgrid'}, R.figSr, R.figRow, R.stats);
     R.tray2 = h('div', {class: 'sq-chtray', id: 'sqTray', role: 'tabpanel'});
     R.who = h('div', {class: 'sq-who'});
     R.stage = h('div', {class: 'sq-stage', role: 'region', 'aria-labelledby': 'sqEdEye'},
@@ -39392,7 +39607,7 @@ const SquadHall = (() => {
     // a newcomer's way in: the three steps, a line each, until dismissed or all three opened
     const GUIDE = {looks: 'Dress each Blub up: colours, hats and faces.', build: 'Give each one a role, a weapon, a power and training.', plan: 'Pick where they start, a trench kit and your plans.'};
     R.guide = h('div', {class: 'sq-guide', role: 'note', 'aria-labelledby': 'sqGuideT', hidden: true},
-      h('h4', {id: 'sqGuideT'}, 'New here? Your team in three steps'),
+      h('h3', {id: 'sqGuideT', class: 'sq-guideh'}, 'New here? Your team in three steps'),
       h('ol', {class: 'sq-gsteps'}, ...TABS.map(([k, title], i) => h('li', null, stepIcon(k, 28), h('span', null, h('b', null, (i + 1) + ' · ' + title), GUIDE[k])))),
       h('p', {class: 'sq-desc'}, 'Then try your team in Practice: the guided first match, bot squads, or a friend.'),
       h('div', {class: 'sq-gacts'},
@@ -39501,7 +39716,10 @@ const SquadHall = (() => {
     R.path = h('section', {class: 'sq-path', 'aria-labelledby': 'sqPathT', hidden: true},
       h('div', {class: 'sq-pathh'}, h('h3', {id: 'sqPathT'}, 'Start here'), R.pathN,
         h('button', {type: 'button', class: 'sq-pathx', 'data-k': 'pathhide', onclick: () => { lsPatch({sqPath: {...pathSeen(), hide: 1}}); renderPath(); }}, 'Hide')),
-      h('ol', {class: 'sq-psteps'}, ...R.pathSteps));
+      h('ol', {class: 'sq-psteps'}, ...R.pathSteps),
+      R.pathYay = h('div', {class: 'sq-pyay', hidden: true, role: 'status'},
+        h('b', null, 'All set!'), h('span', null, 'You watched, you won, you signed in. Next: tune your three plans and climb the weekly league.'),
+        button('Got it', 'gold', () => { lsPatch({sqPath: {...pathSeen(), yay: 1}}); renderPath(); }, {'data-k': 'pathyay'})));
 
     troot.append(R.builder);
     // practice: duels with friends and the bots; the rankings get a page of their own
