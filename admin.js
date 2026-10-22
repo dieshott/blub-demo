@@ -228,16 +228,30 @@ export function rewardsPreview(comp) {
     if (s.item) out.push({ id, item: s.item });
     if (s.tok > 0) out.push({ id, tok: s.tok });
   };
+  // a free pool (lib/comp.mjs rewardsOf): a real match (`pl`), the top 10 from 20 players,
+  // the podium from 6
+  const free = !!(comp.cfg && comp.cfg.kind === 'free');
+  const humans = (comp.pool || []).filter((id) => id && !BOT_RE.test(id)).length;
+  const top10 = !free || humans >= FREE_TOP10_MIN;
+  const podium = !free || humans >= FREE_PODIUM_MIN;
   for (const row of comp.res.table) {
     if (BOT_RE.test(row.id) || dq.has(row.id) || row.w + row.l < 1) continue;
+    if (free && !((row.pl | 0) >= 1)) continue;
     give(row.id, 'all');
-    if (row.place <= 10) give(row.id, 't10');
-    if (row.place <= 3) give(row.id, 'p3');
-    if (row.place <= 2) give(row.id, 'p2');
-    if (row.place === 1) give(row.id, 'p1');
+    if (top10 && row.place <= 10) give(row.id, 't10');
+    if (podium && row.place <= 3) give(row.id, 'p3');
+    if (podium && row.place <= 2) give(row.id, 'p2');
+    if (podium && row.place === 1) give(row.id, 'p1');
   }
   return out;
 }
+export const FREE_TOP10_MIN = 20;
+export const FREE_PODIUM_MIN = 6;
+// a free pool's rewards by the job: its first run on a later UTC day than the final
+// (lib/compday.mjs runCompDay), at 00:05 UTC
+export const rewardsAt = (c) => (c && c.doneAt ? new Date((Math.floor(Date.parse(c.doneAt) / DAY) + 1) * DAY + 5 * 60000).toISOString() : null);
+// the panel's own SquadPools, for the sandbox (the moments of its days)
+export const squadPools = () => pools();
 // a squad's strength in the page: 48 seeded fights against the league's bot squads,
 // both sides; the tier cuts are the hall's (58 strong, 45 medium)
 // one of a rating's 48 fights: the squad against a league bot squad, on both sides by turns
@@ -422,11 +436,16 @@ export function normCfg(cfg, E) {
   const c = cfg && typeof cfg === 'object' ? cfg : {};
   const t = c.times && typeof c.times === 'object' ? c.times : {};
   const rw = c.rw && typeof c.rw === 'object' ? c.rw : {};
+  // a free pool (kind 'free'): no burn, no prize, joined; the job gives its rewards (autoRw)
+  // and it plays the engine of the day (follow)
+  const free = c.kind === 'free';
   return {
+    kind: free ? 'free' : 'burn',
     name: String(c.name || ''), text: String(c.text || ''), week: String(c.week || ''),
     times: Object.fromEntries(TIME_KEYS.map((k) => [k, typeof t[k] === 'string' ? t[k] : ''])),
-    size: intOr(c.size, 35), minAge: intOr(c.minAge, 1), order: c.order === 'ask' ? 'ask' : 'burn',
+    size: intOr(c.size, 35), minAge: intOr(c.minAge, free ? 0 : 1), order: free ? 'join' : c.order === 'ask' ? 'ask' : 'burn',
     entryBps: intOr(c.entryBps, 0), prizeBps: intOr(c.prizeBps, 0), autoLock: c.autoLock !== false,
+    ...(free ? { autoRw: c.autoRw !== false, follow: c.follow !== false } : {}),
     rules: normRules(c.rules, E),
     rw: Object.fromEntries(RW_STEPS.map(([k, , tok]) => {
       const v = rw[k] && typeof rw[k] === 'object' ? rw[k] : {};
@@ -435,7 +454,7 @@ export function normCfg(cfg, E) {
     terms: String(c.terms || ''), e: c.e,
   };
 }
-const CFG_KEYS = ['name', 'text', 'week', 'times', 'size', 'minAge', 'order', 'entryBps', 'prizeBps', 'autoLock', 'rules', 'rw', 'terms'];
+const CFG_KEYS = ['name', 'text', 'week', 'times', 'size', 'minAge', 'order', 'entryBps', 'prizeBps', 'autoLock', 'autoRw', 'follow', 'rules', 'rw', 'terms'];
 // what an edit sends: the fields that differ from what was read, in the stored shape
 export function cfgChanges(draft, base, E) {
   const out = {};
@@ -533,12 +552,15 @@ const day = (iso) => { const d = new Date(iso); return Date.parse(iso) > 0 ? DAY
 // {sections: [{id, h, rows: [[{t, ban?, cap?}]]}]}: each row a list of bits of text; a
 // ban is struck through, a cap carries ×n. Built from the catalog names only.
 export function rulesSheet(cfg, E, o = {}) {
-  const c = cfg.rules ? cfg : normCfg(cfg, E);
+  const c = cfg.rules && cfg.kind ? cfg : normCfg(cfg, E);
   const R = c.rules && c.rules.lim && c.rules.arena ? c.rules : normRules(c.rules, E);
+  const free = c.kind === 'free';
+  // drawn: the pool's own size (a free pool grows to fit at the lock)
+  const size = o.places >= 2 ? o.places : c.size;
   const S = [];
   const add = (id, h, rows) => S.push({ id, h, rows: rows.filter(Boolean).map((r) => (Array.isArray(r) ? r : [{ t: r }])) });
   add('format', 'Format', [
-    c.size + ' places, every one against every other once: ' + roundsOf(c.size) + ' rounds, ' + perDay(c.size) + ' a day from Monday to Sunday.',
+    size + ' places, every one against every other once: ' + roundsOf(size) + ' rounds, ' + perDay(size) + ' a day from Monday to Sunday.' + (free && !(o.places >= 2) ? ' The pool grows to fit at the draw, up to 64 players: bots fill below ' + c.size + '.' : ''),
     '3 points for a win, 1 for a loss. Bots fill the places nobody took, and play like everyone else.',
     'Sign-ups ' + day(c.times.opens) + ' to ' + day(c.times.closes) + ' UTC; the places are drawn at ' + day(c.times.lock) + '.',
     'Plays week ' + (c.week ? Number(c.week.slice(5)) : '?') + ' on engine ' + (c.e || E.SQUAD_ENGINE) + ', with the strategy you pick for it.',
@@ -582,6 +604,24 @@ export function rulesSheet(cfg, E, o = {}) {
     return null;
   };
   const ea = amount(c.entryBps), pa = amount(c.prizeBps);
+  if (free) {
+    // a free pool: nothing to burn, nothing to pay out; cosmetic pins only
+    add('entry', 'Joining', [
+      'Free to join: nothing to pay and nothing to burn. Join on the site and you are in at once.',
+      c.minAge ? 'Your team must be saved at least ' + c.minAge + ' day' + (c.minAge === 1 ? '' : 's') + ' before, with a strategy.' : 'Any saved team with a strategy can join.',
+      'One wallet a person. Moderators cannot join. Leave any time before the draw.',
+    ]);
+    const rw = [];
+    for (const [k, label] of RW_STEPS) {
+      const v = c.rw[k] || {};
+      if (v.item) rw.push(label + ': ' + itemText(v.item, o.n) + '.');
+    }
+    rw.push(rw.length ? 'The steps stack. You need at least one real match. The top 10 pin from 20 players, the podium from 6. Bots get nothing. Cosmetic only' + (c.autoRw !== false ? ': the daily run gives them the day after the final.' : '.') : 'No rewards.');
+    add('rewards', 'Rewards', rw);
+    add('ties', 'Tie-breaks', ['Points, then head-to-head among the tied, then the margin, then a salted coin.']);
+    add('terms', 'Terms', c.terms.trim() ? c.terms.trim().split(/\n+/) : ['No terms written yet.']);
+    return { title: c.name || 'Free Pool', sections: S };
+  }
   add('entry', 'Entry', [
     c.entryBps ? 'Burn ' + (ea ? ea + ' (' : '') + pctOf(c.entryBps) + ' of the supply at opening' + (ea ? ')' : '') + ' from the wallet you sign in with.' : 'Free: no burn.',
     c.entryBps ? (c.order === 'ask' ? 'Ask first; burn once you are approved.' : 'Burn first, then the team reviews your entry. A declined paid entry is refunded by hand.') : 'Ask to enter; the team reviews every entry.',
@@ -867,7 +907,11 @@ function build() {
   });
   R.clistSum = h('summary', { class: 'adm-clist-sum' }, 'Competitions');
   R.clist = h('details', { class: 'adm-clist sq-panel', open: true }, R.clistSum,
-    h('div', { class: 'adm-row' }, btn('New draft', 'gold', () => act(R.compMsg, () => A.comps.create({ do: 'draft' }), (r) => { openComp(r.code, 'setup'); return 'Draft #' + r.comp.n + ' made.'; })), R.dupBtn),
+    // two kinds (docs/pools-and-highlights.md §2.9): a free pool (no burn, no prize) or a cup entered with a burn
+    h('div', { class: 'adm-row' },
+      btn('New: free pool', 'gold', () => act(R.compMsg, () => A.comps.create({ do: 'draft', kind: 'free' }), (r) => { openComp(r.code, 'setup'); return 'Free pool #' + r.comp.n + ' made (a draft).'; }), { title: 'Free to join, no burn and no prize: cosmetic pins' }),
+      btn('New: burn to enter', '', () => act(R.compMsg, () => A.comps.create({ do: 'draft', kind: 'burn' }), (r) => { openComp(r.code, 'setup'); return 'Draft #' + r.comp.n + ' made.'; }), { title: 'Players burn $BLUB to enter; the winner gets the prize by hand' }),
+      R.dupBtn),
     R.compMsg, R.compList);
   R.cdetail = h('article', { class: 'sq-panel adm-card adm-cdetail', 'aria-labelledby': 'admCompTitle' });
   R.compsPane = pane('comps', 'adm-cgrid', R.clist, R.cdetail);
@@ -1005,7 +1049,7 @@ async function refreshAll() {
 async function refresh() {
   const w = A.who();
   R.who.textContent = '';
-  R.who.append(modeLine(), h('span', null, A.mode === 'server' ? ' Signed in as ' + short(w.addr || C.me() || '') + '. Every change here goes into the log.' : ' Example data: three competitions, a league week, wallets, decks and a log. Every change is kept in this browser until you reset it.'));
+  R.who.append(modeLine(), h('span', null, A.mode === 'server' ? ' Signed in as ' + short(w.addr || C.me() || '') + '. Every change here goes into the log.' : ' Example data: three cups and two free pools, a league week, wallets, decks and a log. Every change is kept in this browser until you reset it.'));
   say(R.status, st.ov ? '' : A.mode === 'local' ? 'Loading… the example weeks play out in your browser the first time.' : 'Loading…');
   try {
     st.ov = await A.overview();
@@ -1052,7 +1096,8 @@ function whenOf(c) {
   if (c.st === 'live' || c.st === 'paused') return 'day ' + Math.min(7, Math.max(1, Math.floor((Date.now() - Date.parse(win.start)) / DAY) + 1)) + ' of 7' + (c.st === 'paused' ? ', paused' : '');
   return 'week ' + (c.week ? Number(String(c.week).slice(5)) : '?');
 }
-const countsLine = (c) => { const n = c.counts || {}; return (n.req || 0) + ' requests · ' + (n.ok || 0) + ' approved · ' + (n.in || 0) + ' entered / ' + c.size; };
+const countsLine = (c) => { const n = c.counts || {}; return isFreeC(c) ? (n.ok || 0) + ' joined · up to 64 · ' + (n.no || 0) + ' declined' : (n.req || 0) + ' requests · ' + (n.ok || 0) + ' approved · ' + (n.in || 0) + ' entered / ' + c.size; };
+const isFreeC = (c) => !!(c && ((c.cfg && c.cfg.kind === 'free') || c.kind === 'free'));
 // opens a competition on a step (from a to-do or the strip)
 const goComp = (code, step, anchor) => () => { showTab('comps'); openComp(code, step, anchor); };
 function renderTodo() {
@@ -1075,6 +1120,10 @@ function renderTodo() {
     add((k === 'burn' ? 'Prize burn for ' : k === 'payout' ? 'Payout for ' : 'Prize (payout or burn) for ') + num(code) + ' not recorded', goComp(code, 'results'));
   }
   for (const code of t.rewardsDue || []) add('Rewards for ' + num(code) + ' not given', goComp(code, 'rewards'));
+  // free pools: full ones (open another, 2 commands), sign-ups about to open, rewards on their way
+  for (const code of t.freeFull || []) add('Free ' + num(code) + ' is full (64): open another?', goComp(code, 'entries'));
+  for (const c of list.filter((x) => x.kind === 'free' && x.st === 'open' && x.win && Date.parse(x.win.opens) > Date.now())) add('Free #' + c.n + ' opens ' + day(c.win.opens) + ' UTC', goComp(c.code, 'setup'), true);
+  for (const c of list.filter((x) => x.kind === 'free' && x.st === 'settled' && x.autoRw)) add('Rewards for Free #' + c.n + ' go out with the next daily run', goComp(c.code, 'rewards'), true);
   if (t.lowBalance && open) add('Project wallet holds less than the prize of ' + num(open.code), goComp(open.code, 'setup', 'admSetEntry'));
   if (t.rerate) add('Engine changed: ' + s(t.rerate, 'deck needs', 'decks need') + ' re-rating', () => showTab('bots'));
   if (o.paused) add('The leagues are paused', () => showTab('leagues'));
@@ -1435,9 +1484,11 @@ const EST_CLS = { req: 'warn', ok: 'ok', wait: 'dim', no: 'bad', lapsed: 'dim', 
 function signalsOf(e) {
   const s = e.signals || {};
   const out = [];
+  // a free pool's join (by 'join'): the connection first, no "new team" (teams of any age join; the critic, C10)
+  const joined = e.by === 'join' || (e.free && !e.b && !e.hand);
   if (s.ip > 1) out.push(['Same connection ×' + s.ip, 'warn', 'This entry shares its connection with ' + (s.ip - 1) + ' other' + (s.ip > 2 ? 's' : '')]);
   if (s.fp) out.push(['Fee payer ≠ wallet', 'warn', 'Another wallet paid the fee of the burn']);
-  if (s.newTeam) out.push(['New team', 'dim', 'The team was saved less than a week ago']);
+  if (s.newTeam && !joined) out.push(['New team', 'dim', 'The team was saved less than a week ago']);
   if (s.sameSquad > 0) out.push(['Same squad as ' + s.sameSquad + ' other' + (s.sameSquad > 1 ? 's' : ''), 'warn', 'Another entrant saved the same squad']);
   if (e.legal && !e.legal.every(Boolean)) out.push(['Breaks the rules', 'bad', 'A strategy breaks this competition’s rules']);
   return out;
@@ -1525,7 +1576,7 @@ function entryCard(c, e, i) {
     h('span', { class: 'adm-ewal' }, h('span', { class: 'lg-addr', title: e.w }, short(e.w)), copyBtn(e.w)),
     h('span', null, age === null ? 'team age ?' : 'team ' + age + ' d old'),
     h('span', null, rank || 'not in the league'),
-    h('span', null, 'asked ' + (ago(e.t) || '?')),
+    h('span', null, (e.by === 'join' ? 'joined ' : 'asked ') + (ago(e.t) || '?')),
     P ? h('span', null, P.cmw && P.cmw.filter((x) => x.code !== c.code).length ? 'before: ' + P.cmw.filter((x) => x.code !== c.code).slice(0, 4).map((x) => '#' + x.n + ' ' + (x.place ? x.place + nth(x.place) : EST[x.st] || x.st)).join(', ') : 'no competitions before')
       : btn('History', 'adm-mini', () => loadHistory(e.w), { title: 'Past competitions, team and strategies (1 database command)' }));
   const kids = [head, facts];
@@ -1539,7 +1590,7 @@ function entryCard(c, e, i) {
   kids.push(legalRow(c, e, P));
   if (e.why) { const p = h('p', { class: 'adm-eline' }, h('b', null, 'Reply the player sees: ')); p.append(e.why); kids.push(p); }
   if (e.note) { const p = h('p', { class: 'adm-eline dim' }, h('b', null, 'Note (moderators only): ')); p.append(e.note); kids.push(p); }
-  if (e.at) kids.push(h('p', { class: 'adm-eline dim' }, (EST[e.st] || e.st) + ' ' + ago(e.at) + (e.by ? ' by ' + (e.by === 'sandbox' ? 'the sandbox' : short(e.by)) : '')));
+  if (e.at) kids.push(h('p', { class: 'adm-eline dim' }, e.by === 'join' ? 'Joined ' + ago(e.at) + ' (in at once)' : (EST[e.st] || e.st) + ' ' + ago(e.at) + (e.by ? ' by ' + (e.by === 'sandbox' ? 'the sandbox' : e.by === 'job' ? 'the daily run' : short(e.by)) : '')));
   kids.push(entryActs(c, e));
   if (st.eform && st.eform.w === e.w) kids.push(decideForm(c, [e.w], st.eform.kind));
   li.append(...kids);
@@ -1573,10 +1624,12 @@ async function loadHistory(id) {
 function entryActs(c, e) {
   const row = h('div', { class: 'adm-row adm-eacts' });
   const review = ['open', 'closed'].includes(c.st);
-  const playing = ['live', 'paused', 'done'].includes(c.st);
+  const free = isFreeC(c);
+  // a free pool: who joins is in (no approve, no waitlist); its dq window runs to the rewards
+  const playing = ['live', 'paused', free ? 'settled' : 'done'].includes(c.st);
   if (review && ['req', 'wait', 'ok'].includes(e.st)) {
-    if (e.st !== 'ok') row.append(btn('Approve', 'gold', () => decide([e.w], 'approve'), { title: 'Approve (a)' }));
-    if (e.st !== 'wait') row.append(btn('Waitlist', '', () => decide([e.w], 'wait'), { title: 'Waitlist (w)' }));
+    if (e.st !== 'ok' && !free) row.append(btn('Approve', 'gold', () => decide([e.w], 'approve'), { title: 'Approve (a)' }));
+    if (e.st !== 'wait' && !free) row.append(btn('Waitlist', '', () => decide([e.w], 'wait'), { title: 'Waitlist (w)' }));
     row.append(btn('Decline…', 'pink', () => openForm(e.w, 'decline'), { title: 'Decline with a reason (d)' }));
   }
   if (playing && e.st === 'ok') row.append(btn('Disqualify…', 'pink', () => openForm(e.w, 'dq')));
@@ -1634,7 +1687,8 @@ function decideForm(c, wallets, kind) {
 // a disqualify after the final changes who gets the prize (a disqualified winner's prize is
 // burned): both backends want 'DQ <n>' typed (lib/scripts.mjs ADMIN_ENTRY)
 function dqConfirm(c) {
-  if (c.st !== 'done') return null;
+  // after the final: a burn cup's done, a free pool's settled (before the rewards)
+  if (c.st !== (isFreeC(c) ? 'settled' : 'done')) return null;
   const want = 'DQ ' + c.n;
   const inp = h('input', { class: 'sq-pfin adm-typed-in', autocomplete: 'off', spellcheck: 'false', placeholder: want, 'aria-label': 'Type ' + want + ' to confirm' });
   return { want, inp, el: h('label', { class: 'adm-field' }, h('span', { class: 'adm-fl' }, 'After the final: type ' + want + ' to confirm'), inp), ok: () => inp.value.trim() === want };
@@ -1760,9 +1814,11 @@ function drawEntries() {
     chips.append(h('button', { type: 'button', class: 'adm-ef' + (st.ef === k ? ' on' : ''), 'aria-pressed': String(st.ef === k), 'data-f': k, onclick: () => { st.ef = k; drawEntries(); } }, label, h('b', null, String(n))));
   }
   const okN = es.filter((e) => e.st === 'ok').length;
-  const size = c.cfg.size;
-  R.ehead.append(chips, h('div', { class: 'adm-meter', title: okN + ' of ' + size + ' places approved' },
-    h('span', { class: 'adm-fl' }, 'Places left'), h('b', { class: 'adm-meterb' }, String(Math.max(0, size - okN))), h('span', { class: 'adm-meters' }, okN + ' / ' + size + ' approved'), bar(okN, size)));
+  // a free pool: who joins is in, up to 64 (it grows to fit at the lock; bots fill below its size)
+  const free = isFreeC(c);
+  const size = free ? 64 : c.cfg.size;
+  R.ehead.append(chips, h('div', { class: 'adm-meter', title: okN + ' of ' + size + ' places ' + (free ? 'taken' : 'approved') },
+    h('span', { class: 'adm-fl' }, 'Places left'), h('b', { class: 'adm-meterb' }, String(Math.max(0, size - okN))), h('span', { class: 'adm-meters' }, okN + ' / ' + size + (free ? ' joined' + (okN < c.cfg.size ? ' (bots fill to ' + c.cfg.size + ')' : '') : ' approved')), bar(okN, size)));
   drawAdd(c);
   // the cards
   const list = shownEntries(c);
@@ -1797,9 +1853,11 @@ function drawBar(c, list) {
   all.onchange = () => selectW(list.map((e) => e.w), all.checked);
   const wallets = [...st.esel];
   const review = ['open', 'closed'].includes(c.st);
-  const playing = ['live', 'paused', 'done'].includes(c.st);
+  const free = isFreeC(c);
+  const playing = ['live', 'paused', free ? 'settled' : 'done'].includes(c.st);
   const acts = h('div', { class: 'adm-row' });
-  if (n && review) acts.append(
+  if (n && review && free) acts.append(btn('Decline ' + n + '…', 'pink', () => openForm(null, 'decline')));
+  else if (n && review) acts.append(
     btn('Approve ' + n, 'gold', () => decide(wallets, 'approve')),
     btn('Waitlist ' + n, '', () => decide(wallets, 'wait')),
     btn('Decline ' + n + '…', 'pink', () => openForm(null, 'decline')));
@@ -1807,7 +1865,7 @@ function drawBar(c, list) {
   if (n && !review && !playing) acts.append(h('span', { class: 'adm-fine' }, 'No decisions while #' + c.n + ' is ' + c.st + '.'));
   if (n) acts.append(btn('Clear', '', () => { st.esel.clear(); st.eform = null; drawEntries(); }, { title: 'Clear the selection (Esc)' }));
   R.ebar.append(h('label', { class: 'adm-check adm-ball' }, all, h('span', { class: 'adm-ecount', 'aria-live': 'polite' }, n ? n + ' selected' : 'Select all shown')), acts,
-    h('span', { class: 'adm-keys' }, 'Keys: j/k move · a approve · w waitlist · d decline · x select · Esc clear'));
+    h('span', { class: 'adm-keys' }, free ? 'Keys: j/k move · d decline · x select · Esc clear' : 'Keys: j/k move · a approve · w waitlist · d decline · x select · Esc clear'));
   if (st.eform && !st.eform.w && n) R.ebar.append(decideForm(c, wallets, st.eform.kind));
   R.ebar.classList.toggle('on', n > 0);
   R.toastLift = n > 0;
@@ -1878,16 +1936,17 @@ function drawAdd(c) {
     const c = cur();
     const w = wal.value.trim();
     if (!ADDR_RE.test(w)) { show(false, '✗ ' + ERR_SAYS.bad_wallet); wal.focus(); return; }
-    if (!free.checked && !sig.value.trim()) { show(false, '✗ Paste the signature of the burn, or tick Free giveaway.'); sig.focus(); return; }
+    if (!isFreeC(c) && !free.checked && !sig.value.trim()) { show(false, '✗ Paste the signature of the burn, or tick Free giveaway.'); sig.focus(); return; }
     if (!why.value.trim()) { show(false, '✗ Write why, for the log.'); why.focus(); return; }
     if (st.busy) return;
     st.busy = true;
     out.textContent = 'Working…';
     try {
-      const r = await A.comps.addByHand(c.code, { wallet: w, ...(free.checked ? { free: true } : { sig: sig.value.trim() }), why: why.value.trim() });
+      // a free pool never asks for or reads a burn: always free
+      const r = await A.comps.addByHand(c.code, { wallet: w, ...(isFreeC(c) || free.checked ? { free: true } : { sig: sig.value.trim() }), why: why.value.trim() });
       st.busy = false;
       const e = r.entry || {};
-      show(true, '✓ Entered ' + nameOf(w) + ' by hand' + (e.b && e.b.ok ? ': burn verified, ' + uiAmount(e.b.raw, c.sup ? c.sup.dec : 6) + ' $BLUB at slot ' + e.b.slot + ', ' + btTxt(e.b.bt) + '.' : e.b ? ': the burn is recorded, not verified yet.' : ' as a free giveaway.'));
+      show(true, '✓ ' + (isFreeC(c) ? 'Added ' + nameOf(w) + ' to the pool by hand.' : 'Entered ' + nameOf(w) + ' by hand') + (isFreeC(c) ? '' : e.b && e.b.ok ? ': burn verified, ' + uiAmount(e.b.raw, c.sup ? c.sup.dec : 6) + ' $BLUB at slot ' + e.b.slot + ', ' + btTxt(e.b.bt) + '.' : e.b ? ': the burn is recorded, not verified yet.' : ' as a free giveaway.'));
       wal.value = ''; sig.value = ''; why.value = ''; free.checked = false; sig.disabled = false;
       st.ef = 'all';
       st.efocus = w;
@@ -1905,6 +1964,16 @@ function drawAdd(c) {
     const pool = Object.entries((st.ov && st.ov.who) || {}).filter(([id, x]) => !taken.has(id) && !bans.has(id) && daysOld(x.created) >= (c.cfg.minAge || 0));
     if (pool.length) { wal.value = pool[0][0]; wal.focus(); } else show(false, 'Every example wallet has entered already.');
   }) : null;
+  // a free pool: a wallet and a reason only (no signature, no chain check)
+  if (isFreeC(c)) {
+    R.eaddD = h('details', { class: 'adm-addhand' }, h('summary', null, 'Add by hand'),
+      h('p', { class: 'sq-desc' }, 'Add a wallet to this free pool by hand: it is in at once, as if it had joined (one free pool a wallet a week).'),
+      h('label', { class: 'adm-field', for: 'admAddW' }, h('span', { class: 'adm-fl' }, 'Wallet'), wal),
+      h('label', { class: 'adm-field', for: 'admAddR' }, h('span', { class: 'adm-fl' }, 'Reason'), why),
+      h('div', { class: 'adm-row' }, btn('Add', 'gold', add), fill), out);
+    R.eadd.append(R.eaddD);
+    return;
+  }
   R.eaddD = h('details', { class: 'adm-addhand' }, h('summary', null, 'Add by hand'),
     h('p', { class: 'sq-desc' }, 'For a player whose burn did not come through, or a giveaway. A signature gets the same check as a player’s entry; the wallet is entered approved and marked “by hand”.'),
     h('div', { class: 'adm-two' },
@@ -1940,47 +2009,22 @@ export function mixCounts(mix, n) {
   const B_ = Math.min(n - A_, Math.round((n * (mix.B || 0)) / 100));
   return { A: A_, B: B_, C: Math.max(0, n - A_ - B_) };
 }
+// The competitions' days are SquadPools' (lib/pools.mjs, one source for the job, both pages
+// and the panel; the critic's C9): the page inlines it as `SquadPools`, the panel's Node
+// tests and the sandbox hand it in (usePools, or ctx.pools)
+let POOLS = null;
+export const usePools = (p) => { POOLS = p || null; };
+function pools() {
+  const p = POOLS || (C && C.pools) || (typeof SquadPools !== 'undefined' ? SquadPools : null); // eslint-disable-line no-undef
+  if (!p) throw new Error('The panel needs SquadPools (lib/pools.mjs).');
+  return p;
+}
 // the table after some played days: 3 points a win, 1 a loss (none for a walkover lost),
 // then the margin; the final table (with head-to-head and the coin) is the job's
-export function tableFrom(ids, days) {
-  const T = (ids || []).map((id, place) => ({ id, place, pts: 0, w: 0, l: 0, margin: 0 }));
-  for (const D of days || []) {
-    if (!D || !Array.isArray(D.r)) continue;
-    for (const [, a, b, win, margin, wo] of D.r) {
-      const W = T[win ? b : a];
-      const L = T[win ? a : b];
-      if (!W || !L) continue;
-      W.pts += 3;
-      W.w++;
-      W.margin += margin | 0;
-      L.l++;
-      if (!wo) { L.pts += 1; L.margin -= margin | 0; }
-    }
-  }
-  return T.filter((x) => x.id).sort((x, y) => y.pts - x.pts || y.margin - x.margin || y.w - x.w || x.place - y.place);
-}
+export const tableFrom = (ids, days) => pools().dayTable(ids, days);
 // what one day says: the leader after it, the upset (a win over the side that stood the
 // most places higher before the day) and the closest match (the smallest margin)
-export function dayStory(ids, days, d) {
-  const before = d > 0 ? tableFrom(ids, days.slice(0, d)) : null;
-  const after = tableFrom(ids, days.slice(0, d + 1));
-  const D = days[d];
-  if (!D) return null;
-  const rank = new Map((before || []).map((x, i) => [x.place, i]));
-  let upset = null;
-  let closest = null;
-  for (const [k, a, b, win, margin, wo] of D.r) {
-    if (wo) continue;
-    const wp = win ? b : a;
-    const lp = win ? a : b;
-    if (before) {
-      const gap = (rank.get(wp) ?? 0) - (rank.get(lp) ?? 0);
-      if (gap > 0 && (!upset || gap > upset.gap)) upset = { k, a, b, w: wp, l: lp, gap, margin };
-    }
-    if (!closest || margin < closest.margin) closest = { k, a, b, w: wp, l: lp, margin };
-  }
-  return { leader: after[0] || null, upset, closest };
-}
+export const dayStory = (ids, days, d) => pools().dayStory(ids, days, d);
 // the Simulate line: the rule set, and the decks that break a squad rule, which play as
 // they are (the squad rules are not played yet, as the rules sheet and SQUAD_RULES_SAY say)
 export function simLine(rulesName, breaks) {
@@ -2223,7 +2267,17 @@ function renderLock(box, c) {
   R.lockTyped = h('div', { class: 'adm-typedbox' });
   R.lockMsg = h('p', { class: 'sq-msg', 'aria-live': 'polite' });
   const row = h('div', { class: 'adm-row' });
-  if (c.st === 'open' || c.st === 'closed') {
+  if ((c.st === 'open' || c.st === 'closed') && isFreeC(c)) {
+    // a free pool grows to fit: max(size, players) places up to 64, league bots below its size
+    const places = Math.max(c.cfg.size, Math.min(64, drawn.length));
+    const bots = places - Math.min(64, drawn.length);
+    box.append(h('p', { class: 'adm-state', 'data-k': 'freeLock' }, drawn.length + ' players → a pool of ' + places + ', ' + s_(bots, 'league bot') + '.'),
+      h('p', { class: 'sq-desc' }, 'Lock & draw takes every player who joined (it grows to fit, up to 64), fills the places below ' + c.cfg.size + ' with league bots, shuffles the places with a secret salt and publishes the hashes of the seven day salts. With fewer than two players the daily run voids it instead.'));
+    row.append(btn('Lock and draw…', 'gold', () => {
+      if (dirty()) { say(R.lockMsg, 'Save or discard the changes in Setup first.', false); return; }
+      typedBox(R.lockTyped, 'Lock and draw', 'LOCK ' + c.n, 'Locking #' + c.n + ' freezes the rules, the rewards, the terms and the times: ' + s_(drawn.length, 'player') + ' and ' + s_(bots, 'league bot') + ' are drawn.', 'gold', (w) => doAct('lock', w));
+    }));
+  } else if (c.st === 'open' || c.st === 'closed') {
     box.append(h('p', { class: 'sq-desc' }, 'Lock & draw takes the entrants above, fills the other places with bots from the lineup, shuffles the places with a secret salt and publishes the hashes of the seven day salts. Each day’s record reveals its salt, so anyone can check that nothing was rolled again.'));
     row.append(btn('Lock and draw…', 'gold', () => {
       if (dirty()) { say(R.lockMsg, 'Save or discard the changes in Setup first.', false); return; }
@@ -2343,7 +2397,7 @@ function dqOpen(c, w) {
   holder.textContent = '';
   const why = h('textarea', { class: 'sq-pfin adm-area', maxlength: '140', rows: '2', placeholder: 'Why (the player sees this)', 'aria-label': 'Why (the player sees this)' });
   const m = h('p', { class: 'sq-msg', 'aria-live': 'polite' });
-  const after = c.st === 'done';
+  const after = c.st === (isFreeC(c) ? 'settled' : 'done');
   const dc = dqConfirm(c);
   const go = () => {
     if (dc && !dc.ok()) { say(m, 'Refused: type ' + dc.want + ' exactly to go on.', false); dc.inp.select(); dc.inp.focus(); return; }
@@ -2352,7 +2406,7 @@ function dqOpen(c, w) {
   if (dc) dc.inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } };
   holder.append(h('div', { class: 'adm-eform', role: 'group', 'aria-label': 'Disqualify ' + nameOf(w) },
     h('b', { class: 'adm-eft' }, 'Disqualify ' + nameOf(w)),
-    h('p', { class: 'adm-fine' }, after ? 'After the final: the places stay as they are, they get no rewards, and a disqualified winner is treated like a bot win (the prize is burned, not paid).' : 'From the next day on, every match of theirs is a walkover for the other side.'),
+    h('p', { class: 'adm-fine' }, after ? (isFreeC(c) ? 'After the final: the places stay as they are and they get no rewards (a free pool has no prize).' : 'After the final: the places stay as they are, they get no rewards, and a disqualified winner is treated like a bot win (the prize is burned, not paid).') : 'From the next day on, every match of theirs is a walkover for the other side.'),
     h('label', { class: 'adm-field' }, h('span', { class: 'adm-fl' }, 'Reason the player sees'), why),
     dc ? dc.el : null,
     h('div', { class: 'adm-row' }, btn('Disqualify', 'pink', go), btn('Cancel', '', () => { holder.textContent = ''; })), m));
@@ -2403,18 +2457,10 @@ function drawDay(c, days, d) {
 // salt, the competition's group (friendGroup of 'comp|<code>'), the round and the two
 // places; one seed a day when the arena's seed mode says so. The owner's fixed seed is
 // the arena's only (compArena): the fight draws from the match's own seed.
-export function compSeed(E, s, code, arena, k, a, b) {
-  const g = E.friendGroup('comp|' + code);
-  const mode = arena && arena.seedMode;
-  if (mode === 'day') return E.leagueSeed(s, g, 0, 0, 1);
-  return E.leagueSeed(s, g, k, a, b);
-}
+export const compSeed = (E, s, code, arena, k, a, b) => pools().compSeed(E, s, code, arena, k, a, b);
 // the arena a match plays (lib/compday.mjs matchArena): the stored one, plus mapSeed (the
 // map, the sky and the power-up) from the owner's seed in the fixed seed mode
-export function compArena(arena) {
-  if (!arena || typeof arena !== 'object') return arena || null;
-  return arena.seedMode === 'fixed' && Number.isInteger(arena.seed) ? { ...arena, mapSeed: arena.seed >>> 0 } : arena;
-}
+export const compArena = (arena) => pools().compArena(arena);
 // one match of a day again in the arena: the day's squads and faces, the seed of the match
 // (leagueSeed of the day salt, the competition's group, the round and the two places), the
 // same way the hall replays a league day
@@ -2570,6 +2616,15 @@ function renderResults(box, c) {
     return;
   }
   const dq = new Set((c.entries || []).filter((e) => e.st === 'dq').map((e) => e.w));
+  if (isFreeC(c)) {
+    // a free pool: no prize, no burn, no refunds; a disqualification fits until the rewards are given
+    box.append(h('h4', null, 'Final table'), h('p', { class: 'adm-state', 'data-k': 'freeResult' }, 'A free pool: no prize. ' + (c.st === 'settled' ? 'Disqualify before the rewards go out (type DQ ' + c.n + ').' : '')));
+    const ol = h('ol', { class: 'sq-top sq-league adm-table final', 'aria-label': 'Final table of #' + c.n });
+    R.dqForm = h('div', { class: 'adm-typedbox' });
+    drawTable(ol, c, c.res.table, { final: true, dq, live: c.st === 'settled' });
+    box.append(R.dqForm, ol);
+    return;
+  }
   const burnt = prizeBurnt(c, banned());
   box.append(h('h4', null, 'Final table' + (burnt ? ' · ' + (burnWhy(c) === 'A bot finished first' ? 'a bot won' : burnWhy(c).replace('The winner', 'the winner')) + ': the prize is burned' : '')));
   if (burnt) box.append(h('p', { class: 'adm-banner bot' }, burnWhy(c) + ': the whole prize is burned, and nobody gets the winner’s reward.'));
@@ -2642,7 +2697,7 @@ function renderRewards(box, c) {
   const list = rewardsPreview(c);
   R.rwMsg = h('p', { class: 'sq-msg', 'aria-live': 'polite' });
   R.rwTyped = h('div', { class: 'adm-typedbox' });
-  if (!c.res) { box.append(h('p', { class: 'sq-desc' }, 'Rewards follow the final table: they are given after day 6 and the recorded payout.')); return; }
+  if (!c.res) { box.append(h('p', { class: 'sq-desc' }, isFreeC(c) ? 'Rewards follow the final table: the daily run gives them the day after day 6.' : 'Rewards follow the final table: they are given after day 6 and the recorded payout.')); return; }
   if (nobodyWon(c)) { box.append(h('p', { class: 'sq-desc' }, 'Nobody played #' + c.n + ': there are no rewards to give. Archive it from the head once its refunds are recorded.')); return; }
   const bots = (c.res.table || []).filter((r) => BOT_RE.test(r.id) && r.place <= 10);
   if (c.aw) {
@@ -2655,7 +2710,8 @@ function renderRewards(box, c) {
   } else {
     const t = rewardsTable(list, c);
     const can = c.st === 'settled';
-    addKids(box, h('p', { class: 'adm-state' }, can ? 'Ready: the payout is recorded.' : c.st === 'done' ? 'Record the payout or the prize burn first (Results).' : 'Rewards are given once #' + c.n + ' is settled.'),
+    const job = isFreeC(c) && c.cfg.autoRw !== false && rewardsAt(c);
+    addKids(box, h('p', { class: 'adm-state', 'data-k': job ? 'jobRewards' : null }, job ? 'The daily run gives them on ' + day(job) + ' UTC (or give them now).' : can ? (isFreeC(c) ? 'Ready: a free pool has no prize to record.' : 'Ready: the payout is recorded.') : c.st === 'done' ? 'Record the payout or the prize burn first (Results).' : 'Rewards are given once #' + c.n + ' is settled.'),
       h('h4', null, 'Who gets what · ' + s_(t.n, 'wallet')), list.length ? t.ol : h('p', { class: 'sq-desc' }, 'Nobody gets a reward under these steps.'),
       bots.length ? h('p', { class: 'adm-fine' }, s_(bots.length, 'bot') + ' in the top 10 (' + bots.map((b) => '#' + b.place).join(', ') + '): bots get nothing, and their places’ rewards are not passed on.') : null,
       h('div', { class: 'adm-row' }, btn('Give rewards…', 'gold', () => {
@@ -2752,8 +2808,10 @@ export function postFacts(c, days, E = C.E) {
   const tiers = { A: 0, B: 0, C: 0 };
   for (const p of c.pub || []) if (p.bot && p.tier) tiers[p.tier]++;
   const played = (c.played || []).lastIndexOf(true);
+  const drawn = (c.pool || []).length;
   return {
-    n: c.n, name: cfg.name, size: cfg.size, rounds: perDay(cfg.size), opens: day(cfg.times.opens), closes: day(cfg.times.closes), start: day(cfg.times.start),
+    free: cfg.kind === 'free', link: c.code ? '#pool=c' + c.code : '',
+    n: c.n, name: cfg.name, size: drawn || cfg.size, rounds: perDay(drawn || cfg.size), opens: day(cfg.times.opens), closes: day(cfg.times.closes), start: day(cfg.times.start),
     entry: cfg.entryBps ? (am ? uiAmount(roundDown(am.entry, dec), dec) + ' $BLUB (' + pctOf(cfg.entryBps) + ' of supply at opening)' : pctOf(cfg.entryBps) + ' of supply') : null,
     prize: cfg.prizeBps ? (am ? uiAmount(roundDown(am.prize, dec), dec) + ' $BLUB (' + pctOf(cfg.prizeBps) + ')' : pctOf(cfg.prizeBps) + ' of supply') : null,
     chips: sheetChips(cfg, E), req: (n.req || 0) + (n.ok || 0) + (n.wait || 0) + (n.no || 0), ok: n.ok || 0, left: Math.max(0, cfg.size - (n.ok || 0)),
@@ -2769,6 +2827,45 @@ export function postText(step, p, F, extra) {
   const head = bold(p, '$BLUB Squad Arena · ' + F.name + ' (#' + F.n + ')');
   const L = [];
   const rules = F.chips && F.chips.length ? 'Rules: ' + F.chips.join(', ') + '.' : 'Rules: the normal game.';
+  // a free pool: free to join, no burn, no fee, cosmetic pins (never a prize, a win or
+  // earnings next to the coin: docs/pools-and-highlights.md §2.10)
+  if (F.free && step === 'lock') {
+    // league bots have no tier: players and bots only, and the day-salt hashes
+    L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), 'Locked and drawn: ' + F.humans + ' players and ' + F.bots + ' league bots. Day 0 starts ' + F.start + ' UTC.');
+    if (F.com.length) {
+      L.push(x ? 'Day-salt hashes, published before play: ' + F.com.slice(0, 2).map((hh, d) => DAY_NAMES[d] + ' ' + hh.slice(0, 16)).join(', ') + '… all 7 on the site.' : 'Day-salt hashes, published before any match is played (each day’s record reveals its salt):');
+      if (!x) for (const [d, hh] of F.com.entries()) L.push(DAY_NAMES[d] + ' ' + (p === 'dc' ? '`' + hh + '`' : hh));
+    }
+    L.push(NEVER);
+    return L.join('\n');
+  }
+  if (F.free && step !== 'daily') {
+    const join = 'Join on the site: Rankings, Pools' + (F.link ? ' (' + F.link + ')' : '') + '.';
+    if (step === 'announce') {
+      L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), 'Free to join: no burn, no fee. Sign-ups open ' + F.opens + ' UTC. 7 days of 5v5 squad fights with your saved team, ' + F.rounds + ' rounds a day.');
+      if (!x) L.push(rules);
+    } else if (step === 'open') {
+      L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), 'Sign-ups are open until ' + F.closes + ' UTC. Free to join: no burn, no fee. ' + join, rules);
+    } else if (step === 'review') {
+      L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), F.ok + ' players in so far, up to 64. Sign-ups close ' + F.closes + ' UTC. ' + join);
+    } else if (step === 'result') {
+      const r = F.res;
+      if (!r || !r.table || !r.table.length) L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), 'The final table comes after day 6.');
+      else {
+        const nm = extra.name;
+        L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), 'Final: ' + nm(r.table[0].id) + ' finished first with ' + r.table[0].pts + ' points (' + r.table[0].w + '–' + r.table[0].l + ').');
+        if (!x) L.push('Top 3: ' + r.table.slice(0, 3).map((t) => '#' + t.place + ' ' + nm(t.id)).join(', ') + '. A free pool: cosmetic pins only.');
+      }
+    } else if (step === 'rewards') {
+      const list = (F.aw && F.aw.list) || extra.preview || [];
+      L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'), (F.aw ? 'Pins are out: ' : 'Pins coming: ') + new Set(list.map((g) => g.id)).size + ' players get theirs. Cosmetic only.');
+    }
+    L.push(NEVER);
+    return L.join('\n');
+  }
+  // (the daily post of a free pool keeps its own head: no $BLUB)
+  if (F.free) L.push(bold(p, 'Squad Arena · ' + F.name + ' (#' + F.n + ')'));
+  const hd = F.free ? null : head;
   if (step === 'announce') {
     L.push(head, 'Sign-ups open ' + F.opens + ' UTC. ' + F.size + ' places, 7 days of 5v5 squad fights, ' + F.rounds + ' rounds a day.');
     L.push(F.entry ? 'Entry: burn ' + F.entry + ' from your own wallet.' : 'Free entry.');
@@ -2790,13 +2887,18 @@ export function postText(step, p, F, extra) {
   } else if (step === 'daily') {
     const d = extra && Number.isInteger(extra.day) ? extra.day : F.played;
     const S = d >= 0 && F.days && F.days[d] ? dayStory(extra.ids, F.days, d) : null;
-    if (!S) L.push(head, 'No day played yet.');
+    if (!S) L.push(...[hd].filter(Boolean), 'No day played yet.');
     else {
       const nm = extra.name;
-      L.push(head, 'Day ' + d + ' (' + DAY_NAMES[d] + ') is played.');
+      L.push(...[hd].filter(Boolean), 'Day ' + d + ' (' + DAY_NAMES[d] + ') is played.');
       if (S.leader) L.push('Leader: ' + nm(S.leader.id) + ' with ' + S.leader.pts + ' points (' + S.leader.w + '–' + S.leader.l + ').');
       if (S.upset) L.push('Upset of the day: ' + nm(extra.ids[S.upset.w]) + ' beat ' + nm(extra.ids[S.upset.l]) + '.');
       if (S.closest) L.push('Closest match: ' + nm(extra.ids[S.closest.a]) + ' vs ' + nm(extra.ids[S.closest.b]) + ', decided by ' + S.closest.margin + ' HP.' + (extra.watch ? ' Replay: ' + extra.watch : ''));
+      // the moment of the day (the day's `h`, SquadPools.pickStrip) and the pool's link
+      const D = F.days[d];
+      const top = D && Array.isArray(D.h) && D.h.length ? pools().pickStrip(D.h, D.r, { n: 1 })[0] : null;
+      const M = top ? pools().MOMENTS[top.kind] : null;
+      if (M) L.push('Moment of the day: ' + M[1] + ', ' + nm(extra.ids[top.a]) + ' vs ' + nm(extra.ids[(D.r[top.i] || [])[2]]) + '.' + (F.link ? ' Watch: ' + F.link + '/' + d + '/' + top.k + '.' + top.a + (top.turn ? '@' + top.turn : '') : ''));
     }
   } else if (step === 'result') {
     const r = F.res;
@@ -2927,7 +3029,9 @@ function renderSetup(box, c) {
     h('h4', { id: 'admSheetTitle' }, 'What players see'), R.sheet,
     h('div', { class: 'adm-row' }, btn('Simulate', '', simulate, { title: 'Two decks under these rules in the arena view (0 commands)' })), R.simMsg2);
   box.append(h('div', { class: 'adm-setup' }, form, side));
-  form.append(groupBasics(c, D), groupMoney(c, D), groupRules(c), groupRewards(c, D), saveBar());
+  // a free pool has no money: no entry, prize, supply, project wallet or burn check
+  const free = D.kind === 'free';
+  form.append(groupBasics(c, D), ...(free ? [] : [groupMoney(c, D)]), groupRules(c), groupRewards(c, D), saveBar());
   changed();
 }
 function group(title, id, ...kids) {
@@ -2994,6 +3098,9 @@ function radios(key, opts, get, set) {
 
 function groupBasics(c, D) {
   const g = group('Basics', 'admSetBasics');
+  const free = D.kind === 'free';
+  // the kind is set when it is made and never changes (lib/comp.mjs cleanCfg)
+  g.append(h('p', { class: 'adm-state', 'data-k': 'kind' }, free ? 'Kind: Free pool · no burn, no prize' : 'Kind: Burn to enter · players burn $BLUB, the winner gets the prize'));
   const times = h('div', { class: 'adm-times' });
   for (const [k, label] of [['opens', 'Sign-ups open'], ['closes', 'Sign-ups close'], ['lock', 'Lock & draw'], ['start', 'Day 0 starts']]) {
     const el = h('input', { class: 'sq-pfin', type: 'datetime-local', step: '60', 'data-k': 'times.' + k });
@@ -3008,16 +3115,18 @@ function groupBasics(c, D) {
     changed();
   }, { title: 'The default timetable of the week, in UTC' });
   if (frozenSince('times.closes', c.st)) defBtn.disabled = true;
-  g.append(
+  addKids(g,
     field('Name', 'name', txt('name', () => D.name, (v) => { D.name = v; }, { maxlength: '40', autocomplete: 'off' })),
     field('Text for players', 'text', area('text', () => D.text, (v) => { D.text = v; }, { maxlength: '600', rows: '3' })),
     h('div', { class: 'adm-three' },
       field('Week', 'week', txt('week', () => D.week, (v) => { D.week = v.trim(); }, { maxlength: '7', placeholder: C.E.leagueWeek(Date.now() + 7 * DAY), autocomplete: 'off', spellcheck: 'false' })),
-      field('Places', 'size', num('size', () => D.size, (v) => { D.size = v; }, { min: '6', max: '64' })),
+      field('Places', 'size', num('size', () => D.size, (v) => { D.size = v; }, { min: '6', max: '64' }), free ? h('span', { class: 'adm-fine' }, 'Grows to fit up to 64 at the lock; bots fill below this.') : null),
       field('Team age, days', 'minAge', num('minAge', () => D.minAge, (v) => { D.minAge = v; }, { min: '0', max: '30' }))),
     times, h('div', { class: 'adm-row' }, defBtn),
-    field('Entry order', 'order', radios('order', [['burn', 'Burn first, then review'], ['ask', 'Ask first, burn after approval']], () => D.order, (v) => { D.order = v; }), null, true),
-    field('Lock', 'autoLock', check('autoLock', 'Lock and draw by itself at the lock time', () => D.autoLock, (v) => { D.autoLock = v; }), null, true));
+    free ? null : field('Entry order', 'order', radios('order', [['burn', 'Burn first, then review'], ['ask', 'Ask first, burn after approval']], () => D.order, (v) => { D.order = v; }), null, true),
+    field('Lock', 'autoLock', check('autoLock', 'Lock and draw by itself at the lock time', () => D.autoLock, (v) => { D.autoLock = v; }), null, true),
+    free ? field('Rewards', 'autoRw', check('autoRw', 'Give rewards automatically (the daily run, the day after the final)', () => D.autoRw, (v) => { D.autoRw = v; }), null, true) : null,
+    free ? field('Engine', 'follow', check('follow', 'Follow engine updates (play on through a new engine; no pause)', () => D.follow, (v) => { D.follow = v; }), null, true) : null);
   return g;
 }
 
@@ -3258,12 +3367,12 @@ function renderArena() {
 
 function groupRewards(c, D) {
   const g = group('Rewards and terms', 'admSetRewards');
-  g.append(h('p', { class: 'sq-desc' }, 'Per step: a look (an exclusive id such as hat:ghost, or this week’s pin) and unlock tokens (in-game, 0-9). The steps stack; bots get nothing.'));
+  g.append(h('p', { class: 'sq-desc' }, D.kind === 'free' ? 'Per step: a look (this week’s pin, or an exclusive id such as hat:ghost). The steps stack; a real match is needed; the top 10 from 20 players and the podium from 6; bots get nothing. Free pools give no unlock tokens until there is something to unlock.' : 'Per step: a look (an exclusive id such as hat:ghost, or this week’s pin) and unlock tokens (in-game, 0-9). The steps stack; bots get nothing.'));
   for (const [k, label, tok] of RW_STEPS) {
     const v = D.rw[k];
     const it = txt('rw.' + k + '.item', () => v.item, (x) => { v.item = x.trim(); }, { maxlength: '40', placeholder: 'item id', autocomplete: 'off', spellcheck: 'false', 'aria-label': label + ': item' });
     const pinB = btn('Pin', '', () => { v.item = c.code + '.' + k; it.value = v.item; changed(); }, { title: 'This week’s ' + PIN_NAMES[k], 'data-k': 'pin.' + k });
-    const tk = tok ? num('rw.' + k + '.tok', () => v.tok, (x) => { v.tok = x; }, { min: '0', max: '9', 'aria-label': label + ': unlock tokens' }) : null;
+    const tk = tok && D.kind !== 'free' ? num('rw.' + k + '.tok', () => v.tok, (x) => { v.tok = x; }, { min: '0', max: '9', 'aria-label': label + ': unlock tokens' }) : null;
     g.append(field(label, 'rw.' + k, h('div', { class: 'adm-rw' }, it, pinB, tk ? h('span', { class: 'adm-tokl' }, tk, h('span', null, 'tokens')) : null), null, true));
   }
   g.append(field('Terms', 'terms', area('terms', () => D.terms, (v) => { D.terms = v; }, { maxlength: '2000', rows: '5' })));
@@ -3331,7 +3440,7 @@ function renderSheet() {
   if (!R.sheet || !R.sheet.isConnected) return;
   const c = st.compFull;
   // once the hall has the player's component, one line: R.sheet.replaceChildren(C.Hall.compSheet(st.draft));
-  R.sheet.replaceChildren(sheetNode(rulesSheet(st.draft, C.E, { n: c.n, sup: c.sup, chain: st.chain })));
+  R.sheet.replaceChildren(sheetNode(rulesSheet(st.draft, C.E, { n: c.n, sup: c.sup, chain: st.chain, places: (c.pool || []).length })));
 }
 function sheetNode(S) {
   const box = h('div', { class: 'adm-sheetin' }, h('b', { class: 'adm-sheett' }, S.title));

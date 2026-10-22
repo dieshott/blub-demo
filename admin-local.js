@@ -10,7 +10,7 @@
 // leagueSeed, simulateRound), lazily and in slices, so Watch and replays are real
 // matches; a day keeps only its results and bot plans, the squads come back from
 // the store when the day is read.
-import { AdminError, bulkWallets, rewardsPreview, botChance, compSeed, compArena, arenaBad, arenaOut, arenaChips } from './admin.js';
+import { AdminError, bulkWallets, rewardsPreview, botChance, compSeed, compArena, arenaBad, arenaOut, arenaChips, usePools, squadPools } from './admin.js';
 
 const KEY = 'blubAdminLocal';
 const SEED = '2026-10-19';
@@ -19,7 +19,8 @@ const SEED = '2026-10-19';
 // 6: no squad rules in the seeded cups, since those are not played yet; 7: a lock keeps
 // each entry it changes, lockWas, so an unlock gives back exactly that, as the server's;
 // 8: the project wallet a real base58 address, so a prize burn checks green)
-const REV = 8;
+// (9: the free pools #8, open with 46 joined, and #9, settled with its rewards due)
+const REV = 9;
 const STATES = ['draft', 'open', 'closed', 'locked', 'live', 'paused', 'done', 'settled', 'rewarded', 'void'];
 const AFTER_OPEN = STATES.slice(1); // states in which the open-time fields are frozen
 const AFTER_LOCK = ['locked', 'live', 'paused', 'done', 'settled', 'rewarded', 'void'];
@@ -281,6 +282,57 @@ function seed(C) {
     });
     comps[code7] = c;
   }
+  // the free pools (docs/pools-and-highlights.md §2), seeded from their own numbers so the
+  // cups above stay as they were: #8 open with 46 joined (2 from one connection, 3 with the
+  // same squad), #9 settled, its 7 days played (with their moments), its rewards due from the job
+  const rf = E.rng(808);
+  const more = [];
+  const pickF = (a) => a[Math.floor(rf() * a.length)];
+  const lookF = () => ({ tint: pickF(TINT), eyes: pickF(EYES), ears: pickF(EARS), pattern: pickF(PAT), hat: pickF(HAT), acc: pickF(ACC) });
+  for (let i = 0; i < 12; i++) {
+    const id = fakeAddr(rf);
+    const created = iso(now - (2 + Math.floor(rf() * 40)) * DAY);
+    wallets[id] = { name: names[Math.floor(rf() * names.length)], player: '', look: lookF(), style: STY[i % STY.length], squad: [0, 1, 2, 3].map(() => ({ name: names[Math.floor(rf() * names.length)], look: lookF(), style: STY[(i + 1) % STY.length] })), created, updated: created, strats: { a: 0, s: [0, 1, 2].map((k) => ({ n: ['Plan A', 'Plan B', 'Plan C'][k], q: E.randomSquad(E.rng(9000 + i * 3 + k)) })) } };
+    more.push(id);
+  }
+  const freeCfg = (name, text, mon, rulesOf) => ({ kind: 'free', name, text, week: E.leagueWeek(mon), times: timesFor(mon), size: 35, minAge: 0, order: 'join', entryBps: 0, prizeBps: 0, autoLock: true, autoRw: true, follow: true, rules: rulesOf, rw: { all: { item: 'pin.all' }, t10: { item: 'pin.t10' }, p3: { item: 'pin.p3' }, p2: { item: 'pin.p2' }, p1: { item: 'pin.p1' } }, terms: FREE_TERMS, e: E.SQUAD_ENGINE });
+  const code8 = newCode(rf);
+  const code9 = newCode(rf);
+  {
+    const mon8 = nextMonday(E, now);
+    const preset = (id) => clone((E.RULE_PRESETS.find((x) => x.id === id) || { rules: {} }).rules);
+    const cfg = freeCfg('Free Pool #8', 'Golden Hour week: every surprise in, gold falls more often.', mon8, { arena: preset('golden') });
+    cfg.times = { opens: iso(now - 2 * DAY), closes: iso(now + 30 * 3600000), lock: iso(mon8 + 5 * 60000), start: iso(mon8) };
+    const c = comp(code8, 8, cfg, 'open', { sup: null, joined: [] });
+    entries[code8] = {};
+    const banned = new Set([ids[12], ids[27], ids[38]]);
+    const who = [...ids.filter((w) => !banned.has(w)), ...more].slice(0, 46);
+    who.forEach((w, i) => {
+      const t = now - 2 * DAY + (i + 1) * 3600000;
+      const o = { at: iso(t), by: 'join', free: true, signals: { ip: i === 20 || i === 21 ? 2 : 1, fp: false, newTeam: false, sameSquad: i >= 30 && i < 33 ? 2 : 0 } };
+      entries[code8][w] = entry(w, iso(t), 'ok', o);
+      c.joined.unshift(w);
+    });
+    c.joined = c.joined.slice(0, 12);
+    comps[code8] = c;
+  }
+  {
+    const mon9 = weekStart(E, now) - 7 * DAY;
+    const c = comp(code9, 9, freeCfg('Free Pool #9', 'The first free pool: Chaos week.', mon9, { arena: clone((E.RULE_PRESETS.find((x) => x.id === 'chaos') || { rules: {} }).rules) }), 'settled', { sup: null });
+    const players = [...ids.slice(14, 26), ...more.slice(6, 12)];
+    const places = [...players];
+    const rr = E.rng(hashInt('draw' + code9));
+    for (let i = places.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [places[i], places[j]] = [places[j], places[i]]; }
+    for (let i = places.length; i < 35; i++) places.push('bot:' + (900000 + i));
+    c.pool = places;
+    c.pub = places.map((id) => ({ id, bot: isBot(id), tier: null }));
+    c.com = [0, 1, 2, 3, 4, 5, 6].map((d) => hashHex(hashHex(c.prv.salt + '|' + code9 + '|' + d)));
+    c.played = [true, true, true, true, true, true, true];
+    c.doneAt = iso(now - 2 * 3600000);
+    entries[code9] = {};
+    players.forEach((w, i) => { entries[code9][w] = entry(w, iso(Date.parse(c.cfg.times.opens) + (i + 1) * 3600000), 'ok', { by: 'join', at: iso(Date.parse(c.cfg.times.opens) + (i + 1) * 3600000), free: true }); });
+    comps[code9] = c;
+  }
   // #5: paid out and rewarded (the records are written once its week is played)
   // 12 decks: 4 a tier, 2 experiments; two rated on the engine before this one
   const decks = [];
@@ -349,21 +401,31 @@ function seed(C) {
   L('Promoted deck #6 Flank Twins out of the experiments', 'deck', null, 1.5);
   L('Verified the burn of ' + short(ids[16]) + ' again for #7: ok', 'entry', { comp: code7, wallet: ids[16] }, 0.5);
   L('Edited #7: closes ' + cfg7Closes(comps[code7]), 'comp', { comp: code7 }, 0.2);
+  L('Made a new free pool #9', 'comp', { comp: code9 }, 12);
+  L('Opened the sign-ups of #9 (a free pool: no supply, no RPC)', 'comp', { comp: code9 }, 11);
+  L('Locked and drew #9: 18 players, 17 bots (auto-lock)', 'comp', { comp: code9 }, 7);
+  L('Final table of #9 (a free pool: no prize)', 'comp', { comp: code9 }, 0.1);
+  L('Made a new free pool #8', 'comp', { comp: code8 }, 2.5);
+  L('Opened the sign-ups of #8 (a free pool: no supply, no RPC)', 'comp', { comp: code8 }, 2);
   log.sort((a, b) => Date.parse(a.t) - Date.parse(b.t)).forEach((x, i) => { x.n = i + 1; });
   const dstat = [0, 1, 2, 3, 4, 5, 6].map((i) => ({ day: iso(now - i * DAY).slice(0, 10), duels: 6 + Math.floor(r() * 30), rated: Math.floor(r() * 12) }));
   return {
-    v: 1, seed: SEED, rev: REV, since: iso(now), week, paused: false, fresh: false, botseq: 0, seq: 7, deckSeq: 12, logSeq: log.length,
+    v: 1, seed: SEED, rev: REV, since: iso(now), week, paused: false, fresh: false, botseq: 0, seq: 9, deckSeq: 12, logSeq: log.length,
     wallets, lg, ldiv, drat, bans, comps, entries, days: {}, decks, inv, invh, cmw: {}, log, chain, dstat,
     budget: { writes: 1320, reads: 4110, maxWrites: 9000, maxReads: 12000 },
     supply: sup,
     want: { [code6]: { botPlace: 2, playerFirst: true } },
   };
 }
+// a free pool's terms (lib/comp.mjs FREE_TERMS)
+const FREE_TERMS = ['Free to join: nothing to pay and nothing to burn.', 'Joining is public: your wallet’s name and team show in the pool, as in the weekly league.', 'One wallet per person; extra wallets are taken out. Moderators cannot join.', 'Every place plays a round robin over the week with the strategy active each morning (00:00 UTC). The table decides: points, then head-to-head, then margin, then a salted coin.', 'Rewards are cosmetic pins, kept for when the pin art lands. You need at least one real match to get them. A rule break can be disqualified.'].join('\n');
 const cfg7Closes = (c) => c.cfg.times.closes.slice(11, 16) + ' UTC';
 
 /* ---- the adapter ---- */
 export function localAdapter(C) {
   const E = C.E;
+  // the competitions' days come from SquadPools (the page's inline copy, or C.pools in Node)
+  if (C.pools) usePools(C.pools);
   let S = mem || load();
   if (!S) { S = seed(C); save(S); }
   const now = () => Date.now();
@@ -432,8 +494,9 @@ export function localAdapter(C) {
     out.push(...arenaChips(rules && rules.arena, E));
     return out.slice(0, 5);
   };
+  const isFree = (c) => !!(c && c.cfg && c.cfg.kind === 'free');
   const summary = (c) => ({
-    code: c.code, n: c.n, name: c.cfg.name, week: c.cfg.week, st: c.st, win: c.win,
+    code: c.code, n: c.n, kind: isFree(c) ? 'free' : 'burn', ...(isFree(c) ? { autoRw: c.cfg.autoRw !== false } : {}), name: c.cfg.name, week: c.cfg.week, st: c.st, win: c.win,
     entry: c.sup ? money(bpsOf(c.sup.supply, c.cfg.entryBps), c.sup.dec) : null, prize: c.sup ? money(bpsOf(c.sup.supply, c.cfg.prizeBps), c.sup.dec) : null,
     size: c.cfg.size, counts: countsOf(c.code), chips: chipsOf(c.cfg.rules), rw: clone(c.cfg.rw), e: c.cfg.e, winner: c.res ? c.res.winner : null, burn: !!(c.res && c.res.burn),
     paySig: c.pay.payout ? c.pay.payout.sig : c.pay.burn ? c.pay.burn.sig : null, v: c.v, archived: !!c.archived,
@@ -500,12 +563,16 @@ export function localAdapter(C) {
       } else g[0].tie = null;
       out.push(...g);
     }
-    return { table: out.map((x, i) => ({ id: x.id, pts: x.pts, w: x.w, l: x.l, margin: x.margin, place: i + 1, tie: x.tie })), ties };
+    // pl: the real matches each played (not walkovers), as lib/compday.mjs finalTable
+    const pl = new Map();
+    for (const rec of Object.values(S.days[c.code] || {})) for (const m of rec.r) if (!m[5]) for (const id of [c.pool[m[1]], c.pool[m[2]]]) pl.set(id, (pl.get(id) || 0) + 1);
+    return { table: out.map((x, i) => ({ id: x.id, pts: x.pts, w: x.w, l: x.l, margin: x.margin, pl: pl.get(x.id) || 0, place: i + 1, tie: x.tie })), ties };
   }
   async function playDay(c, d) {
     const D = (S.days[c.code] = S.days[c.code] || {});
     if (D[d]) return D[d];
-    const N = c.cfg.size;
+    // the pool's places (a free pool grows to fit at the lock)
+    const N = c.pool.length || c.cfg.size;
     // a bot's plan today: the next of A, B, C after a day it lost more than it won
     const dk = {};
     const prev = d ? D[d - 1] : null;
@@ -525,6 +592,7 @@ export function localAdapter(C) {
     const dq = new Set(entriesOf(c.code).filter((e) => e.st === 'dq').map((e) => e.w));
     const out = (id) => !id || dq.has(id) || !!S.bans[id];
     const r = [];
+    const loud = [];
     let t0 = performance.now();
     const salt = daySalt(c, d);
     for (const k of dayRounds(N, d)) {
@@ -535,17 +603,20 @@ export function localAdapter(C) {
         if (out(A) || out(B)) {
           if (out(A) && out(B)) continue;
           r.push([k, a, b, out(A) ? 1 : 0, 0, 1]);
+          loud.push(null);
           continue;
         }
         const arena = c.cfg.rules && c.cfg.rules.arena;
         // the competition's engine rules in every match, as the job plays them (lib/compday.mjs)
-        const res = E.simulateRound(sq[a], sq[b], compSeed(E, salt, c.code, arena, k, a, b), 0, true, undefined, true, E.cleanRules(compArena(arena) || {}));
+        // loud, as the job plays it: the same fight, with the events its moments read
+        const res = E.simulateRound(sq[a], sq[b], compSeed(E, salt, c.code, arena, k, a, b), 0, false, undefined, true, E.cleanRules(compArena(arena) || {}));
         const hp = Array.isArray(res.hp) ? res.hp : [0, 0];
         r.push([k, a, b, res.winner, Math.abs((hp[0] | 0) - (hp[1] | 0)), 0]);
+        loud.push(res);
         if (performance.now() - t0 > 12) { await yieldNow(); t0 = performance.now(); }
       }
     }
-    D[d] = { s: salt, dk, r };
+    D[d] = { s: salt, dk, r, h: squadPools().hOf(r, loud) };
     c.played[d] = true;
     return D[d];
   }
@@ -565,7 +636,7 @@ export function localAdapter(C) {
         if (upTo === 6) {
           const f = finalTable(c);
           const winner = f.table[0] ? f.table[0].id : null;
-          c.res = { table: f.table, ties: f.ties, burn: !!winner && isBot(winner), winner };
+          c.res = { table: f.table, ties: f.ties, burn: !isFree(c) && !!winner && isBot(winner), winner };
           // the seeded second cup wants a bot in that place and a wallet first (its story: a
           // prize to pay out). First try, for a wallet in the bot's place: the bot takes the
           // place (and so the seeds) of the wallet there, and that wallet's squad as all
@@ -601,7 +672,7 @@ export function localAdapter(C) {
       if (c.res) {
         for (const row of c.res.table) if (!isBot(row.id)) cmw(row.id, code, c.st, row.place);
         // the seeded finished cups carry their records: a payout or burn, and the rewards of #5
-        if (c.st === 'rewarded' || c.st === 'settled') {
+        if ((c.st === 'rewarded' || c.st === 'settled') && !isFree(c)) {
           const r = E.rng(hashInt('pay' + code));
           const prize = bpsOf(c.sup.supply, c.cfg.prizeBps);
           const sig = fakeSig(r);
@@ -646,7 +717,7 @@ export function localAdapter(C) {
       const w = wallet(id);
       if (w) t[place] = [{ name: w.name, look: w.look, style: w.style }, ...w.squad.map((m) => ({ name: m.name, look: m.look, style: m.style || w.style }))];
     });
-    return { e: c.cfg.e, o: clone(c.cfg.rules.arena || null), s: rec.s, ids: c.pool.slice(), sq, t, fx: null, dk: clone(rec.dk), r: clone(rec.r) };
+    return { e: c.cfg.e, o: clone(c.cfg.rules.arena || null), s: rec.s, ids: c.pool.slice(), sq, t, fx: null, dk: clone(rec.dk), r: clone(rec.r), h: squadPools().cleanH(rec.h || [], rec.r) };
   }
 
   /* ---- the chain, as the sandbox knows it ---- */
@@ -692,6 +763,29 @@ export function localAdapter(C) {
     else if (kind === 'refund' && f.kind !== 'transfer') return { ...base, code: 'not_transfer', message: 'A refund must be a transfer from the project wallet.' };
     return { ...base, ok: true, message: f.kind === 'burn' ? 'A burn of ' + uiOf(f.raw, 6) + ' $BLUB, final.' : 'A transfer of ' + uiOf(f.raw, 6) + ' $BLUB' + (f.to ? ' to ' + short(f.to) : '') + ', final.' };
   }
+  // the wallet's other free pool of the same week that still plays (the server's week mark)
+  const otherFree = (c, w) => Object.values(S.comps).find((x) => x !== c && isFree(x) && x.cfg.week === c.cfg.week && !x.archived && x.st !== 'void' && (S.entries[x.code] || {})[w] && ['ok', 'dq'].includes(S.entries[x.code][w].st)) || null;
+  // the rewards of a settled competition, by a moderator or (a free pool) the job: the
+  // items, the tokens, the podium's tags (a free pool's from 6 players), then rewarded
+  function giveRewards(c, by) {
+    if (c.st !== 'settled') throw fail(409, 'bad_state', 'Record the payout first.', { st: c.st, want: ['settled'] });
+    if (c.aw) throw fail(409, 'already', 'The rewards were given.');
+    const list = rewardsPreview(full(c));
+    for (const x of list) {
+      const inv = (S.inv[x.id] = S.inv[x.id] || { tok: 0, items: [] });
+      if (x.item && !inv.items.includes(x.item)) inv.items.push(x.item);
+      if (x.tok) inv.tok += x.tok;
+      (S.invh[x.id] = S.invh[x.id] || []).unshift({ t: iso(now()), by, what: x.item ? 'Given ' + x.item : 'Given ' + x.tok + ' unlock token' + (x.tok === 1 ? '' : 's'), why: 'Rewards of #' + c.n });
+    }
+    const podium = !isFree(c) || c.pool.filter((id) => id && !isBot(id)).length >= 6;
+    if (podium) for (const p of [1, 2, 3]) { const row = c.res.table.find((x) => x.place === p); if (row && !isBot(row.id) && wallet(row.id)) wallet(row.id).troph = [...(wallet(row.id).troph || []), 'c' + c.n + ':' + p]; }
+    c.aw = { t: iso(now()), by, list };
+    c.st = 'rewarded';
+    c.v++;
+    logLine('Gave the rewards of #' + c.n + ' to ' + new Set(list.map((x) => x.id)).size + ' wallets', 'rewards', { comp: c.code, undo: true });
+    if (by !== BY) S.log[S.log.length - 1].by = by;
+    return { ok: true, aw: clone(c.aw), given: clone(list) };
+  }
   const chainNow = () => ({ supply: S.supply.supply, dec: S.supply.dec, slot: S.supply.slot + Math.floor((now() - Date.parse(S.since)) / 400), program: S.supply.program, projectBalance: bpsOf(S.supply.supply, 60), projectWallet: PROJECT });
 
   /* ---- the methods ---- */
@@ -712,8 +806,15 @@ export function localAdapter(C) {
       excl: () => ({ ...EXCL }),
       async playDay(code) {
         const c = compOrFail(code);
+        // a free pool after its final: the job gives its rewards (a later UTC day than the final)
+        if (isFree(c) && c.st === 'settled' && c.cfg.autoRw !== false) {
+          const r = giveRewards(c, 'job');
+          touch();
+          return { ok: true, day: null, rewards: r, comp: full(c) };
+        }
         if (!['locked', 'live'].includes(c.st)) throw fail(409, 'bad_state', c.st === 'paused' ? 'Paused: resume it first.' : 'Only a locked or live competition plays its days.', { st: c.st, want: ['locked', 'live'] });
-        if (c.cfg.e !== E.SQUAD_ENGINE) {
+        // a free pool follows the engine (its days keep their own `e`); a burn cup pauses
+        if (c.cfg.e !== E.SQUAD_ENGINE && !(isFree(c) && c.cfg.follow !== false)) {
           c.st = 'paused';
           c.v++;
           logLine('Paused #' + c.n + ': it was pinned to engine ' + c.cfg.e + ', the page runs ' + E.SQUAD_ENGINE, 'comp', { comp: code });
@@ -729,9 +830,11 @@ export function localAdapter(C) {
           const winner = f.table[0] ? f.table[0].id : null;
           // a disqualified winner counts as a bot win (plan §15 question 2): the prize is burned
           const dq = new Set(entriesOf(code).filter((e) => e.st === 'dq').map((e) => e.w));
-          c.res = { table: f.table, ties: f.ties, burn: !!winner && (isBot(winner) || dq.has(winner)), winner };
-          c.st = 'done';
-          for (const row of c.res.table) if (!isBot(row.id)) cmw(row.id, code, 'done', row.place);
+          c.res = { table: f.table, ties: f.ties, burn: !isFree(c) && !!winner && (isBot(winner) || dq.has(winner)), winner };
+          // a free pool has no prize to record: settled at once (COMP_FINAL)
+          c.st = isFree(c) ? 'settled' : 'done';
+          c.doneAt = iso(now());
+          for (const row of c.res.table) if (!isBot(row.id)) cmw(row.id, code, c.st, row.place);
         }
         c.v++;
         logLine('Played day ' + d + ' of #' + c.n + ' (sandbox clock)' + (d === 6 ? ': the final table is in' : ''), 'comp', { comp: code });
@@ -752,7 +855,9 @@ export function localAdapter(C) {
         illegal: open ? entriesOf(open.code).filter((e) => ['req', 'ok', 'wait'].includes(e.st) && e.legal && !e.legal.every(Boolean)).length : 0,
         // a final table without a winner (nobody played) owes no prize: it is archived instead
         payoutDue: comps.filter((c) => c.st === 'done' && c.winner).map((c) => c.code),
-        rewardsDue: comps.filter((c) => c.st === 'settled').map((c) => c.code),
+        // a free pool's rewards are the job's (unless a moderator turned that off)
+        rewardsDue: comps.filter((c) => c.st === 'settled' && !(c.kind === 'free' && c.autoRw)).map((c) => c.code),
+        freeFull: comps.filter((c) => c.kind === 'free' && c.st === 'open' && c.counts.ok >= 64).map((c) => c.code),
         lowBalance: open ? BigInt(chain.projectBalance) < prizeRaw(open) : null,
         rerate: S.decks.filter((d) => !d.retired && d.e !== E.SQUAD_ENGINE).length,
       };
@@ -888,12 +993,16 @@ export function localAdapter(C) {
         const act = body && body.do;
         let cfg;
         if (act === 'draft') {
+          if (body.kind !== undefined && body.kind !== 'free' && body.kind !== 'burn') throw fail(400, 'bad_cfg', 'That is not a valid value for kind.', { field: 'kind' });
           const mon = nextMonday(E, now());
-          cfg = { name: 'Cup #' + (S.seq + 1), text: '', week: E.leagueWeek(mon), times: timesFor(mon), size: 35, minAge: 1, order: 'burn', entryBps: 10, prizeBps: 100, autoLock: true, rules: {}, rw: { all: { item: null, tok: 1 }, t10: { item: null, tok: 0 }, p3: { item: null }, p2: { item: null }, p1: { item: null, tok: 0 } }, terms: '', e: E.SQUAD_ENGINE };
+          cfg = body.kind === 'free'
+            ? { kind: 'free', name: 'Free Pool', text: '', week: E.leagueWeek(mon), times: timesFor(mon), size: 35, minAge: 0, order: 'join', entryBps: 0, prizeBps: 0, autoLock: true, autoRw: true, follow: true, rules: {}, rw: { all: { item: 'pin.all' }, t10: { item: 'pin.t10' }, p3: { item: 'pin.p3' }, p2: { item: 'pin.p2' }, p1: { item: 'pin.p1' } }, terms: FREE_TERMS, e: E.SQUAD_ENGINE }
+            : { kind: 'burn', name: 'Cup #' + (S.seq + 1), text: '', week: E.leagueWeek(mon), times: timesFor(mon), size: 35, minAge: 1, order: 'burn', entryBps: 10, prizeBps: 100, autoLock: true, rules: {}, rw: { all: { item: null, tok: 1 }, t10: { item: null, tok: 0 }, p3: { item: null }, p2: { item: null }, p1: { item: null, tok: 0 } }, terms: '', e: E.SQUAD_ENGINE };
         } else if (act === 'duplicate') {
+          // the kind goes along; `same: true` keeps the week and times ("open another")
           const from = compOrFail(body.from);
           const mon = nextMonday(E, now());
-          cfg = { ...clone(from.cfg), week: E.leagueWeek(mon), times: timesFor(mon), e: E.SQUAD_ENGINE };
+          cfg = body.same === true ? { ...clone(from.cfg), e: E.SQUAD_ENGINE } : { ...clone(from.cfg), week: E.leagueWeek(mon), times: timesFor(mon), e: E.SQUAD_ENGINE };
         } else throw fail(400, 'bad_action', 'Unknown competition action.');
         const code = newCode(E.rng(now() % 1e9));
         const n = ++S.seq;
@@ -901,7 +1010,7 @@ export function localAdapter(C) {
         for (const k of ['all', 't10', 'p3', 'p2', 'p1']) if (cfg.rw[k] && PIN_RE.test(cfg.rw[k].item || '')) cfg.rw[k].item = code + '.' + k;
         S.comps[code] = c;
         S.entries[code] = {};
-        logLine('Made competition #' + n + (act === 'duplicate' ? ' (duplicate of #' + S.comps[body.from].n + ')' : ' (draft)'), 'comp', { comp: code });
+        logLine('Made ' + (cfg.kind === 'free' ? 'free pool' : 'competition') + ' #' + n + (act === 'duplicate' ? ' (duplicate of #' + S.comps[body.from].n + (body.same === true ? ', the same week' : '') + ')' : ' (draft)'), 'comp', { comp: code });
         touch();
         return { ok: true, code, comp: full(c) };
       },
@@ -910,10 +1019,18 @@ export function localAdapter(C) {
         checkV(c, body && body.v);
         notArchived(c);
         const p = (body && body.cfg) || {};
+        const bad0 = (field) => { throw fail(400, 'bad_cfg', 'That is not a valid value for ' + field + '.', { field }); };
+        // the kind is set when it is made (lib/comp.mjs cleanCfg); a free pool keeps 0 bps and 'join'
+        if (p.kind !== undefined) bad0('kind');
+        if (isFree(c) && ((p.entryBps !== undefined && p.entryBps !== 0) || (p.prizeBps !== undefined && p.prizeBps !== 0))) bad0(p.entryBps !== undefined && p.entryBps !== 0 ? 'entryBps' : 'prizeBps');
+        if (p.order !== undefined && isFree(c) !== (p.order === 'join')) bad0('order');
+        for (const f of ['autoRw', 'follow']) if (p[f] !== undefined && typeof p[f] !== 'boolean') bad0(f);
         const locked = (field, since) => { throw fail(400, 'locked_field', field + ' is locked since ' + since + '.', { field, since }); };
         const openLocked = AFTER_OPEN.includes(c.st);
         const lockLocked = AFTER_LOCK.includes(c.st);
         for (const f of ['entryBps', 'prizeBps', 'size', 'order']) if (openLocked && p[f] !== undefined && p[f] !== c.cfg[f]) locked(f, 'open');
+        // a free pool's week is frozen from open (its players' one-pool-a-week marks name it)
+        if (openLocked && isFree(c) && p.week !== undefined && p.week !== c.cfg.week) locked('week', 'open');
         if (openLocked && p.times && p.times.opens !== undefined && p.times.opens !== c.cfg.times.opens) locked('times.opens', 'open');
         for (const f of ['rules', 'rw', 'terms', 'minAge', 'autoLock']) if (lockLocked && p[f] !== undefined && JSON.stringify(p[f]) !== JSON.stringify(c.cfg[f])) locked(f, 'lock');
         if (lockLocked && p.times && JSON.stringify({ ...c.cfg.times, ...p.times }) !== JSON.stringify(c.cfg.times)) locked('times', 'lock');
@@ -924,7 +1041,7 @@ export function localAdapter(C) {
         if (p.minAge !== undefined && !int(p.minAge, 0, 60)) bad('minAge');
         if (p.entryBps !== undefined && !int(p.entryBps, 0, 10000)) bad('entryBps');
         if (p.prizeBps !== undefined && !int(p.prizeBps, 0, 10000)) bad('prizeBps');
-        if (p.order !== undefined && !['burn', 'ask'].includes(p.order)) bad('order');
+        if (p.order !== undefined && !['burn', 'ask', 'join'].includes(p.order)) bad('order');
         if (p.week !== undefined && !/^\d{4}w\d{2}$/.test(p.week)) bad('week');
         if (p.times) for (const k of ['opens', 'closes', 'lock', 'start']) if (p.times[k] !== undefined && !(Date.parse(p.times[k]) > 0)) bad('times.' + k);
         // the arena as lib/comp.mjs cleanRules checks and stores it: the engine's rule set and the seeds
@@ -944,7 +1061,7 @@ export function localAdapter(C) {
           else if (k === 'name') c.cfg[k] = cleanText(v, 40);
           // text and terms keep their lines, as the server does (lib/comp.mjs cleanCfg)
           else if (k === 'text' || k === 'terms') c.cfg[k] = String(v ?? '').normalize('NFC').replace(/[^\P{C}\n]/gu, '').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, k === 'text' ? 600 : 2000);
-          else if (['size', 'minAge', 'entryBps', 'prizeBps', 'order', 'week', 'autoLock', 'rules', 'rw'].includes(k)) c.cfg[k] = clone(v);
+          else if (['size', 'minAge', 'entryBps', 'prizeBps', 'order', 'week', 'autoLock', 'autoRw', 'follow', 'rules', 'rw'].includes(k)) c.cfg[k] = clone(v);
           else continue;
           changed.push(k);
         }
@@ -962,7 +1079,13 @@ export function localAdapter(C) {
         const needConfirm = (word) => { if ((body && body.confirm) !== word + ' ' + c.n) throw fail(400, 'bad_cfg', 'Type ' + word + ' ' + c.n + ' to confirm.', { field: 'confirm' }); };
         if (act === 'open' && squadRulesOf(c.cfg.rules)) throw fail(400, 'bad_cfg', SQUAD_RULES_SAY, { field: squadRulesOf(c.cfg.rules) });
         let what = '';
-        if (act === 'open') {
+        if (act === 'open' && isFree(c)) {
+          // nothing to burn: no supply, no chain (ADMIN_COMP writes no sup), the engine pinned
+          c.sup = null;
+          c.cfg.e = E.SQUAD_ENGINE;
+          c.st = 'open';
+          what = 'Opened the sign-ups of #' + c.n + ' (a free pool: no supply, no RPC)';
+        } else if (act === 'open') {
           const ch = chainNow();
           c.sup = { supply: ch.supply, dec: ch.dec, slot: ch.slot, program: ch.program };
           c.st = 'open';
@@ -990,17 +1113,20 @@ export function localAdapter(C) {
           const r = E.rng(hashInt(c.prv.salt));
           const ids = ok.map((e) => e.w);
           for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
-          const pool = ids.slice(0, c.cfg.size);
-          for (const w of ids.slice(c.cfg.size)) moved(S.entries[code][w], 'wait');
+          // a free pool grows to fit (max(size, players), up to 64): nobody who joined waits
+          const size = isFree(c) ? Math.max(c.cfg.size, Math.min(64, ids.length)) : c.cfg.size;
+          const pool = ids.slice(0, size);
+          for (const w of ids.slice(size)) moved(S.entries[code][w], 'wait');
           // a refund to a wallet the lock left out is due from now (ADMIN_PAY)
           c.lockAt = now();
-          // the lineup's decks for the free places; places it has no deck for come from the default mix
-          const need = c.cfg.size - pool.length;
+          // the lineup's decks for the free places; places it has no deck for come from the
+          // default mix, a free pool's from the league's bots (a deck of none: never a bye)
+          const need = size - pool.length;
           let bots = c.prv.lineup.slice(0, need);
-          if (bots.length < need) bots = bots.concat(mixLineup(c, { A: 30, B: 40, C: 30 }, 20, need - bots.length));
+          if (bots.length < need) bots = bots.concat(isFree(c) ? Array.from({ length: need - bots.length }, () => ({ deck: null, tier: null, x: false })) : mixLineup(c, { A: 30, B: 40, C: 30 }, 20, need - bots.length));
           const places = [...pool, ...bots.map((x, i) => 'bot:' + (900000 + i + 1))];
           for (let i = places.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [places[i], places[j]] = [places[j], places[i]]; }
-          while (places.length < c.cfg.size) places.push('');
+          while (places.length < size) places.push('');
           c.pool = places;
           const botOf = (id) => bots[Number(id.slice(4)) - 900001];
           c.prv.lineup = places.map((id, place) => (isBot(id) ? { deck: botOf(id).deck, tier: botOf(id).tier, x: !!botOf(id).x, place } : null)).filter(Boolean);
@@ -1066,10 +1192,15 @@ export function localAdapter(C) {
         checkV(c, body && body.v);
         const NEXT = { approve: 'ok', wait: 'wait', decline: 'no' };
         const PS = ['req', 'ok', 'wait'];
+        // a free pool: who joins is in (no approve, no waitlist); its day for a
+        // disqualification is settled, before the job gives the rewards (ADMIN_ENTRY)
+        if (isFree(c) && (act === 'approve' || act === 'wait')) throw fail(400, 'bad_action', 'A free pool has nothing to approve or waitlist: who joins is in. Decline to take a wallet out.', { why: 'free' });
+        const final = isFree(c) ? c.st === 'settled' : c.st === 'done';
+        const DQ_IN = ['live', 'paused', 'done', 'settled'];
         if ((NEXT[act] || act === 'undo') && !['open', 'closed'].includes(c.st)) throw fail(409, 'bad_state', 'Decisions on requests are made while the sign-ups are open or closed.', { st: c.st, want: ['open', 'closed'] });
-        if ((act === 'dq' || act === 'restore') && !['live', 'paused', 'done'].includes(c.st)) throw fail(409, 'bad_state', 'Disqualify and restore only while the competition plays or is done (before it is settled).', { st: c.st, want: ['live', 'paused', 'done'] });
+        if ((act === 'dq' || act === 'restore') && !(['live', 'paused'].includes(c.st) || final)) throw fail(409, 'bad_state', 'Disqualify and restore only while the competition plays or is done (before it is settled; a free pool until its rewards are given).', { st: c.st, want: DQ_IN });
         // after the final a disqualify changes who gets the prize: typed, as the server's ADMIN_ENTRY
-        if (act === 'dq' && c.st === 'done' && String((body && body.confirm) || '').trim() !== 'DQ ' + c.n) throw fail(400, 'bad_cfg', 'The final table is in: type DQ and this competition’s number to disqualify after the final.', { field: 'confirm' });
+        if (act === 'dq' && final && String((body && body.confirm) || '').trim() !== 'DQ ' + c.n) throw fail(400, 'bad_cfg', 'The final table is in: type DQ and this competition’s number to disqualify after the final.', { field: 'confirm' });
         const es = S.entries[code] || {};
         for (const w of wallets) {
           const e = es[w];
@@ -1081,6 +1212,9 @@ export function localAdapter(C) {
           // brings it in, no decline moves the time its refund was due from
           if ((act === 'undo' || NEXT[act]) && c.pay.refunds[w]) throw fail(409, 'refunded', act === 'decline' ? 'That entry was refunded: its burn went back, so it stays as it is (out of the competition).' : 'That entry was refunded: its burn went back, so it stays out.', { wallet: w });
         }
+        // a free pool takes 64 at most: an undo of declines never brings it past them
+        if (isFree(c) && act === 'undo' && countsOf(code).ok + wallets.filter((w) => PS[es[w].ps] === 'ok' && es[w].st !== 'ok').length > 64) throw fail(409, 'full', 'That would bring the pool past 64 places.');
+        if (isFree(c) && act === 'undo') for (const w of wallets) if (PS[es[w].ps] === 'ok' && es[w].st !== 'ok' && otherFree(c, w)) throw fail(409, 'in_other', 'That wallet is in another free pool this week (one free pool a wallet a week).', { wallet: w, comp: otherFree(c, w).code });
         const n = S.logSeq + 1;
         let changed = 0;
         const out = [];
@@ -1100,6 +1234,9 @@ export function localAdapter(C) {
           else if (act === 'restore') { if (e.st === 'dq') e.st = 'ok'; }
           if (note && act !== 'note') e.note = note;
           if (act === 'note') e.note = note;
+          // out of a free pool: out of its `joined` list too; back in by an undo, back in it
+          if (isFree(c) && e.st !== 'ok' && Array.isArray(c.joined)) c.joined = c.joined.filter((x) => x !== w);
+          if (isFree(c) && act === 'undo' && e.st === 'ok') c.joined = [w, ...(c.joined || []).filter((x) => x !== w)].slice(0, 12);
           if (act === 'decline' && e.st === 'no' && e.b && e.b.ok && !e.free) c.pay.refunds[w] = c.pay.refunds[w] || null;
           // when and by whom: the entry's change of state (a decision, an undo), never the
           // words alone, as the server's (a refund is due from the decline's time)
@@ -1112,7 +1249,7 @@ export function localAdapter(C) {
         if (!changed) return { ok: true, changed: 0, entries: out, log: null, v: c.v };
         // the winner disqualified or restored after the final: the prize is burned, or paid again
         let burn;
-        if (c.st === 'done' && (act === 'dq' || act === 'restore') && c.res && c.res.winner && wallets.includes(c.res.winner)) {
+        if (!isFree(c) && c.st === 'done' && (act === 'dq' || act === 'restore') && c.res && c.res.winner && wallets.includes(c.res.winner)) {
           burn = isBot(c.res.winner) || (es[c.res.winner] && es[c.res.winner].st === 'dq') || !!S.bans[c.res.winner];
           c.res.burn = burn;
         }
@@ -1138,9 +1275,13 @@ export function localAdapter(C) {
         if (S.entries[code] && S.entries[code][w] && S.entries[code][w].st !== 'out') throw fail(409, 'already', 'That wallet entered already.', { st: S.entries[code][w].st });
         // a wallet refunded here is out for good, as the server's ADMIN_ENTRY
         if (c.pay.refunds[w]) throw fail(409, 'refunded', 'That wallet was refunded in this competition: it cannot be entered again.', { wallet: w });
-        if (countsOf(code).ok >= c.cfg.size) throw fail(409, 'full', 'No places left.');
+        // a free pool: no burn (a signature is free_pool), 64 places at most
+        if (isFree(c) && body.sig) throw fail(400, 'free_pool', 'This pool is free: join it, there is nothing to burn.');
+        if (countsOf(code).ok >= (isFree(c) ? 64 : c.cfg.size)) throw fail(409, 'full', 'No places left.');
+        // one free pool a wallet a week, on the moderators' paths too
+        if (isFree(c) && otherFree(c, w)) throw fail(409, 'in_other', 'That wallet is in another free pool this week (one free pool a wallet a week).', { wallet: w, comp: otherFree(c, w).code });
         let b = null;
-        if (!body.free && !body.sig) throw fail(400, 'bad_cfg', 'Paste the signature of the burn, or enter it free.', { field: 'sig' });
+        if (!body.free && !body.sig && !isFree(c)) throw fail(400, 'bad_cfg', 'Paste the signature of the burn, or enter it free.', { field: 'sig' });
         if (body.sig) {
           const v = verdictOf(c, body.sig, w, 'entry');
           if (!v.ok) throw fail(v.code === 'rpc_busy' ? 503 : 400, v.code, v.message);
@@ -1148,10 +1289,57 @@ export function localAdapter(C) {
         }
         const e = { w, t: iso(now()), m: '', x: '', tg: '', dc: '', st: 'ok', ps: null, at: iso(now()), by: BY, why: '', note: cleanText(body.why, 200), b, free: !b, hand: true, signals: { ip: 1, fp: !!(b && !b.fp), newTeam: now() - Date.parse(wallet(w).created) < DAY, sameSquad: 0 }, legal: [true, true, true] };
         (S.entries[code] = S.entries[code] || {})[w] = e;
+        if (isFree(c)) c.joined = [w, ...(c.joined || []).filter((x) => x !== w)].slice(0, 12);
         c.v++;
         const line = logLine('Entered ' + short(w) + ' by hand for #' + c.n + (b ? ' with a signature' : ' (free)') + (e.note ? ': ' + e.note : ''), 'entry', { comp: code, wallet: w });
         touch();
         return { ok: true, entry: clone(e), log: line, v: c.v };
+      },
+      // a player's join of a free pool, as the server's COMP_ENTER mode 'join' (the sandbox's
+      // stand-in for the page's SquadNet.comps.join): in at once, or the server's refusal
+      async join(code, body) {
+        const c = compOrFail(code);
+        notArchived(c);
+        const w = body && body.wallet;
+        if (!ADDR_RE.test(String(w || ''))) throw fail(400, 'bad_wallet', 'That is not a wallet address.');
+        if (!isFree(c)) throw fail(409, 'burn_cup', 'This cup is entered with a burn.');
+        if (body.sig) throw fail(400, 'free_pool', 'This pool is free: join it, there is nothing to burn.');
+        if (S.bans[w]) throw fail(403, 'banned', 'This wallet cannot take part.');
+        if (w === PROJECT) throw fail(403, 'is_moderator', 'Moderators cannot join pools.');
+        const team = wallet(w);
+        if (!team) throw fail(404, 'no_blub', 'Save your team first.');
+        const age = c.cfg.minAge || 0;
+        if (Date.parse(team.created) > now() - age * DAY) throw fail(403, 'too_new', 'Your team is too new for this pool: it takes teams ' + age + (age === 1 ? ' day' : ' days') + ' old.', { minAge: age });
+        if (!team.strats || !Array.isArray(team.strats.s) || !team.strats.s.length) throw fail(409, 'no_strategy', 'Save a strategy for your team first: the pool plays your active one.');
+        const es = (S.entries[code] = S.entries[code] || {});
+        const old = es[w];
+        if (old && old.st !== 'out') throw fail(409, 'already', 'This wallet joined already.', { st: old.st });
+        if (c.st !== 'open' || now() < Date.parse(c.win.opens) || now() > Date.parse(c.win.closes)) throw fail(409, 'closed', 'Sign-ups for this pool are not open.', { st: c.st });
+        if (countsOf(code).ok >= 64) throw fail(409, 'full', 'This free pool is full (64 of 64).');
+        if (old && (old.re || 0) >= 2) throw fail(409, 'reentry_limit', 'This wallet left too often to join this pool again.');
+        const other = otherFree(c, w);
+        if (other) throw fail(409, 'in_other', 'This wallet is in another free pool this week already.', { comp: other.code });
+        const e = { w, t: iso(now()), m: '', x: '', tg: '', dc: '', st: 'ok', ps: null, at: iso(now()), by: 'join', why: '', note: '', b: null, free: true, hand: false, re: old ? (old.re || 0) + 1 : 0, signals: { ip: 1, fp: false, newTeam: now() - Date.parse(team.created) < 7 * DAY, sameSquad: 0 }, legal: [true, true, true] };
+        es[w] = e;
+        c.joined = [w, ...(c.joined || []).filter((x) => x !== w)].slice(0, 12);
+        cmw(w, code, c.st);
+        touch();
+        return { ok: true, entry: clone(e), n: countsOf(code).ok };
+      },
+      // a player leaves a free pool: from ok, before the lock time, nothing to confirm
+      async withdraw(code, body) {
+        const c = compOrFail(code);
+        const w = body && body.wallet;
+        const e = (S.entries[code] || {})[w];
+        if (!['open', 'closed'].includes(c.st)) throw fail(409, 'closed', 'Sign-ups for this pool are not open.', { st: c.st });
+        if (!e || e.st === 'out') throw fail(404, 'not_entered', 'This wallet is not in this pool.');
+        if (!isFree(c)) throw fail(409, 'bad_state', 'The sandbox withdraws from free pools only.', { st: e.st, want: ['ok'] });
+        if (e.st !== 'ok') throw fail(409, 'bad_state', 'Only a wallet that is in the pool can leave it.', { st: e.st, want: ['ok'], why: 'free' });
+        if (now() >= Date.parse(c.win.lock)) throw fail(409, 'closed', 'Sign-ups for this pool are not open.', { st: c.st });
+        Object.assign(e, { st: 'out', ps: null, pn: null, at: iso(now()), by: w });
+        c.joined = (c.joined || []).filter((x) => x !== w);
+        touch();
+        return { ok: true, refund: null };
       },
       // the chain's facts, as the server's verify gives them (lib/solana.mjs verdictOf): a
       // burn (by the wallet named, or anyone) or a transfer from the project wallet (to the
@@ -1205,6 +1393,7 @@ export function localAdapter(C) {
         notArchived(c);
         const kind = body && body.kind;
         if (!['payout', 'burn', 'refund'].includes(kind)) throw fail(400, 'bad_cfg', 'Pick payout, burn or refund.', { field: 'kind' });
+        if (isFree(c)) throw fail(409, 'bad_state', 'A free pool has no prize, burn or refund.', { st: c.st, want: [], why: 'free' });
         const sig = String((body && body.sig) || '').trim();
         if (!SANDBOX_SIG.test(sig)) throw fail(400, 'bad_sig', 'That is not a transaction signature (base58, 64 bytes).');
         const wallet = body.wallet ? String(body.wallet) : '';
@@ -1290,22 +1479,9 @@ export function localAdapter(C) {
         const act = body && body.do;
         if (act === 'give') {
           if ((body && body.confirm) !== 'GIVE ' + c.n) throw fail(400, 'bad_cfg', 'Type GIVE ' + c.n + ' to confirm.', { field: 'confirm' });
-          if (c.st !== 'settled') throw fail(409, 'bad_state', 'Record the payout first.', { st: c.st, want: ['settled'] });
-          if (c.aw) throw fail(409, 'already', 'The rewards were given.');
-          const list = rewardsPreview(full(c));
-          for (const x of list) {
-            const inv = (S.inv[x.id] = S.inv[x.id] || { tok: 0, items: [] });
-            if (x.item && !inv.items.includes(x.item)) inv.items.push(x.item);
-            if (x.tok) inv.tok += x.tok;
-            (S.invh[x.id] = S.invh[x.id] || []).unshift({ t: iso(now()), by: BY, what: x.item ? 'Given ' + x.item : 'Given ' + x.tok + ' unlock token' + (x.tok === 1 ? '' : 's'), why: 'Rewards of #' + c.n });
-          }
-          for (const p of [1, 2, 3]) { const row = c.res.table.find((x) => x.place === p); if (row && !isBot(row.id) && wallet(row.id)) wallet(row.id).troph = [...(wallet(row.id).troph || []), 'c' + c.n + ':' + p]; }
-          c.aw = { t: iso(now()), by: BY, list };
-          c.st = 'rewarded';
-          c.v++;
-          logLine('Gave the rewards of #' + c.n + ' to ' + new Set(list.map((x) => x.id)).size + ' wallets', 'rewards', { comp: code, undo: true });
+          const r = giveRewards(c, BY);
           touch();
-          return { ok: true, aw: clone(c.aw), given: clone(list) };
+          return r;
         }
         if (act === 'take') {
           if (c.st !== 'rewarded' || !c.aw) throw fail(409, 'bad_state', 'No rewards were given.', { st: c.st, want: ['rewarded'] });

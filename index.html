@@ -2245,6 +2245,10 @@ body.no-scroll{overflow:hidden}
 /* the team colours chip (next to Sound) */
 .sq-pal{gap:6px}
 .sq-palsw{display:inline-block;width:14px;height:14px;border:2px solid #000;flex:none}
+/* (lane D, strength meter review) a small meter's word may be two ('Strong–Fearsome…'):
+   where a row has no room for it beside the bars, it goes under them, never cut */
+.sq-meter.sm{flex-wrap:wrap;row-gap:3px;max-width:100%;min-width:0}
+.sq-meter.sm b{white-space:normal;overflow-wrap:anywhere}
 
 /* ---------- the home page (src/squad/home.js): the game in chapters ---------- */
 .show{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -3647,14 +3651,14 @@ const S = {mode:'boot', api:false, addr:null, admin:false, look:{...DEF}, name:'
 const API = (() => {
   // the day routes in slashes (league/<week>/<d>/<g>/<day>, friends/<code>/<week>/<day>):
   // on once the server answers them (docs/pools-and-highlights.md §2.4); dotted until then
-  const DAY_SLASH = false;
+  const DAY_SLASH = true;
   async function call(method, path, body){
     const headers = {'X-Blub':'1', Accept:'application/json'};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     const r = await fetch('/api/' + path, {method, credentials:'same-origin', headers, body: body === undefined ? undefined : JSON.stringify(body)});
     let data = null; try { data = await r.json(); } catch {}
     if (!r.ok){
-      const e = new Error((data && data.error) || ('Request failed (' + r.status + ')')); e.status = r.status; e.code = data && data.code; e.duel = data && data.duel;
+      const e = new Error((data && data.error) || ('Request failed (' + r.status + ')')); e.status = r.status; e.code = data && data.code; e.duel = data && data.duel; e.data = data;
       // what an admin refusal says along (the field, since when it is locked, the version, the state, the wallet)
       if (data) for (const k of ['field', 'since', 'v', 'st', 'want', 'wallet', 'minAge']) if (data[k] !== undefined) e[k] = data[k];
       throw e;
@@ -4741,6 +4745,7 @@ const RULES = lock({
   cannonArc: true, // (engine 34: on) // cannons and the Big Gun fire only within 45 degrees of their facing, turning a step a turn
   rugStops: true, // (engine 34: on) // a Blub gone down the Rug Pull acts no more while it is gone (its Pump.fun Pill's tally included)
   smokeBlocksPowers: true, // (engine 34: on) // the Freeze Ray and Diamond Hands' gun pick only enemies they see past the smoke (Smoke Goggles see through)
+  evadeDisengage: false, // (study) on Evade, a Blub that steps away from an enemy beside it does not also attack that turn (the Skirmisher's step back and shoot stays its own)
   weaponInHand: true, // (engine 34: on) // an attack's hammer splash and knock-back go by the weapon it struck with (not the one back in its paws after a Blue Scar ran dry)
   medicMelee: 1, // (engine 34: 1, was 0) // a Medic with a melee weapon (sword, daggers, spear, hammer): this much more damage
   cannonArcReload: 0, cannonArcDmg: 2, // (engine 34: cannonArcDmg 2)
@@ -7148,6 +7153,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     const list = foes(u);
     const G = RULES.evadeGap;
     const here = idx(u.x, u.y);
+    const beside = RULES.evadeDisengage && u.cls !== 'playful' && foeGap(u, u.x, u.y) <= 1;
     const P = search(u, u.move);
     let best = here;
     let bs = -1e9;
@@ -7169,7 +7175,8 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     }
     if (best !== here) walk(u, route(P, best));
     const dealt = u.dealt;
-    if (u.alive && over < 0) hitAround(u, target);
+    // (study knob evadeDisengage: getting away from the one beside it was its turn)
+    if (u.alive && over < 0 && !(beside && u.moved)) hitAround(u, target);
     if (fighter) {
       // (turns in a row it neither moved nor hit anything)
       u.evadeIdle = u.moved || u.dealt !== dealt ? 0 : (u.evadeAt === now - 1 ? u.evadeIdle : 0) + 1;
@@ -11318,10 +11325,11 @@ const SquadView = (() => {
       // Boom Pack: a round bomb, its fuse fizzing
       boom: ['.......y.y..', '........Y...', '.......yky..', '........kn..', '....kkkkkn..',
         '...kxxxxxk..', '..kxSzxxxxk.', '..kxzxxxxxk.', '..kxxxxxxxk.', '..kxxxxxxsk.', '...kxxxxsk..', '....kkkkk...'],
-      // Harpoon Gun (engine 35): a stubby launcher on a wooden stock, the barbed steel
-      // head in its muzzle and the drum of rope under it
-      harpoon: ['.........kkk', '.......kkwSk', '......kSkSsk', '.......kSsk.', '......kxskSk',
-        '.....kxxk.kk', '....kxxxk...', '...kxkxkkkk.', '..kNnk.kiNik', '.kNnk..kNiNk', 'kNnk...kiNik', 'kkk.....kkk.'],
+      // Harpoon Gun (engine 35): a stubby launcher on a wooden stock, a wide V of barbs at its
+      // muzzle (3 px each side of the tip), and a coil of rope beside it with a loose loop:
+      // at roster size a harpoon, not a rifle
+      harpoon: ['.......kSSSw', '........kwSS', '.......kwk.S', '......kSk..S', '.....kxk...k',
+        '....kxxk....', '...kxxk.aNa.', '..kNnk.N...N', '.kNnk..a.N.a', 'kNnk...N...N', 'kkk.....aNa.', '..........Na'],
     },
     gear: {
       shield: ['....kkkk....', '..kkrPrPkk..', '.krPrPrPrPk.', '.kPrPrPrPrk.', 'krPrPrPrPrPk',
@@ -23699,6 +23707,9 @@ const SquadView = (() => {
         const u = P.S && P.S.u[id];
         const b = u && u.alive && u._b;
         if (!b || b.seat) continue;
+        // (lane I's re-check) a label over a Blub belongs to it: that Blub's own tag, under
+        // its feet, is no reason to carry the label away
+        if (Math.abs(b.ox + 8 - x) <= 10 && b.oy >= y - 4) continue;
         const tg = nameTag(u);
         rects.push([clamp(Math.round(b.ox + 8 - tg.width / 2), 0, CW - tg.width), Math.min(CH - tg.height, b.fy + 4), tg.width, tg.height]);
       }
@@ -23706,8 +23717,9 @@ const SquadView = (() => {
     const x0 = Math.round(x - w / 2);
     const y0 = Math.round(y - h);
     let pos = [clamp(x0, 0, CW - w), clamp(y0, 0, CH - h)];
-    find: for (const dy of [0, -(h + 1), -2 * (h + 1), -3 * (h + 1)])
-      for (const dx of [0, -6, 6]) {
+    // its own spot, a nudge sideways, then one step up at most: never off its Blub
+    find: for (const dy of [0, -(h + 1)])
+      for (const dx of [0, -6, 6, -12, 12]) {
         const px = clamp(x0 + dx, 0, CW - w);
         const py = clamp(y0 + dy, 0, CH - h);
         if (free(px, py)) {
@@ -24565,15 +24577,29 @@ const SquadView = (() => {
       x.fillStyle = '#C9C9D6';
       x.fillRect(ox + 19, oy + 3, 2, 1);
     }
-    // tangled in barbed wire (engine 15): loops of it round its middle, barbs and all
+    // tangled in barbed wire (engine 15), for as long as it is: two loops of dark wire
+    // wound across its body under the face, each with an ink edge so it reads on any
+    // colour, and the barbs sticking out pale (why it does not walk, and why the Pill and
+    // the Lambo pass it)
     if (u.st.tangled) {
-      x.fillStyle = '#6E6E80';
-      for (let i = 0; i < 16; i += 2) x.fillRect(ox + i, oy + 9 + ((i >> 1) & 1), 2, 1);
-      for (let i = 1; i < 16; i += 3) x.fillRect(ox + i, oy + 12 - ((i >> 1) & 1), 2, 1);
+      const loops = [[11, 1], [14, -1]];
+      for (const [y0, dir] of loops) {
+        for (let i = 1; i < 15; i++) {
+          // a loop slopes a pixel across the body, one way and the next the other
+          const y = oy + y0 + (dir > 0 ? (i > 7 ? 1 : 0) : i > 7 ? 0 : 1);
+          x.fillStyle = INK;
+          x.fillRect(ox + i, y - 1, 1, 1);
+          x.fillRect(ox + i, y + 1, 1, 1);
+          x.fillStyle = (i & 3) === 0 ? '#9A9AAE' : '#4A4A5C';
+          x.fillRect(ox + i, y, 1, 1);
+        }
+      }
+      // the barbs: a pale x on each loop
       x.fillStyle = '#EEEEF5';
-      for (const bx of [2, 7, 12]) {
-        x.fillRect(ox + bx, oy + 8, 1, 1);
-        x.fillRect(ox + bx + 1, oy + 13, 1, 1);
+      for (const [bx, by] of [[3, 10], [10, 11], [6, 15], [12, 14]]) {
+        x.fillRect(ox + bx, oy + by, 1, 1);
+        x.fillRect(ox + bx + 1, oy + by + 1, 1, 1);
+        x.fillRect(ox + bx + 1, oy + by - 1, 1, 1);
       }
     }
     // caught by a screen (engine 26): gold brackets close round it
@@ -25276,8 +25302,15 @@ const SquadView = (() => {
       const f = i / n;
       const bow = 4 * f * (1 - f);
       const w = wob ? Math.sin(f * Math.PI * 5 + ph) * wob * bow : 0;
+      const X = Math.round(lerp(x0, x1, f) + nx * w);
+      const Y = Math.round(lerp(y0, y1, f) + sag * bow + ny * w);
+      // (an ink pixel under every other one, so it reads on the pink floor)
+      if (!(i & 1)) {
+        x.fillStyle = INK;
+        x.fillRect(X, Y + 1, 1, 1);
+      }
       x.fillStyle = i % 3 ? '#E8D3A2' : '#B89A5E';
-      x.fillRect(Math.round(lerp(x0, x1, f) + nx * w), Math.round(lerp(y0, y1, f) + sag * bow + ny * w), 1, 1);
+      x.fillRect(X, Y, 1, 1);
     }
     x.globalAlpha = 1;
   }
@@ -25483,7 +25516,11 @@ const SquadView = (() => {
       label(taut, 'SNAP!', '#E8D3A2', lerp(centreOf(u)[0], dx, 0.5), above(lerp(centreOf(u)[1], dy, 0.5) - 14), true);
       return;
     }
-    label(taut, 'REEL!', '#E8D3A2', centreOf(u)[0], above(centreOf(u)[1] - 24), true);
+    // (over the shooter; on the top rows, where the name tags would push it off the board,
+    // beside it, behind its back)
+    const [rux, ruy] = centreOf(u);
+    const high = ruy - 24 < TOP + 14;
+    label(taut, 'REEL!', '#E8D3A2', high ? rux - u.face * 20 : rux, high ? ruy + 2 : above(ruy - 24), true);
     if (e.bags && bag) {
       // the hook bites the bags and tears out of them
       atClock(taut, () => addParts(8, bag[0], bag[1] - 3, ['#D9B98A', '#B8925A', '#FFFFFF'], 0.06, 0.0004, 420 * k, taut, true));
@@ -28109,7 +28146,7 @@ const SquadView = (() => {
           x.globalAlpha = 0.7;
           x.drawImage(P.spr[u.id].line.gold, b.ox - 1, b.oy - 1);
           x.globalAlpha = 1;
-          // (lane I) no name tag in a close-up: blown up, it covers the action
+          // (lane I) no name tag in a close-up; (lane D) none over a blow's target as it lands
           const tag = nameTag(u);
           const tx = clamp(Math.round(b.ox + 8 - tag.width / 2), 0, CW - tag.width);
           const ty = Math.min(CH - tag.height, b.fy + 4);
@@ -29295,6 +29332,9 @@ const SquadView = (() => {
         if (d._b) R.last = [d._b.ox + 8, d._b.oy + 10];
       }
       const [cx, cy] = centreOf(d);
+      // (a close-up of its own, as the Pill's other scenes have: from the sputter through the
+      // fall to CRASHED, the whole scene)
+      closeUp(T, b.dur, cx, cy - 8, { slow: [hit - 160 * k, hit + 120 * k], f: 0.5, force: true });
       atClock(T, () => sfx('fuse'));
       // the aura, flickering thinner, then grey smoke
       for (let q = 0; q < 5; q++) addParts(Math.max(1, 6 - q), cx, cy + 2, q < 3 ? ['#4BE08F', '#1E5B33'] : ['#9AA0B4', '#6B7088'], 0.03, -0.0002, 420 * k, T + q * 150 * k, false);
@@ -29330,7 +29370,7 @@ const SquadView = (() => {
         sfx('ko');
         shake(hit);
       });
-      label(hit + 60 * k, 'CRASHED', '#4BE08F', cx, above(cy - 28), true, 2);
+      label(hit + 60 * k, 'CRASHED', '#4BE08F', cx, above(cy - 18), true, 2);
       addParts(10, cx, cy + 4, ['#9AA0B4', '#FFFFFF', '#4BE08F'], 0.05, 0.0004, 420 * k, hit, false);
       return true;
     }
@@ -30784,6 +30824,8 @@ const SquadView = (() => {
       if (to) g.face = scr(to.x, to.y)[0] >= ex ? 1 : -1;
     }
     if (e.t === 'bite' && !e.hp) P.cause[e.d] = 'bite';
+    // its turn, still tangled in the wire: it strains against it, a jolt, and stays put
+    if (e.t === 'act' && live && U[e.u] && U[e.u].st && U[e.u].st.tangled) U[e.u].quake = { t0: T, t1: T + 150 * k, a: 1 };
     } catch (err) {
       fault(err);
     }
@@ -34867,8 +34909,8 @@ const SquadView = (() => {
   function loadRound(ri) {
     const r = P.rounds[ri];
     P.ri = ri;
-    P.prev = null;
     P.fightOff = 0;
+    P.prev = null;
     // Round info tells the round on screen (and stays as open or shut as it was)
     if (D && !D.infoBox.hidden) P.infoFor = -1;
     // a side that switched strategy plays this round with other builds: new sprites and rosters
@@ -38407,24 +38449,36 @@ const SquadHall = (() => {
   const fitted = d => copyDraft(d);
   function loadDraft(d, note){ st.draft = fitted(d); st.sel = 0; st.place = null; st.bad = null; st.lift = false; st.spots = {}; changed(); say(R.barMsg, note || '', true); Sfx.play('click'); hop(-1); }
 
-  // ---- how strong is a squad? 192 practice fights on fixed seeds against a fixed gauntlet
-  // of 48 squads (32 random bots, 10 squads built from the role presets, 6 of those built
-  // the careful way), 2 seeds each, played from both sides. The win count is calibrated to
-  // a field of half random bots, half designed squads (measured for SQUAD_ENGINE 3 on about
-  // 400 squads with 2,480 fights each: the label names the right tier for about 4 squads in
-  // 5 and is never two tiers off; the shown % is within 7 points for 19 squads in 20).
-  // Recalibrate when the engine or the ROLE presets change: for SQUAD_ENGINE 27 (the mist
-  // border, the smaller chest, supply drops) measured again on 73 squads (40 random, 33
-  // designed) against a field of 66, half random and half designed, both sides: the fit
-  // moved from 0.488 to 0.474, the shown % off by 4.4 points on average. Checked again for
-  // SQUAD_ENGINE 28 (no start perks, field crates, the pairs) the same way: the fit is
-  // 0.4675, the shown % off by 4.2 points on average, so 0.474 stays. SQUAD_ENGINE 33 (the
-  // package: the Gambler's free spin, Defend walking forward, Dig in and Hold the line for
-  // everyone) the same way, 73 squads (40 random, 16 designed, 17 tuned) against a field of
-  // 66, half random and half designed, both sides: the fit is 0.4783 (0.4873 on engine 32
-  // by the same runs), the shown % off by 4.1 points on average: 0.478.
+  // ---- how strong is a squad? Practice fights on fixed seeds against a fixed gauntlet of
+  // 48 squads (32 random bots, 10 squads built from the role presets, 6 of those built the
+  // careful way), played from both sides, a seed at a time: a first word after 96 fights
+  // (one seed each), a closer one after 192, the rating after 384 (four seeds each).
+  // From wins to %: a logistic curve per stage, fitted on what a squad wins in a league
+  // group by scripts/strength-calibrate.mjs (SQUAD_ENGINE 34, 22 Oct 2026: 157 squads, 60
+  // random, 40 designed, 17 tuned, 20 league bots, 20 practice bots, each about 1,000
+  // fights against a league-like field of 25 league bots and 10 designed squads). The
+  // meter study checked it on 170 squads (13 champions too): after 384 fights the % is off
+  // by 2.7 points on average and inside the shown range (±6, the measured 90th percentile)
+  // for 9 squads in 10, the word right for 4 in 5 and never two steps off; on 40 squads
+  // held out (tuned by trial, new seeds) off by 1.8. The old scale (EST_CAL 0.478, 192
+  // fights) read 3.7 points low: 8 of the 17 tuned squads Strong, two top builds that win
+  // 70% and more Good.
+  // Within EST_HEDGE of a cut the meter names both words ('Good–Strong').
+  // Recalibrate when the engine or the ROLE presets change: node scripts/strength-calibrate.mjs.
   // Runs in slices of at most 12 ms; your own squad goes first. Zero database commands.
-  const EST_N = 192, EST_RANGE = 7, EST_CAL = 0.478, EST_OPP = 48;
+  const EST_N = 384, EST_STAGES = [96, 192, 384], EST_OPP = 48, EST_HEDGE = 2;
+  // per stage: [a, b, range]: pct = 100 / (1 + e^-(a + b (wins / n - 0.5))), ± range
+  // (SQUAD_ENGINE 35, the Harpoon Gun on, 22 Oct 2026: re-fitted by the script; off by 3.8,
+  // 3.2 and 2.6 points at 96, 192 and 384 fights, the word right for 66%, 73% and 80%, never
+  // two steps off; Engine 34's constants would have read 1.1 points high)
+  const EST_FIT = {96: [-0.12, 3.42, 9], 192: [-0.09, 3.8, 7], 384: [-0.06, 3.97, 6]};
+  const estPct = (w, n) => Math.round(100 / (1 + Math.exp(-(EST_FIT[n][0] + EST_FIT[n][1] * (w / n - 0.5)))));
+  // {level 0-4, pct, lo, hi, n, final, words: one tier, or the two either side of a cut}
+  function estOf(w, n){
+    const pct = estPct(w, n), r = EST_FIT[n][2], a = tierOf(pct - EST_HEDGE), b = tierOf(pct + EST_HEDGE);
+    return {level: tierOf(pct), pct, lo: Math.max(0, pct - r), hi: Math.min(100, pct + r), n, final: n === EST_N, words: a === b ? [tierOf(pct)] : [a, b]};
+  }
+  const strengthWord = r => (r.words || [r.level]).map(i => STRENGTH[i]).join('–');
   let gauntlet = null;
   function buildGauntlet(){
     const careful = u => ({gear: 'potion', pow: 'freeze', tac: 'weakest', trn: E.WEAPON_STATS[u.wpn].range >= 3 ? {pow: 3, grd: 0, spd: 0, lck: 2} : {pow: 0, grd: 0, spd: 3, lck: 2}});
@@ -38456,22 +38510,24 @@ const SquadHall = (() => {
   const estHold = () => document.hidden || !onScreen();
   const sliceOf = dl => (dl && typeof dl.timeRemaining === 'function' && !dl.didTimeout ? Math.max(4, Math.min(12, dl.timeRemaining())) : 12);
   const sqSig = sq => JSON.stringify([sq.units, sq.objs || [], sq.cmd || '']);
-  // resolves to {level 0-4, pct, lo, hi}; first: jump the queue (the squad you are building)
-  function estimate(sq, first){
+  // resolves to estOf(...) once `at` fights are played (a stage of EST_STAGES; the rating,
+  // EST_N, by default); first: jump the queue (the squad you are building)
+  function estimate(sq, first, at){
+    const n = EST_STAGES.includes(at) ? at : EST_N;
     const sig = sqSig(sq);
     let job = est.get(sig);
     if (!job){
-      let done;
-      const p = new Promise(ok => { done = ok; });
-      job = {sq, p, done, w: 0, n: 0};
+      job = {sq, w: 0, n: 0, got: {}, wait: {}};
       est.set(sig, job);
       if (est.size > 60) est.delete(est.keys().next().value);
       estQ.push(job);
     }
-    const at = estQ.indexOf(job);
-    if (first && at > 0){ estQ.splice(at, 1); estQ.unshift(job); }
+    if (job.got[n]) return Promise.resolve(job.got[n]);
+    if (!job.wait[n]){ let done; const p = new Promise(ok => { done = ok; }); job.wait[n] = {p, done}; }
+    const at0 = estQ.indexOf(job);
+    if (first && at0 > 0){ estQ.splice(at0, 1); estQ.unshift(job); }
     if (estQ.length && !estT) estT = idleSoon(estStep);
-    return job.p;
+    return job.wait[n].p;
   }
   function estStep(dl){
     estT = 0;
@@ -38479,21 +38535,31 @@ const SquadHall = (() => {
     if (!gauntlet) gauntlet = buildGauntlet();
     const t0 = performance.now(), G = gauntlet.length, budget = sliceOf(dl);
     while (estQ.length && performance.now() - t0 < budget){
-      const j = estQ[0], g = (j.n >> 2) % G, k = (j.n >> 1) & 1, side = j.n & 1, seed = (((g + 1) * 1000003 + k * 7919) % 2147483000) + 1;
+      // a seed at a time over the whole gauntlet: fight i is squad g, seed k, side
+      const j = estQ[0], side = j.n & 1, g = (j.n >> 1) % G, k = Math.floor(j.n / (2 * G)), seed = (((g + 1) * 1000003 + k * 7919) % 2147483000) + 1;
       const r = E.simulateRound(side ? gauntlet[g] : j.sq, side ? j.sq : gauntlet[g], seed, k, true);
       if (r.winner === side) j.w++;
-      if (++j.n < EST_N) continue;
+      j.n++;
+      if (EST_STAGES.includes(j.n)){
+        const got = estOf(j.w, j.n);
+        j.got[j.n] = got;
+        if (j.wait[j.n]) j.wait[j.n].done(got);
+      }
+      if (j.n < EST_N) continue;
       estQ.shift();
-      // the tier comes from the same rounded % the label shows
-      const pct = Math.min(100, Math.round(j.w * EST_CAL));
-      j.done({level: tierOf(pct), pct, lo: Math.max(0, pct - EST_RANGE), hi: Math.min(100, pct + EST_RANGE)});
     }
     if (estQ.length) estT = idleSoon(estStep);
   }
-  // ---- the matchup at a glance (lane D, engine 31): your squad against one other squad, 24
-  // practice rounds on fixed seeds, played from both sides, in the same 12 ms slices as the
+  // a meter that shows the first word and then the rating: paint(r) for each, while ok()
+  function estimateLive(sq, first, ok, paint){
+    estimate(sq, first, EST_STAGES[0]).then(r => { if (ok() && !r.final) paint(r); });
+    return estimate(sq, first).then(r => { if (ok()) paint(r); return r; });
+  }
+  // ---- the matchup at a glance (lane D, engine 31): your squad against one other squad, 48
+  // practice rounds on fixed seeds (the meter study: 24 rounds were off by 8 points on
+  // average and named the wrong side for 2 pairs in 120; 48: off by 5.7, none), played from both sides, in the same 12 ms slices as the
   // estimate (after it: your own strength goes first). Zero database commands.
-  const H2H_N = 24, h2h = new Map(), h2hQ = [];
+  const H2H_N = 48, h2h = new Map(), h2hQ = [];
   let h2hT = 0;
   // resolves to {w, n, pct, word}: Favoured from 60%, Tough up to 40%, else Even
   function matchup(a, b){
@@ -38586,15 +38652,15 @@ const SquadHall = (() => {
       });
     });
   }
-  const estWhy = r => 'Wins about ' + r.pct + '% against typical squads (likely ' + r.lo + '–' + r.hi + '%), worked out from ' + EST_N + ' practice fights against ' + EST_OPP + ' test squads: bots and squads built from the presets.';
+  const estWhy = r => 'Wins about ' + r.pct + '% of its fights in a typical league group (likely ' + r.lo + '–' + r.hi + '%), ' + (r.final ? 'worked out from ' + EST_N + ' practice fights' : 'after ' + r.n + ' of ' + EST_N + ' practice fights so far') + ' against ' + EST_OPP + ' test squads.';
   // r: null (working it out), -1 (squad not ready) or an estimate
   function meter(r, small){
     const level = r == null ? null : typeof r === 'number' ? r : r.level, got = r && typeof r === 'object' ? r : null;
     const box = h('span', {class: 'sq-meter' + (small ? ' sm' : ''), role: 'img', title: got ? estWhy(got) : null,
-      'aria-label': level == null ? 'Strength: working it out' : level < 0 ? 'Strength: squad not ready' : 'Strength: ' + STRENGTH[level] + ', ' + (level + 1) + ' of 5' + (got ? '. ' + estWhy(got) : '')});
+      'aria-label': level == null ? 'Strength: working it out' : level < 0 ? 'Strength: squad not ready' : 'Strength: ' + (got ? strengthWord(got) : STRENGTH[level]) + ', ' + (level + 1) + ' of 5' + (got ? '. ' + estWhy(got) : '')});
     const bars = h('span', {class: 'sq-bars', 'aria-hidden': 'true'});
     for (let i = 0; i < 5; i++) bars.append(h('i', {class: level != null && i <= level ? 'on l' + level : ''}));
-    box.append(bars, h('b', {'aria-hidden': 'true'}, level == null ? '…' : level < 0 ? '–' : STRENGTH[level]));
+    box.append(bars, h('b', {'aria-hidden': 'true'}, level == null ? '…' : level < 0 ? '–' : got ? strengthWord(got) + (got.final ? '' : '…') : STRENGTH[level]));
     if (got && !small) box.append(h('small', {class: 'sq-pct', 'aria-hidden': 'true'}, got.pct + '%'));
     return box;
   }
@@ -38610,14 +38676,14 @@ const SquadHall = (() => {
     if (sig === st.sSig) return;
     clearTimeout(sT);
     st.sSig = sig; st.strength = null; paintBar();
-    sT = setTimeout(() => estimate(sq, true).then(r => { if (st.sSig === sig){ rated(sig, r); st.strength = r; paintBar(); renderChalSquad(); } }), 400);
+    sT = setTimeout(() => estimateLive(sq, true, () => st.sSig === sig, r => { st.strength = r; if (r.final){ rated(sig, r); renderChalSquad(); } paintBar(); }), 400);
   }
   // a finished estimate for a new squad: remember the last % (for 'Up 4 since your last
   // change'), and say so in the bar only when the word changes
   function rated(sig, r){
     if (st.rateLast && st.rateLast.sig !== sig) st.ratePrev = st.rateLast.pct;
     st.rateLast = {sig, pct: r.pct};
-    if (st.rateLv != null && st.rateLv !== r.level) say(R.barMsg, 'Strength now ' + STRENGTH[r.level] + ': wins about ' + r.pct + '%.', true);
+    if (st.rateLv != null && st.rateLv !== r.level) say(R.barMsg, 'Strength now ' + strengthWord(r) + ': wins about ' + r.pct + '%.', true);
     st.rateLv = r.level;
   }
 
@@ -39908,12 +39974,12 @@ const SquadHall = (() => {
     R.rateBox = h('div', {class: 'sq-scard sq-rate'}, h('span', {class: 'sq-lbl'}, 'Strength'), h('div', {class: 'sq-rtop'}, R.rateTier, R.rateMeter), R.ratePct, R.rateLH, R.rateScale, R.rateLegend, R.rateDelta, R.rateHowBtn);
     const p = (b, t) => h('p', null, h('b', null, b), ' ', t);
     R.rateHow = h('div', {class: 'sq-ratehow', id: 'sqRateHow', hidden: true},
-      p('What it measures:', 'how often your squad wins against typical squads, not against one rival.'),
-      p('How:', 'your squad plays ' + EST_N + ' quick test fights in your browser against ' + EST_OPP + ' test squads (32 random bot squads, 10 squads built from the role presets and 6 built with extra care), 2 seeds each and from both sides of the arena. The seeds are fixed, so the same squad always gets the same answer: when the number moves, your change moved it.'),
-      p('From wins to %:', 'the share it wins is scaled with a calibration measured on about 400 squads that each fought 2,480 times against a mixed field (half random bots, half designed squads).'),
-      p('The words:', STRENGTH.map((w, i) => w + ' ' + (!i ? 'below ' + STRENGTH_CUTS[0] + '%' : i === STRENGTH.length - 1 ? STRENGTH_CUTS[i - 1] + '% and up' : STRENGTH_CUTS[i - 1] + '–' + (STRENGTH_CUTS[i] - 1) + '%')).join(', ') + '.'),
-      p('How sure:', 'next to those long tests the % is off by about 3 points on average, and the true value lies in the likely range (±' + EST_RANGE + ') for about 19 squads in 20. The word is right for about 4 squads in 5 and never two steps off. A squad tuned by watching this number tends to read a few points high.'),
-      p('What it cannot know:', 'your real rival. A squad built to beat yours can still win, the arena and power-ups change every round, and luck decides close rounds. Use it to compare versions of your own squad.'),
+      p('What it measures:', 'how often your squad wins in a typical weekly league group (league bots and squads players built), not against one rival.'),
+      p('How:', 'your squad plays ' + EST_N + ' quick test fights in your browser against ' + EST_OPP + ' test squads (32 random bot squads, 10 squads built from the role presets and 6 built with extra care), 4 seeds each and from both sides of the arena. A first word shows after ' + EST_STAGES[0] + ' fights. The seeds are fixed, so the same squad always gets the same answer: when the number moves, your change moved it.'),
+      p('From wins to %:', 'the share it wins is turned into a % with a curve measured on 170 squads (random, designed, tuned and top builds, league and practice bots) that each fought about 1,000 times against a league group of league bots and designed squads.'),
+      p('The words:', STRENGTH.map((w, i) => w + ' ' + (!i ? 'below ' + STRENGTH_CUTS[0] + '%' : i === STRENGTH.length - 1 ? STRENGTH_CUTS[i - 1] + '% and up' : STRENGTH_CUTS[i - 1] + '–' + (STRENGTH_CUTS[i] - 1) + '%')).join(', ') + '. Within ' + EST_HEDGE + ' points of a boundary it names both (Good–Strong).'),
+      p('How sure:', 'next to those long tests the % is off by about 2.5 points on average, and the true value lies in the likely range (±' + EST_FIT[EST_N][2] + ') for about 9 squads in 10. The word is right for about 4 squads in 5 and never two steps off. The first word, after ' + EST_STAGES[0] + ' fights, is off by about 4 points (±' + EST_FIT[EST_STAGES[0]][2] + ').'),
+      p('What it cannot know:', 'your real rival. The best squads of a week beat nearly everyone: against them even a Strong squad wins about a third of its fights. A squad built to beat yours can still win, the arena and power-ups change every round, and luck decides close rounds. Use it to compare versions of your own squad.'),
       h('p', null, 'It runs only in your browser: nothing is sent and it costs nothing on the server.'));
   }
   function paintRate(){
@@ -39922,18 +39988,18 @@ const SquadHall = (() => {
     // the bar's button
     R.barMeter.replaceChildren(meter(r));
     R.rateRange.textContent = got ? '(' + got.lo + '–' + got.hi + '%)' : '';
-    R.rateBtn.setAttribute('aria-label', got ? 'Strength: ' + STRENGTH[got.level] + '. Wins about ' + got.pct + '% against typical squads, likely ' + got.lo + ' to ' + got.hi + '%. About this rating'
+    R.rateBtn.setAttribute('aria-label', got ? 'Strength: ' + strengthWord(got) + (got.final ? '' : ', so far') + '. Wins about ' + got.pct + '% in a typical league group, likely ' + got.lo + ' to ' + got.hi + '%. About this rating'
       : r == null ? 'Strength: being worked out. About this rating' : 'Strength: no rating until all 5 are ready. About this rating');
     if (st.popOpen) fillPop();
     // the card
-    R.rateTier.textContent = got ? STRENGTH[got.level] : r == null ? '…' : '–';
+    R.rateTier.textContent = got ? strengthWord(got) + (got.final ? '' : '…') : r == null ? '…' : '–';
     R.rateTier.className = 'sq-rtier' + (got ? ' l' + got.level : '');
     [...R.rateMeter.children].forEach((b, i) => { b.className = got && i <= got.level ? 'on l' + got.level : ''; });
-    R.ratePct.textContent = got ? 'Wins about ' + got.pct + '% against typical squads' : r == null ? 'Testing your squad: ' + EST_N + ' quick fights…' : 'No rating yet: ' + n + ' of 5 Blubs are ready.';
+    R.ratePct.textContent = got ? 'Wins about ' + got.pct + '% in a typical league group' + (got.final ? '' : ' (still testing: ' + got.n + ' of ' + EST_N + ' fights)') : r == null ? 'Testing your squad: ' + EST_N + ' quick fights…' : 'No rating yet: ' + n + ' of 5 Blubs are ready.';
     R.rateLH.textContent = got ? 'likely ' + got.lo + '–' + got.hi + '%' : r == null ? '' : 'Fix the red dots first.';
     R.rateScale.classList.toggle('none', !got);
     if (got){ R.rateMark.style.left = got.pct + '%'; R.rateBand.style.left = got.lo + '%'; R.rateBand.style.width = (got.hi - got.lo) + '%'; }
-    R.rateScale.setAttribute('aria-label', got ? 'Scale from 0 to 100 percent: ' + STRENGTH[got.level] + ', about ' + got.pct + ', likely ' + got.lo + ' to ' + got.hi : 'Scale from 0 to 100 percent: no rating yet');
+    R.rateScale.setAttribute('aria-label', got ? 'Scale from 0 to 100 percent: ' + strengthWord(got) + ', about ' + got.pct + ', likely ' + got.lo + ' to ' + got.hi : 'Scale from 0 to 100 percent: no rating yet');
     [...R.rateLegend.children].forEach((s, i) => s.classList.toggle('on', !!got && i === got.level));
     const dl = got && st.ratePrev != null && st.rateLast && st.rateLast.pct === got.pct ? got.pct - st.ratePrev : 0;
     R.rateDelta.textContent = dl ? (dl > 0 ? 'Up ' : 'Down ') + Math.abs(dl) + ' since your last change.' : '';
@@ -39943,8 +40009,8 @@ const SquadHall = (() => {
     const r = rateNow(), got = r && typeof r === 'object' ? r : null, box = R.ratePop;
     box.textContent = '';
     if (got){
-      box.append(h('p', null, h('b', null, STRENGTH[got.level] + ' · about ' + got.pct + '%')),
-        h('p', null, 'Wins about ' + got.pct + '% against typical squads (likely ' + got.lo + '–' + got.hi + '%). Worked out in your browser from ' + EST_N + ' test fights against ' + EST_OPP + ' test squads. It cannot know your rival’s squad.'),
+      box.append(h('p', null, h('b', null, strengthWord(got) + ' · about ' + got.pct + '%')),
+        h('p', null, 'Wins about ' + got.pct + '% in a typical league group (likely ' + got.lo + '–' + got.hi + '%). Worked out in your browser from ' + (got.final ? EST_N : got.n + ' of ' + EST_N) + ' test fights against ' + EST_OPP + ' test squads. It cannot know your rival’s squad.'),
         button('How is this worked out?', '', () => { toggleRatePop(false); rateHow(true, true); }, {'data-k': 'ratemore'}));
     } else if (r == null) box.append(h('p', null, 'Testing your squad: ' + EST_N + ' quick fights in your browser…'));
     else box.append(h('p', null, 'No rating until all 5 Blubs are ready. ' + firstBad()));
@@ -41421,20 +41487,35 @@ const SquadHall = (() => {
     for (const [s, list] of Object.entries(d.t && typeof d.t === 'object' ? d.t : {})){ const k = at(s); if (k >= 0 && !BOT_RE.test(ids[k]) && Array.isArray(list) && list.length === 5) t[k] = cleanTeam(list, cleanFace(list[0]) || STAND_IN()); }
     const r = d.r.slice(0, 2100).filter(x => Array.isArray(x) && x.length === 6 && x.every(Number.isInteger) && x[0] >= 0 && x[1] >= 0 && x[1] < n && x[2] >= 0 && x[2] < n && x[1] !== x[2] && (x[3] === 0 || x[3] === 1));
     return {ids, sq, t, r, e: Number.isInteger(d.e) ? d.e : 0, s: typeof d.s === 'string' || Number.isInteger(d.s) ? d.s : '', o: d.o && typeof d.o === 'object' ? d.o : null,
-      dk: Number.isInteger(d.dk) ? d.dk : null, h: cleanMoments(d.h, r)};
+      dk: d.dk && typeof d.dk === 'object' && !Array.isArray(d.dk) ? d.dk : {}, h: cleanMoments(d.h, r)};
+  }
+  // a pool match's seed and arena, as the job plays them (lib/compday.mjs matchSeed and
+  // matchRules; test/hall-pools.test.mjs holds the two equal): lane E's SquadPools ones
+  // when the module has them
+  function compSeedOf(s, code, arena, k, a, b){
+    if (hasPools() && typeof SquadPools.compSeed === 'function') return SquadPools.compSeed(E, s, code, arena, k, a, b);
+    const g = E.friendGroup('comp|' + code);
+    return arena && arena.seedMode === 'day' ? E.leagueSeed(s, g, 0, 0, 1) : E.leagueSeed(s, g, k, a, b);
+  }
+  function compRulesOf(arena){
+    if (!arena || typeof arena !== 'object' || Array.isArray(arena)) return {};
+    if (hasPools() && typeof SquadPools.compArena === 'function') return E.cleanRules(SquadPools.compArena(arena));
+    return E.cleanRules(arena.seedMode === 'fixed' && Number.isInteger(arena.seed) ? {...arena, mapSeed: arena.seed >>> 0} : arena);
   }
   function compDayP(c, D, day){
-    const me = SquadNet.me() ? D.ids.indexOf(SquadNet.me()) : -1, pools = hasPools() && typeof SquadPools.compSeed === 'function';
+    const me = SquadNet.me() ? D.ids.indexOf(SquadNet.me()) : -1, pools = true;
     const sides = new Map();
     const side = s => {
       if (sides.has(s)) return sides.get(s);
       const id = D.ids[s], bot = BOT_RE.test(id), w = poolWho(id), n = bot ? Number(id.slice(4)) : 0;
-      const faces = (bot ? leagueBotTeam('bot:' + (n > 900000 ? n - 900000 : n)) : D.t[s]) || cleanTeam(null, cleanFace(w) || STAND_IN());
+      const pl = bot && n >= 900000 ? n - 899999 : 0;
+      const faces = (bot ? leagueBotTeam('bot:' + (pl || n)) : D.t[s]) || cleanTeam(null, cleanFace(w) || STAND_IN());
+      if (pl) faces[0] = {...faces[0], name: poolBotName(pl)};
       const x = {label: bot ? faces[0].name : (w && cleanName(w.player)) || faces[0].name, names: faces.map(f => f.name), looks: faces.map(f => f.look), style: faces[0].style, squad: D.sq[s] || null};
       sides.set(s, x); return x;
     };
-    const seed = (k, a, b) => SquadPools.compSeed(E, D.s, c.code, D.o, k, a, b);
-    const rules = () => { try { return E.cleanRules(SquadPools.compArena(D.o)); } catch { return {}; } };
+    const seed = (k, a, b) => compSeedOf(D.s, c.code, D.o, k, a, b);
+    const rules = () => { try { return compRulesOf(D.o); } catch { return {}; } };
     const T = c.table && c.table.length ? tableFor(c.table, D.ids, [], 0) : {};
     return {key: 'c' + c.code + '/' + day, day, n: D.ids.length, rows: D.r, h: D.h, me, side, ref: {kind: 'c', code: c.code}, engine: D.e,
       points: T.points, tableToday: !!T.points && c.played > day, upN: 10, rules: rules(),
@@ -42039,7 +42120,7 @@ const SquadHall = (() => {
       const csq = ok ? E.cleanSquad(squadOf(c.d)) : null;
       if (ok && !c.reroll) m.append(meter(csq ? null : -1, true));
       else if (c.d && !ok) m.append('Not ready yet');
-      if (csq) estimate(csq, true).then(l => { if (b.isConnected){ m.textContent = ''; m.append(meter(l, true)); if (c.reroll) m.append(h('small', null, on ? ' · tap to reroll' : '')); } });
+      if (csq) estimateLive(csq, true, () => b.isConnected, l => { m.textContent = ''; m.append(meter(l, true)); if (c.reroll) m.append(h('small', null, on ? ' · tap to reroll' : '')); });
       // (lane D) against the challenger's captain's role: five of them, the only part of
       // their squad that is not secret
       const foe = csq && st.rivalRole && CLS[st.rivalRole] ? monoFoe(st.rivalRole) : null;
@@ -42447,7 +42528,7 @@ const SquadHall = (() => {
         b.squad.units.forEach((u, i) => minis.append(face(b.looks[i], u.cls, 1)));
         li.append(h('div', {class: 'sq-bt'}, h('b', null, b.name), minis, m, mySq && st.seenOnce ? oddsChip(mySq, b.squad) : ''), button('Practice', 'gold', () => practice(b), {'data-k': 'bot' + k}));
         R.bots.append(li);
-        if (st.seenOnce) estimate(b.squad).then(l => { if (m.isConnected){ m.textContent = ''; m.append(meter(l, true)); } });
+        if (st.seenOnce) estimateLive(b.squad, false, () => m.isConnected, l => { m.textContent = ''; m.append(meter(l, true)); });
       });
     });
   }
@@ -42504,7 +42585,7 @@ const SquadHall = (() => {
     let went = false;
     const go1 = b => { if (went) return; went = true; practice(b, 1); };
     setTimeout(() => go1(bots[Math.floor(Math.random() * bots.length)]), 1200);
-    Promise.all(bots.map(b => estimate(b.squad, true))).then(rs => go1(bots[rs.reduce((m, r, i) => (r.pct < rs[m].pct ? i : m), 0)]));
+    Promise.all(bots.map(b => estimate(b.squad, true, 192))).then(rs => go1(bots[rs.reduce((m, r, i) => (r.pct < rs[m].pct ? i : m), 0)]));
   }
 
   // ---- the practice page's first steps for a newcomer (owner, 12 Oct 2026): watch the
@@ -43102,7 +43183,7 @@ const SquadHall = (() => {
     renderChallenge(); renderTop(); renderLeague(); renderProfile(); renderPath();
     if (st.online && !was) refreshBoard();
     // signed in for a pool's join: it goes on by itself
-    if (st.poolAfter && signedIn()){ const code = st.poolAfter; st.poolAfter = null; poolJoin(code); }
+    if (st.poolAfter && signedIn()){ const code = st.poolAfter; st.poolAfter = null; poolJoin(code, true); }
     // signed in (or the server answered) while the rankings are open: your friend leagues
     if (R.kroot && !R.kroot.closest('main').hidden) loadFriends();
   }
@@ -43265,12 +43346,14 @@ const SquadHall = (() => {
     if (!c) return null;
     const txt = (s, n) => (typeof s === 'string' ? s.replace(/[\u0000-\u0009\u000B-\u001F<>]/g, '').slice(0, n) : '');
     const ids = a => (Array.isArray(a) ? a : []).filter(id => typeof id === 'string' && (ID_OK.test(id) || BOT_RE.test(id))).slice(0, 64);
-    const pub = v.pub && typeof v.pub === 'object' && !Array.isArray(v.pub) ? v.pub.pool : v.pub;
+    // (the server, S1: pub is [{id, bot, tier}] from the draw on; played a mark a day)
+    const pub = v.pub && typeof v.pub === 'object' && !Array.isArray(v.pub) ? v.pub.pool : Array.isArray(v.pub) ? v.pub.map(x => (x && typeof x === 'object' ? x.id : x)) : v.pub;
     const int = (x, hi) => clamp(Math.floor(+x) || 0, 0, hi);
-    const table = (Array.isArray(v.table) ? v.table : []).slice(0, 64).map(r => (Array.isArray(r) ? {id: r[0], p: r[1], w: r[2], l: r[3], pl: r[5]} : r && typeof r === 'object' ? r : null))
+    const table = (Array.isArray(v.table) ? v.table : []).slice(0, 64).map(r => (Array.isArray(r) ? {id: r[0], p: r[1], w: r[2], l: r[3], pl: r[5]} : r && typeof r === 'object' ? {...r, p: r.p !== undefined ? r.p : r.pts} : null))
       .filter(r => r && typeof r.id === 'string' && (ID_OK.test(r.id) || BOT_RE.test(r.id))).map(r => ({id: r.id, p: int(r.p, 1e6), w: int(r.w, 1e6), l: int(r.l, 1e6), pl: r.pl === undefined ? -1 : int(r.pl, 1e6)}));
     return {...c, text: txt(v.text || cfg.text, 400), terms: txt(v.terms || cfg.terms, 2000), minAge: int(cfg.minAge !== undefined ? cfg.minAge : v.minAge, 99),
-      places: ids(Array.isArray(v.pool) ? v.pool : pub), joined: ids(v.joined).slice(0, 12), table, played: int(v.played !== undefined ? v.played : v.days, 7)};
+      places: ids(Array.isArray(v.pool) ? v.pool : pub), joined: ids(v.joined).slice(0, 12), table,
+      played: Array.isArray(v.played) ? v.played.filter(x => x === true).length : int(v.played !== undefined ? v.played : v.days, 7)};
   }
   // where a pool stands, in a few words
   function poolWhen(c){
@@ -43431,8 +43514,16 @@ const SquadHall = (() => {
     const w = SquadNet.who(id);
     if (w) return w;
     const n = BOT_RE.test(id) ? Number(id.slice(4)) : 0;
-    return n ? botFace('bot:' + (n > 900000 ? n - 900000 : n)) : null;
+    if (!n) return null;
+    // (a pool's bot: its place counted from 1)
+    const pl = n >= 900000 ? n - 899999 : 0;
+    const f = botFace('bot:' + (pl || n));
+    return f && pl ? {...f, name: poolBotName(pl)} : f;
   }
+  // a pool's bot (bot:<900000 + place>) is named by its place, each its own name and the
+  // same every time: the league bots' 20 names, then Turbo, Mega and Ultra ones (up to 80)
+  const POOL_BOT_RANK = ['', 'Turbo ', 'Mega ', 'Ultra '];
+  const poolBotName = p => POOL_BOT_RANK[Math.min(3, Math.floor((p - 1) / BOT_NAMES.length))] + BOT_NAMES[(p - 1) % BOT_NAMES.length];
   const poolName = id => { const w = poolWho(id); return w && w.bot ? cleanName(w.name) : frWho(id); };
   // the pool's table: framed faces, medals for the top 3, the top-10 line, YOU and BOT
   function poolTable(c, me){
@@ -43482,7 +43573,9 @@ const SquadHall = (() => {
     try { navigator.clipboard.writeText(url).then(() => say(R.poolMsg, 'Link copied: send it to your friends.', true), () => say(R.poolMsg, url)); } catch { say(R.poolMsg, url); }
   }
   // the join (1 command; a first team save before it is 1 more)
-  async function poolJoin(code){
+  // (resumed: the join goes on by itself right after a sign-in, when the page may not have
+  // read the wallet's team yet: it asks the server first and saves only what it lacks)
+  async function poolJoin(code, resumed){
     const net = SquadNet.comps;
     if (!net || st.poolBusy) return;
     const msg = t => { if (st.pool && st.pool.code === code) say(R.poolMsg, t); else say(R.railMsg, t); };
@@ -43493,7 +43586,23 @@ const SquadHall = (() => {
       // (the critic's C12) a pool plays the active strategy: with no team saved, the team and
       // the strategies go in one save; with no strategies on the account, they are saved first
       const strats = typeof SquadNet.strats === 'function' && SquadNet.strats() ? null : stratsOut();
-      if (!SquadNet.captain()){
+      if (resumed){
+        msg('Joining…');
+        try { await net.join(code); return joined(code); }
+        catch (e) {
+          if (!e || (e.code !== 'no_blub' && e.code !== 'no_strategy')) throw e;
+          const need = stratsOut();
+          if (e.code === 'no_blub'){
+            msg('Saving your team…');
+            const r = typeof SquadNet.saveTeam === 'function' ? await SquadNet.saveTeam(need).catch(() => null) : null;
+            if (!(r && r.ok)){ msg((r && r.error) || 'Save your team first: a pool is for teams.'); return; }
+          } else {
+            msg('Saving your strategies…');
+            const r = need && typeof SquadNet.saveStrats === 'function' ? await SquadNet.saveStrats(need).catch(() => null) : null;
+            if (!(r && r.ok)){ msg((r && r.error) || 'Your strategies were not saved. Try again.'); return; }
+          }
+        }
+      } else if (!SquadNet.captain()){
         msg('Saving your team…');
         const r = typeof SquadNet.saveTeam === 'function' ? await SquadNet.saveTeam(strats).catch(() => null) : null;
         if (!(r && r.ok)){ msg((r && r.error) || 'Save your team first: a pool is for teams.'); return; }
@@ -43504,15 +43613,18 @@ const SquadHall = (() => {
       }
       msg('Joining…');
       await net.join(code);
-      poolMark(code, true);
-      if (st.comps) st.comps.delete(code);
-      say(R.railMsg, ''); if (st.pool && st.pool.code === code) say(R.poolMsg, '');
-      Sfx.play('cheer');
-      if (!st.pool || st.pool.code !== code) openPoolCode(code); else renderPool();
+      joined(code);
     } catch (e) {
       if (e && e.code === 'already'){ poolMark(code, true); renderPool(); renderRail(); return; }
       msg(joinErr(e, code));
     } finally { st.poolBusy = false; renderRail(); }
+  }
+  function joined(code){
+    poolMark(code, true);
+    if (st.comps) st.comps.delete(code);
+    say(R.railMsg, ''); if (st.pool && st.pool.code === code) say(R.poolMsg, '');
+    Sfx.play('cheer');
+    if (!st.pool || st.pool.code !== code) openPoolCode(code); else renderPool();
   }
   // the strategies as the account keeps them ({a, s}), the unfinished ones left out
   function stratsOut(){
@@ -43533,20 +43645,24 @@ const SquadHall = (() => {
     const c = (st.pool && st.pool.c) || (st.league && st.league.comps || []).find(x => x.code === code);
     switch (e && e.code){
       case 'full': return 'This free pool is full (64 of 64).';
-      case 'too_new': return 'Your team is too new for this pool: it takes teams ' + (c && c.minAge ? c.minAge : 1) + ' day' + (c && c.minAge === 1 ? '' : 's') + ' old.';
+      case 'too_new': { const n = e.data && Number.isInteger(e.data.minAge) ? e.data.minAge : c && c.minAge ? c.minAge : 1; return 'Your team is too new for this pool: it takes teams ' + n + ' day' + (n === 1 ? '' : 's') + ' old.'; }
       case 'ip_limit': return 'This network has reached the limit for this pool. Try another network, or ask a moderator.';
       case 'banned': return BAN_TEXT;
       case 'is_moderator': return 'Moderators cannot join a pool.';
-      case 'reentry_limit': return 'You left this pool twice: you cannot join it again.';
       case 'closed': return 'Sign-ups for this pool are closed.';
       case 'no_blub': return 'Save your team first: a pool is for teams.';
       case 'burn_cup': case 'wrong_kind': return 'This cup is entered with a burn.';
       case 'no_strategy': return 'Save your strategies first: a pool plays your active one.';
       case 'in_other': return 'You are in another free pool this week already: one a week.';
+      case 'reentry_limit': return 'You left this pool too often to join it again.';
       case 'comps_off': return 'Pools are switched off for now. Try again later.';
       case 'busy': case 'slow_down': return 'The arena is busy right now: try again in a while.';
+      case 'free_pool': return 'This pool is free: join it, there is nothing to burn.';
+      case 'bad_terms': return 'Agree to the pool rules first.';
+      case 'bad_state': return 'You can leave only while sign-ups are open and you are in.';
     }
-    return e && e.status === 404 ? 'This pool does not exist (any more).' : 'That did not go through. Try again in a moment.';
+    // (the server's own words for anything else)
+    return e && e.status === 404 ? 'This pool does not exist (any more).' : (e && e.message && !/^Request failed/.test(e.message) ? e.message : 'That did not go through. Try again in a moment.');
   }
   // the pool's share card: 600×315 on the week card's pattern
   async function showPoolCard(c, rank, n){
@@ -44619,6 +44735,13 @@ const SquadHome = (() => {
       mist: h.kind === 'mist' ? 1 : 0,
     }),
   );
+  // how long each number shows: 0.95 s, or till the next one over the same Blub comes
+  // (one number over a Blub at a time: two drawn together, 3 px apart, read as one, and
+  // the stage has no room to stack them; the Blue Scar's three, one burst, stand side by side)
+  HITS.forEach((h) => {
+    h.end = h.t + 0.95;
+    for (const n of HITS) if (n.to === h.to && n.t > h.t && n.t < h.end && (n.blob == null || h.blob == null)) h.end = n.t;
+  });
   const MAG = (ENG.RULES && ENG.RULES.scarMag) || 5;
   // the Gambler's spins in Attack (its stance in the plan)
   const SPIN_N = (ENG.RULES && ENG.RULES.gambleSpins && ENG.RULES.gambleSpins.attack) || 3;
@@ -44906,6 +45029,24 @@ const SquadHome = (() => {
         }
       });
     }
+    // a hit's number: its words, and their top edge at t (rising 9 px as they fade; the Blue
+    // Scar's three a little higher each, the mist's low on the body, and over a Blub up on its
+    // watchtower from its platform)
+    const numCv = (h) => V.pxText(h.n, h.col || '#FFFFFF', h.crit || h.boom ? 2 : 1);
+    const numTop = (h) => {
+      const lift = (h.to === 'y3' || h.to === 'r2') && !(h.to === 'r2' && h.t > KO.r2) ? ON_TOWER : 0;
+      return R(P[h.to][1] - 24 - lift - (h.blob || 0) * 3 + (h.mist ? 12 : 0) - R(easeOut(seg(t, h.t, h.t + 0.95)) * 9) - numCv(h).height / 2);
+    };
+    // KO! over each one that goes down (its top edge, by Blub): above every number over that
+    // Blub meanwhile, never on one; where the stage's top leaves no room, those wait under it
+    const KO_H = V.pxText('KO!', '#FF5C77', 1).height;
+    const koTop = {};
+    Object.entries(KO).forEach(([id, ko]) => {
+      if (t < ko || t > ko + 1.0) return;
+      let top = R(P[id][1] - 34 - R(seg(t, ko + 0.1, ko + 0.4) * 4) - KO_H / 2);
+      for (const h of HITS) if (h.to === id && h.t <= ko + 1.0 && h.end > ko) top = Math.min(top, numTop(h) - 1 - KO_H);
+      koTop[id] = Math.max(1, top);
+    });
     // what each hit does: sparks, effects, the shake, and its number rising
     HITS.forEach((h, hi) => {
       const [x, y] = P[h.to];
@@ -44930,14 +45071,12 @@ const SquadHome = (() => {
           if (h.bolt) E.flash(0.06, '#FFFFFF');
         }
       });
-      if (t >= h.t && t < h.t + 0.95) {
+      if (t >= h.t && t < h.end) {
         const kk = seg(t, h.t, h.t + 0.95);
-        const big = h.crit || h.boom;
-        // (the Blue Scar's three side by side, a little higher each; the mist's low, on the body)
+        // (the Blue Scar's three side by side)
         const ox = h.blob != null ? (h.blob - 1) * 9 : hi % 2 ? 3 : -3;
-        // (over a Blub up on its watchtower, from its platform)
-        const lift = (h.to === 'y3' || h.to === 'r2') && !(h.to === 'r2' && h.t > KO.r2) ? ON_TOWER : 0;
-        say(g, h.n, x + ox, y - 24 - lift - (h.blob || 0) * 3 + (h.mist ? 12 : 0) - R(easeOut(kk) * 9), h.col || '#FFFFFF', big ? 2 : 1, 1 - seg(kk, 0.7, 1));
+        const top = koTop[h.to] != null ? Math.max(numTop(h), koTop[h.to] + KO_H + 1) : numTop(h);
+        say(g, h.n, x + ox, top + numCv(h).height / 2, h.col || '#FFFFFF', h.crit || h.boom ? 2 : 1, 1 - seg(kk, 0.7, 1));
       }
     });
     // the bubble shield popping: a ring that grows
@@ -45025,9 +45164,13 @@ const SquadHome = (() => {
         g.drawImage(V.fx('airdrop', 0), x - 16 + sway, R(lerp(-40, y - 44, kk * kk)));
       } else {
         const kk = seg(t, DROP.land, DROP.land + 0.95);
-        const iy = y - 34 - R(easeOut(seg(kk, 0, 0.4)) * 6);
+        // (the perk's icon is drawn on the chest's 32x32 grid: shown at half that, centred
+        // over its Blub, and rising clear of the hit numbers' path below it)
+        const ic = ico('buff', 'airdrop');
+        const s = ic.width > 12 ? ic.width / 2 : ic.width;
+        const iy = y - 32 - s - R(easeOut(seg(kk, 0, 0.4)) * 6);
         g.globalAlpha = 1 - seg(kk, 0.75, 1);
-        g.drawImage(ico('buff', 'airdrop'), x - 6, iy);
+        g.drawImage(ic, R(x - s / 2), iy, s, s);
         g.globalAlpha = 1;
         say(g, 'AIRDROP', x, iy - 6, '#4BE08F', 1, 1 - seg(kk, 0.75, 1));
       }
@@ -45036,11 +45179,10 @@ const SquadHome = (() => {
         fx.burst(x, y - 20, 12, ['#4BE08F', '#FFFFFF', '#FFE3EA'], 40);
       });
     }
-    // KO! over each one that goes down
+    // KO! over each one that goes down (where koTop put it)
     Object.entries(KO).forEach(([id, ko]) => {
       if (t < ko + 0.1 || t > ko + 1.0) return;
-      const [x, y] = P[id];
-      say(g, 'KO!', x, y - 34 - R(seg(t, ko + 0.1, ko + 0.4) * 4), '#FF5C77', 1, 1 - seg(t, ko + 0.8, 1.0 + ko));
+      say(g, 'KO!', P[id][0], koTop[id] + KO_H / 2, '#FF5C77', 1, 1 - seg(t, ko + 0.8, 1.0 + ko));
     });
     // VS, then VICTORY
     if (t >= 1.15 && t < 2.15) {
@@ -47050,7 +47192,7 @@ function adminCtx(){
   // ls: the page's own storage (lsGet/lsPatch), where the panel remembers its tab and step;
   // apiFail: a 401 from the server ends the moderator's session the way the rest of the page does;
   // mint: the $BLUB contract (the payout card's copy button); watchLink: a shared match's link
-  return {API, E: SquadEngine, View: SquadView, Hall: SquadHall, lookCanvas, cleanLook, cleanName, memberOf, mates: cleanSquad, me: () => S.addr, docs: () => S.docs, mode: () => S.mode, ls: {get: lsGet, patch: lsPatch}, apiFail,
+  return {API, E: SquadEngine, pools: SquadPools, View: SquadView, Hall: SquadHall, lookCanvas, cleanLook, cleanName, memberOf, mates: cleanSquad, me: () => S.addr, docs: () => S.docs, mode: () => S.mode, ls: {get: lsGet, patch: lsPatch}, apiFail,
     mint: ((document.getElementById('caText') || {}).textContent || '').trim(), watchLink: typeof SquadNet.watchLink === 'function' ? SquadNet.watchLink : null};
 }
 function adminCss(){
