@@ -2179,9 +2179,9 @@ function placeBot(c, place, L, slot, id) {
   }
   return placeCard(place, 'bot' + (L && L.x ? ' exp' : ''), ...kids);
 }
-function chanceLine(lineup, humans) {
+function chanceLine(c, lineup, humans) {
   const pct = botChance(lineup, humans);
-  return h('p', { class: 'adm-chance' }, h('b', null, pct + '%'), h('span', null, ' chance a bot finishes first (an estimate: bot places weighted 3/2/1 for Strong/Medium/Weak against ' + s_(humans, 'player') + ' counted as Medium). A bot that wins means the prize is burned.'));
+  return h('p', { class: 'adm-chance' }, h('b', null, pct + '%'), h('span', null, ' chance a bot finishes first (an estimate: bot places weighted 3/2/1 for Strong/Medium/Weak against ' + s_(humans, 'player') + ' counted as Medium). ' + (isFreeC(c) ? 'A free pool has no prize: nothing is burned.' : 'A bot that wins means the prize is burned.')));
 }
 function mixCard(c, need) {
   const outs = {};
@@ -2228,7 +2228,7 @@ function renderPool(box, c) {
     const xN = bots.filter((b) => b.x).length;
     addKids(box, h('p', { class: 'adm-state' }, c.cfg.size + ' places: ' + s_(drawn.length, 'wallet') + ' with a verified burn or a free entry, then ' + s_(need, 'bot place') + '.'),
       lapse.length ? h('p', { class: 'sq-desc' }, s_(lapse.length, 'approved entry', 'approved entries') + ' without a verified burn: ' + (lapse.length === 1 ? 'it lapses' : 'they lapse') + ' at the lock unless the burn checks out first (Entries).') : null,
-      h('h4', null, 'Bot mix'), mixCard(c, need), chanceLine(bots, drawn.length), R.poolMsg);
+      h('h4', null, 'Bot mix'), mixCard(c, need), chanceLine(c, bots, drawn.length), R.poolMsg);
     if (need && xN * 100 > need * X_MAX) box.append(h('p', { class: 'adm-state bad' }, s_(xN, 'experiment') + ' in ' + s_(need, 'bot place') + ': more than ' + X_MAX + '%. Fill with mix again or swap some.'));
     if (bots.length < need) box.append(h('p', { class: 'adm-state warn' }, (need - bots.length) + ' bot place' + (need - bots.length === 1 ? ' has' : 's have') + ' no deck yet: the lock fills ' + (need - bots.length === 1 ? 'it' : 'them') + ' from the default mix.'));
     drawn.forEach((e, i) => grid.append(placeWallet(i, e.w, e.free ? 'free entry' : 'burn verified')));
@@ -2241,7 +2241,7 @@ function renderPool(box, c) {
   const tierOfId = Object.fromEntries((c.pub || []).map((p) => [p.id, p.tier]));
   const humans = (c.pool || []).filter((id) => id && !BOT_RE.test(id)).length;
   const drawnBots = (c.pool || []).map((id, p) => (BOT_RE.test(id || '') ? at.get(p) || { place: p, deck: null, tier: tierOfId[id] || null } : null)).filter(Boolean);
-  box.append(h('p', { class: 'adm-state' }, 'Drawn at the lock: ' + s_(humans, 'player') + ' and ' + s_(drawnBots.length, 'bot') + ' in ' + c.pool.length + ' places.'), chanceLine(drawnBots, humans), R.poolMsg);
+  box.append(h('p', { class: 'adm-state' }, 'Drawn at the lock: ' + s_(humans, 'player') + ' and ' + s_(drawnBots.length, 'bot') + ' in ' + c.pool.length + ' places.'), chanceLine(c, drawnBots, humans), R.poolMsg);
   c.pool.forEach((id, place) => {
     if (!id) grid.append(placeCard(place, 'empty', h('span', { class: 'adm-noface adm-face', 'aria-hidden': 'true' }), h('span', { class: 'adm-placeb' }, h('b', null, 'Empty'), h('span', { class: 'lg-sub' }, 'its matches are walkovers'))));
     else if (BOT_RE.test(id)) grid.append(placeBot(c, place, at.get(place) || { deck: null, tier: tierOfId[id] || null }, null, id));
@@ -2355,7 +2355,7 @@ async function loadLive(c) {
   const upTo = c.played && c.played[st.day] ? st.day : lastPlayed(c);
   const rows = upTo >= 0 ? tableFrom(c.pool, days.slice(0, upTo + 1)) : c.pool.map((id, place) => ({ id, place, pts: 0, w: 0, l: 0, margin: 0 })).filter((x) => x.id);
   R.liveBanner.textContent = '';
-  if (rows[0] && BOT_RE.test(rows[0].id) && upTo >= 0) R.liveBanner.append(h('p', { class: 'adm-banner bot' }, 'A bot leads. If it finishes first, the prize is burned.'));
+  if (rows[0] && BOT_RE.test(rows[0].id) && upTo >= 0) R.liveBanner.append(h('p', { class: 'adm-banner bot' }, isFreeC(c) ? 'A bot leads. A free pool has no prize: nothing is burned.' : 'A bot leads. If it finishes first, the prize is burned.'));
   const dq = new Set((c.entries || []).filter((e) => e.st === 'dq').map((e) => e.w));
   drawTable(R.liveTable, c, rows, { live: ['live', 'paused', 'done'].includes(c.st), dq, after: upTo });
   drawDay(c, days, st.day);

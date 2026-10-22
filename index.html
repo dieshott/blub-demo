@@ -164,6 +164,8 @@ p{margin:0}
 @media (max-width:760px){.logo span{display:none}.nav-cta{gap:6px}.nav .btn.small{padding:10px 7px;font-size:9px}.nav-buy{display:none}}
 @media (max-width:480px){.nav-long{display:none}.nav .wrap{gap:10px}.nav-cta{gap:5px}.nav .btn.small{padding:10px 6px;font-size:8px}}
 @media (max-width:370px){.nav .wrap{gap:6px}.nav-cta{gap:4px}}
+/* (the narrowest phones: the buttons a pixel slimmer a side and closer, so the header fits 320 px) */
+@media (max-width:340px){.nav-cta{gap:3px}.nav .btn.small{padding:10px 5px}}
 /* a moderator has a sixth button (Admin): up to a small laptop Buy makes room (it waits in
    the About menu as $BLUB live); on phones Admin waits in the About menu too
    (#navAdminItem.mod shows only there) */
@@ -2373,7 +2375,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&d.local.saved))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">engine 35</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">engine 36</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <div class="nav-about" id="navAbout"><button type="button" class="logo nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub" title="About Blub"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
@@ -2641,7 +2643,7 @@ body.no-scroll{overflow:hidden}
   <canvas id="ground" aria-hidden="true"></canvas>
   <div class="wrap foot">
     <a class="logo" href="#top"><canvas id="logoBlub2" width="16" height="15" aria-hidden="true"></canvas>$BLUB</a>
-    <p>$BLUB is a community memecoin with no intrinsic value: it is not an investment, and nothing on this site is financial advice. This fan game exists to grow the community and the hype around the update. Weekly competitions burn $BLUB to take part; the weekly league, friend leagues and free pools stay free for everyone. A burn is only the way into a competition: nothing here promises any value, price or return. We are fans, in no way linked to, endorsed by or connected with the project Blub comes from or the companies that develop it. Prices come live from DexScreener; tokenized stocks are not available in every country.</p>
+    <p>$BLUB is an unofficial fan project and memecoin with no intrinsic value, not affiliated with or endorsed by Minecraft, Mojang or Microsoft, and nothing on this site is financial advice.</p>
   </div>
 </footer>
 
@@ -3335,7 +3337,7 @@ document.querySelectorAll('#cto .ic[data-spr]').forEach(el=>{if(SPR[el.dataset.s
     // little coral tufts
     [.15,.3,.7,.85].forEach((f,k)=>{const px=Math.floor(W*f);for(let j=0;j<8;j++){x.fillStyle=j%3?'#E2566E':'#FFB0C0';x.fillRect(px+((j*7+k)%5)-2,24-Math.floor(j*1.3),1,2);}});
     const z=document.querySelector('.zzz')||Object.assign(document.createElement('span'),{className:'zzz',textContent:'z'});
-    z.style.left=(bx+14)*4+'px';z.style.top='40px';c.parentElement.append(z);}
+    z.setAttribute('aria-hidden','true');z.style.left=(bx+14)*4+'px';z.style.top='40px';c.parentElement.append(z);}
   draw();addEventListener('resize',draw);})();
 
 /* ================= go ================= */
@@ -4309,7 +4311,7 @@ const SquadEngine = (() => {
 
 // (engine 29: the other session's line, recovered from the demo build; engine 30: the Pop
 // Mine pair and the cleanSquad slide of our engine 28 on top, and the `rules` argument)
-const SQUAD_ENGINE = 35;
+const SQUAD_ENGINE = 36;
 const SIZE = 15;
 const TEAM = 5;
 const TURNS = 20;
@@ -4629,7 +4631,11 @@ const RULES = lock({
   // ---- the trench arsenal
   // Scope Rifle: a shot every three turns (reload, aim, fire); the enemy it aimed at
   // keeps only scopeDodge% of its dodge
-  scopeDmg: 16, scopeDodge: 50,
+  scopeDmg: 15, scopeDodge: 50, // (engine 36: 15, was 16)
+  // (engine 36) the Scope Rifle starts the round loaded (no reload on its first turn)
+  scopeLoaded: true, // (engine 36: on)
+  // (engine 36) a Pixel Bow right next to its enemy does bowClosePct% (the Scope Rifle 50%)
+  bowClosePct: 75, // (engine 36: 75, was 50)
   // Boom Pack: boomDmg on every enemy beside it and boomRing one tile farther; its
   // Blub carries boomHp less HP and boomMove less move. It only goes off when that is
   // worth boomWorth (the HP it takes, a bubble pops for nothing, plus boomKo for every
@@ -4664,7 +4670,9 @@ const RULES = lock({
   // (the ball lands beside the enemy otherwise). That Builder fights with its Build
   // Hammer (toolDmg), whatever weapon it was given; another Builder of the squad keeps
   // its weapon and puts up barricades.
-  cannonBuild: 2, cannonStart: 2, cannonReload: 2, cannonRange: 5, cannonDmg: 9, toolDmg: 2, cannonRow: 10,
+  cannonBuild: 2, cannonStart: 2, cannonReload: 2, cannonRange: 5, cannonDmg: 7, toolDmg: 2, cannonRow: 10, // (engine 36: cannonDmg 7, was 9)
+  // (engine 36) the cannon's Builder takes up its own weapon again once its cannon and wall stand
+  builderKeep: true, // (engine 36: on)
   // Engine 15: the finished cannon has cannonHp. Blasts and the blows of the other
   // side's fighters (from right beside it) knock it about; at 0 it is out of action
   // till its Builder has patched it up, cannonFix a turn (it goes to it with nobody in
@@ -4685,7 +4693,9 @@ const RULES = lock({
   // falls back to its squad. Out of a cloud it digs only with no enemy within pitSafe
   // tiles but one coming (within pitNear).
   pitSafe: 3, pitNear: 7, pitMax: 2, shaftNear: 3,
-  dsmoke: 1, dsmokeTurns: 2, sneakNear: 9, sneakRow: 6, sneakGap: 3,
+  dsmoke: 1, dsmokeTurns: 2, sneakNear: 9, sneakRow: 5, sneakGap: 3, // (engine 36: sneakRow 5, was 6)
+  // (engine 36) a Digger's pit: this many tiles side by side where the enemy will walk
+  pitCells: 2, // (engine 36: 2, was 1)
   // the weather (engine 11, WEATHER): rainPct% of rounds it rains; the rest are clear.
   // Engine 13 took the fog out: its pale veil hid the arena. Engine 27: the rain is
   // Supply Drop Rain (DROPS); it no longer changes how far bows, guns and wands reach.
@@ -4748,7 +4758,7 @@ const RULES = lock({
   evadeDisengage: false, // (study) on Evade, a Blub that steps away from an enemy beside it does not also attack that turn (the Skirmisher's step back and shoot stays its own)
   weaponInHand: true, // (engine 34: on) // an attack's hammer splash and knock-back go by the weapon it struck with (not the one back in its paws after a Blue Scar ran dry)
   medicMelee: 1, // (engine 34: 1, was 0) // a Medic with a melee weapon (sword, daggers, spear, hammer): this much more damage
-  cannonArcReload: 0, cannonArcDmg: 2, // (engine 34: cannonArcDmg 2)
+  cannonArcReload: 0, cannonArcDmg: 0, // (engine 34: cannonArcDmg 2; engine 36: 0, with cannonDmg 7)
   // with cannonArc only: its reload this much shorter, its hit this much more
   // the Harpoon Gun (engine 35: in, HC5 after F's and G's measurements): range, damage,
   // and how many tiles its reel pulls the Blub it hooked (`harpoon: false` leaves it out)
@@ -4799,10 +4809,10 @@ const WEAPONS = lock([
   ['daggers', 'Shell Daggers', 'Melee. Two quick stabs per attack, and a little extra dodge.'],
   ['spear', 'Reed Spear', 'Reach 2. Pokes over a friend or from a safe distance.'],
   ['hammer', 'Sift Hammer', 'Melee. Huge hits that splash the enemies around the target and knock it back, but it misses more.'],
-  ['bow', 'Pixel Bow', `Range 5, needs a clear line of sight. Half damage on an enemy right next to you. A Skirmisher takes aim: +${RULES.bowAim} damage when it shoots without moving.`],
+  ['bow', 'Pixel Bow', `Range 5, needs a clear line of sight. ${RULES.bowClosePct === 50 ? 'Half' : RULES.bowClosePct + '%'} damage on an enemy right next to you. A Skirmisher takes aim: +${RULES.bowAim} damage when it shoots without moving.`],
   ['wand', 'Bubble Wand', 'Range 3 over walls. Bubbles always hit, pass Shell Shields and sometimes trap the target for a turn.'],
   ['rifle', 'Trench Rifle', 'Range 4, needs a clear line of sight. Fires a burst of three, each shot hitting or missing on its own.'],
-  ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg}; the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
+  ['scope', 'Scope Rifle', `Range 7, needs a clear line of sight. ${RULES.scopeLoaded ? `It starts the round loaded: it takes aim at one enemy, then fires for ${RULES.scopeDmg}, and after that three turns a shot (reload, aim, fire);` : `Three turns a shot: it reloads, takes aim at one enemy, then fires for ${RULES.scopeDmg};`} the enemy it aimed at keeps only ${RULES.scopeDodge}% of its dodge. Half damage on an enemy right next to you.`],
   ['boom', 'Boom Pack', `One explosive a squad. No swings: next to an enemy it goes off, ${RULES.boomDmg} damage to every enemy beside it and ${RULES.boomRing} one tile farther, and its Blub is out of the round. It waits for a blast that is worth it: two enemies caught at once, or one in good health knocked out (once its own Blub is down to half, anything goes). It goes for those that dig in first: Builders, Diggers, Miners, Scope Rifles, watchtowers and the other side's cannon. Knocked out next to an enemy, it goes off anyway. Heavy: ${RULES.boomHp} less HP and ${RULES.boomMove} less move.`],
 
 ]);
@@ -4861,8 +4871,8 @@ const POWERS = lock(capped([
   ['nap', 'Moon Nap', `Once per round, when a hit leaves you at ${RULES.napAt}% HP or less: a quick nap that heals ${RULES.napHeal}.`],
   ['bubble', 'Bubble Shield', 'The first hit of the round only pops your bubble.'],
   ['gambler', 'Gambler', `On its first turns it stays on its own rows and spins its wheel, then acts as usual (the spin costs it nothing): ${RULES.gambleGold}% a golden drop, else nothing. Attack gives it ${RULES.gambleSpins.attack} spins, Control ${RULES.gambleSpins.middle}, Evade ${RULES.gambleSpins.evade}, Defend ${RULES.gambleSpins.hold}; the last is ALL IN, at ${RULES.gambleAllIn}%. Its first golden drop and it stops spinning, on a high.`],
-  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage). The cannon fires by itself: every ${RULES.cannonReload - (RULES.cannonArc ? RULES.cannonArcReload : 0)} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles${ARC_TXT}, ${RULES.cannonDmg + (RULES.cannonArc ? RULES.cannonArcDmg : 0)} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
-  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, to the middle or beyond, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs a pit beside it, covered with leaves: its whole turn, at most ${RULES.pitMax === 1 ? 'one pit' : RULES.pitMax + ' pits'} a round${RULES.pitMax > 1 ? ', never two in one turn' : ''}. When the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it.`],
+  ['builder', 'Builder', `A hard hat: +${RULES.workHp} HP. The squad's first Builder builds its cannon: on its first turns, with nobody in its reach, it walks a little way out and builds a 2x2 cannon there (${RULES.cannonBuild} turns), then a wall of two sandbags in front of it (a turn each), and it fights with its Build Hammer instead of its weapon (${RULES.toolDmg} damage)${RULES.builderKeep ? ' till its cannon and wall stand, then takes up its own weapon again' : ''}. The cannon fires by itself: every ${RULES.cannonReload - (RULES.cannonArc ? RULES.cannonArcReload : 0)} turns at the nearest enemy it can see within ${RULES.cannonRange} tiles${ARC_TXT}, ${RULES.cannonDmg + (RULES.cannonArc ? RULES.cannonArcDmg : 0)} damage. Smoke throws it off: it fires blind and hits ${RULES.blindHit}% of the time. Blasts and blows knock it about (${RULES.cannonHp} HP): at 0 it is out of action till its Builder has patched it up, ${RULES.cannonFix} HP a turn. The Builder also puts up barricades beside the allies who need them most, so they take ${RULES.sandSoak} less from every hit (one a turn, up to ${RULES.buildMax} a round). Building takes the whole turn and leaves it wide open: ${RULES.buildTake}% more damage till its next turn.`],
+  ['digger', 'Digger', `Tough from digging: +${RULES.workHp} HP. Carries ${RULES.dsmoke === 1 ? 'a smoke grenade' : RULES.dsmoke + ' smoke grenades'}: with the enemy coming it runs out ahead, ${RULES.sneakRow >= 6 ? 'to the middle or beyond' : `at least ${RULES.sneakRow} rows out from its own back row (the middle is 7)`}, and throws it at its feet (a cloud for that turn and ${RULES.dsmokeTurns} more). Hidden in there it creeps to where the enemy will walk and digs a pit beside it${RULES.pitCells > 1 ? ` (up to ${RULES.pitCells} tiles round it where the enemy will walk, side by side or not)` : ''}, covered with leaves: its whole turn, at most ${RULES.pitMax === 1 ? 'one pit' : RULES.pitMax + ' pits'} a round${RULES.pitMax > 1 ? ', never two in one turn' : ''}. When the cloud lifts it falls back to its squad. Out of the smoke it digs only with no enemy within ${RULES.pitSafe} tiles but one coming. Its own squad never steps on a pit; an enemy that does falls in and is out of the round. Within ${RULES.shaftNear} tiles of its squad's Mine Shaft it digs round the shaft instead, to guard it.`],
   ['miner', 'Miner', `Tough from the mine: +${RULES.workHp} HP. Digs while no enemy is close enough to fight: a gem ${RULES.digGem}% of the time, which it carries to the most hurt ally itself, walking or tunnelling over (+${RULES.gemHeal} HP and +${RULES.gemDmg} damage), a stone ${RULES.digStone}% of the time, which it builds into a barricade. Hurt to ${RULES.tunnelAt}% HP, it tunnels away to safety, once a round. Twice the luck on its Mine Shaft, and it goes back there to dig.`],
 ]));
 const TACTICS = lock([
@@ -5643,7 +5653,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         potion: s.gear === 'potion', pillowAt: 1, attacked: false, hurt: false, dealt: 0, startedTurn: 0, immune: false, lastHealed: -1, pending: 0, amb: 0, moved: false,
         // the Scope Rifle's cycle (0 empty, 1 loaded, 2 aimed at `sight`), barricades put
         // up, what a Miner carries ('gem', 'stone' or ''), and a Miner that was hit
-        load: 0, sight: -1, built: 0, pack: '', tunnel: 0, stake: 0,
+        load: RULES.scopeLoaded && s.wpn === 'scope' ? 1 : 0, own: s.wpn, sight: -1, built: 0, pack: '', tunnel: 0, stake: 0,
         // (engine 31 speed: what the fight hangs on a Blub later is there from the start,
         // undefined, so every Blub keeps one shape and reading it stays quick)
         ...UNIT_LATER,
@@ -5741,7 +5751,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   // the Blub whose turn it is, marked busy by anything it does itself (engine 25: no turn
   // goes to waste); what happens to it, or what its gear does by itself, does not count
   let actor = null;
-  const NOT_DONE = { act: 1, skip: 1, status: 1, turn: 1, ready: 1, order: 1 };
+  const NOT_DONE = { act: 1, skip: 1, status: 1, turn: 1, ready: 1, order: 1, rearm: 1 }; // (rearm, engine 36: taking up its weapon is no turn's work)
   const BY_ITSELF = { doze: 1, pillow: 1, potion: 1, nap: 1 };
   const did = (e) => {
     if (actor && e.u === actor.id && !NOT_DONE[e.t] && !(e.t === 'heal' && BY_ITSELF[e.src])) actor.busy = true;
@@ -6409,7 +6419,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
       crit = 1;
       res = 'crit';
     }
-    if (w.close && cheb(u.x, u.y, d.x, d.y) <= 1) dmg = Math.max(1, Math.floor(dmg / 2));
+    if (w.close && cheb(u.x, u.y, d.x, d.y) <= 1) dmg = Math.max(1, Math.floor((dmg * (w === WEAPON_STATS.bow ? RULES.bowClosePct : 50)) / 100));
     // dug in: the first hit on a Blub that started in a foxhole does less
     let dug = 0;
     if (d.foxhole) {
@@ -6430,7 +6440,13 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     if (guardedBy(d)) dmg = Math.max(1, dmg - RULES.guardianSoak);
     // a fighter's blow under Charge! (engine 26) goes through sandbags and a brace
     const breach = u.charged && w.range <= 2;
-    if (RULES.sandSoak && bySand(d) && !breach) dmg = Math.max(1, dmg - RULES.sandSoak - (byWall(d) ? RULES.wallSoak : 0));
+    // (engine 36, data: what the bags kept off, `soak`, for the view)
+    let soak = 0;
+    if (RULES.sandSoak && bySand(d) && !breach) {
+      soak = dmg;
+      dmg = Math.max(1, dmg - RULES.sandSoak - (byWall(d) ? RULES.wallSoak : 0));
+      soak -= dmg;
+    }
     // Hold the line (the captain's command): every hit does less
     if (ordered(d.team, 'hold')) {
       const soak = d.stn === 'hold' || bySand(d) || byKit(d) ? RULES.holdSoak : RULES.holdSoakAll;
@@ -6454,7 +6470,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     stats[u.id].dmg += dmg;
     stats[d.id].taken += dmg;
     u.dealt += dmg;
-    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}), ...(tg ? { tg } : {}), ...bl, ...(saved ? { saved } : {}), ...trail(u, d, res, 0) });
+    push({ t: 'attack', u: u.id, d: d.id, w: u.wpn, kind, n, res, crit, amb, dmg, hp: d.hp, ...guard, ...(dug ? { dug } : {}), ...(exp ? { exp } : {}), ...(tg ? { tg } : {}), ...bl, ...(saved ? { saved } : {}), ...(soak ? { soak } : {}), ...trail(u, d, res, 0) });
     if (!d.hp) {
       knockOut(d, u);
       return res;
@@ -6752,6 +6768,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   };
   const trap = (u, c) => occ[c] < 0 && ((wireT[c] >= 0 && wireT[c] !== u.team && u.cls !== 'fierce' && !floaty(u)) || (mineT[c] >= 0 && OB[mineT[c]].team !== u.team) || (pitT[c] >= 0 && pitT[c] !== u.team) || c === rug);
   // out: on its way out of the mist, where a step along the edge is no worse than standing
+  let advMove = false; // (engine 36, data) the walk is a Defend advance: its move says so
   function walk(u, path, note, out) {
     let spent = 0;
     let n = 0;
@@ -6790,7 +6807,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     occ[end] = u.id;
     u.moved = true;
     if (note) push(note);
-    if (loud) push({ t: 'move', u: u.id, path: path.slice(0, n).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]) });
+    if (loud) push({ t: 'move', u: u.id, path: path.slice(0, n).map((c) => [c % SIZE, (c - (c % SIZE)) / SIZE]), ...(advMove ? { adv: 1 } : {}) });
     // engine 29: every step it takes past the other side's Smoke Pot counts, not just the last
     if (pots.length) for (let k = 0; k < n; k++) nearPot(u, path[k] % SIZE, (path[k] - (path[k] % SIZE)) / SIZE, k ? (path[k - 1] - (path[k - 1] % SIZE)) / SIZE : fy);
     if (torn !== undefined) {
@@ -7134,7 +7151,12 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
         best = c;
       }
     }
-    return best >= 0 && walk(u, route(P, best));
+    if (best < 0) return false;
+    // (engine 36, data: the view's flag for a Defend advance, `adv` on its move)
+    advMove = true;
+    const went = walk(u, route(P, best));
+    advMove = false;
+    return went;
   }
   // Evade: the tile in its reach that is safest (evadeGap tiles from every enemy, near
   // its squad) and from which it hits something, its target first; a tile next to an
@@ -7265,7 +7287,7 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
     cand.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
     // best of all: where the most of them will walk soonest
     if (ways) cand.sort((p, q) => (ways.get(q[2]) || 0) - (ways.get(p[2]) || 0) || p[0] - q[0] || p[1] - q[1]);
-    const cells = cand.slice(0, 1).map((q) => q[2]);
+    const cells = cand.slice(0, RULES.pitCells).map((q) => q[2]);
     for (const c of cells) {
       pitT[c] = u.team;
       pitBy[c] = u.id;
@@ -8284,6 +8306,11 @@ function simulateRound(sqA, sqB, seed, round = 0, quiet = false, chest = CHEST_O
   const crewOf = (team) => living[team].filter((v) => v.engineer || v.crew);
   function engineer(u) {
     let w = works.find((v) => v.team === u.team);
+    // (engine 36, builderKeep) its cannon and wall up (or none to build any more), it takes up its own weapon
+    if (RULES.builderKeep && u.wpn === 'tool' && u.own && (w ? w.u === u && w.stage >= w.of && w.wall >= w.front.length : now > RULES.cannonStart + (meme[u.team].printAt || 0))) {
+      u.wpn = u.own;
+      push({ t: 'rearm', u: u.id, w: u.wpn });
+    }
     // its cannon knocked about (engine 15): with nobody in its reach it patches it up
     if (w && w.hp != null && w.hp <= w.max - RULES.cannonFix && !inReach(u).length) return mend(u, w);
     if (w && w.stage >= w.of && w.wall >= w.front.length) return false;
@@ -20893,7 +20920,7 @@ const SquadView = (() => {
         return 'The smoke clears: ' + u + ' falls back to its squad.';
       // the trench arsenal
       case 'reload':
-        return u + (e.w === 'harpoon' ? ' loads a new harpoon.' : ' reloads the Scope Rifle.');
+        return u + (e.w === 'harpoon' ? ' loads a new harpoon.' : e.first ? ' loads the Scope Rifle.' : ' reloads the Scope Rifle.');
       // the Harpoon Gun (engine 33 candidate)
       case 'reel':
         if (e.snap) return u + "'s line snaps: " + d + ' got too far away.';
@@ -20916,7 +20943,11 @@ const SquadView = (() => {
         return e.d >= 0 && e.d !== e.u ? u + ' puts up sandbags beside ' + d + '.' : u + ' puts up a barricade.';
       // a Digger's pits (engine 10)
       case 'pit':
-        return u + (e.at && e.at.length > 1 ? ' digs pits round the Mine Shaft and hides them under leaves.' : ' looks round, digs a pit and hides it under leaves.');
+        // (engine 36: two tiles a pit, side by side or apart; e.short: the short scene of a
+        // match's later pits, straight to the spade, no look round)
+        if (e.shaft) return u + (e.at && e.at.length > 1 ? ' digs pits round the Mine Shaft and hides them under leaves.' : ' digs a pit beside the Mine Shaft and hides it under leaves.');
+        if (e.at && e.at.length > 1) return u + (e.short ? ' digs' : ' looks round, digs') + (Math.max(Math.abs(e.at[0][0] - e.at[1][0]), Math.abs(e.at[0][1] - e.at[1][1])) <= 1 ? ' a pit two tiles wide and hides it under leaves.' : ' two pits and hides them under leaves.');
+        return u + (e.short ? ' digs' : ' looks round, digs') + ' a pit and hides it under leaves.';
       case 'pitfall':
         return 'PITFALL! ' + u + ' falls into ' + nm(e.by) + "'s pit: out of the round.";
       // a Builder's works (engine 9)
@@ -21024,6 +21055,9 @@ const SquadView = (() => {
       }
       case 'scartoss':
         return u + ' tosses the empty Blue Scar away and fights on with its ' + nameOf('wpn', e.wpn) + '.';
+      // engine 36: its cannon and wall stand, so the Builder takes up its own weapon
+      case 'rearm':
+        return u + (e.idle ? ' has no time left to build: it slings' : "'s works stand: it slings") + ' the Build Hammer and takes up its ' + nameOf('wpn', e.w) + '.';
       case 'perk':
         // (opened mid-round, engine 28: e.by opened it, e.u gets what is in it)
         if (e.kind === 'gold' && e.n != null) {
@@ -22108,7 +22142,7 @@ const SquadView = (() => {
     // the Harpoon Gun (engine 33 candidate): the shot's wind-up, the head's flight a tile,
     // a hook biting home, a miss dragged back; the reel's line snapping taut, the pull a
     // tile, the rest of the scene, and a line that snaps
-    harpWind: 380, harpTile: 70, harpBite: 420, harpTaut: 200, harpDrag: 900, reel: 1500, reelTaut: 520, reelTile: 260, reelSnap: 900,
+    rearm: 700, rearmHit: 380, harpWind: 380, harpTile: 70, harpBite: 420, harpTaut: 200, harpDrag: 900, reel: 1500, reelTaut: 520, reelTile: 260, reelSnap: 900,
     reload: 560, reloadHit: 300, scope: 820, scopeHit: 420, scopeShot: 1000, scopeWind: 460, burstGap: 110,
     // the Blue Scar (engine 31): its blobs a beat apart, and the empty rifle tossed
     scarGap: 120, scarToss: 760, scarTossHit: 320,
@@ -22134,10 +22168,10 @@ const SquadView = (() => {
     // Blub tumbles out to its tile for breakFly), then the wreck, to read. Thrown out of
     // the knocked-out gun: the tumble out of it (gunOutFly) and the dust settling.
     gunIn: 2200, gunInHop: 520, gunInSit: 240, bigLid: 160,
-    breakOut: 2600, breakShake: 560, bigBurst: 140, breakFly: 620, gunOut: 1250, gunOutFly: 560,
+    breakOut: 2600, breakShake: 560, bigBurst: 140, breakFly: 620, gunOut: 1250, gunOutFly: 560, gunKo: 300,
     // a Digger's pit (engine 10): the close-up, a look round through its binoculars,
     // the digging and the leaves over it (done at pitHit); and an enemy falling in
-    pitdig: 2400, pitdigHit: 2050, pitfall: 1500,
+    pitdig: 2400, pitdigHit: 2050, pitdigS: 1200, pitdigSHit: 1050, pitfall: 1500,
     // the engine 7 trench kit: a Smoke Pot popping (after the shot it swallows) and
     // its cloud clearing, a Decoy Blub falling apart, the stretcher fetched from the tent
     // (stretcherFetch) and on its way back to it (in at stretcherHit), and the way back out
@@ -22260,14 +22294,16 @@ const SquadView = (() => {
   // ...but only its routine: these beats are scenes, choreographed with their camera,
   // and keep their time however long the round runs (as does the last knock-out)
   // (engine 29: smokenear too, a Smoke Pot an enemy walked up to rattling till it pops)
-  const KEEP_TIME = new Set(['box', 'crack', 'gopen', 'gamble', 'pill', 'burst', 'oneshot', 'pillcrash', 'pillend', 'reel', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'smokenear', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon', 'gunin', 'breakout', 'gunout']);
+  const KEEP_TIME = new Set(['box', 'crack', 'gopen', 'gamble', 'pill', 'burst', 'oneshot', 'pillcrash', 'pillend', 'reel', 'rearm', 'phone', 'van', 'coin', 'unleash', 'dogdone', 'rintro', 'end', 'perks', 'sink', 'nuke', 'rug', 'unrug', 'wave', 'rocket', 'lambo', 'pick', 'airdrop', 'snipe', 'honey', 'claim', 'blowup', 'order', 'smokepop', 'smokenear', 'stretcher', 'mended', 'pitdig', 'pitfall', 'grenade', 'ride', 'moon', 'gunin', 'breakout', 'gunout', 'gunko']);
   const keepsTime = (b) => KEEP_TIME.has(b.kind) || !!b.slow || !!b.keep;
   const cheb = (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]));
 
   // Turns a round's events into beats on a clock. Each beat lists the events it applies and when.
-  function buildTimeline(R, calm, speed) {
+  function buildTimeline(R, calm, speed, ri) {
     const ev = R.ev;
     const beats = [];
+    // the match's pits before this round (the first pit of a match gets the whole scene)
+    let pitsBefore = typeof P !== 'undefined' && P && P.rounds ? P.rounds.slice(0, ri == null ? P.ri : ri).reduce((n, r) => n + r.R.ev.filter((v) => v.t === 'pit').length, 0) : 0;
     const fast = speed >= 2;
     const intro = { kind: 'rintro', dur: calm ? MS.still : fast ? MS.rIntroFast : MS.rIntro, list: [], actors: [] };
     beats.push(intro);
@@ -22311,23 +22347,61 @@ const SquadView = (() => {
       // a beat a hit sets off (a Moon Nap, a rage, Paper Hands, the Sniper Bot on the power
       // it used): the beat of that hit
       const reactTo = (on) => (on && parent ? { react: parent.react || parent } : {});
+      // in the engine's order: knock-outs one after another in one beat, a revive a beat of
+      // its own where it comes (a Blub revived and then knocked out again is seen in that order)
       const flush = () => {
         if (!pend.length) return;
-        const kos = pend.filter((i) => ev[i].t === 'ko');
-        if (kos.length) add({ kind: 'ko', dur: MS.ko, contact: 0, list: kos.map((ei) => ({ ei, off: 0 })), kos });
-        pend.filter((i) => ev[i].t === 'revive').forEach((ei) => add({ kind: 'revive', dur: MS.revive, contact: MS.reviveHit, list: [{ ei, off: MS.reviveHit }], e: ev[ei] }));
+        let kos = [];
+        const out = () => {
+          // (Engine 36 view: in the Pump.fun Pill's bursts a knock-out gets 150 ms more to be seen)
+          if (kos.length) add({ kind: 'ko', dur: MS.ko + (rager >= 0 ? 150 : 0), contact: 0, list: kos.map((ei) => ({ ei, off: 0 })), kos });
+          kos = [];
+        };
+        for (const ei of pend) {
+          if (ev[ei].t === 'ko') kos.push(ei);
+          else {
+            out();
+            add({ kind: 'revive', dur: MS.revive, contact: MS.reviveHit, list: [{ ei, off: MS.reviveHit }], e: ev[ei] });
+          }
+        }
+        out();
         pend = [];
         lastMove = null;
       };
       const attachTo = (b, ei) => b.list.push({ ei, off: b.contact });
+      // A hit's riders never land before what the engine put between that hit and them on the
+      // same Blub's HP or life (a Berry Potion, a Moon Nap, Gas Fees, a revive): the page sets
+      // the HP each event names, so a rider shown first would raise the bar on a blow. A potion
+      // drunk at the blow is drunk on the hit's beat, just before the rider (pulled); past
+      // anything else the rest of the hit gets beats of its own after it (cut).
+      const HP_OF = new Set(['attack', 'splash', 'zap', 'bump', 'shell', 'snag', 'mine', 'nuked', 'fume', 'rammed', 'sniped', 'crashed', 'gas', 'blasted', 'cannonball', 'slam', 'singed', 'bullet', 'bite', 'goo', 'pump', 'oneshot', 'heal', 'fog', 'rekt']);
+      const lifeOf = (v) => (v.t === 'ko' || v.t === 'revive' || v.t === 'wagmi' ? v.u : v.d != null && HP_OF.has(v.t) ? v.d : -1);
+      const pulls = [];
+      let cut = null;
+      const mayRide = (p, i) => {
+        const x = lifeOf(ev[i]);
+        if (x < 0) return true;
+        if (pend.some((j) => ev[j].u === x)) return !(cut = p);
+        const later = [];
+        for (let j = beats.length - 1; j >= 0 && beats[j] !== p; j--) if (beats[j].list.some((it) => lifeOf(ev[it.ei]) === x)) later.push(beats[j]);
+        if (!later.length) return true;
+        const w = later[0];
+        if (later.length === 1 && w.kind === 'heal' && w.e.src === 'potion' && w.list.length === 1 && (!w.pull || w.pull === p)) {
+          if (!w.pull) pulls.push(w);
+          w.pull = p;
+          return true;
+        }
+        return !(cut = p);
+      };
       // engine 29: the 'box' of a chance drop that fell straight onto its Blub, told just
       // before what is in it ('drop', or the golden drop's 'perk'): its index, else -1
       const directBox = (i, team) => (i > 0 && ev[i - 1].t === 'box' && ev[i - 1].direct && ev[i - 1].team === team ? i - 1 : -1);
       ev.forEach((e, i) => {
         const t = e.t;
         if (t === 'pill') rager = e.u;
-        // its bullets ride on their burst, whatever a hit set off in between
-        if (t === 'pump' && lastBurst) {
+        // its bullets ride on their burst, whatever a hit set off in between (on another Blub)
+        cut = null;
+        if (t === 'pump' && lastBurst && mayRide(lastBurst, i)) {
           lastBurst.list.push({ ei: i, off: MS.burstHit + lastBurst.nb * MS.pumpGap });
           lastBurst.nb++;
           return;
@@ -22369,7 +22443,7 @@ const SquadView = (() => {
         // that a hit set off is a beat of its own, but what else that hit did, its splash,
         // its knock-back, the rest of the burst, still rides on the hit: `react`)
         for (const p of [parent, parent && parent.react]) {
-          if (!p) continue;
+          if (!p || !mayRide(p, i)) continue;
           if ((t === 'splash' || t === 'knock' || t === 'bump' || t === 'goo') && p.kind === 'attack') {
             attachTo(p, i);
             if (t === 'knock' && e.to) pos[e.d] = e.to.slice();
@@ -22408,12 +22482,13 @@ const SquadView = (() => {
             attachTo(p, i);
             return;
           }
-          // a supply drop (engine 27): what it does lands with the crate; a second
-          // crate in the same turn comes down just after the first, in the same beat
+          // a supply drop (engine 27): what it does lands with the crate; every other crate
+          // of the same turn comes down just after the one before, in the same beat (the
+          // rain's drops in one moment); two: how many joined
           if (p.kind === 'drop') {
-            if (t === 'drop' && !p.two && p.e.n === e.n && !e.box && !p.e.box) {
-              p.two = true;
-              p.list.push({ ei: i, off: MS.dropTwo });
+            if (t === 'drop' && p.e.n === e.n && !e.box && !p.e.box && !p.direct) {
+              p.two = (p.two || 0) + 1;
+              p.list.push({ ei: i, off: MS.dropTwo * p.two });
               p.contact += MS.dropTwo;
               p.dur += MS.dropTwo;
               if (p.actors && !p.actors.includes(e.u)) p.actors.push(e.u);
@@ -22606,6 +22681,11 @@ const SquadView = (() => {
         // the start, its 'status' riding on the contact); knocked out in it, or out of the
         // round from it, its seat just empties
         if (t === 'gunner' || t === 'breakout') {
+          // (knocked out in its seat: a short beat, the hatch pops open with a puff)
+          if (t === 'gunner' && !e.on && e.why === 'ko') {
+            add({ kind: 'gunko', dur: MS.gunKo, contact: 0, list: [{ ei: i, off: 0 }], e });
+            return;
+          }
           if (t === 'gunner' && !e.on && e.why !== 'down') {
             add({ kind: 'misc', dur: 0, contact: 0, list: [{ ei: i, off: 0 }] });
             return;
@@ -22643,6 +22723,11 @@ const SquadView = (() => {
         if (t === 'reel') {
           parent = add({ kind: 'reel', dur: e.snap ? MS.reelSnap : MS.reel + MS.reelTile * e.path.length, contact: MS.reelTaut, list: [{ ei: i, off: 0 }], e, actors: [e.u, e.d] });
           if (e.path.length) pos[e.d] = e.to.slice();
+          return;
+        }
+        // (engine 36, builderKeep) the Builder slings its hammer and takes up its own weapon
+        if (t === 'rearm') {
+          parent = add({ kind: 'rearm', dur: MS.rearm, contact: MS.rearmHit, list: [{ ei: i, off: MS.rearmHit }], e, actors: [e.u] });
           return;
         }
         if (t === 'pillcrash') {
@@ -22755,8 +22840,11 @@ const SquadView = (() => {
         }
         // a Digger digs a pit (the crater has the beat called 'pit'), and a Blub falls
         // into one: scenes of their own
+        // (owner, 22 Oct 2026) the whole scene, binoculars and all, for a match's first pit;
+        // a short beat for the ones after it (pitsBefore: the match's pits so far)
         if (t === 'pit') {
-          parent = add({ kind: 'pitdig', dur: MS.pitdig, contact: MS.pitdigHit, list: [{ ei: i, off: MS.pitdigHit }], e, actors: [e.u] });
+          const short = pitsBefore++ > 0;
+          parent = add({ kind: 'pitdig', dur: short ? MS.pitdigS : MS.pitdig, contact: short ? MS.pitdigSHit : MS.pitdigHit, list: [{ ei: i, off: short ? MS.pitdigSHit : MS.pitdigHit }], e, actors: [e.u], short });
           return;
         }
         // the Digger's smoke grenade (engine 14): a scene of its own, the cloud at its contact
@@ -22926,8 +23014,11 @@ const SquadView = (() => {
           return;
         }
         if (t === 'end') {
-          // the last knock-out plays at half speed
-          const last = beats[beats.length - 1];
+          // the last knock-out plays at half speed (past what only follows from it: the
+          // command's unseen end, the Pill's tally, the Big Gun's hatch for its gunner)
+          let j = beats.length - 1;
+          while (j > 0 && ((beats[j].kind === 'misc' && !beats[j].dur) || beats[j].kind === 'pillend' || beats[j].kind === 'gunko')) j--;
+          const last = beats[j];
           if (last && last.kind === 'ko') {
             last.dur += MS.koSlow;
             last.slow = true;
@@ -22935,11 +23026,24 @@ const SquadView = (() => {
           add({ kind: 'end', dur: MS.end, contact: 0, list: [{ ei: i, off: 0 }], e, ei: i });
           return;
         }
-        // anything else (a stray status) gets a short beat of its own
-        parent = add({ kind: 'misc', dur: 200, contact: 100, list: [{ ei: i, off: 100 }], e });
+        // anything else (a stray status) gets a short beat of its own (the rest of a hit cut
+        // off from it: what else that hit did may still ride on it)
+        parent = add({ kind: 'misc', dur: 200, contact: 100, list: [{ ei: i, off: 100 }], e, ...(cut ? { react: cut.react || cut } : {}) });
       });
       flush();
       if (pre.length) add({ kind: 'misc', dur: 0, contact: 0, list: [] });
+      // a potion drunk between a hit and its riders: on the hit's beat, between the blow that
+      // made it drink and what came after it (its own beat is left as nothing, so no beat moves)
+      for (const w of pulls) {
+        const p = w.pull;
+        const pi = w.list[0].ei;
+        const on = p.list.filter((it) => lifeOf(ev[it.ei]) === ev[pi].d);
+        const next = Math.min(...on.filter((it) => it.ei > pi).map((it) => it.off));
+        if (!Number.isFinite(next)) continue;
+        const prev = Math.max(0, ...on.filter((it) => it.ei < pi && it.off <= next).map((it) => it.off));
+        p.list.splice(p.list.findIndex((it) => it.ei > pi), 0, { ei: pi, off: Math.round((prev + next) / 2) });
+        Object.assign(w, { kind: 'misc', dur: 0, contact: 0, list: [], actors: [], e: undefined, pull: undefined });
+      }
     }
     // squeeze very long rounds: the same factor for every routine beat, in what time
     // the scenes leave over
@@ -23002,7 +23106,7 @@ const SquadView = (() => {
       curve: null, crater: null, fud: null, bait: null, props: [], spent: {}, perkSeen: {}, rocketGone: false, lamboGone: false, wreck: null, wreckTurn: 0, sink: null,
       // the trench arsenal: barricades put up, Scope Rifles taking aim (unit -> target),
       // what each Miner carries
-      walls: [], sights: {}, packs: {}, lines: {}, hEmpty: {},
+      walls: [], sights: {}, packs: {}, bigs: {}, lines: {}, hEmpty: {},
       // the engine 7 trench kit: Smoke Pot clouds hanging ({o, cells}) and pots spent,
       // what each Decoy Blub has left, and who lies in each Field Hospital (-1: nobody)
       smoke: [], smokeUsed: {}, decoys: {}, tents: {}, gren: {},
@@ -23022,6 +23126,12 @@ const SquadView = (() => {
   }
   function fold(S, e) {
     const U = S.u;
+    // a pit's hole that the engine filled in again (left open it would have cut the arena in
+    // two: grass once more, and no event says so) is gone once a Blub stands on its tile or a
+    // new pit is dug there
+    const fill = (x, y) => {
+      if (S.pits.some((p) => p.open && p.x === x && p.y === y)) S.pits = S.pits.filter((p) => !(p.open && p.x === x && p.y === y));
+    };
     switch (e.t) {
       case 'turn':
         S.turn = e.n;
@@ -23032,6 +23142,7 @@ const SquadView = (() => {
           // and out of a screen's grip (engine 26) the same way
           if (u.st && u.st.caught && u.st.caught < e.n) delete u.st.caught;
           if (p) {
+            fill(p[0], p[1]);
             u.x = p[0];
             u.y = p[1];
             u.hp = e.hp[i];
@@ -23081,6 +23192,7 @@ const SquadView = (() => {
         U[e.u].st.stunned = false;
         break;
       case 'move': {
+        for (const [x0, y0] of e.path) fill(x0, y0);
         const p = e.path[e.path.length - 1];
         U[e.u].x = p[0];
         U[e.u].y = p[1];
@@ -23186,7 +23298,10 @@ const SquadView = (() => {
       }
       // a Digger's pit, hidden under leaves; and a Blub that falls into one
       case 'pit':
-        for (const [x0, y0] of e.at) S.pits.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM), open: false });
+        for (const [x0, y0] of e.at) {
+          fill(x0, y0);
+          S.pits.push({ x: x0, y: y0, team: Math.floor(e.u / SE.TEAM), open: false });
+        }
         break;
       case 'pitfall': {
         U[e.u].alive = false;
@@ -23228,6 +23343,8 @@ const SquadView = (() => {
         break;
       case 'dig':
         S.packs[e.u] = e.found || '';
+        // (engine 32: a gem out of its own Mine Shaft is a big one)
+        S.bigs[e.u] = e.found === 'gem' && !!e.shaft;
         break;
       case 'deliver':
         S.packs[e.u] = '';
@@ -23324,6 +23441,10 @@ const SquadView = (() => {
         delete U[e.u].st.mag;
         U[e.u].wasWpn = null;
         U[e.u].wpn = e.wpn;
+        break;
+      // (engine 36, builderKeep) the Builder's works stand: it takes up its own weapon
+      case 'rearm':
+        U[e.u].wpn = e.w;
         break;
       // the Pizza Phone (engine 22): on the phone, the box down, a slice eaten
       case 'phone':
@@ -24019,7 +24140,8 @@ const SquadView = (() => {
         moving = true;
         // climbing onto a watchtower (or down from it) along the step
         lift = Math.round(lerp(liftAt(a[0], a[1]), liftAt(b[0], b[1]), f));
-      } else if (!m.slide && e < m.dur + 100) sq = 1 - (e - m.dur) / 100;
+      } else if (m.bang && e < m.dur + m.bang) sq = 1;
+      else if (!m.slide && e < m.dur + 100) sq = 1 - (e - m.dur) / 100;
       else u.mv = null;
     }
     const rx = Math.round(sx);
@@ -24423,7 +24545,8 @@ const SquadView = (() => {
     // (lane I) in Rage Mode a red edge flickers in its place (steady when calm)
     const rageOn = u.alive && u.st.rage && (P.calm || Math.floor(now / 160) % 2);
     if (u.alive && !u.st.pumped && u.of == null && !rageOn) {
-      x.globalAlpha = palName === 'contrast' ? 1 : 0.75;
+      // (owner, 22 Oct 2026: Rival in pink stronger) full strength but in Classic
+      x.globalAlpha = palName === 'classic' ? 0.75 : 1;
       x.drawImage(S.line[u.side], ox - 1, oy - 1);
       x.globalAlpha = 1;
     }
@@ -24453,6 +24576,7 @@ const SquadView = (() => {
     // instead of its own weapon
     if (inHand) drawHandFront(x, held, ox, oy, t);
     else drawWeapon(x, u, ox, oy, pose, t);
+    if (u.adv && t >= u.adv[0] && t < u.adv[1]) paintRows(x, ADV_CHIP, { k: INK, b: colors[u.side].fill, w: '#FFFFFF' }, ox + 5, oy - 7, 1);
     // (engine 29: and its sparkles, over it)
     if (u.glow) drawGlow(x, u, ox, oy, p.y, t, true);
     // lasting looks
@@ -24749,9 +24873,14 @@ const SquadView = (() => {
   // the acting Blub's name: its first eight letters on a dark tag edged in its team's
   // colour (cached per name and colour)
   const TAGS = new Map();
+  // Defend's advance: a 5x5 shield over the head
+  const ADV_CHIP = ['.kkk.', 'kbwbk', 'kbbbk', '.kbk.', '..k..'];
+  // a team's colour for its rings and tags: the light tone, but the fill itself in Pink
+  // (its light pink is too pale on the floor)
+  const teamTone = (side) => (palName === 'pink' ? colors[side].fill : colors[side].light);
   function nameTag(u) {
     const name = String(P.names[u.id] || 'Blub').toUpperCase().replace(/[^A-Z0-9 !?.'-]/g, '').slice(0, 8) || 'BLUB';
-    const col = colors[u.side].light;
+    const col = teamTone(u.side);
     const key = name + '|' + col;
     let c = TAGS.get(key);
     if (c) return c;
@@ -25277,6 +25406,50 @@ const SquadView = (() => {
     const vl = Math.hypot(tx - hx, ty - hy) || 1;
     return [hx + ((tx - hx) / vl) * reach, hy + ((ty - hy) / vl) * reach];
   }
+  // ---- engine 36, builderKeep: the Builder's works stand, and it takes up its own weapon.
+  // The Build Hammer swings up over its shoulder onto its back and is gone; at contact its
+  // own weapon is in its paw (the replay state switches there), a glint on it, TO ARMS.
+  function rearmBeat(b, T, k) {
+    const e = b.e;
+    const u = P.S.u[e.u];
+    if (!u) return;
+    const hit = T + b.contact;
+    // (the hammer in flight is the only one: the paw draws nothing till its own weapon is
+    // there at contact, as in a build, a craft or a dig)
+    if (!P.calm) u.toolUse = [T, hit];
+    if (!P.calm)
+      addFx(T, b.contact, (x, kk) => {
+        const ub = u._b;
+        if (!ub) return;
+        const s = u.face > 0 ? 1 : -1;
+        const hx = ub.ox + (s > 0 ? 15 : 0);
+        const hy = ub.oy + 15;
+        // from the paw, up and over to its back (the far side), turning as it goes
+        const X = Math.round(lerp(hx, ub.ox + 8 - s * 7, kk));
+        const Y = Math.round(lerp(hy, ub.oy + 9, kk) - Math.sin(kk * Math.PI) * 9);
+        x.globalAlpha = kk > 0.75 ? (1 - kk) / 0.25 : 1;
+        drawArmsDir(x, 'tool', X, Y, (Math.round(kk * 4) + (s > 0 ? 6 : 2)) % 8);
+        x.globalAlpha = 1;
+      });
+    atClock(T, () => sfx('click'));
+    atClock(hit, () => {
+      sfx('reload');
+      const ub = u._b;
+      if (ub) addParts(4, ub.ox + (u.face > 0 ? 15 : 0), ub.oy + 8, ['#FFFFFF', '#FFF3B0'], 0.05, 0.0002, 240 * k, hit, false);
+    });
+    // a glint along the weapon now in its paw
+    addFx(hit, 160 * k, (x, kk) => {
+      const ub = u._b;
+      if (!ub) return;
+      const X = ub.ox + (u.face > 0 ? 15 : 0) + (u.face > 0 ? 1 : -1);
+      const Y = ub.oy + 6 + Math.round(kk * 6);
+      x.fillStyle = '#FFFFFF';
+      x.fillRect(X, Y, 1, 1);
+      x.fillRect(X - 1, Y + 1, 3, 1);
+    });
+    const [cx, cy] = centreOf(u);
+    label(hit, 'TO ARMS', '#FFD447', cx, above(cy - 24), true);
+  }
   // ---- the Harpoon Gun (engine 33 candidate). Its head is out on its line (hooked, or
   // lying where it missed) till the reel or the reload: the gun in its paw shows empty.
   const harpOut = (u) => !!(P.S && P.S.lines && (P.S.lines[u.id] != null || P.S.hEmpty[u.id]));
@@ -25400,7 +25573,10 @@ const SquadView = (() => {
       });
       if (e.hp > 0) {
         const g = harpAt(d) || [tx, ty];
-        label(tl + 40 * k, 'HOOKED!', '#E8D3A2', g[0], above(g[1] - 22), true);
+        // over the number fx puts on the Blub: a crit's is twice as tall, and the COVER or
+        // SNEAK line it pushes up goes in between
+        const lift = e.res === 'crit' ? (e.soak || e.amb ? 16 : 5) : 0;
+        label(tl + 40 * k, 'HOOKED!', '#E8D3A2', g[0], above(g[1] - 22 - lift), true);
         return;
       }
     } else if (e.res === 'absorb') {
@@ -25592,8 +25768,9 @@ const SquadView = (() => {
   const gunLand = (big) => Math.round((big ? 260 : 150) / 2.2);
   // how many rounds of a burst (the Pill's 'burst', the Diamond Hand's 'spray') were
   // really fired at its target: the engine stops once it is down, the shots after it
-  // are its 'pump' / 'bullet' events (at most e.n)
-  function roundsAt(e, kind) {
+  // are its 'pump' / 'bullet' events (at most e.n); those on its beat b (one the engine put
+  // after a Moon Nap, a potion's or a revive of its target comes later, with its own tracer)
+  function roundsAt(e, kind, b) {
     const ev = P.rounds[P.ri] && P.rounds[P.ri].R.ev;
     let i = ev ? ev.indexOf(e) : -1;
     if (i < 0) return e.n;
@@ -25601,7 +25778,7 @@ const SquadView = (() => {
     for (i++; i < ev.length; i++) {
       const v = ev[i];
       if (v.t === kind) {
-        if (v.d === e.d) n++;
+        if (v.d === e.d && (!b || b.list.some((it) => it.ei === i))) n++;
       } else if (v.t === 'burst' || v.t === 'spray' || v.t === 'pillend' || v.t === 'turn' || v.t === 'act' || v.t === 'move' || v.t === 'attack' || v.t === 'oneshot' || v.t === 'pillcrash') break;
     }
     return Math.max(1, Math.min(e.n, n));
@@ -25677,6 +25854,18 @@ const SquadView = (() => {
       const u = S.u[id];
       if (!what || !u || !u.alive || !u._b) continue;
       const bob = P.calm ? 0 : Math.floor(now / 300 + u.id) % 2;
+      // a big gem (out of its Mine Shaft) at twice the size, a sparkle winking on it
+      if (what === 'gem' && S.bigs && S.bigs[id]) {
+        const gx = u._b.ox + 3;
+        const gy = u._b.oy - 12 - bob;
+        paintRows(x, GEM_ROWS, IP, gx, gy, 2);
+        if (P.calm || Math.floor(now / 250 + u.id) % 3 === 0) {
+          x.fillStyle = '#FFFFFF';
+          x.fillRect(gx + 8, gy - 2, 1, 3);
+          x.fillRect(gx + 7, gy - 1, 3, 1);
+        }
+        continue;
+      }
       paintRows(x, what === 'gem' ? GEM_ROWS : STONE_ROWS, IP, u._b.ox + 6, u._b.oy - 7 - bob, 1);
     }
   }
@@ -26021,16 +26210,27 @@ const SquadView = (() => {
     const u = S.u[e.u];
     if (!u) return true;
     const [ux, uy] = centreOf(u);
-    const LOOK = 900 * k;
-    const DIG = 1550 * k;
+    // (a later pit: straight to the spade, no look round)
+    const LOOK = b.short ? 0 : 900 * k;
+    const DIG = b.short ? 550 * k : 1550 * k;
     const DONE = b.contact;
-    closeUp(T, b.dur, ux, uy - 4);
-    label(T + 80 * k, 'SHHH...', '#C9C9D6', ux, above(uy - 22), true);
+    // (engine 36: a pit is two tiles, not always side by side) the shot takes in the Digger
+    // and both tiles where it fits, else the two tiles, else the Digger
+    const pts = e.at.map(([px0, py0]) => tileC(px0, py0));
+    const box = (list) => { const xs = list.map((q) => q[0]); const ys = list.map((q) => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+    const fits = (bb) => bb[2] - bb[0] <= WIN[0] - 4 && bb[3] - bb[1] <= WIN[1] - 12;
+    const all = box([[ux, uy], ...pts]);
+    const two = box(pts);
+    const [fx0, fy0] = fits(all) ? [(all[0] + all[2]) / 2, (all[1] + all[3]) / 2] : fits(two) ? [(two[0] + two[2]) / 2, (two[1] + two[3]) / 2] : [ux, uy];
+    closeUp(T, b.dur, Math.round(fx0), Math.round(fy0) - 4);
+    if (!b.short) label(T + 80 * k, 'SHHH...', '#C9C9D6', ux, above(uy - 22), true);
     // the binoculars, at its eyes, turning one way and the other
     const face0 = u.face || 1;
-    atClock(T + 300 * k, () => (u.face = -face0));
-    atClock(T + 620 * k, () => (u.face = face0));
-    addFx(T + 120 * k, LOOK - 120 * k, (x) => {
+    if (!b.short) {
+      atClock(T + 300 * k, () => (u.face = -face0));
+      atClock(T + 620 * k, () => (u.face = face0));
+    }
+    if (!b.short) addFx(T + 120 * k, LOOK - 120 * k, (x) => {
       const ub = u._b;
       if (!ub) return;
       const s = u.face > 0 ? 1 : -1;
@@ -26059,7 +26259,8 @@ const SquadView = (() => {
       for (let j = 0; j < 4; j++) addParts(3, cx, cy - 14, LEAF, 0.02, 0.0002, 520 * k, T + DIG + j * 90 * k, true, [Math.PI * 0.3, Math.PI * 0.7]);
     }
     for (let j = 0; j < 5; j++) atClock(T + LOOK + j * 120 * k, () => sfx('dig'));
-    label(T + DONE, e.shaft ? 'PITS ROUND THE SHAFT' : 'PIT HIDDEN', '#4BE08F', ux, above(uy - 22), true);
+    // (round the shaft: one pit where there was room for only one tile)
+    label(T + DONE, e.shaft ? (e.at.length > 1 ? 'PITS ROUND THE SHAFT' : 'PIT BY THE SHAFT') : 'PIT HIDDEN', '#4BE08F', ux, above(uy - 22), true);
     return true;
   }
   // ---- a Builder's cannon on the board (engine 9): in its row (the lower of its two),
@@ -26469,6 +26670,15 @@ const SquadView = (() => {
       addParts(16, px + 24, py + 26, [OC.wdL, OC.wd, '#6E6E80', '#3A3A4A', '#FFD447'], 0.08, 0.0005, 560 * k, wreck, true, [Math.PI * 1.05, Math.PI * 1.95]);
       return;
     }
+    // knocked out in its seat: the hatch pops open, a puff of smoke out of it, bits of the
+    // lid's rim, and the seat is empty
+    if (b.kind === 'gunko') {
+      for (let j = 0; j < 2; j++) addFx(T + j * 60 * k, 420 * k, (x, kk) => x.drawImage(fxFrame('puff', Math.min(5, Math.floor(kk * 6))), Math.round(hx - 8 + (j ? 3 : -3)), Math.round(hy - 12 - kk * 10)));
+      addParts(6, hx, hy - 3, ['#6E6E80', '#C9C9D6', '#FFF3B0'], 0.07, 0.0005, 380 * k, T, true, [Math.PI * 1.1, Math.PI * 1.9]);
+      ringFx(T, hx, hy - 2, 220 * k, '#FFF3B0', 3, 10, false, 0.5);
+      atClock(T, () => sfx('thud'));
+      return;
+    }
     // thrown out of its knocked-out gun
     const FLY = MS.gunOutFly * k;
     u.air = [T, T + FLY];
@@ -26537,7 +26747,7 @@ const SquadView = (() => {
     const S = P.S;
     const e = b.e;
     // (engine 29: the Big Gun's gunner, in or out)
-    if (b.kind === 'gunin' || b.kind === 'breakout' || b.kind === 'gunout') {
+    if (b.kind === 'gunin' || b.kind === 'breakout' || b.kind === 'gunout' || b.kind === 'gunko') {
       gunnerBeat(b, T, k);
       return true;
     }
@@ -28033,7 +28243,8 @@ const SquadView = (() => {
     // standing in it, then the near side of its objects (rails, wire, a foxhole's lip)
     const rows = [];
     for (const u of S.u) {
-      if (!u.alive || u.gone) {
+      // (a revive's reverse knock-out draws it till it is up: u.rise)
+      if (!u.alive || u.gone || (u.rise && t < u.rise && !P.calm)) {
         u._b = null;
         continue;
       }
@@ -28088,7 +28299,7 @@ const SquadView = (() => {
       }
       if (ol) for (const o of ol) guard(x, () => drawObj(x, o, 'front', t, now, intro));
       // (lane I) a knocked-out Blub lying in this row, over its floor objects
-      for (const bd of P.bodies) if (bd.row === r && t >= bd.t0 && t < bd.t1) guard(x, () => bd.draw(x, t));
+      for (const bd of P.bodies) if (bd.row === r && t >= bd.t0 && t < bd.t1) guard(x, () => bd.draw(x, t - (bd.sh || 0)));
     }
     P.bodies = P.bodies.filter((bd) => t < bd.t1);
     guard(x, () => drawMist(x, t, now));
@@ -28921,12 +29132,15 @@ const SquadView = (() => {
       atClock(T + b.contact, () => sfx('clink')); // lane D3
       u.hop = { kind: 'toss', t0: T, dur: 220 * k, h: 3 };
     }
-    // it lies there a while
-    addFx(T + b.contact, (P.calm ? 1400 : 1600) * k, (x, kk) => {
+    // it lies there a while (Engine 36 view: it lands with a 3 px bounce and a puff of dust)
+    const bounce = 120 * k;
+    addFx(T + b.contact, (P.calm ? 1400 : 1600) * k, (x, kk, el) => {
       x.globalAlpha = kk > 0.7 ? (1 - kk) / 0.3 : 1;
-      drawArmsDir(x, 'scar', lx, ly, 2);
+      const hop = !P.calm && el < bounce ? Math.round(Math.sin((el / bounce) * Math.PI) * 3) : 0;
+      drawArmsDir(x, 'scar', lx, ly - hop, 2);
       x.globalAlpha = 1;
     }, true);
+    addParts(4, lx, ly + 2, ['#D9C3A0', '#B89B74'], 0.03, 0.0003, 300 * k, T + b.contact, false, [Math.PI, Math.PI * 2]);
     label(T + 60 * k, 'EMPTY!', '#86CBF3', ux, uy - 24, true);
     return true;
   }
@@ -29043,13 +29257,16 @@ const SquadView = (() => {
         }
       }, false, true);
       label(a0 + 60 * k, name + (melee ? ' STRIKES' : ' AIMS'), '#FF5C77', centreOf(kl)[0], above(centreOf(kl)[1] - 34), true);
-      // the impact frame: drawn while the hit-stop holds the clock at the hit
-      addFx(hit, 40 * k, (x) => {
+      // the impact frame: drawn while the hit-stop holds the clock at the hit (Engine 36
+      // view, the owner's choice: softer, 0.7, and never longer than 30 ms of the clock)
+      addFx(hit, Math.min(40 * k, 30), (x) => {
         const db = d._b;
+        x.globalAlpha = 0.7;
         x.fillStyle = '#FF2E4C';
         x.fillRect(0, 0, CW, CH);
         x.fillStyle = INK;
         for (let y = 0; y < CH; y += 4) x.fillRect(0, y, CW, 1);
+        x.globalAlpha = 1;
         if (db && P.spr[d.id]) x.drawImage(P.spr[d.id].white, 0, 0, 18, 22, db.ox - 1, db.oy - 1, 18, 22);
         const kb = kl._b;
         if (kb && P.spr[kl.id]) {
@@ -29063,6 +29280,29 @@ const SquadView = (() => {
     // would cut a second line above)
     // (gone again before the knock-out's own KO comes up, at the end of the beat)
     label(hit + 200 * k, 'PILL EXECUTED', '#4BE08F', stamp()[0], stamp()[1] + 34, true, 2);
+  }
+  // the weapon of the blow that knocked a Blub out: the event that took its last HP (hp 0),
+  // when that is the knocker's own attack (or that hammer blow's knock-back bump) or its one
+  // shot at a Pump.fun Pill, else KO (the mist, a mine, a pit, a blast, a splash, a bite, the
+  // Pill's crash…; logic audit 5: the old list of kinds that are no blow missed the one shot
+  // and named an earlier blow instead)
+  function lastBlow(e) {
+    const ev = P.rd && P.rd.R && P.rd.R.ev;
+    if (!ev || !(e.by >= 0)) return 'KO';
+    for (let i = ev.lastIndexOf(e) - 1; i >= 0; i--) {
+      let x = ev[i];
+      if (x.t === 'turn') break;
+      if (x.d !== e.u || x.hp !== 0) continue;
+      // (the knock-back's bump is the knocker's own blow: the word of the blow that knocked it)
+      if (x.t === 'bump' && x.u === e.by)
+        for (let j = i - 1; j >= 0 && ev[j].t !== 'turn'; j--)
+          if (ev[j].t === 'attack' && ev[j].u === e.by && ev[j].d === e.u) {
+            x = ev[j];
+            break;
+          }
+      return (x.t === 'attack' || x.t === 'oneshot') && x.u === e.by && x.res !== 'miss' && x.res !== 'whiff' && x.res !== 'absorb' ? KILL_WORD[x.w] || 'KO' : 'KO';
+    }
+    return 'KO';
   }
   const KILL_WORD = { harpoon: 'HARPOONED', scope: 'HEADSHOT', rifle: 'TAKEDOWN', bow: 'BULLSEYE', wand: 'POP!', raygun: 'SPLAT!', scar: 'BLUBBED', sword: 'SLICED', daggers: 'STABBED', spear: 'SKEWERED', hammer: 'BONK!', tool: 'BONK!', boom: 'KABOOM' };
   // The one that brings the Pump.fun Pill down strikes from beside it with its blade or
@@ -29166,7 +29406,7 @@ const SquadView = (() => {
       label(T + 40 * k, words[(e.u + Math.round(T / 97)) % 4], '#4BE08F', ux, uy - 26, false);
       // (only the rounds it really fired at it: none after it is down; each leaves so as
       // to land with its number)
-      const fired = roundsAt(e, 'pump');
+      const fired = roundsAt(e, 'pump', b);
       for (let s = 0; s < fired; s++) {
         const st = T + (MS.burstHit + s * MS.pumpGap) * k;
         atClock(st - gunLand(false) * k, () => sfx('shot'));
@@ -29541,8 +29781,9 @@ const SquadView = (() => {
       if (!self) faceTo(u, tx0);
       // (the stack is at its side, the one away from where it faces)
       const s = u.face > 0 ? -1 : 1;
-      const far = Math.hypot(tx0 - fx0, ty0 - fy0);
-      const h = self ? 9 : Math.min(30, 12 + far * 0.3);
+      // (a tile high at most, however far: the slice reads as thrown, not launched; its +N
+      // lands with it, the heal riding on the contact)
+      const h = self ? 9 : 16;
       u.hop = { kind: 'toss', t0: go - 60 * k, dur: 200 * k, h: 2 };
       atClock(go, () => sfx('click'));
       addFx(go, hit - go, (x, kk, el) => {
@@ -30048,6 +30289,8 @@ const SquadView = (() => {
     // home: a happy trot back, hearts, and it sits down for good
     const sat = T + e.path.length * MS.dogTrot * k;
     label(sat + 100 * k, 'GOOD BOY', '#FFD447', cx, cy - 26, true);
+    // (one bark as it sits back down)
+    atClock(sat + 100 * k, () => sfx('woof'));
     addParts(5, cx, cy - 14, ['#FF5C77', '#FF9AA8'], 0.03, -0.00006, 900 * k, sat + 100 * k, false, [-Math.PI * 0.8, -Math.PI * 0.2]);
     return true;
   }
@@ -30289,6 +30532,7 @@ const SquadView = (() => {
     if (pizzaBeat(b, T, k)) return;
     if (pillBeat(b, T, k)) return;
     if (b.kind === 'reel') return reelBeat(b, T, k);
+    if (b.kind === 'rearm') return rearmBeat(b, T, k);
     if (scarBeat(b, T, k)) return;
     if (arsenalBeat(b, T, k)) return;
     if (kitBeat(b, T, k)) return;
@@ -30741,6 +30985,9 @@ const SquadView = (() => {
       if (!P.calm) {
         const { pts, seg } = roundCorners(pts0, step);
         u.mv = { pts, seg, t0: T, step, dur: step * (pts0.length - 1), feint: !!e.feint };
+        // (owner, 22 Oct 2026; engine 36: e.adv) Defend walking forward: a shield chip over
+        // its head for that walk's beat
+        if (e.adv) u.adv = [T, Math.max(T + u.mv.dur, b ? b.t + b.dur : 0)];
         const [lx, ly] = pts[pts.length - 1];
         addParts(4, lx * TILE + 8, TOP + ly * TILE + 14, ['#FFE3EA', '#E9A2B6'], 0.03, 0.0001, 260 * k, T + u.mv.dur, false, [Math.PI * 0.9, Math.PI * 2.1]);
       }
@@ -30765,7 +31012,11 @@ const SquadView = (() => {
       const d = U[e.d];
       // (Engine 33 view: round a rock's corner, as a walk does)
       const { pts, seg } = roundCorners([scr(e.from[0], e.from[1]), scr(e.to[0], e.to[1])], 150 * k);
-      d.mv = { pts, seg, t0: T, step: 150 * k, dur: 150 * k, slide: true };
+      // (owner, 22 Oct 2026) thrown 2 tiles or more: it lands with a hit-stop and a squash
+      // for a frame (bang: how long the squash shows past the slide)
+      const far = Math.max(Math.abs(e.to[0] - e.from[0]), Math.abs(e.to[1] - e.from[1])) >= 2;
+      d.mv = { pts, seg, t0: T, step: 150 * k, dur: 150 * k, slide: true, bang: far && !P.calm ? 24 : 0 };
+      if (far && !P.calm && !P.seeking) atClock(T + 150 * k, () => hold(60));
     } else if (e.t === 'knock' && !e.to && live) {
       // (Engine 33 view) knocked into a wall or a Blub: it gives a quarter tile and comes
       // back, so the bump that hurts it is seen
@@ -30782,7 +31033,11 @@ const SquadView = (() => {
     // the whale's wave carries a Blub along instead of dropping it on its new tile
     if (e.t === 'shove' && live) {
       const u = U[e.u];
-      u.mv = { pts: [scr(u.x, u.y), scr(e.to[0], e.to[1])], t0: T, step: 260 * k, dur: 260 * k, slide: true };
+      // (owner, 22 Oct 2026) shoved 2 tiles or more by the wave: a hit-stop and a squash where
+      // it lands, as a long knock (from where it stood to e.to)
+      const far = Math.max(Math.abs(e.to[0] - u.x), Math.abs(e.to[1] - u.y)) >= 2;
+      u.mv = { pts: [scr(u.x, u.y), scr(e.to[0], e.to[1])], t0: T, step: 260 * k, dur: 260 * k, slide: true, bang: far && !P.calm ? 24 : 0 };
+      if (far && !P.calm && !P.seeking) atClock(T + 260 * k, () => hold(60));
     }
     // the pill follows the crowd: each reading it glides over from the last one, and
     // when it graduates it comes down from where it was hanging
@@ -30854,7 +31109,7 @@ const SquadView = (() => {
       }
     });
     // the log follows a jump too, so it always tells what led up to the spot on screen
-    log(e);
+    log(e, b);
     if (P.seeking) return;
     P.dirty = true;
     if (P.calm) return;
@@ -30872,6 +31127,22 @@ const SquadView = (() => {
     ringFx(T, dx, dy - 3, 260 * k, '#C9C9D6', 5, 14, false, 0.8);
     addParts(5, dx, dy - 4, ['#FFFFFF', '#C9C9D6'], 0.06, 0.0002, 220 * k, T, false);
     label(T + 1, 'ARMOR', '#C9C9D6', dx, top + 9);
+  }
+  // A Scope Rifle's reload with no shot of it before (since the round began or its last
+  // load): back in its paws after a Blue Scar or a Ray Gun, which emptied it (engine), so it
+  // loads; there is no spent case to throw out. A shot is a blow, a Decoy hit or a Smoke Pot
+  // popped with it
+  function scopeFirst(e) {
+    const ev = e.t === 'reload' && e.w !== 'harpoon' && P.rd && P.rd.R ? P.rd.R.ev : null;
+    const i = ev ? ev.indexOf(e) : -1;
+    if (i < 0) return false;
+    for (let j = i - 1; j >= 0; j--) {
+      const v = ev[j];
+      if (v.u !== e.u) continue;
+      if (v.w === 'scope' && (v.t === 'attack' || v.t === 'decoy' || v.t === 'smoke')) return false;
+      if (v.t === 'reload' && v.w !== 'harpoon') return true;
+    }
+    return true;
   }
   function fx(e, T, b, k) {
     const S = P.S;
@@ -30891,7 +31162,7 @@ const SquadView = (() => {
         // (lane D, animation review 6) a burst (Trench Rifle, Blue Scar) keeps one running
         // label over its target: the damage so far, or MISS ×n while nothing has landed
         const burst = (e.w === 'rifle' || e.w === 'scar') && b && b.kind === 'attack';
-        const tl = burst ? ((b.tally = b.tally || {})[e.d] = (b.tally && b.tally[e.d]) || { miss: 0, dmg: 0, crit: false, block: false }) : null;
+        const tl = burst ? ((b.tally = b.tally || {})[e.d] = (b.tally && b.tally[e.d]) || { miss: 0, dmg: 0, soak: 0, crit: false, block: false }) : null;
         const bkey = burst ? 'burst:' + b.t + ':' + e.u + ':' + e.d : undefined;
         const missLabel = () => {
           if (!tl) return label(T, 'MISS', '#D9CDEA', dx, top);
@@ -30984,7 +31255,8 @@ const SquadView = (() => {
             sfx('crit');
           } else {
             if (!tl) label(T, String(e.dmg), e.res === 'block' ? '#BDE7FF' : '#FFFFFF', dx, top);
-            sfx(e.res === 'block' ? 'block' : 'hit');
+            // (Engine 36 view: a bubble from the wand has its own sound)
+            sfx(e.res === 'block' ? 'block' : e.w === 'wand' ? 'blop' : 'hit');
           }
           if (e.res === 'block') {
             addParts(9, lerp(dx, ux, 0.3), dy - 2, ['#FFF3B0', '#FFFFFF', '#FFD447'], 0.08, 0.0003, 280 * k, T);
@@ -30994,6 +31266,12 @@ const SquadView = (() => {
             }
           } else addParts(6, dx, dy, ['#FFFFFF', sideCol(d).light], 0.06, 0.00025, 300 * k, T);
           if (e.amb) label(T + 2, 'SNEAK', '#FF8A3D', dx, top - 8);
+          // (Engine 36 view) the sandbags took some off: COVER -n beside the number (e.soak);
+          // a burst sums it in one label, as it does the number
+          if (e.soak && tl) {
+            tl.soak += e.soak;
+            label(T + 2, 'COVER -' + tl.soak, OC.skL, dx, top - 8, false, 1, bkey + ':cover');
+          } else if (e.soak) label(T + 2, 'COVER -' + e.soak, OC.skL, dx, top - 8);
           if (e.dug) {
             // the blow lands on the foxhole's lip: a puff of dirt, then up it comes
             const [, sy] = scr(d.x, d.y);
@@ -31709,7 +31987,9 @@ const SquadView = (() => {
           }
         });
         closeUp(t1 + YANK * 0.4, t4 - t1 - YANK * 0.4 + 260 * k, cx, cy - 8, { force: true });
-        atClock(t3, () => sfx('miss'));
+        // a whoosh as the rug is yanked, a thud as it falls
+        atClock(t1, () => sfx('miss'));
+        atClock(t3, () => sfx('thud'));
         atClock(t4, () => shake(t4));
         label(t3 + DROP * 0.5, 'RUGGED!', '#E2566E', cx, cy - 18, true, 2);
         for (const s of [-1, 1])
@@ -31943,7 +32223,7 @@ const SquadView = (() => {
         }
         label(T + 60 * k, 'RATATAT', '#FFD447', gx, gy - 26, false);
         // (only the rounds it fired at it, each landing with its number)
-        const fired = roundsAt(e, 'bullet');
+        const fired = roundsAt(e, 'bullet', b);
         for (let s = 0; s < fired; s++) {
           const st = T + (MS.sprayHit + s * MS.sprayGap) * k - gunLand(false) * k;
           if (p) p.fireT.push(st);
@@ -31958,6 +32238,11 @@ const SquadView = (() => {
       case 'pump': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
+        // (a round cut off from its burst by what its target did in between: its own tracer)
+        if (b && b.kind !== 'burst' && U[e.u]) {
+          gunShot(T - gunLand(false) * k, U[e.u], d, 0, 0, k, false);
+          sfx('shot');
+        }
         if (e.res === 'absorb') {
           label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
           return;
@@ -31978,6 +32263,10 @@ const SquadView = (() => {
       case 'bullet': {
         const d = U[e.d];
         const [dx, dy] = centreOf(d);
+        if (b && b.kind !== 'spray' && U[e.u]) {
+          gunShot(T - gunLand(false) * k, U[e.u], d, 0, 0, k, false, true);
+          sfx('shot');
+        }
         if (e.res === 'absorb') {
           label(T, 'POP', '#BDE7FF', dx, dy - 14, true);
           return;
@@ -32142,9 +32431,11 @@ const SquadView = (() => {
         const u = U[e.u];
         const [ux, uy] = shotFrom(u);
         const s = u.face > 0 ? 1 : -1;
+        const first = scopeFirst(e);
         // (Engine 33 view) a spent case, 2x1 and outlined, flipping end over end as it flies
-        // up out of the breech and drops (a harpoon has no case: its new head goes in)
-        if (e.w !== 'harpoon')
+        // up out of the breech and drops (a harpoon has no case: its new head goes in; nor
+        // has a Scope Rifle that has not fired since its last load: LOAD)
+        if (e.w !== 'harpoon' && !first)
           addFx(T, 460 * k, (x, kk) => {
             const X = Math.round(ux + 6 * s + s * kk * 7);
             const Y = Math.round(uy - 1 - Math.sin(kk * Math.PI) * 6 + kk * 8);
@@ -32158,7 +32449,7 @@ const SquadView = (() => {
           x.fillStyle = '#FFF3B0';
           x.fillRect(ux + 5 * s, uy - 2, 1, 1);
         });
-        label(T, 'RELOAD', colors.gold, ux, above(uy - 22));
+        label(T, first ? 'LOAD' : 'RELOAD', colors.gold, ux, above(uy - 22));
         sfx('reload');
         return;
       }
@@ -32175,7 +32466,9 @@ const SquadView = (() => {
             x.fillRect(ux + 5 * s - r, uy - 3, r * 2 + 1, 1);
             x.fillRect(ux + 5 * s, uy - 3 - r, 1, r * 2 + 1);
           });
-          label(T, 'AIM', colors.gold, ux, above(uy - 22));
+          // (Engine 36 view, the owner's choice #25) the Scope Rifle ready over its shooter;
+          // the red AIM is the scoped target's
+          label(T, 'READY', colors.gold, ux, above(uy - 22));
           sfx('aim');
           return;
         }
@@ -32490,7 +32783,7 @@ const SquadView = (() => {
         const u = U[e.u];
         if (!u) return;
         const good = !!e.good;
-        const land = b && b.kind === 'drop' ? Math.max(e.box ? 0 : 120 * k, b.t + b.contact - T - (b.two && T <= b.t ? Math.round(MS.dropTwo * k) : 0)) : (e.box ? MS.boxPick : MS.dropHit) * k;
+        const land = b && b.kind === 'drop' ? Math.max(e.box ? 0 : 120 * k, b.t + b.contact - T - (b.two ? Math.round(MS.dropTwo * k) * (b.two - Math.round((T - b.t) / Math.max(1, MS.dropTwo * k))) : 0)) : (e.box ? MS.boxPick : MS.dropHit) * k;
         const [cx0, cy0] = centreOf(u);
         const y0 = TOP - 36;
         const col = good ? '#4BE08F' : '#FF5C77';
@@ -33473,6 +33766,38 @@ const SquadView = (() => {
         });
         ringFx(T, ux, uy + 4, 420 * k, '#5FE6D6', 4, 16, false, 0.6);
         label(T, 'REVIVE!', '#5FE6D6', ux, uy - 16, true);
+        // (owner, 22 Oct 2026) a knock-out played backwards: its ghost sinks back down into the
+        // body lying on the floor (G), then the body tips back up (TT) and the Blub is itself
+        if (!P.calm && !P.seeking) {
+          const G = 400 * k;
+          const TT = 160 * k;
+          const f = u.face > 0 ? 1 : -1;
+          const spr = P.spr[u.id].get(f, 'o');
+          const [sx, sy] = scr(u.x, u.y);
+          const ox = sx * TILE;
+          const oy = Math.round(TOP + sy * TILE + 14) - 19;
+          const X = ox + 8;
+          const fy = oy + 20;
+          u.rise = T + G + TT;
+          const ghost = P.spr[u.id].ghost;
+          addFx(T, G, (x, kk) => {
+            x.globalAlpha = 0.65 * kk;
+            x.drawImage(ghost, Math.round(ux - 9 + Math.sin((1 - kk) * 9) * 2), Math.round(uy - 14 - (1 - kk) * 22));
+            x.globalAlpha = 1;
+          });
+          P.bodies.push({ row: sy, t0: T, t1: T + G + TT, draw: (x, t) => {
+            const el = t - T;
+            if (el >= G + TT * 0.65) {
+              x.drawImage(spr, ox, oy + 1);
+              return;
+            }
+            x.save();
+            x.translate(X - f * 10, fy + 2);
+            x.rotate((f * Math.PI) / 2);
+            x.drawImage(el < G ? ghostOf(spr, 'koLie' + u.id + f, Math.max(0.05, el / G)) : spr, f > 0 ? -14 : -2, -20);
+            x.restore();
+          } });
+        }
         sfx('sift');
         say(P.names[e.u] + ' is revived by the Sift Totem.');
         return;
@@ -33493,7 +33818,10 @@ const SquadView = (() => {
           let [fx, fy] = [ux, uy];
           if (kl && kl.alive) {
             const [kx, ky] = centreOf(kl);
-            if (Math.abs(kx - ux) <= WIN[0] && Math.abs(ky - uy) <= WIN[1]) [fx, fy] = [(kx + ux) / 2, (ky + uy) / 2];
+            // (both whole between the bars: the window is CH / 2 high, less 6 px of bar at
+            // each end, and a Blub reaches 13 px over its centre and 9 under it, the word
+            // over the one knocked out; else the frame is the knocked-out Blub's)
+            if (Math.abs(kx - ux) <= WIN[0] && Math.abs(ky - uy) <= WIN[1] - 28) [fx, fy] = [(kx + ux) / 2, (ky + uy) / 2];
           }
           closeUp(T, 1150 * k, fx, fy - 6, { slow: [T, T + 260 * k], force: true });
         }
@@ -33534,7 +33862,10 @@ const SquadView = (() => {
           x.drawImage(ghost, Math.round(ux - 9 + Math.sin(kk * 9) * 2), Math.round(uy - 14 - kk * 22));
           x.globalAlpha = 1;
         });
-        label(T, 'KO', '#FF5C77', ux, uy - 14, true, 2);
+        // (Engine 36 view, the owner's choice #26) the round's last knock-out names the blow:
+        // SLICED, BONK!, … from the knocker's own last attack on it; a knock-out with no
+        // weapon in it (the mist, a mine, a pit, the Pill's crash) stays KO
+        label(T, b && b.slow ? lastBlow(e) : 'KO', '#FF5C77', ux, uy - 14, true, 2);
         shake(T);
         sfx('ko');
         say(describe(koEv(e), P.names));
@@ -33553,7 +33884,7 @@ const SquadView = (() => {
           }
           if (n === 1 && foes > 1) {
             const [lx, ly] = centreOf(last);
-            ringFx(T + 300 * k, lx, ly + 4, 700 * k, colors[last.side].light, 3, 16, false, 0.7);
+            ringFx(T + 300 * k, lx, ly + 4, 700 * k, teamTone(last.side), 3, 16, false, 0.7);
             label(T + 340 * k, 'LAST ONE!', colors[last.side].light, lx, above(ly - 24), true);
           }
         }
@@ -34287,8 +34618,8 @@ const SquadView = (() => {
   }
 
   // ---- text: ticker, log and the screen-reader line
-  const LOGGED = new Set(['box', 'crack', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillcrash', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'coinlost', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee', 'gunner', 'lay', 'breakout', 'scar', 'scartoss', 'reel']);
-  function log(e) {
+  const LOGGED = new Set(['box', 'crack', 'boxgone', 'gamble', 'pill', 'oneshot', 'pillcrash', 'pillend', 'phone', 'pizza', 'slice', 'toss', 'coin', 'coinlost', 'goo', 'unleash', 'dogrun', 'bite', 'dogdone', 'ride', 'moon', 'slam', 'singed', 'attack', 'heal', 'power', 'ko', 'pickup', 'spawn', 'revive', 'mist', 'skip', 'zap', 'splash', 'knock', 'status', 'aim', 'blast', 'shell', 'snag', 'boom', 'mine', 'curve', 'nuke', 'nuked', 'crater', 'fume', 'fud', 'whale', 'rocket', 'lambo', 'rammed', 'rug', 'unrug', 'honey', 'sticky', 'spray', 'bullet', 'airdrop', 'snipe', 'sniped', 'devwallet', 'paper', 'claim', 'prophit', 'propdown', 'crashed', 'pick', 'gas', 'sink', 'fall', 'goal', 'perk', 'yield', 'reload', 'scope', 'blowup', 'blasted', 'build', 'dig', 'deliver', 'burrow', 'stake', 'arm', 'order', 'smoke', 'decoy', 'stretcher', 'mended', 'craft', 'cannon', 'cannonball', 'pit', 'pitfall', 'grenade', 'fallback', 'cannonhit', 'ready', 'drop', 'wagmi', 'rekt', 'flee', 'gunner', 'lay', 'breakout', 'scar', 'scartoss', 'reel', 'rearm']);
+  function log(e, b) {
     if (!LOGGED.has(e.t)) return;
     if (e.t === 'attack' && e.n === 1) return;
     // a Blub on its way somewhere says so once, not every turn it walks on
@@ -34297,7 +34628,11 @@ const SquadView = (() => {
       if (P.goalSaid.has(key)) return;
       P.goalSaid.add(key);
     }
-    const line = describe(koEv(e), P.names, P.teamLabels, P.rd.R.objs);
+    // (as the screen shows it: a later pit's short scene has no look round, a Builder
+    // whose squad has no works on the arena took up its weapon with no time left to build,
+    // and a Scope Rifle that has not fired since its last load loads, scopeFirst)
+    const seen = e.t === 'pit' && b && b.short ? { ...e, short: 1 } : e.t === 'rearm' && !Object.values(P.S.works).some((w) => w.team === Math.floor(e.u / SE.TEAM)) ? { ...e, idle: 1 } : scopeFirst(e) ? { ...e, first: 1 } : e;
+    const line = describe(koEv(seen), P.names, P.teamLabels, P.rd.R.objs);
     if (!line) return;
     P.ticker = line;
     P.logLines.push(line);
@@ -34607,7 +34942,7 @@ const SquadView = (() => {
       const ticks = [];
       const r = P.rounds[i];
       if (r) {
-        const T = buildTimeline(r.R, P.calm, P.speed);
+        const T = buildTimeline(r.R, P.calm, P.speed, i);
         r.turnsAt = T.turns.map((x) => x.t / T.total);
         r.turnsAt.forEach((f) => {
           const tick = el('b', '');
@@ -35620,7 +35955,17 @@ const SquadView = (() => {
         // (engine 29: a chance drop's glow)
         sh(u.glow, 't0');
         if (u.air) u.air = [u.air[0] + shift, u.air[1] + shift];
+        // (Engine 36 view: the shield chip's walk, a revive's rise, the paw a tool fills)
+        if (u.adv) u.adv = [u.adv[0] + shift, u.adv[1] + shift];
+        if (u.toolUse) u.toolUse = [u.toolUse[0] + shift, u.toolUse[1] + shift];
+        sh(u, 'rise');
         ['flash', 'hpT', 'koT', 'nap', 'hurt', 'riseT'].forEach((f) => (u[f] += shift));
+      });
+      // a body falling over or rising (its drawing counts from the clock it was made on: sh)
+      (P.bodies || []).forEach((v) => {
+        sh(v, 't0');
+        sh(v, 't1');
+        v.sh = (v.sh || 0) + shift;
       });
       P.shells.forEach((x) => {
         sh(x, 't0');
@@ -37254,7 +37599,7 @@ const SquadView = (() => {
       const b = q && q.b;
       const k = (b && b.k) || 1;
       const T = q ? q.at : P.clock;
-      const land = b && b.kind === 'drop' ? Math.max(e.box ? 0 : 120 * k, b.t + b.contact - T - (b.two && T <= b.t ? Math.round(MS.dropTwo * k) : 0)) : (e.box ? MS.boxPick : MS.dropHit) * k;
+      const land = b && b.kind === 'drop' ? Math.max(e.box ? 0 : 120 * k, b.t + b.contact - T - (b.two ? Math.round(MS.dropTwo * k) * (b.two - Math.round((T - b.t) / Math.max(1, MS.dropTwo * k))) : 0)) : (e.box ? MS.boxPick : MS.dropHit) * k;
       if (P.seeking) {
         if (e.k) memeTray(e.u, e.good ? 'buff' : 'nerf', e.k, e.good);
         return;
@@ -38471,7 +38816,10 @@ const SquadHall = (() => {
   // (SQUAD_ENGINE 35, the Harpoon Gun on, 22 Oct 2026: re-fitted by the script; off by 3.8,
   // 3.2 and 2.6 points at 96, 192 and 384 fights, the word right for 66%, 73% and 80%, never
   // two steps off; Engine 34's constants would have read 1.1 points high)
-  const EST_FIT = {96: [-0.12, 3.42, 9], 192: [-0.09, 3.8, 7], 384: [-0.06, 3.97, 6]};
+  // (SQUAD_ENGINE 36, 22 Oct 2026: re-fitted by the script; off by 3.8, 2.9 and 2.5 points at
+  // 96, 192 and 384 fights, the word right for 73%, 76% and 83%; Engine 35's constants would
+  // have read 0.5 points high at 192 and 384)
+  const EST_FIT = {96: [-0.11, 3.28, 9], 192: [-0.11, 3.77, 7], 384: [-0.08, 4.01, 5]};
   const estPct = (w, n) => Math.round(100 / (1 + Math.exp(-(EST_FIT[n][0] + EST_FIT[n][1] * (w / n - 0.5)))));
   // {level 0-4, pct, lo, hi, n, final, words: one tier, or the two either side of a cut}
   function estOf(w, n){
@@ -39155,9 +39503,10 @@ const SquadHall = (() => {
         hover(b, id);
       });
       fixTabStop(g); radioKeys(g);
-      // a Builder fights with its Build Hammer: the weapon picked here waits till it has another power
+      // a Builder fights with its Build Hammer: the weapon picked here waits till it has another
+      // power (engine 36, builderKeep: till its cannon and wall stand)
       const tool = p === 'wpn' && armsOf(u) === 'tool';
-      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote' + (tool ? ' warn' : '')}, tool ? 'a Builder fights with its ' + E.TOOL[1] + '; this waits for another power' : p === 'tac' ? 'who it goes for' : p === 'stn' ? 'where it goes to fight' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
+      box.append(h('div', {class: 'sq-chhead'}, h('span', {class: 'sq-lbl'}, label), h('span', {class: 'sq-chnote' + (tool ? ' warn' : '')}, tool ? (E.RULES.builderKeep ? 'a Builder fights with its ' + E.TOOL[1] + ' till its cannon and wall stand, then with this' : 'a Builder fights with its ' + E.TOOL[1] + '; this waits for another power') : p === 'tac' ? 'who it goes for' : p === 'stn' ? 'where it goes to fight' : p === 'pow' ? 'one special move' : p === 'gear' ? 'one item' : 'what it holds')), g, desc);
     }
     if (st.dmax) desc.style.minHeight = st.dmax + 'px';
     detail(desc, p, st.peek);
@@ -44196,10 +44545,12 @@ const SquadHome = (() => {
     // the menus, and the hand that picks from them before each change
     if (ui > 0) {
       const mid = gy - 30;
-      const PP = PARTS.map((p, n) => [cx - 74 + (n % 2) * 22, mid - 2 + Math.floor(n / 2) * 26]);
+      // (the parts' left column and its brackets stay on a 160-wide stage, a 320 px phone)
+      const px0 = Math.max(11, cx - 74);
+      const PP = PARTS.map((p, n) => [px0 + (n % 2) * 22, mid - 2 + Math.floor(n / 2) * 26]);
       const SP = SWATCH.map((s, n) => [cx + 52 + (n % 2) * 13, mid - 22 + Math.floor(n / 2) * 13]);
-      say(g, 'PARTS', cx - 63, mid - 30, '#B8324A', 1, ui);
-      say(g, 'COLOURS', cx + 58, mid - 32, '#B8324A', 1, ui);
+      say(g, 'PARTS', px0 + 11, mid - 30, '#FFFFFF', 1, ui);
+      say(g, 'COLOURS', cx + 58, mid - 32, '#FFFFFF', 1, ui);
       const picked = (menu, n) => {
         let at = -1;
         DRESS.forEach((dd) => {
@@ -44492,10 +44843,11 @@ const SquadHome = (() => {
       g.fillRect(x - 1, y - 1 - pop, 11, 11);
       g.fillStyle = on ? '#FFD447' : '#FFF6F8';
       g.fillRect(x, y - pop, 9, 9);
-      say(g, n, x + 4.5, y + 4.5 - pop, on ? '#2B1D3F' : '#B9A9D6', 1);
+      // (a light letter in its dark outline reads on the gold tab and the pale ones alike)
+      say(g, n, x + 4.5, y + 4.5 - pop, on ? '#FFFFFF' : '#B9A9D6', 1);
       g.globalAlpha = 1;
     });
-    say(g, 'PLAN', fx0 + cols * 16 + 9.5, fy0 - 1, '#B8324A', 1, seg(t, 0.3, 0.6));
+    say(g, 'PLAN', fx0 + cols * 16 + 9.5, fy0 - 1, '#FFFFFF', 1, seg(t, 0.3, 0.6));
     // objects: the ones of the plan in force, each arriving at its own moment
     const towerUp = [];
     PLANS.forEach((pl, n) => {
@@ -44661,7 +45013,7 @@ const SquadHome = (() => {
   let RIVALS = null;
   // where each starts: yours on the left (facing right), theirs on the right; the two
   // watchtowers six tiles apart, so the bows on them reach each other (5 + towerRange)
-  const F_YOU = [[3, 1], [2, 2], [2, 0], [1, 1], [1, 3]];
+  const F_YOU = [[3, 1], [2, 2], [3, 0], [1, 1], [1, 3]];
   const F_RIV = [[6, 0], [6, 2], [7, 1], [7, 2], [6, 3]];
   const TOWERS = [['you', 1, 1], ['rival', 7, 1]];
   // moves: [who, from time, to time, to tile]
@@ -45033,9 +45385,19 @@ const SquadHome = (() => {
     // Scar's three a little higher each, the mist's low on the body, and over a Blub up on its
     // watchtower from its platform)
     const numCv = (h) => V.pxText(h.n, h.col || '#FFFFFF', h.crit || h.boom ? 2 : 1);
+    // (while THE MIST CLOSES IN is up, a number never crosses its band: it rises over it)
+    const MIST_H = V.pxText('THE MIST CLOSES IN', '#E2566E', 1).height;
     const numTop = (h) => {
       const lift = (h.to === 'y3' || h.to === 'r2') && !(h.to === 'r2' && h.t > KO.r2) ? ON_TOWER : 0;
-      return R(P[h.to][1] - 24 - lift - (h.blob || 0) * 3 + (h.mist ? 12 : 0) - R(easeOut(seg(t, h.t, h.t + 0.95)) * 9) - numCv(h).height / 2);
+      const nh = numCv(h).height;
+      let top = R(P[h.to][1] - 24 - lift - (h.blob || 0) * 3 + (h.mist ? 12 : 0) - R(easeOut(seg(t, h.t, h.t + 0.95)) * 9) - nh / 2);
+      const r1 = RINGS[0];
+      if (t >= r1.at && t < r1.at + 1.3) {
+        const bTop = Math.max(5, fy0 - 7) - Math.ceil(MIST_H / 2);
+        const bBot = bTop + MIST_H;
+        if (top < bBot + 1 && top + nh > bTop - 1) top = bTop - nh - 1;
+      }
+      return top;
     };
     // KO! over each one that goes down (its top edge, by Blub): above every number over that
     // Blub meanwhile, never on one; where the stage's top leaves no room, those wait under it
@@ -45104,7 +45466,7 @@ const SquadHome = (() => {
       }
       if (w < mid + 1.2) mist(g, fx0, fy0 - 16, cols * 16, rows * 16 + 20, mid, w, t);
       const r1 = RINGS[0];
-      if (t >= r1.at && t < r1.at + 1.3) say(g, 'THE MIST CLOSES IN', cx, Math.max(5, fy0 - 7), '#E2566E', 1, seg(t, r1.at, r1.at + 0.2) * (1 - seg(t, r1.at + 1.0, r1.at + 1.3)));
+      if (t >= r1.at && t < r1.at + 1.3) say(g, 'THE MIST CLOSES IN', cx, Math.max(5, fy0 - 7), '#FFFFFF', 1, seg(t, r1.at, r1.at + 0.2) * (1 - seg(t, r1.at + 1.0, r1.at + 1.3)));
     }
     // the Gambler's spins: SPIN n/3 as it slaps the wheel round, GOLD! as it stops on gold
     for (const sp of SPINS) {
@@ -45325,7 +45687,7 @@ const SquadHome = (() => {
       say(g, 'GOLD WHALE', R(mx - 28 - tw / 2), R(my), '#FFD447', 1, seg(t, 5.2, 5.5));
     }
     // the first steps' names, short
-    if (t < 4.4) say(g, '18 RANKS', cx - R(sw * 1.5), 8, '#2B1D3F', 1, seg(t, 0.3, 0.6) * (1 - seg(t, 4.0, 4.4)));
+    if (t < 4.4) say(g, '18 RANKS', cx - R(sw * 1.5), 8, '#FFFFFF', 1, seg(t, 0.3, 0.6) * (1 - seg(t, 4.0, 4.4)));
   }
 
   const CHAPTERS = [
@@ -45401,12 +45763,13 @@ const SquadHome = (() => {
         flashC = col || '#FFFFFF';
       },
     };
-    // about 180 pixels across at a whole number of screen pixels each (a narrow phone
-    // takes a fraction: at its pixel density nobody sees the odd row)
+    // about 180 pixels across at a whole number of screen pixels each, from 320 px up (a
+    // phone that narrow at 2x shows 160), at most 4x and 230 across on a desktop; only a
+    // phone under 320 px takes a fraction
     function size() {
       const cw = stage.clientWidth || 360;
-      const S = cw >= 360 ? Math.max(2, Math.floor(cw / 180)) : cw / 180;
-      W = Math.floor(cw / S);
+      const S = cw >= 320 ? Math.min(4, Math.max(2, Math.floor(cw / 180))) : cw / 160;
+      W = Math.min(Math.floor(cw / S), 230);
       H = Math.max(96, Math.min(116, R(W * (cw >= 700 ? 0.52 : 0.58))));
       c.width = W;
       c.height = H;
@@ -45780,6 +46143,8 @@ const SquadHome = (() => {
   let CROWD = null;
   const crowd = () =>
     (CROWD = CROWD || [{ tint: 'roze', eyes: 'blij' }, { tint: 'mint', hat: 'pet' }, { tint: 'lavendel', eyes: 'hart' }, { tint: 'goud', eyes: 'sterren' }, { tint: 'blauw', eyes: 'boos', acc: 'sjaal' }].map(cleanLook));
+  // the road's screen pixels a pixel (2 on a phone, 3 or 4 wider; set when the road is built)
+  let roadScale = 2;
   // the scenes, one a stop: (g, x: the stop on screen, y: the road, t: the clock, k: seconds since Blub came, or -1)
   const SCENES = [
     // the game's own moon rocket on its pad: a countdown, then off it goes, and a new one rolls out
@@ -46042,30 +46407,35 @@ const SquadHome = (() => {
       paint(g, SPR.lock, tx + 7 + jig, y - 9, 1);
       if (k >= 0.2 && k < 1.8) say(g, 'LOCKED', tx + 11, y - 40 - R(seg(k, 0.2, 0.5) * 3), '#FF5C77', 1, 1 - seg(k, 1.4, 1.8));
     },
-    // the end of the road: a door of static in the dark, and three question marks
+    // the end of the road: a door of static in the dark, and three question marks (on a
+    // phone, where the road is at 2x, the door is drawn twice as big, at whole pixels: m)
     function portal(g, x, y, t, k, B) {
-      const px = x + 2;
-      const top = y - 48;
+      const m = roadScale <= 2 ? 2 : 1;
+      const px = x + 2 * m;
+      const top = y - 48 * m;
       const f = Math.floor(t * 12);
       for (let yy = 0; yy < 44; yy++)
         for (let xx = 0; xx < 22; xx++) {
           const h = hash(xx * 31 + f, yy * 17 + (f >> 1));
           if (h < 0.1) {
             g.fillStyle = h < 0.03 ? '#FFFFFF' : h < 0.06 ? '#B8A4EC' : '#6B54A8';
-            g.fillRect(px + xx, top + yy, 1, 1);
+            g.fillRect(px + xx * m, top + yy * m, m, m);
           }
         }
       g.fillStyle = '#6B54A8';
-      g.fillRect(px - 2, top - 2, 26, 1);
-      g.fillRect(px - 2, top - 2, 1, 48);
-      g.fillRect(px + 23, top - 2, 1, 48);
+      g.fillRect(px - 2 * m, top - 2 * m, 26 * m, m);
+      g.fillRect(px - 2 * m, top - 2 * m, m, 48 * m);
+      g.fillRect(px + 23 * m, top - 2 * m, m, 48 * m);
       g.fillStyle = '#B8A4EC';
       for (let i = 0; i < 6; i++) {
         const s = (f + i * 7) % 48;
-        g.fillRect(i % 2 ? px + 23 : px - 2, top - 2 + s, 1, 2);
+        g.fillRect(i % 2 ? px + 23 * m : px - 2 * m, top + (s - 2) * m, m, 2 * m);
       }
-      [[-12, -20], [32, -30], [10, -56]].forEach(([dx, dy], i) => say(g, '?', px + dx, y + dy + (calm() ? 0 : R(Math.sin(t * 2 + i * 2) * 2)), i === 2 ? '#FFFFFF' : '#B8A4EC', i === 2 ? 2 : 1));
-      say(g, '2027', px + 11, top - 8, '#FFFFFF', 1);
+      // (the big one goes beside the door's top: over it stands 2027, and at 2x there is no room)
+      const Q = m > 1 ? [[-24, -40], [64, -60], [66, -88]] : [[-12, -20], [32, -30], [32, -60]];
+      // (kept on the canvas: on the narrowest phone the door stands near its right edge)
+      Q.forEach(([dx, dy], i) => say(g, '?', Math.min(g.canvas.width - (i === 2 ? 7 : 4), px + dx), y + dy + (calm() ? 0 : R(Math.sin(t * 2 + i * 2) * 2)), i === 2 ? '#FFFFFF' : '#B8A4EC', i === 2 ? 2 : 1));
+      say(g, '2027', px + 11 * m, top - 8, '#FFFFFF', 1);
     },
   ];
   // what Blub does on arriving: a hop of joy, an exclamation, a shrug at a locked door, a question
@@ -46152,8 +46522,10 @@ const SquadHome = (() => {
     function build() {
       const vw = root.clientWidth || innerWidth;
       const S = vw >= 1000 ? 4 : vw >= 560 ? 3 : 2;
+      roadScale = S;
       W = Math.floor(vw / S);
-      H = S >= 3 ? 96 : 116;
+      // (a phone's road is taller: its door of static at the end stands there at 2x, whole)
+      H = S >= 3 ? 96 : 146;
       gy = H - 22;
       c.width = W;
       c.height = H;
