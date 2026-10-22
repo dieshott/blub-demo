@@ -21,5 +21,7 @@ block from The Sift, the pink dimension.
 Test phase: everything runs in your browser and nothing is stored on a
 server. Wallet sign-in, online duels and the weekly league open at launch.
 
-A fan game for the fanbase, free to play. $BLUB has no intrinsic value and
+A fan game for the fanbase, made to grow the community. Weekly competitions
+will burn $BLUB to take part; the weekly league, friend leagues and free pools
+stay free for everyone. $BLUB has no intrinsic value and
 nothing here is financial advice.

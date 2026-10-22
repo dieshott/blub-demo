@@ -278,17 +278,27 @@ const PHASE = { draft: 0, open: 1, closed: 1, locked: 2, live: 2, paused: 2, don
 export const refundDue = (c, e) => !!(e && e.b && e.b.sig && e.b.ok !== false) && (c.st === 'void' ? e.st !== 'out' : e.st === 'no' || ((PHASE[c.st] || 0) >= 2 && ['wait', 'lapsed', 'req'].includes(e.st)));
 // the entries still owed one: due, and no refund recorded (verified or not)
 export const refundsOwed = (c) => (c.entries || []).filter((e) => refundDue(c, e) && !((c.pay && c.pay.refunds) || {})[e.w]);
-// whether the prize is burned: what was recorded, else as ADMIN_PAY decides it at pay time
-// (not as the final table wrote it): a bot first, or the winner disqualified or banned now
+// a money record that stands verified (an unverified one is amber: ok false)
+const recOk = (r) => !!r && r.ok !== false && r.verified !== false;
+// whether the prize is burned: a record that stands verified, else as ADMIN_PAY takes a
+// new signature, at pay time (not as the final table wrote it): a bot first, or the
+// winner disqualified or banned now. An unverified record of the other kind can still be
+// recorded again with its own signature (amberPrize); a new one replaces it
 export function prizeBurnt(c, bans = new Set()) {
   const pay = (c && c.pay) || {};
-  if (pay.burn) return true;
-  if (pay.payout) return false;
+  if (recOk(pay.burn)) return true;
+  if (recOk(pay.payout)) return false;
   const w = c && c.res && c.res.winner;
   if (!w) return !!(c && c.res && c.res.burn);
   if (BOT_RE.test(w)) return true;
   const e = ((c && c.entries) || []).find((x) => x.w === w);
   return !!(e && (e.st === 'dq' || e.banned)) || bans.has(w);
+}
+// an unverified payout or burn of the other kind than the prize is now: [kind, record] or null
+export function amberPrize(c, bans = new Set()) {
+  const pay = (c && c.pay) || {};
+  const other = prizeBurnt(c, bans) ? 'payout' : 'burn';
+  return pay[other] && !recOk(pay[other]) ? [other, pay[other]] : null;
 }
 // what the Now tab's to-do calls a prize not recorded yet, by the same rule from what the
 // overview has (a competition's summary: winner, burn as last written, counts; the bans):
@@ -1383,6 +1393,22 @@ export function chainSay(code, message, mode = A && A.mode) {
   if (code === 'not_final' && mode === 'local') return message || SANDBOX_UNKNOWN;
   return ERR_SAYS[code] || message || '';
 }
+// the money form's words: for these codes ERR_SAYS speaks of an entry's burn, so a payout,
+// prize burn or refund keeps the backend's own sentence (a refund too early says what it
+// was due from), else its own words
+const PAY_SAYS = {
+  too_early: (k) => (k === 'refund' ? 'That transfer is older than the refund was due.' : 'That transaction is older than the final table.'),
+  too_small: (k) => (k === 'refund' ? 'That is less than the entry amount.' : 'That is less than the prize.'),
+  already: () => 'That is recorded and verified already.',
+};
+export function paySay(code, message, kind) {
+  if (PAY_SAYS[code]) return message && message !== code ? message : PAY_SAYS[code](kind);
+  return chainSay(code, message);
+}
+// a refusal of comps.pay or comps.verify in words, for the money form of `kind`
+export function payErrSay(e, kind) {
+  return e && PAY_SAYS[e.code] ? paySay(e.code, e.message, kind) : errSay(e);
+}
 const ACT_VERB = { approve: 'approved', wait: 'waitlisted', decline: 'declined', dq: 'disqualified', restore: 'restored' };
 function errSay(e, act) {
   if (!e) return 'That did not work.';
@@ -2029,7 +2055,7 @@ const s_ = (n, one, more) => n + ' ' + (n === 1 ? one : more || one + 's');
 const decKey = (c) => (c.sup ? c.sup.dec : st.chain ? st.chain.dec : 6);
 // a small action that changes the competition: one request, then the record and the
 // overview read again; a refusal is said where the action was
-async function compDo(msgEl, fn, done) {
+async function compDo(msgEl, fn, done, sayErr = errSay) {
   if (st.busy) return null;
   st.busy = true;
   say(msgEl, 'Working…');
@@ -2039,7 +2065,7 @@ async function compDo(msgEl, fn, done) {
   } catch (e) {
     st.busy = false;
     if (e && e.code === 'stale') { await reread(); say(R.cmsg, ERR_SAYS.stale, false); }
-    else say(msgEl && msgEl.isConnected ? msgEl : R.cmsg, errSay(e), false);
+    else say(msgEl && msgEl.isConnected ? msgEl : R.cmsg, sayErr(e), false);
     return null;
   }
   st.busy = false;
@@ -2443,7 +2469,7 @@ function payWant(c, kind, wallet) {
 }
 function recLine(rec, dec) {
   const ok = rec.ok !== false && rec.verified !== false;
-  return h('span', { class: 'adm-verdict ' + (ok ? 'ok' : 'warn') }, (ok ? '✓ Recorded and verified: ' : '! Recorded unverified: ') + (rec.raw ? uiAmount(rec.raw, dec) + ' $BLUB' : 'amount not read') + (rec.to ? ' to ' + short(rec.to) : '') + ' · ' + (rec.sig.length > 16 ? rec.sig.slice(0, 8) + '…' + rec.sig.slice(-6) : rec.sig) + (rec.t ? ' · ' + ago(rec.t) : '') + (!ok && rec.why ? ' · ' + (chainSay(rec.why) || rec.why) : ''));
+  return h('span', { class: 'adm-verdict ' + (ok ? 'ok' : 'warn') }, (ok ? '✓ Recorded and verified: ' : '! Recorded unverified: ') + (rec.raw ? uiAmount(rec.raw, dec) + ' $BLUB' : 'amount not read') + (rec.to ? ' to ' + short(rec.to) : '') + ' · ' + (rec.sig.length > 16 ? rec.sig.slice(0, 8) + '…' + rec.sig.slice(-6) : rec.sig) + (rec.t ? ' · ' + ago(rec.t) : '') + (!ok && rec.why ? ' · ' + (paySay(rec.why, '', rec.kind) || rec.why) : ''));
 }
 // the money form: a signature, Check (0 commands, 1 RPC), Record (green) or Record
 // unverified (amber), each after the typed PAY <n>; an amber record has Verify again
@@ -2458,7 +2484,7 @@ function payForm(c, kind, wallet, rec) {
   const typed = h('div', { class: 'adm-typedbox' });
   const show = (pc) => {
     out.className = 'adm-verdict ' + (pc.ok ? 'ok' : 'bad');
-    out.textContent = pc.ok ? '✓ It checks out: ' + (pc.raw ? uiAmount(pc.raw, dec) + ' $BLUB' : '') + (pc.to ? ' to ' + short(pc.to) : '') + (pc.bt ? ' · ' + btTxt(pc.bt) : '') + '. Record it.' : '✗ ' + (chainSay(pc.code, pc.message) || 'It does not check out.') + ' You can still record it unverified (amber) and verify it again later.';
+    out.textContent = pc.ok ? '✓ It checks out: ' + (pc.raw ? uiAmount(pc.raw, dec) + ' $BLUB' : '') + (pc.to ? ' to ' + short(pc.to) : '') + (pc.bt ? ' · ' + btTxt(pc.bt) : '') + '. Record it.' : '✗ ' + (paySay(pc.code, pc.message, kind) || 'It does not check out.') + ' You can still record it unverified (amber) and verify it again later.';
   };
   const check = async () => {
     const s = sig.value.trim();
@@ -2466,7 +2492,7 @@ function payForm(c, kind, wallet, rec) {
     if (A.mode === 'server' && !SIG_OK.test(s)) { say(out, ERR_SAYS.bad_sig, false); return null; }
     say(out, 'Checking on the chain…');
     let v;
-    try { v = await A.comps.verify(c.code, { sig: s, wallet: kind === 'burn' ? want.project || undefined : want.to || undefined }); } catch (e) { v = { ok: false, code: e && e.code, message: errSay(e) }; }
+    try { v = await A.comps.verify(c.code, { sig: s, wallet: kind === 'burn' ? want.project || undefined : want.to || undefined }); } catch (e) { v = { ok: false, code: e && e.code, message: payErrSay(e, kind) }; }
     const pc = { ...payCheck(v, want), raw: v.raw, to: v.to, bt: v.bt };
     st.payV[key] = { sig: s, ...pc };
     show(pc);
@@ -2481,7 +2507,7 @@ function payForm(c, kind, wallet, rec) {
       (confirm) => compDo(out, () => A.comps.pay(c.code, { kind, sig: s, ...(wallet ? { wallet } : {}), ...(unverified ? { unverified: true } : {}), confirm }), (r) => {
         const ok = r && (r.verified !== undefined ? r.verified : r.pay && r.pay.ok);
         return (kind === 'refund' ? 'Refund to ' + nameOf(wallet) : kind === 'burn' ? 'Prize burn' : 'Payout') + ' recorded' + (ok ? ' and verified.' : ' unverified (amber).');
-      }));
+      }, (e) => payErrSay(e, kind)));
   };
   sig.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); check(); } };
   const again = rec && rec.ok === false ? btn('Verify again', 'gold', async () => {
@@ -2519,7 +2545,15 @@ function payCard(c) {
     !burn ? moneyRow('To', nameOf(want.to) + ' · ' + short(want.to), want.to, 'Copy the winner’s wallet') : null,
     proj ? moneyRow('From', 'project wallet · ' + short(proj), proj, 'Copy the project wallet') : null);
   if (rec) addKids(card_, recLine(rec, dec), SIG_OK.test(rec.sig) ? h('a', { class: 'adm-soc', href: 'https://solscan.io/tx/' + encodeURIComponent(rec.sig), target: '_blank', rel: 'noopener noreferrer' }, 'Solscan ↗') : null);
-  if (!rec || rec.ok === false) card_.append(c.st === 'done' || (rec && rec.ok === false) ? payForm(c, kind, null, rec) : h('p', { class: 'adm-state' }, 'Recorded once #' + c.n + ' is done.'));
+  // an unverified record of the other kind (made before the ban or the disqualification
+  // flipped): only its own signature records it again; a new record of this kind replaces it
+  const amb = amberPrize(c, banned());
+  if (!rec || rec.ok === false) card_.append(c.st === 'done' || (rec && rec.ok === false) || amb ? payForm(c, kind, null, rec) : h('p', { class: 'adm-state' }, 'Recorded once #' + c.n + ' is done.'));
+  if (amb) {
+    const was = amb[0] === 'burn' ? 'prize burn' : 'payout';
+    addKids(card_, h('p', { class: 'adm-banner adm-payamber' }, 'An unverified ' + was + ' stands from before. If it went out, verify it again with its own signature: it stays the record and nothing more is sent. Only if it did not go out: ' + (burn ? 'burn the prize' : 'send the payout') + ' as above, and its record replaces the unverified ' + was + '.'),
+      recLine(amb[1], dec), payForm(c, amb[0], null, amb[1]));
+  }
   if (A.mode === 'local') card_.append(h('p', { class: 'adm-fine' }, 'Sandbox: demo-' + (burn ? 'burn' : 'pay') + '-' + c.n + ' is the ' + (burn ? 'prize burn' : 'payout') + ' of #' + c.n + ' on its example chain; any other text reads as not on the chain.'));
   return card_;
 }
@@ -2706,9 +2740,11 @@ function sheetChips(cfg, E) {
   out.push(...arenaChips(R2.arena, E));
   return out.slice(0, 5);
 }
-// the facts every post draws from (0 commands: the record, the overview, the days read)
-function postFacts(c, days) {
-  const cfg = normCfg(c.cfg, C.E);
+// the facts every post draws from (0 commands: the record, the overview, the days read);
+// `burnt` is the prize's fate worked out on the whole competition, as Results shows it
+// (prizeBurnt needs the entries for a winner disqualified but not banned)
+export function postFacts(c, days, E = C.E) {
+  const cfg = normCfg(c.cfg, E);
   const am = amountsOf(c, cfg);
   const dec = am ? am.dec : 6;
   const n = c.counts || {};
@@ -2720,9 +2756,9 @@ function postFacts(c, days) {
     n: c.n, name: cfg.name, size: cfg.size, rounds: perDay(cfg.size), opens: day(cfg.times.opens), closes: day(cfg.times.closes), start: day(cfg.times.start),
     entry: cfg.entryBps ? (am ? uiAmount(roundDown(am.entry, dec), dec) + ' $BLUB (' + pctOf(cfg.entryBps) + ' of supply at opening)' : pctOf(cfg.entryBps) + ' of supply') : null,
     prize: cfg.prizeBps ? (am ? uiAmount(roundDown(am.prize, dec), dec) + ' $BLUB (' + pctOf(cfg.prizeBps) + ')' : pctOf(cfg.prizeBps) + ' of supply') : null,
-    chips: sheetChips(cfg, C.E), req: (n.req || 0) + (n.ok || 0) + (n.wait || 0) + (n.no || 0), ok: n.ok || 0, left: Math.max(0, cfg.size - (n.ok || 0)),
+    chips: sheetChips(cfg, E), req: (n.req || 0) + (n.ok || 0) + (n.wait || 0) + (n.no || 0), ok: n.ok || 0, left: Math.max(0, cfg.size - (n.ok || 0)),
     humans: (c.pool || []).filter((id) => id && !BOT_RE.test(id)).length, bots: (c.pool || []).filter((id) => BOT_RE.test(id || '')).length, tiers, lineup: L.length,
-    com: c.com || [], played, days, res: c.res, pay: c.pay, aw: c.aw, rw: cfg.rw, dec,
+    com: c.com || [], played, days, res: c.res, pay: c.pay, aw: c.aw, rw: cfg.rw, dec, burnt: prizeBurnt(c, banned()),
   };
 }
 const bold = (p, s) => (p === 'dc' ? '**' + s + '**' : s);
@@ -2770,7 +2806,7 @@ export function postText(step, p, F, extra) {
       const top = r.table[0];
       L.push(head, 'Final: ' + nm(top.id) + ' wins with ' + top.pts + ' points (' + top.w + '–' + top.l + ').');
       if (!x) L.push('Podium: ' + r.table.slice(0, 3).map((t) => '#' + t.place + ' ' + nm(t.id)).join(', ') + '.');
-      const burnt = prizeBurnt(F, banned());
+      const burnt = typeof F.burnt === 'boolean' ? F.burnt : prizeBurnt(F, banned());
       const pr = F.pay && (burnt ? F.pay.burn : F.pay.payout);
       if (burnt) L.push((BOT_RE.test(r.winner || '') ? 'A bot finished first' : 'The winner is out of the prize') + ', so the prize is burned' + (pr ? ': ' + solscan(pr.sig) : ' (the proof follows).'));
       else L.push(pr ? 'Prize sent to ' + short(r.winner) + ': ' + solscan(pr.sig) : 'The prize is sent within 72 h; the proof follows.');

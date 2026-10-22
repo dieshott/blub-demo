@@ -137,7 +137,7 @@ function seed(C) {
   const ACC = ['geen', 'snor', 'sjaal', 'bril', 'koptelefoon'];
   const pick = (a) => a[Math.floor(r() * a.length)];
   const look = () => ({ tint: pick(TINT), eyes: pick(EYES), ears: pick(EARS), pattern: pick(PAT), hat: pick(HAT), acc: pick(ACC) });
-  const HANDLES = ['moonblub', 'DipBuyer', 'sift_sam', 'blubmaxi', 'pinkmist', 'TrenchKid', 'gm_blub', 'wagmi_wes', 'bubbles', 'holdr', 'nightfish', 'crabwalk', 'dolph', 'sharkie', 'whale_w', 'frens', 'copium', 'laser_lou', 'apejo', 'rivet'];
+  const HANDLES = ['moonblub', 'DipBuyer', 'sift_sam', 'blubmaxi', 'pinkmist', 'TrenchKid', 'gm_blub', 'wagmi_wes', 'bubbles', 'holdr', 'nightfish', 'crabwalk', 'dolph', 'sharkie', 'whale_w', 'frens', 'reefrider', 'kelp_kai', 'shelljo', 'rivet'];
   const names = E.RECRUIT_NAMES;
   const squadOf = () => E.randomSquad(E.rng(1 + Math.floor(r() * 1e9)));
   // 40 wallets with a team of 5, three strategies, a profile name now and then
@@ -1073,8 +1073,9 @@ export function localAdapter(C) {
           if (NEXT[act] && !PS.includes(e.st)) throw fail(409, 'bad_state', 'Not from ' + e.st + '.', { wallet: w, st: e.st, want: PS });
           if (act === 'undo' && (e.ps === null || e.ps === undefined || !['req', 'ok', 'wait', 'no'].includes(e.st) || (undoN !== null && e.pn !== undoN))) throw fail(409, 'no_undo', 'That decision cannot be undone any more: the entry moved on.', { wallet: w });
           if ((act === 'dq' || act === 'restore') && !['ok', 'dq'].includes(e.st)) throw fail(409, 'bad_state', 'Not from ' + e.st + '.', { wallet: w, st: e.st, want: ['ok', 'dq'] });
-          // a refunded entry stays out, as the server's ADMIN_ENTRY
-          if ((act === 'undo' || act === 'approve' || act === 'wait') && c.pay.refunds[w]) throw fail(409, 'refunded', 'That entry was refunded: its burn went back, so the decline stands.', { wallet: w });
+          // a refunded entry stays as it is, as the server's ADMIN_ENTRY: no undo or approve
+          // brings it in, no decline moves the time its refund was due from
+          if ((act === 'undo' || NEXT[act]) && c.pay.refunds[w]) throw fail(409, 'refunded', act === 'decline' ? 'That entry was refunded: its burn went back, so it stays as it is (out of the competition).' : 'That entry was refunded: its burn went back, so it stays out.', { wallet: w });
         }
         const n = S.logSeq + 1;
         let changed = 0;
@@ -1209,25 +1210,41 @@ export function localAdapter(C) {
           if (!wallet) throw fail(400, 'bad_wallet', 'Name the wallet the refund went to.');
           const e = (S.entries[code] || {})[wallet];
           if (!e) throw fail(404, 'not_entered', 'That wallet has no entry in this competition.');
-          if (!refundable(c, e) && !Object.hasOwn(c.pay.refunds, wallet)) throw fail(409, 'bad_state', 'Only a paid entry that did not play gets a refund: declined, left out at the lock (waiting, lapsed or never decided on) or voided.', { st: c.st, want: [] });
-          if (c.pay.refunds[wallet] && c.pay.refunds[wallet].ok) throw fail(409, 'already', 'That refund is recorded already.');
+          // as ADMIN_PAY: an unverified refund recorded again with its own signature, whatever
+          // the entry's state says now (it was due when it was recorded); a refund recorded for
+          // a withdrawn entry of a void competition before (an older build) too
+          const rr = c.pay.refunds[wallet];
+          const same = !!(rr && rr.ok === false && rr.sig === sig);
+          if (!refundable(c, e) && !((same || (c.st === 'void' && rr)) && e.b && e.b.sig)) throw fail(409, 'bad_state', 'Only a paid entry that did not play gets a refund: declined, left out at the lock (waiting, lapsed or never decided on) or voided.', { st: c.st, want: [] });
+          if (rr && rr.ok) throw fail(409, 'already', 'That refund is recorded already.');
         } else {
           // in the server's ADMIN_PAY order: a winner, the kind, then the state
-          const amber = c.pay[kind] && c.pay[kind].ok === false;
           if (!c.res || !c.res.winner) throw fail(409, 'bad_state', c.st === 'done' ? 'Nobody won: the final table has no winner, so no prize is paid out or burned. Archive it once its refunds are recorded.' : 'The prize is recorded once the competition is done; it is ' + c.st + ' now.', { st: c.st, want: [] });
-          // as ADMIN_PAY: a payout or burn recorded (verified or not) decides, the money moved;
-          // before that the prize at pay time, not as the final table wrote it: a bot winner,
-          // or a winner whose entry is disqualified now or who is banned now
+          // as ADMIN_PAY: a payout or burn that stands verified decides, the money moved; an
+          // unverified one recorded again with its own signature keeps its kind; any other
+          // signature is a new transfer, so the prize at pay time, not as the final table
+          // wrote it: a bot winner, or a winner whose entry is disqualified now or who is
+          // banned now; its record replaces an unverified one of the other kind
           const we = (S.entries[code] || {})[c.res.winner];
-          const recorded = !!(c.pay.burn || c.pay.payout);
-          const burnt = c.pay.burn ? true : c.pay.payout ? false : isBot(c.res.winner) || !!(we && we.st === 'dq') || !!S.bans[c.res.winner];
+          const wasKind = c.pay.burn ? 'burn' : c.pay.payout ? 'payout' : '';
+          const was = wasKind ? c.pay[wasKind] : null;
+          const wasOk = !!was && was.ok !== false;
+          let rec = '';
+          let burnt;
+          if (wasOk) [burnt, rec] = [wasKind === 'burn', 'recorded'];
+          else if (was && wasKind === kind && was.sig === sig) burnt = kind === 'burn';
+          else {
+            burnt = isBot(c.res.winner) || !!(we && we.st === 'dq') || !!S.bans[c.res.winner];
+            if (was && wasKind === kind) rec = 'amber';
+          }
           const want = burnt ? 'burn' : 'payout';
           if (kind !== want) {
-            const msg = recorded ? (burnt ? 'The prize burn is recorded already: the prize is burned, not paid out. Record the burn again to verify it.' : 'The payout is recorded already: the prize is paid out, not burned. Record the payout again to verify it.')
+            const msg = rec === 'recorded' ? (burnt ? 'The prize burn is recorded and verified: the prize is burned, not paid out.' : 'The payout is recorded and verified: the prize is paid out, not burned.')
+              : rec === 'amber' ? (burnt ? 'The winner is disqualified or banned now: the prize is burned, not paid out. The unverified payout can be recorded again with its own signature only; a prize burn recorded now replaces it.' : 'The winner is in good standing now: the prize is paid out, not burned. The unverified prize burn can be recorded again with its own signature only; a payout recorded now replaces it.')
               : burnt ? 'A bot won, or the winner is disqualified or banned: the prize is burned, not paid out.' : 'A player won: the prize is paid out, not burned.';
             throw fail(400, 'bad_cfg', msg, { field: 'kind', want });
           }
-          if (!(c.st === 'done' || (amber && ['settled', 'rewarded'].includes(c.st)))) throw fail(409, 'bad_state', 'The prize is recorded once the competition is done; it is ' + c.st + ' now.', { st: c.st, want: ['done'] });
+          if (!(c.st === 'done' || (was && !wasOk && ['settled', 'rewarded'].includes(c.st)))) throw fail(409, 'bad_state', 'The prize is recorded once the competition is done; it is ' + c.st + ' now.', { st: c.st, want: ['done'] });
         }
         // a signature counts once: entries' burns, payouts, burns and refunds, every competition
         const recs = (x) => [x.pay.payout, x.pay.burn, ...Object.values(x.pay.refunds)].filter(Boolean);
@@ -1247,15 +1264,19 @@ export function localAdapter(C) {
         if (why && !body.unverified) throw fail(why === 'not_final' ? 409 : 400, why, ({ not_final: 'Not on the sandbox’s chain: it knows only its own example signatures.', not_burn: 'That is not a burn by the project wallet.', not_transfer: 'That is not a transfer from the project wallet.', not_yours: kind === 'burn' ? 'The project wallet did not make that burn.' : 'That transfer went to another wallet.', too_small: 'That moved less than is due.' })[why] || why);
         const ok = !why;
         const rec = { kind, sig, raw: f && !f.code ? f.raw : null, ...(to ? { to } : {}), bt: f ? f.bt : null, ok, by: BY, t: iso(now()), ...(ok ? {} : { why }) };
+        const other = kind === 'refund' ? '' : kind === 'burn' ? 'payout' : 'burn';
+        const replaces = !!(other && c.pay[other]);
         if (kind === 'refund') c.pay.refunds[wallet] = rec;
         else {
           c.pay[kind] = rec;
+          // never both: a new payout or burn replaces an unverified record of the other kind
+          if (replaces) delete c.pay[other];
           if (c.st === 'done') c.st = 'settled';
           // the final table says what was done with the prize
           c.res.burn = kind === 'burn';
         }
         c.v++;
-        logLine({ payout: 'Recorded the payout', burn: 'Recorded the prize burn', refund: 'Recorded a refund' }[kind] + ' of #' + c.n + (kind === 'burn' ? '' : ' to ' + short(to)) + ' (' + sig.slice(0, 6) + '…)' + (ok ? '' : ' unverified: ' + why), 'pay', { comp: code, ...(kind === 'burn' ? {} : { wallet: to }) });
+        logLine({ payout: 'Recorded the payout', burn: 'Recorded the prize burn', refund: 'Recorded a refund' }[kind] + ' of #' + c.n + (kind === 'burn' ? '' : ' to ' + short(to)) + ' (' + sig.slice(0, 6) + '…)' + (ok ? '' : ' unverified: ' + why) + (replaces ? ' (replaces the unverified ' + (other === 'burn' ? 'prize burn' : 'payout') + ')' : ''), 'pay', { comp: code, ...(kind === 'burn' ? {} : { wallet: to }) });
         touch();
         return { ok: true, verified: ok, why: ok ? null : why, pay: clone(rec), comp: full(c) };
       },
