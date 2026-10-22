@@ -356,7 +356,7 @@ function seed(C) {
     wallets, lg, ldiv, drat, bans, comps, entries, days: {}, decks, inv, invh, cmw: {}, log, chain, dstat,
     budget: { writes: 1320, reads: 4110, maxWrites: 9000, maxReads: 12000 },
     supply: sup,
-    want: { [code6]: { botPlace: 2 } },
+    want: { [code6]: { botPlace: 2, playerFirst: true } },
   };
 }
 const cfg7Closes = (c) => c.cfg.times.closes.slice(11, 16) + ' UTC';
@@ -566,12 +566,16 @@ export function localAdapter(C) {
           const f = finalTable(c);
           const winner = f.table[0] ? f.table[0].id : null;
           c.res = { table: f.table, ties: f.ties, burn: !!winner && isBot(winner), winner };
-          // the seeded second cup wants a bot in that place. First try: the bot takes the
+          // the seeded second cup wants a bot in that place and a wallet first (its story: a
+          // prize to pay out). First try, for a wallet in the bot's place: the bot takes the
           // place (and so the seeds) of the wallet there, and that wallet's squad as all
-          // three of its deck's plans, and the week is played again; then other salts
+          // three of its deck's plans, and the week is played again; then other salts (a bot
+          // first goes straight to those: the engine decides the week, Engine 35 included)
           const at = want && want.botPlace && f.table[want.botPlace - 1];
-          if (at && !isBot(at.id) && tries < 5) {
-            if (tries === 0) {
+          const needBot = !!(at && !isBot(at.id));
+          const needWallet = !!(want && want.playerFirst && winner && isBot(winner));
+          if ((needBot || needWallet) && tries < 5) {
+            if (tries === 0 && needBot) {
               const pH = c.pool.indexOf(at.id);
               const best = f.table.find((x) => isBot(x.id));
               const pB = best ? c.pool.indexOf(best.id) : -1;
