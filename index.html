@@ -2846,7 +2846,7 @@ body.no-scroll{overflow:hidden}
 </head>
 <body>
 <script>try{var d=JSON.parse(localStorage.getItem('blub-weiland-v1')||'null');document.documentElement.dataset.visit=d&&(d.seen||(d.team&&d.team.addr)||(d.local&&d.local.saved))?'back':'new'}catch(e){document.documentElement.dataset.visit='new'}</script>
-<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">83677d2</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
+<div class="demo-bar" role="note"><b>Test phase</b><span><i class="demo-build">341be84</i> Everything here runs in your browser. Wallet sign-in, online duels and the weekly league open at launch.</span></div>
 <nav class="nav" aria-label="Main menu">
   <div class="wrap">
     <div class="nav-about" id="navAbout"><button type="button" class="logo nav-ab" id="navAboutBtn" aria-expanded="false" aria-controls="navAboutMenu" aria-label="About Blub" title="About Blub"><canvas id="logoBlub" width="16" height="15" aria-hidden="true"></canvas><span>$BLUB</span><i class="nav-caret" aria-hidden="true"></i></button><div class="nav-menu" id="navAboutMenu"><ul aria-label="About Blub">
@@ -41971,8 +41971,25 @@ const SquadHall = (() => {
         for (let y = Math.max(0, Math.floor(by0) - 1); y <= Math.min(H - 1, Math.ceil(by1) + 1); y++) for (let x = Math.max(0, Math.floor(bx0) - 1); x <= Math.min(W - 1, Math.ceil(bx1) + 1); x++) if (ok(p, y * W + x) && partAt(p, x + 0.5, y + 0.5) !== null) mine.push(y * W + x);
         if (p.cut){ for (const j of mine){ col[j] = null; id[j] = -1; tone[j] = -1; } return; }
         const set = new Set(mine);
+        // (relief: a part raised like the shield's rim, lit by how far in a pixel lies and which way
+        // its edge faces: bright where it faces the top left, dark the other way, level inside)
+        let rel = null;
+        if (p.relief && !p.flat && mine.length){
+          let X0 = W, Y0 = H, X1 = 0, Y1 = 0;
+          for (const j of mine){ const x = j % W, y = Math.floor(j / W); X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); }
+          const bw = X1 - X0 + 3, bh = Y1 - Y0 + 3, dd = new Float32Array(bw * bh), at = (x, y) => (x < 0 || y < 0 || x >= bw || y >= bh ? 0 : dd[y * bw + x]);
+          for (const j of mine) dd[(Math.floor(j / W) - Y0 + 1) * bw + (j % W - X0 + 1)] = 1e9;
+          for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++){ const k = y * bw + x; if (dd[k]) dd[k] = Math.min(dd[k], at(x - 1, y) + 3, at(x, y - 1) + 3, at(x - 1, y - 1) + 4, at(x + 1, y - 1) + 4); }
+          for (let y = bh - 1; y >= 0; y--) for (let x = bw - 1; x >= 0; x--){ const k = y * bw + x; if (dd[k]) dd[k] = Math.min(dd[k], at(x + 1, y) + 3, at(x, y + 1) + 3, at(x + 1, y + 1) + 4, at(x - 1, y + 1) + 4); }
+          const R = Math.max(1.5, p.relief * S) * 3;
+          rel = j => {
+            const x = j % W - X0 + 1, y = Math.floor(j / W) - Y0 + 1, d = Math.min(R, at(x, y)), gx = Math.min(R, at(x + 1, y)) - Math.min(R, at(x - 1, y)), gy = Math.min(R, at(x, y + 1)) - Math.min(R, at(x, y - 1)), gl = Math.hypot(gx, gy), h = d / R;
+            const n = gl ? (gx / gl) * LX + (gy / gl) * LY : 0;
+            return -n * (1 - h) * 0.95 + h * 0.42 + 0.06 + (p.lift || 0);
+          };
+        }
         for (const j of mine){
-          const v = partAt(p, j % W + 0.5, Math.floor(j / W) + 0.5);
+          const v = rel ? rel(j) : partAt(p, j % W + 0.5, Math.floor(j / W) + 0.5);
           col[j] = lit(p.c, v, p.pal); id[j] = i;
           tone[j] = p.pal ? (v > 0.78 ? 4 : v > 0.48 ? 3 : v > 0.12 ? 2 : v > -0.25 ? 1 : 0) : -1;
         }
@@ -41989,88 +42006,199 @@ const SquadHall = (() => {
       }
       return {col: out, tone, id};
     }
-    // the six insignia (28x22 units), stamped in the grade's metal (pal) with the gem: fierce and simple
+    // (the owner, 23 Oct 2026: the inside "veel gedetailleerder en veel mooier, aansluitend op de
+    // rest") the six insignia (30x24 units), each creature drawn in detail in the grade's metal
+    // with enamel of its own colour set into it, as the frame's channel and fins are, and a gem
+    // for an eye. Shape helpers: a body round a spine of [x, y, half-width] (rounded at its last
+    // point), a limb along a path tapering to its tip, points on an arc, a part list mirrored
+    // across the insignia's middle
+    function tube(spine, cap = 6){
+      const A = [], B = [];
+      spine.forEach(([x, y, r], i) => {
+        const nx = spine[Math.min(i + 1, spine.length - 1)], pv = spine[Math.max(i - 1, 0)], l = Math.hypot(nx[0] - pv[0], nx[1] - pv[1]) || 1, ux = (nx[0] - pv[0]) / l, uy = (nx[1] - pv[1]) / l;
+        A.push([x + uy * r, y - ux * r]); B.push([x - uy * r, y + ux * r]);
+      });
+      const [hx, hy, hr] = spine[spine.length - 1], [qx, qy] = spine[spine.length - 2], a0 = Math.atan2(hy - qy, hx - qx);
+      const end = Array.from({length: cap + 1}, (_, k) => { const q = a0 - Math.PI / 2 + (k / cap) * Math.PI; return [hx + Math.cos(q) * hr, hy + Math.sin(q) * hr]; });
+      return [...A, ...end, ...B.reverse()];
+    }
+    function limb(pts, w0, w1 = w0 * 0.5){
+      const n = pts.length, A = [], B = [];
+      pts.forEach(([x, y], i) => {
+        const nx = pts[Math.min(i + 1, n - 1)], pv = pts[Math.max(i - 1, 0)], l = Math.hypot(nx[0] - pv[0], nx[1] - pv[1]) || 1, ux = (nx[0] - pv[0]) / l, uy = (nx[1] - pv[1]) / l, w = (w0 + (w1 - w0) * (i / (n - 1))) / 2;
+        A.push([x + uy * w, y - ux * w]); B.push([x - uy * w, y + ux * w]);
+      });
+      return [...A, ...B.reverse()];
+    }
+    const arcP = (cx, cy, rx, ry, a0, a1, n) => Array.from({length: n + 1}, (_, i) => { const q = (a0 + ((a1 - a0) * i) / n) * Math.PI / 180; return [cx + Math.cos(q) * rx, cy + Math.sin(q) * ry]; });
+    const grow = (parts, cx, cy, k) => parts.map(p => (p.k === 'ell' ? {...p, x: cx + (p.x - cx) * k, y: cy + (p.y - cy) * k, rx: p.rx * k, ry: p.ry * k} : {...p, pts: p.pts.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k])}));
+    const flipI = parts => parts.map(p => (p.k === 'ell' ? {...p, x: 30 - p.x, rot: -(p.rot || 0)} : {...p, pts: p.pts.map(([x, y]) => [(p.k === 'line' || p.k === 'dot' ? 29 : 30) - x, y])}));
+    // a part list with its own indexes, for enamel clipped to the metal it is set in
+    function kit(pal, gem){
+      const P = [], add = p => P.push(p) - 1;
+      const metal = (pts, o = {}) => add({k: 'poly', pts, c: pal[2], pal, ol: 1, relief: 1.6, ...o});
+      const enamel = (pts, o = {}) => add({k: 'poly', pts, c: mix(gem[0], '#000000', 0.12), ol: 1, relief: 1.2, ...o});
+      const ell = (x, y, rx, ry, o = {}) => add({k: 'ell', x, y, rx, ry, c: pal[2], pal, ol: 1, ...o});
+      const line = (pts, c, tone) => add({k: 'line', pts, c, ...(tone != null ? {tone} : {})});
+      const dots = (pts, c, tone) => add({k: 'dot', pts, c, ...(tone != null ? {tone} : {})});
+      const eye = (x, y, r) => { add({k: 'ell', x, y, rx: r, ry: r, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}); add({k: 'dot', pts: [[x - r * 0.45, y - r * 0.5]], c: gem[1]}); };
+      return {P, add, metal, enamel, ell, line, dots, eye};
+    }
     const INSIGNIA = [
-      // Shrimp: a curled body in five plates, a fanned tail, two long feelers
-      (pal, gem) => [
-        {k: 'poly', pts: [[7, 15], [2, 12.5], [3.5, 19.5], [8.5, 17.5]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[7.5, 16.5], [3.5, 21.5], [9.5, 19.5]], c: pal[2], pal, ol: 1},
-        {k: 'ell', x: 9.5, y: 14, rx: 3, ry: 2.8, c: pal[2], pal, ol: 1, rot: 40},
-        {k: 'ell', x: 12, y: 10.8, rx: 3.6, ry: 3.2, c: pal[2], pal, ol: 1, rot: 25},
-        {k: 'ell', x: 15.5, y: 8.8, rx: 4, ry: 3.6, c: pal[2], pal, ol: 1, rot: 10},
-        {k: 'ell', x: 19.5, y: 8.6, rx: 4.2, ry: 3.9, c: pal[2], pal, ol: 1},
-        {k: 'ell', x: 23, y: 10, rx: 3.4, ry: 3.3, c: pal[2], pal, ol: 1, rot: -12},
-        {k: 'poly', pts: [[25.5, 8.4], [28, 10.6], [25, 12.2]], c: pal[2], pal, ol: 1},
-        {k: 'line', pts: [[12, 14], [11, 17.5]], c: pal[0]}, {k: 'line', pts: [[15.5, 12.5], [15, 16.5]], c: pal[0]}, {k: 'line', pts: [[19, 12.5], [19.5, 16.5]], c: pal[0]}, {k: 'line', pts: [[22.5, 13.5], [23.5, 16]], c: pal[0]},
-        {k: 'line', pts: [[25, 8], [22, 3.5], [16, 1.5], [10, 2.5]], c: pal[3]}, {k: 'line', pts: [[25.5, 9], [24.5, 5], [19, 3.5]], c: pal[1]},
-        {k: 'ell', x: 23.6, y: 9.2, rx: 1.3, ry: 1.3, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'dot', pts: [[23, 8.5]], c: gem[1]},
-      ],
-      // Crab: a broad shell seen from the front, both claws raised and open, legs out
-      (pal, gem) => [
-        {k: 'line', pts: [[7, 14], [2.5, 16.5], [1.5, 20]], c: pal[1]}, {k: 'line', pts: [[8, 16], [4.5, 19], [4, 22]], c: pal[1]},
-        {k: 'line', pts: [[21, 14], [25.5, 16.5], [26.5, 20]], c: pal[1]}, {k: 'line', pts: [[20, 16], [23.5, 19], [24, 22]], c: pal[1]},
-        {k: 'ell', x: 6.5, y: 10, rx: 1.8, ry: 3.4, c: pal[2], pal, ol: 1, rot: 30}, {k: 'ell', x: 21.5, y: 10, rx: 1.8, ry: 3.4, c: pal[2], pal, ol: 1, rot: -30},
-        {k: 'ell', x: 4.8, y: 5.2, rx: 4.2, ry: 3.6, c: pal[2], pal, ol: 1, rot: -20}, {k: 'ell', x: 23.2, y: 5.2, rx: 4.2, ry: 3.6, c: pal[2], pal, ol: 1, rot: 20},
-        {k: 'poly', pts: [[4.6, 4.6], [1.6, -0.8], [7.6, 0.2]], cut: 1}, {k: 'poly', pts: [[23.4, 4.6], [26.4, -0.8], [20.4, 0.2]], cut: 1},
-        {k: 'ell', x: 14, y: 13.5, rx: 9.6, ry: 6.4, c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[6, 11], [22, 11], [20, 8.5], [8, 8.5]], c: pal[3], pal, clip: 10, flat: 0.6},
-        {k: 'line', pts: [[9, 16.5], [11, 18], [17, 18], [19, 16.5]], c: pal[0]},
-        {k: 'ell', x: 10.5, y: 9.2, rx: 1.5, ry: 1.5, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'ell', x: 17.5, y: 9.2, rx: 1.5, ry: 1.5, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]},
-        {k: 'dot', pts: [[10, 8.5], [17, 8.5]], c: gem[1]},
-      ],
-      // Fish: a sharp hunter in profile, pointed fins, a forked tail
-      (pal, gem) => [
-        {k: 'poly', pts: [[8, 11], [1, 4.5], [3.5, 11], [1, 17.5]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[10, 7.5], [19, 6.5], [14, 1]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[6, 11], [12, 4.8], [22, 5.5], [27.5, 11], [22, 16.5], [12, 17.2]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[7, 11.2], [13, 13.5], [22, 13.2], [26, 11.2], [22, 15.6], [13, 16.4]], c: pal[1], pal, clip: 2, flat: 0.05},
-        {k: 'poly', pts: [[12, 14], [18, 14.5], [10, 19.5]], c: pal[2], pal, ol: 1},
-        {k: 'line', pts: [[22, 11.5], [27, 11.2]], c: pal[0]},
-        {k: 'line', pts: [[11, 8], [11, 15]], c: pal[0]}, {k: 'line', pts: [[15, 7], [15, 16]], c: pal[0]},
-        {k: 'ell', x: 21.5, y: 9, rx: 1.6, ry: 1.6, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'dot', pts: [[21, 8]], c: gem[1]},
-      ],
-      // Dolphin: a sleek leap in profile, the beak forward, a crescent of spray under it
-      (pal, gem) => [
-        {k: 'poly', pts: [[5, 16], [0.5, 11.5], [3.5, 16.5], [1, 21.5]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[11, 8.5], [16.5, 7.5], [12.5, 2]], c: pal[2], pal, ol: 1},
-        {k: 'ell', x: 14, y: 13, rx: 10.2, ry: 5.4, c: pal[2], pal, ol: 1, rot: -14},
-        {k: 'ell', x: 15, y: 15.4, rx: 8, ry: 2.4, c: pal[1], pal, clip: 2, rot: -14, flat: 0.05},
-        {k: 'ell', x: 24.6, y: 8.4, rx: 3.4, ry: 1.7, c: pal[2], pal, ol: 1, rot: -14},
-        {k: 'poly', pts: [[11.5, 15], [16, 15.5], [11, 20]], c: pal[2], pal, ol: 1},
-        {k: 'line', pts: [[22, 11.5], [24.5, 10.5], [27, 9.4]], c: pal[0]},
-        {k: 'line', pts: [[3, 21.5], [8, 22.5], [14, 22.5], [20, 21.5]], c: pal[3]},
-        {k: 'ell', x: 20.4, y: 9.4, rx: 1.4, ry: 1.4, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'dot', pts: [[20, 8.5]], c: gem[1]},
-      ],
-      // Shark: in profile, the jaws open wide at the right, a tall fin, the tail at the left
-      (pal, gem) => [
-        {k: 'poly', pts: [[6, 11], [0.5, 3.5], [3, 11], [0.5, 18.5]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[10, 7.5], [17.5, 7.5], [12, 0.5]], c: pal[2], pal, ol: 1},
-        {k: 'ell', x: 14, y: 12, rx: 11.5, ry: 6, c: pal[2], pal, ol: 1},
-        {k: 'ell', x: 15, y: 15.4, rx: 10, ry: 3.2, c: pal[1], pal, clip: 2, flat: 0.05},
-        {k: 'poly', pts: [[12.5, 15.5], [17.5, 16], [11, 21]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[18.5, 12.5], [27.5, 6.5], [27.8, 10.5], [27.5, 19], [18.5, 15]], cut: 1},
-        {k: 'poly', pts: [[18.5, 12.5], [27.5, 6.5], [27.5, 10.6], [24, 13.2]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[18.5, 15], [27.5, 19], [27.5, 14.4], [24, 13.2]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[19.5, 13], [26.5, 9], [26.5, 17.5]], c: '#3A0A14', flat: 0.1, ol: 1},
-        {k: 'dot', pts: [[21, 12], [23, 11], [25, 10], [21, 14], [23, 15], [25, 16]], c: '#FFF6F8'},
-        {k: 'line', pts: [[12, 10], [12, 13]], c: pal[0]}, {k: 'line', pts: [[14, 10], [14, 13]], c: pal[0]}, {k: 'line', pts: [[16, 10.5], [16, 13]], c: pal[0]},
-        {k: 'ell', x: 20.5, y: 9.4, rx: 1.4, ry: 1.4, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'dot', pts: [[20, 8.5]], c: gem[1]},
-      ],
-      // Whale: the whole whale in profile, breaching: a great body with a blunt head, the
-      // fluke raised behind, a flipper, grooves along the throat, its spout over the head
-      (pal, gem) => [
-        {k: 'line', pts: [[21.6, 6.4], [19.8, 2.4], [18, 1]], c: pal[3]}, {k: 'line', pts: [[22.4, 6.4], [24.4, 2.4], [26.2, 1]], c: pal[3]}, {k: 'line', pts: [[22, 6.2], [22, 0.6]], c: pal[4]},
-        {k: 'dot', pts: [[17, 1.6], [27, 1.6], [16.4, 3.6], [27.6, 3.6]], c: pal[4]},
-        {k: 'poly', pts: [[7.4, 10.6], [3.6, 7], [2.2, 5.8], [4.4, 5.6], [9.8, 9]], c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[3.6, 6.8], [-0.4, 4], [0.4, 2.2], [3.2, 4], [5, 1.2], [6.6, 2], [5.2, 6.4]], c: pal[2], pal, ol: 1, lift: 0.1},
-        {k: 'ell', x: 15.4, y: 13, rx: 10.4, ry: 5.8, rot: -6, c: pal[2], pal, ol: 1},
-        {k: 'poly', pts: [[17, 7.6], [24.6, 7.8], [27.6, 10.4], [27.8, 13.4], [25.6, 16.6], [19, 18.2]], c: pal[2], pal, ol: 1, lift: 0.05},
-        {k: 'poly', pts: [[11, 16.6], [17, 17.4], [25.2, 16.4], [27.4, 13.6], [22, 15.6], [14, 16]], c: pal[1], pal, flat: 0.05},
-        {k: 'line', pts: [[15, 16.8], [24.6, 15]], c: pal[0]}, {k: 'line', pts: [[27.4, 12.8], [21.8, 14.2]], c: pal[0]},
-        {k: 'poly', pts: [[13, 15.6], [16.8, 15.8], [12.6, 21]], c: pal[2], pal, ol: 1},
-        {k: 'line', pts: [[1, 21.4], [7, 20.4], [14, 21], [21, 20.2], [27, 21.2]], c: pal[3]},
-        {k: 'ell', x: 22.8, y: 11.6, rx: 1.3, ry: 1.3, c: gem[0], flat: 0.6, ol: 1, ink: gem[2]}, {k: 'dot', pts: [[22.4, 11]], c: gem[1]},
-      ],
+      // Shrimp: curled, its head to the right; five banded plates down to a fanned tail of
+      // enamel blades, a ridged shell with a toothed rostrum, an eye on its stalk, two long
+      // feelers sweeping back, walking legs and swimmerets beneath
+      (pal, gem) => {
+        const K = kit(pal, gem);
+        K.line([[26.4, 6.8], [25, 3], [20.4, 1], [13, 1], [6, 2.8], [1.6, 6]], pal[3], 3);
+        K.line([[27.2, 7.4], [27.6, 3.8], [24.8, 2], [19, 1.8]], pal[2], 2);
+        for (let i = 0; i < 5; i++) K.metal(limb([[19.6 + i * 1.3, 12.2], [18.4 + i * 1.6, 15 + (i % 2) * 0.6], [16.6 + i * 2, 17.6 + (i % 2) * 0.8]], 1, 0.45), {c: pal[1]});
+        for (const [x0, y0, x1, y1] of [[8.8, 16.2, 8.2, 18.8], [11.6, 14, 11, 17], [14.8, 12.6, 14.4, 15.6], [17.8, 12, 17.8, 14.8]]) K.metal(limb([[x0, y0], [x1, y1]], 0.9, 0.4), {c: pal[1]});
+        K.enamel([[6.2, 16.2], [1.2, 13.8], [0.4, 15.4], [5.4, 17.6]]);
+        K.metal([[6.2, 16.8], [1.4, 19.2], [1.8, 20.8], [6.8, 18.2]], {lift: 0.1});
+        K.enamel([[6.8, 17.6], [3.2, 22.6], [5, 23], [7.8, 18.4]]);
+        K.line([[5.6, 16.6], [2, 15.2]], pal[4], 4); K.line([[6.6, 18.2], [4.4, 22]], pal[4], 4);
+        const seg = [[7.8, 16.5, 2.1, 1.9, 50], [9.6, 14.1, 2.5, 2.2, 40], [12.1, 12, 2.9, 2.6, 28], [15.1, 10.5, 3.2, 2.9, 15], [18.4, 9.7, 3.4, 3.1, 5]];
+        seg.forEach(([x, y, rx, ry, rot], i) => {
+          const [px, py] = i ? seg[i - 1] : [5.6, 18.6], dl = Math.hypot(x - px, y - py), bx = (px - x) / dl, by = (py - y) / dl;
+          const k = K.ell(x, y, rx, ry, {rot});
+          K.add({k: 'ell', x: x + bx * rx * 0.55, y: y + by * ry * 0.55, rx: rx * 0.42, ry: ry * 0.95, rot, c: mix(gem[0], '#000000', 0.12), clip: k});
+          K.dots([[x - rx * 0.15, y - ry * 0.62]], pal[4], 4);
+        });
+        const shell = K.ell(23.2, 9.4, 4.8, 3.9, {rot: -6});
+        K.add({k: 'ell', x: 21.6, y: 11.4, rx: 2.6, ry: 1.3, rot: -10, c: mix(gem[0], '#000000', 0.12), clip: shell});
+        K.line([[20.4, 7.4], [21.6, 10], [20.8, 12.4]], pal[1], 1);
+        K.line([[19.8, 6.4], [23, 5.7], [26.2, 6.6]], pal[4], 4);
+        K.metal([[25.8, 7.4], [30, 5.4], [29.8, 6.4], [26.6, 9]], {lift: 0.15});
+        K.dots([[27.2, 6.2], [28.3, 5.8]], pal[0], 0);
+        K.metal([[26.2, 9.6], [29.2, 10.4], [28.8, 11.2], [26.2, 10.6]], {c: pal[1]});
+        K.metal(limb([[25.2, 8.6], [26.4, 8.4]], 1.1, 0.9));
+        K.eye(26.9, 8.3, 1.15);
+        K.line([[26.4, 11.4], [27.4, 13]], pal[1], 1); K.line([[25.4, 12], [26, 13.8]], pal[1], 1);
+        return K.P;
+      },
+      // Crab (the owner, 23 Oct 2026: "een kenmerkend iets van het dier", the most beautiful per
+      // creature): its two great claws raised as a crest behind a small shield, pincers thrown
+      // open with teeth on the fingers, the palms studded, a jewel at the shield's heart
+      (pal, gem) => {
+        const K = kit(pal, gem), EN = mix(gem[0], '#000000', 0.12);
+        const put = (P) => { const n = K.P.length; K.P.push(...P.map(p => (p.clip != null ? {...p, clip: p.clip + n} : p))); };
+        // a crest: two great claws raised behind a shield, pincers thrown open. One claw along its
+        // own axis (x from the wrist, 0, to the finger tips, 12; the movable finger outside), its arm
+        // tucked behind the shield; placed at the wrist (wx, wy) pointing at ang degrees
+        const C = kit(pal, gem), wx = 20.3, wy = 10.8, ang = -64, sc = 1.38;
+        const q = ang * Math.PI / 180, ux = Math.cos(q), uy = Math.sin(q), T = ([x, y]) => [wx + (x * ux + y * uy) * sc, wy + (x * uy - y * ux) * sc], TT = a => a.map(T);
+        const o = -26 * Math.PI / 180, R = ([x, y]) => { const hx = 6, hy = -2.4, dx = x - hx, dy = y - hy; return [hx + dx * Math.cos(o) - dy * Math.sin(o), hy + dx * Math.sin(o) + dy * Math.cos(o)]; };
+        C.metal(TT([[-4.6, -2], [-1, -2.6], [0.8, -2.8], [0.8, 3], [-1, 3], [-4.6, 2.4]]), {lift: -0.18, relief: 1.2});
+        const pro = [[0, -2.4], [0.9, -3.4], [2.6, -4], [4.6, -3.9], [6.2, -3.1], [6.6, -1.2],
+          [7.6, -0.9], [8, -0.1], [9, -0.3], [9.4, 0.5], [10.4, 0.3], [11.8, 0.7], [11.2, 2], [9.4, 3], [7.4, 3.7], [5, 4.3], [2.6, 4.1], [0.8, 3.3], [0, 2.3]];
+        const palm = C.metal(TT(pro), {relief: 2.2});
+        C.dots(TT([[2.2, -2.2], [4.4, -2.2], [3.2, -0.6], [2.4, 1.6], [4.6, 2.2], [6.8, 1.8], [5.4, 0.4]]), pal[4], 4);
+        const dac = [[5.2, -2.6], [6.4, -3.8], [8.6, -3.9], [10.6, -3.1], [12.2, -1.4], [10.6, -1.5], [10.2, -0.8], [9.2, -1.2], [8.6, -0.5], [7.6, -1], [6.6, -0.6]];
+        C.metal(TT(dac.map(R)), {lift: 0.12, relief: 1.5});
+        C.dots(TT([[8, -3]].map(R)), pal[4], 4);
+        put(C.P); put(flipI(C.P));
+        // the shield in front: metal, enamel set in it, a jewel at its heart
+        const sh = K.metal([[9.4, 9], [15, 7.6], [20.6, 9], [20.4, 16], [15, 22.4], [9.6, 16]], {relief: 1.6, lift: 0.05});
+        const en = K.add({k: 'poly', pts: [[11, 10.3], [15, 9.4], [19, 10.3], [18.8, 15.4], [15, 20], [11.2, 15.4]], c: EN, relief: 1, ol: 1, clip: sh});
+        K.ell(15, 14, 2.5, 2.5, {clip: [en, sh]});
+        K.eye(15, 14, 1.55);
+        K.dots([[15, 8.4], [10.4, 10], [19.6, 10], [15, 21.2]], pal[4], 4);
+        return K.P;
+      },
+      // Fish: a reef fish in profile, its scales in rows, a gill cover and a lateral line, enamel
+      // fins on metal rays (a spiny dorsal, a forked tail, the side fin, the fins beneath), a
+      // big gem eye
+      (pal, gem) => {
+        const K = kit(pal, gem);
+        const fin = (pts, rays) => { K.enamel(pts); for (const r of rays) K.line(r, pal[3], 3); };
+        fin([[11, 7.4], [12.2, 1.6], [14.2, 3.4], [16.2, 1.2], [18.2, 3.4], [20.2, 3.8], [21.4, 7.6]], [[[12.6, 7], [12.4, 2.4]], [[15, 6.6], [16, 2]], [[17.6, 6.6], [18.2, 3.8]], [[19.8, 7], [20.2, 4.4]]]);
+        fin([[7.6, 12], [2, 5.8], [0.4, 6.6], [3.6, 12.2], [0.4, 17.8], [2, 18.6], [7.6, 12.8]], [[[7, 12.2], [1.6, 7]], [[7, 12.4], [3, 12.2]], [[7, 12.6], [1.6, 17.6]]]);
+        fin([[14, 17.4], [11.2, 21.2], [13.4, 21], [16.4, 18]], [[[14.6, 17.8], [12.4, 20.6]]]);
+        fin([[19.6, 17], [18.6, 20.4], [20.2, 20], [21.4, 16.8]], []);
+        const body = K.metal([[7.2, 12.4], [9.4, 9], [13, 6.6], [18, 5.8], [23, 7], [26.6, 9.4], [28.4, 12], [26.8, 14.4], [23, 16.4], [18, 17.6], [12.6, 17.2], [9.2, 15.4]]);
+        K.add({k: 'poly', pts: [[8, 13.4], [14, 14.6], [22, 14.2], [27.4, 13], [23, 16.4], [18, 17.6], [12.6, 17.2], [9.2, 15.4]], c: pal[3], pal, flat: 0.55, clip: body});
+        K.add({k: 'poly', pts: [[17.2, 4], [19, 4], [17.8, 20], [16, 20]], c: mix(gem[0], '#000000', 0.12), relief: 0.8, clip: body});
+        for (const [x, y] of [[13.6, 9.4], [15, 12.4], [13.8, 15], [20.2, 9.6], [21.4, 13.4]]) K.add({k: 'dot', pts: [[x, y]], c: pal[4], tone: 4, clip: body});
+        K.line([[9, 12.4], [14, 11.6], [20.4, 11.8]], pal[4], 4);
+        K.line([[21.4, 8], [20.2, 11.8], [21.4, 15.6]], pal[0], 0);
+        K.line([[22.2, 8.4], [21.2, 11.8], [22.2, 15.2]], pal[4], 4);
+        fin([[21.8, 12.6], [17.6, 14.4], [17.8, 15.4], [22.4, 13.8]], [[[21.6, 13], [18.2, 14.6]]]);
+        K.line([[28.2, 12.2], [25.8, 12.8]], pal[0], 0);
+        K.add({k: 'ell', x: 24.4, y: 10.4, rx: 2, ry: 2, c: pal[1], pal, ol: 1});
+        K.eye(24.4, 10.4, 1.45);
+        return grow(K.P, 15.4, 11.6, 1.12);
+      },
+      // Dolphin: leaping out of a wave, its belly in teal enamel, the beak and the melon, a gem
+      // eye and the smile, the blowhole, a swept fin, the flipper and the flukes, spray flying
+      (pal, gem) => {
+        const K = kit(pal, gem);
+        K.enamel([[0, 24], [0, 21.6], [4, 20.4], [8.6, 21.6], [13, 20.2], [18, 21.6], [23, 20.4], [27, 21.4], [30, 20.6], [30, 24]]);
+        K.line([[0.4, 21.4], [4, 20.2], [8.6, 21.4], [13, 20], [18, 21.4], [23, 20.2], [27, 21.2], [29.6, 20.6]], pal[4], 4);
+        K.metal([[3.6, 17.6], [0.2, 15.4], [0.6, 16.8], [2.6, 18.8], [1.4, 21.4], [2.6, 21.6], [4.4, 18.6]]);
+        K.metal([[14.6, 8.2], [17.4, 3.2], [18.4, 3.8], [18.2, 8.6]], {lift: 0.1});
+        const spine = [[3.8, 18.2, 0.8], [7, 15.4, 1.8], [10.8, 12.6, 2.8], [15, 10.2, 3.3], [19.4, 9, 3.4], [23.4, 9.2, 3], [26.4, 10.2, 2.4]];
+        const body = K.metal(tube(spine));
+        K.add({k: 'poly', pts: tube(spine.map(([x, y, r]) => [x + 0.4, y + r * 0.62, r * 0.5])), c: mix(gem[0], '#000000', 0.12), clip: body});
+        K.metal([[26.8, 9.4], [30, 10.4], [29.8, 11.2], [26.6, 11.2]], {lift: 0.1});
+        K.line([[26.6, 11.2], [28.8, 11.2]], pal[0], 0);
+        K.line([[9.6, 12.2], [14, 8.4], [19.6, 6.6], [23.4, 7]], pal[4], 4);
+        K.dots([[21.6, 6.8]], pal[0], 0);
+        K.metal([[19.4, 11.8], [17.2, 15.6], [18.4, 15.8], [21, 12.4]], {c: pal[1]});
+        K.eye(24.6, 9.4, 0.95);
+        K.dots([[2, 19.4], [6.6, 19.6], [28.6, 18.6], [27, 17.6], [4.6, 17], [29.6, 16.4]], gem[1]);
+        return grow(K.P, 15, 13, 1.08);
+      },
+      // Shark (the owner: "een bijt"): the bite, its jaws open wide as a trophy, the jaw in the
+      // metal, the gums in enamel, two rows of white serrated teeth pointing in, the sea seen
+      // through the open mouth, a gem set on top
+      (pal, gem) => {
+        const K = kit(pal, gem), EN = mix(gem[0], '#000000', 0.12), cx = 15, cy = 12.2;
+        const ring = (rx, ry, rx2, ry2, n) => [...arcP(cx, cy, rx, ry, 0, 360, n), ...arcP(cx, cy, rx2, ry2, 360, 0, n)];
+        K.metal([...arcP(cx, cy, 15, 11.8, 150, 210, 6), ...arcP(cx, cy, 11, 8, 210, 150, 6)], {lift: -0.08});
+        K.metal([...arcP(cx, cy, 15, 11.8, -30, 30, 6), ...arcP(cx, cy, 11, 8, 30, -30, 6)], {lift: -0.08});
+        const jaw = K.metal(ring(14.4, 11.2, 10.6, 7.8, 36));
+        K.add({k: 'poly', pts: ring(11.4, 8.5, 10.2, 7.4, 36), c: EN, relief: 0.5, clip: jaw});
+        K.line(arcP(cx, cy, 13.6, 10.4, 200, 340, 12), pal[4], 4);
+        K.add({k: 'ell', x: cx, y: cy, rx: 10.2, ry: 7.4, cut: 1});
+        const tooth = (ang, len, w, back) => {
+          const q = ang * Math.PI / 180, bx = cx + Math.cos(q) * 10.4, by = cy + Math.sin(q) * 7.6, ux = -Math.cos(q), uy = -Math.sin(q) * 1.05, l = Math.hypot(ux, uy), nx = ux / l, ny = uy / l;
+          K.add({k: 'poly', pts: [[bx - ny * w, by + nx * w], [bx + nx * len * 0.55 - ny * w * 0.55, by + ny * len * 0.55 + nx * w * 0.55], [bx + nx * len, by + ny * len], [bx + nx * len * 0.55 + ny * w * 0.55, by + ny * len * 0.55 - nx * w * 0.55], [bx + ny * w, by - nx * w]], c: back ? '#D9CCBE' : '#FFF6F0', flat: back ? 0.4 : 0.72, ol: 1, ink: '#3A1A14'});
+        };
+        for (let i = 0; i < 9; i++) tooth(198 + i * 18, 2.6, 0.95, true);
+        for (let i = 0; i < 8; i++) tooth(18 + i * 20.5, 2, 0.9, true);
+        for (let i = 0; i < 8; i++){ const a = 205 + i * 18.6, f = Math.abs(a - 270) / 70; tooth(a, 4.4 - f * 1.6, 1.25, false); }
+        for (let i = 0; i < 7; i++){ const a = 28 + i * 20.6, f = Math.abs(a - 90) / 64; tooth(a, 3.4 - f * 1.2, 1.15, false); }
+        K.add({k: 'ell', x: cx, y: 1.6, rx: 2.2, ry: 1.9, c: pal[2], pal, ol: 1});
+        K.eye(cx, 1.6, 1.3);
+        K.dots([[4, 7], [26, 7], [3.4, 17], [26.6, 17]], pal[4], 4);
+        return K.P;
+      },
+      // Whale (the owner: "whale staart"): its tail, the fluke rising out of the sea, the lobes
+      // swept up at the tips with the notch between them and a scalloped trailing edge, enamel
+      // markings beneath, water pouring off it, the sea curling away on both sides
+      (pal, gem) => {
+        const K = kit(pal, gem), EN = mix(gem[0], '#000000', 0.12);
+        K.metal([[12.8, 10.2], [17.2, 10.2], [18.6, 19.8], [11.4, 19.8]], {lift: -0.05});
+        K.line([[14, 11.6], [13.6, 18.8]], pal[4], 4);
+        const lobe = [[15, 12.4], [12.6, 12.2], [9.6, 11.4], [6.2, 9.8], [3.4, 7.4], [1.2, 4], [0.2, 0], [1.6, 0.6], [3, 1.8], [4.4, 1.8], [5.8, 3], [7.4, 3.2], [9, 4.2], [10.8, 4.4], [12.4, 5.6], [13.8, 6.2], [15, 7.6]];
+        const L = kit(pal, gem), lb = L.metal(lobe, {lift: 0.05});
+        L.add({k: 'ell', x: 7.6, y: 6.4, rx: 4.4, ry: 1.3, rot: -24, c: EN, relief: 0.6, clip: lb});
+        L.add({k: 'ell', x: 11.8, y: 8.4, rx: 1.8, ry: 0.8, rot: -16, c: EN, relief: 0.5, clip: lb});
+        L.line([[14, 10.6], [9.6, 9.4], [5.4, 7], [2.2, 3.4]], pal[4], 4);
+        L.dots([[2, 5.6], [4.2, 8.4], [7.2, 10.8], [3.2, 10.8], [9.8, 12.6]], gem[1]);
+        const n0 = K.P.length; K.P.push(...L.P.map(p => (p.clip != null ? {...p, clip: p.clip + n0} : p)));
+        const n1 = K.P.length; K.P.push(...flipI(L.P).map(p => (p.clip != null ? {...p, clip: p.clip + n1} : p)));
+        K.metal([[9.8, 19.6], [10.6, 16.8], [12, 18], [12.8, 15.4], [13.6, 18.4], [16.4, 18.4], [17.2, 15.4], [18, 18], [19.4, 16.8], [20.2, 19.6]], {lift: 0.25});
+        // the sea: crests curling away from the tail on both sides, foam on them
+        const crest = kit(pal, gem);
+        crest.enamel([[11.2, 20.6], [9, 19.2], [6.4, 19], [4.2, 20], [2.6, 21.8], [4.8, 21], [6.6, 21.4], [8.4, 21.6], [10, 22]]);
+        crest.enamel([[8.6, 22.6], [6.4, 21.8], [3.6, 22], [1.4, 23.4], [4, 23.2], [6.2, 23.6]]);
+        crest.line([[10.6, 20.2], [8.4, 19], [6, 19], [4, 20.2]], pal[4], 4);
+        crest.dots([[3.4, 19.4], [5.6, 18], [2.2, 21]], gem[1]);
+        K.P.push(...crest.P, ...flipI(crest.P));
+        return K.P;
+      },
     ];
     const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h || w; return c; };
     // the shield's outline in unit space (48 across): each creature's own
@@ -42338,15 +42466,11 @@ const SquadHall = (() => {
       // from the Fish an enamel channel down the middle of the rim (chan, for its running light)
       // (bands in whole pixels: a chamfer distance is whole along a straight edge, so a band
       // narrower than a pixel would vanish there)
-      const enamel = a >= 2, chan = [], mid = [], m0 = Math.round(2.9 * S), inkEdge = S > 1.3, cA = Math.max(Math.round(2.35 * S), Math.ceil(Math.max(1.3 * S, 1.05)) + 1), cB = Math.max(Math.round(3.85 * S), cA + (inkEdge ? 3 : 1));
+      const fieldJ = [], enamel = a >= 2, chan = [], mid = [], m0 = Math.round(2.9 * S), inkEdge = S > 1.3, cA = Math.max(Math.round(2.35 * S), Math.ceil(Math.max(1.3 * S, 1.05)) + 1), cB = Math.max(Math.round(3.85 * S), cA + (inkEdge ? 3 : 1));
       for (let y = 0; y < EM; y++) for (let x = 0; x < EM; x++){
         const e = Sh.dist[y * EM + x];
         if (!e) continue;
-        if (e >= 5 * S){
-          const grain = ((x + y) % Math.max(2, Math.round(4 * S))) < R1, edge = e < 6.4 * S;
-          px(x, y, edge ? mix(field[0], '#000000', 0.35) : grain ? field[1] : field[0]);
-          continue;
-        }
+        if (e >= 5 * S){ fieldJ.push(y * EM + x); used[y * EM + x] = 1; bx.clearRect(x, y, 1, 1); continue; }   // (what lay behind it, the weapons, goes)
         if (e < Math.max(1.3 * S, 1.05)){ px(x, y, ink); continue; }
         const gx = Sh.D(x + 1, y) - Sh.D(x - 1, y), gy = Sh.D(x, y + 1) - Sh.D(x, y - 1), gl = Math.hypot(gx, gy) || 1, n = (gx / gl) * LX + (gy / gl) * LY;
         if (e >= m0 && e < m0 + 1) mid.push([x, y]);
@@ -42364,6 +42488,57 @@ const SquadHall = (() => {
         px(x, y, M[tone]);
         metal.push([x, y, TONES.indexOf(tone)]);
       }
+      // (the owner, 23 Oct 2026: the inside "veel gedetailleerder en veel mooier, aansluitend op
+      // de rest") the field is a scene under the sea, the creature's own: light from the surface
+      // fading into the deep (dithered), its own floor in the field's colours (weed and pebbles;
+      // rocks, a shell and a starfish; a reef of coral; the open sea under its surface; an anchor
+      // on jagged rocks; the abyss under a far light), the vignette at its edge; the light, the
+      // weed, the bubbles and the drifting specks move (paint)
+      const scene = canvas(EM), scx = scene.getContext('2d'), inField = new Uint8Array(EM * EM);
+      for (const j of fieldJ) inField[j] = 1;
+      {
+        const R = [mix(field[1], gem[0], 0.16), field[1], mix(field[0], field[1], 0.5), field[0], mix(field[0], '#000000', 0.3), mix(field[0], '#000000', 0.5)];
+        for (const j of fieldJ){
+          const X = j % EM, Y = Math.floor(j / EM), v = (Y + 0.5) / S - OY, e = Sh.dist[j], t = Math.max(0, Math.min(1, (v - 9.5) / 28));
+          let k = Math.floor(t * 3.6 + (BAYER[Y % 4][X % 4] / 16 - 0.5) * 0.7 + (a === 3 ? -0.3 : a === 5 ? 0.5 : 0));
+          if (e < 5.7 * S) k += 2; else if (e < 6.5 * S) k += 1;
+          scx.fillStyle = R[Math.max(0, Math.min(5, k))]; scx.fillRect(X, Y, 1, 1);
+        }
+        const floorC = mix(field[0], '#000000', 0.5), rimC = mix(field[1], gem[0], 0.3), midC = mix(field[0], '#000000', 0.32);
+        const F = (pts, c = floorC, o = {}) => ({k: 'poly', pts, c, ink: mix(field[0], '#000000', 0.6), ol: 1, ...o});
+        const props = [
+          // Shrimp: sand in soft waves, pebbles
+          () => [F([[8, 46], [8, 34.6], [13, 33.4], [18, 34.4], [24, 33.2], [30, 34.2], [35, 33], [40, 34], [40, 46]]), {k: 'line', pts: [[9, 34.4], [13, 33.2], [18, 34.2], [24, 33], [30, 34], [35, 32.8], [39, 33.8]], c: rimC},
+            {k: 'ell', x: 14.4, y: 34.2, rx: 1.3, ry: 0.9, c: midC, ol: 1, ink: floorC}, {k: 'ell', x: 33, y: 33.6, rx: 1.5, ry: 1, c: midC, ol: 1, ink: floorC}, {k: 'ell', x: 30.4, y: 35, rx: 0.8, ry: 0.6, c: midC}],
+          // Crab: rocks, a scallop shell, a starfish on the sand
+          () => [F([[8, 46], [8, 36], [40, 36], [40, 46]]), {k: 'line', pts: [[8, 35.8], [40, 35.8]], c: rimC},
+            F([[8.6, 37], [10.6, 32], [14, 30.8], [16.4, 33.4], [17, 37]], midC), F([[31, 37], [32, 32.4], [35.4, 31], [38.4, 33.4], [39.4, 37]], midC),
+            {k: 'line', pts: [[11, 32.4], [13.6, 31.4]], c: rimC}, {k: 'line', pts: [[32.6, 32.8], [35.2, 31.6]], c: rimC},
+            F([[21.6, 37.4], [22, 34.6], [24, 33.6], [26, 34.6], [26.4, 37.4]], midC), {k: 'line', pts: [[24, 34], [24, 37]], c: rimC}, {k: 'line', pts: [[22.8, 34.8], [23.2, 37]], c: rimC}, {k: 'line', pts: [[25.2, 34.8], [24.8, 37]], c: rimC}],
+          // Fish: a reef, branching coral, a sea fan, a mound of brain coral
+          () => [F([[8, 46], [8, 37], [16, 36], [24, 37.4], [32, 36], [40, 37], [40, 46]]),
+            F(limb([[12.6, 40], [12.8, 33], [11, 29.6]], 1.8, 0.8), midC), F(limb([[12.8, 35.4], [15.6, 31.4]], 1.4, 0.7), midC), F(limb([[12, 32], [10.2, 30.6]], 1, 0.6), midC),
+            {k: 'ell', x: 34.6, y: 31.6, rx: 3.2, ry: 4.4, c: midC, ol: 1, ink: floorC}, {k: 'line', pts: [[34.6, 36], [34.6, 27.6]], c: floorC}, {k: 'line', pts: [[32, 30], [37, 33]], c: floorC}, {k: 'line', pts: [[32, 33], [37, 30]], c: floorC},
+            {k: 'ell', x: 24, y: 37.6, rx: 5, ry: 2.6, c: midC, ol: 1, ink: floorC}, {k: 'line', pts: [[20.4, 37.4], [22, 36.2], [24, 37.4], [26, 36.2], [27.6, 37.4]], c: rimC}],
+          // Dolphin: the surface above, its light rippling, a far floor of dunes
+          () => [{k: 'poly', pts: [[8, 4], [40, 4], [40, 12.4], [35, 11.6], [30, 12.6], [24, 11.6], [18, 12.6], [12, 11.6], [8, 12.4]], c: mix(field[1], gem[0], 0.3), flat: 0.5},
+            {k: 'line', pts: [[8, 12.4], [12, 11.6], [18, 12.6], [24, 11.6], [30, 12.6], [35, 11.6], [40, 12.4]], c: mix(gem[1], '#FFFFFF', 0.4)},
+            F([[8, 46], [8, 39], [16, 38], [26, 39.4], [34, 38], [40, 39], [40, 46]], mix(field[0], '#000000', 0.2))],
+          // Shark: jagged rocks, an old anchor and its chain
+          () => [F([[8, 46], [8, 39], [11, 33.4], [14, 35.6], [17, 31.6], [20, 34.6], [23, 33], [26, 35.6], [30, 31], [33.4, 34.4], [37, 31.6], [40, 35], [40, 46]], midC),
+            {k: 'line', pts: [[11, 33.6], [14, 35.4], [17, 31.8], [20, 34.4]], c: rimC}, {k: 'line', pts: [[30, 31.2], [33.4, 34.2], [37, 31.8]], c: rimC},
+            F(limb([[33.4, 22], [33.4, 31]], 1.3, 1.3), mix(field[1], '#6B4A3A', 0.35)), F([[29.6, 29.4], [30.4, 32.4], [33.4, 33.8], [36.4, 32.4], [37.2, 29.4], [36.2, 31.4], [33.4, 32.4], [30.6, 31.4]], mix(field[1], '#6B4A3A', 0.35)),
+            F(limb([[31.2, 23.6], [35.6, 23.6]], 1, 1), mix(field[1], '#6B4A3A', 0.35)), {k: 'line', pts: [[33.4, 21], [31, 18], [28.6, 17], [26, 18]], c: mix(field[1], '#6B4A3A', 0.25)}],
+          // Whale: the abyss under a far light, a trench
+          () => [F([[8, 46], [8, 37], [14, 35], [18, 37.6], [30, 37.6], [34, 35], [40, 37], [40, 46]])],
+        ][a]();
+        const w = drawParts(props, EM, EM, S, OX, OY);
+        w.col.forEach((c2, j) => { if (c2 && inField[j] && Sh.dist[j] >= 5.7 * S){ scx.fillStyle = c2; scx.fillRect(j % EM, Math.floor(j / EM), 1, 1); } });
+      }
+      // the field's pixels for its motion: where each is, how deep, and a lighter and a light
+      // shade of what the scene has there
+      const sceneU = new Uint32Array(scx.getImageData(0, 0, EM, EM).data.buffer), lighten = (u32, to, f) => { const r = u32 & 255, g2 = (u32 >> 8) & 255, b = (u32 >> 16) & 255, n = parseInt(to.slice(1), 16), ch = (v, w2) => Math.round(v + (w2 - v) * f); return ((255 << 24) | (ch(b, n & 255) << 16) | (ch(g2, (n >> 8) & 255) << 8) | ch(r, n >> 16)) >>> 0; };
+      const fJ = Int32Array.from(fieldJ), fV = Float32Array.from(fieldJ, j => (Math.floor(j / EM) + 0.5) / S - OY), fL1 = Uint32Array.from(fieldJ, j => lighten(sceneU[j], gem[1], 0.16)), fL2 = Uint32Array.from(fieldJ, j => lighten(sceneU[j], '#FFFFFF', 0.4));
       // round the rim in order (by the angle from the shield's middle), for spacing studs
       // along it and for the light that runs down the channel
       const byAng = list => list.map(([X, Y, ...r]) => [X, Y, Math.atan2(Y + 0.5 - CY, X + 0.5 - CX), ...r]).sort((p, q) => p[2] - q[2]);
@@ -42414,14 +42589,29 @@ const SquadHall = (() => {
       // the Whale's outer frame takes gems too, between its corners
       if (a >= 5 && ring.length){ const ringA = byAng(ring), got = []; for (const w0 of [-Math.PI * 0.86, -Math.PI * 0.14, Math.PI * 0.78, Math.PI * 0.22]){ const p = nearest(ringA, w0, got); if (p){ got.push(p); setGem(p[0], p[1], R1); } } }
       // the insignia, stamped in the field's centre
-      const IW = Math.round(28 * S), IH = Math.round(22 * S), ox = Math.round(CX - 14 * S), oy = Math.round((8 + OY) * S);
-      const I = drawParts(INSIGNIA[a](pal, gem), IW, IH, S), eyeC = lit(gem[0], 0.6);
+      // (each creature as big as the field lets it be: its own outline fitted into the field's
+      // 26.8 x 20.6 units from 9.8 down, centred)
+      const parts = INSIGNIA[a](pal, gem), bb = [Infinity, Infinity, -Infinity, -Infinity];
+      for (const p of parts) for (const [x0, y0, x1, y1] of p.k === 'ell' ? [[p.x - Math.max(p.rx, p.ry), p.y - Math.max(p.rx, p.ry), p.x + Math.max(p.rx, p.ry), p.y + Math.max(p.rx, p.ry)]] : p.cut ? [] : p.pts.map(([x, y]) => [x, y, x + (p.k === 'poly' ? 0 : 1), y + (p.k === 'poly' ? 0 : 1)])){ bb[0] = Math.min(bb[0], x0); bb[1] = Math.min(bb[1], y0); bb[2] = Math.max(bb[2], x1); bb[3] = Math.max(bb[3], y1); }
+      const bw = bb[2] - bb[0], bh = bb[3] - bb[1], kk = Math.min(26.8 / bw, 20.6 / bh), IS = S * kk;
+      const IW = Math.ceil(bw * IS) + 3, IH = Math.ceil(bh * IS) + 3, ox = Math.round((24 + OX) * S - (bw * IS) / 2) - 1, oy = Math.round((9.8 + OY) * S + ((20.6 - bh * kk) * S) / 2) - 1;
+      const I = drawParts(parts, IW, IH, IS, -bb[0] + 1 / IS, -bb[1] + 1 / IS), eyeC = lit(gem[0], 0.6);
+      // (struck, as a die strikes it: each metal pixel on an edge facing the light a tone up,
+      // on an edge away from it a tone down)
+      const solidI = (cx2, cy2) => cx2 >= 0 && cy2 >= 0 && cx2 < IW && cy2 < IH && I.col[cy2 * IW + cx2] && I.col[cy2 * IW + cx2] !== INK;
       I.col.forEach((c2, j) => {
         if (!c2) return;
         const X = ox + j % IW, Y = oy + Math.floor(j / IW);
         if (Sh.D(X, Y) < 5 * S) return;
+        let ti = I.tone[j];
+        if (ti >= 0){
+          const ix = j % IW, iy = Math.floor(j / IW);
+          if (!solidI(ix - 1, iy - 1) || !solidI(ix, iy - 1)) ti = Math.min(5, ti + 1);
+          else if (!solidI(ix + 1, iy + 1) || !solidI(ix, iy + 1)) ti = Math.max(0, ti - 1);
+          c2 = M[TONES[ti]];
+        }
         px(X, Y, c2);
-        if (I.tone[j] >= 0){ metal.push([X, Y, I.tone[j]]); ins.push([X, Y, I.tone[j]]); }
+        if (ti >= 0){ metal.push([X, Y, ti]); ins.push([X, Y, ti]); }
         if (c2 === eyeC || c2 === gem[1]) gems.push([X, Y, c2]);
       });
       // the chevrons at the foot: one a grade, military style, points down
@@ -42523,7 +42713,7 @@ const SquadHall = (() => {
       const metalK = metal.filter(([X, Y, ti]) => shows(X, Y, M[TONES[ti]])), insK = ins.filter(([X, Y, ti]) => shows(X, Y, M[TONES[ti]])), gemsK = gems.filter(([X, Y, c2]) => shows(X, Y, c2));
       for (const k of Object.keys(tags)) tags[k] = tags[k].filter(([X, Y, , c2]) => shows(X, Y, c2));
       const chanK = chanA.filter(([X, Y, , c2]) => shows(X, Y, c2));
-      const L = {back, metal: metalK, diag: byDiag(metalK, EM), gems: gemsK, ins: insK, S: Sh, s: S, a, t, cx: CX, cy: CY, U, insTop: oy, insBot: oy + IH, chan: chanK, free, rays: [], glow: null, used, taken, solid, anims, tags, sparks, teeth, emit, spouts, pearls,
+      const L = {scene, inField, fJ, fV, fL1, fL2, back, metal: metalK, diag: byDiag(metalK, EM), gems: gemsK, ins: insK, S: Sh, s: S, a, t, cx: CX, cy: CY, U, insTop: oy, insBot: oy + IH, chan: chanK, free, rays: [], glow: null, used, taken, solid, anims, tags, sparks, teeth, emit, spouts, pearls,
         // the aura flat, for its loop: index, x, y, how far out, how likely it is lit
         magic: MAGIC[a], aura, edge, more, sea: seaY, circle, auraJ: Int32Array.from(aura, p => p[3]), auraX: Int16Array.from(aura, p => p[0]), auraY: Int16Array.from(aura, p => p[1]), auraQ: Float32Array.from(aura, p => p[2]), auraK: Float32Array.from(aura, p => 0.9 * Math.pow(1 - p[2], 1.6)), ring: runeRing, rr: [MX, MY, (RR + RI) / 2], bolts, motes: Math.round([0, 4, 5, 7, 8, 10][a] * more)};
       layers.set(key, L);
@@ -42683,13 +42873,67 @@ const SquadHall = (() => {
       x.restore();
     }
     const M5 = L => RANK_METAL[L.t].h;
+    // the scene in the field moving (into buffer b, under the insignia): shafts of light drifting
+    // down from the surface, light rippling near it (the shallow seas), weed swaying (the Shrimp's
+    // weed, the Fish's sea grass, the Whale's kelp), bubbles rising, specks drifting down in the
+    // deep (Shark, Whale)
+    const WEED = [[[13, 36, 7, 0], [16, 35.6, 5, 2], [35, 35.4, 6.4, 4]], [], [[18.6, 37, 6, 1], [30, 37, 7, 3]], [], [], [[12.4, 40, 16, 0], [14.4, 40, 11, 2], [34, 40, 15, 3], [36, 40, 10, 5]]];
+    function sceneFx(L, d, tick, b){
+      b.clear();
+      const S = L.s, Z = L.back.width, z = Z / 48, u = b.u, n = L.fJ.length, OXp = L.cx - 24 * S, OYp = L.cy - 25 * S, a = L.a;
+      // shafts of light, fading with depth
+      const drift = tick * 0.05 + d * 3.1;
+      for (let i = 0; i < n; i++){
+        const j = L.fJ[i], X = j % Z, Y = (j / Z) | 0, v = L.fV[i], t = (v - 9.5) / 30;
+        const s = ((((X - OXp) / S) * 0.55 + v * 0.3 - drift) % 13 + 13) % 13;
+        if (s < 2 && BAYER[Y & 3][X & 3] / 16 < (1 - t) * 0.62 * (1 - Math.abs(s - 1) / 1)) u[j] = L.fL1[i];
+        if (a <= 3 && t < 0.3){ const c1 = NOISE[((((Y >> 1) + tick) & 63) << 6) | (((X >> 1) + (tick >> 1)) & 63)], c2 = NOISE[((((Y >> 1) - (tick >> 1)) & 63) << 6) | (((X >> 1) - tick + 17) & 63)]; if (c1 > 0.74 && c2 > 0.6) u[j] = L.fL2[i]; }
+      }
+      const put = (X, Y, c) => { if (X >= 0 && Y >= 0 && X < Z && Y < Z && L.inField[Y * Z + X]) u[Y * Z + X] = c; };
+      const px = (uu, vv) => [Math.round(OXp + uu * S), Math.round(OYp + vv * S)];
+      // weed swaying
+      const weedC = rgb32(mix(FIELD[a][0], GEM[a][2], 0.55)), weedH = rgb32(mix(FIELD[a][1], GEM[a][1], 0.3)), wpx = Math.max(1, Math.round(S * 0.8));
+      for (const [u0, v0, h, ph] of WEED[a]) for (let k = 0; k <= h; k += 0.5){
+        const sw = Math.sin(tick * 0.1 + k * 0.45 + ph) * 0.13 * k, [X, Y] = px(u0 + sw, v0 - k);
+        for (let w = 0; w < wpx; w++) put(X + w, Y, w ? weedC : weedH);
+        if (k % 2 === 1){ const [X2, Y2] = px(u0 + sw + (ph % 2 ? 1 : -1) * 0.9, v0 - k + 0.5); put(X2, Y2, weedC); }
+      }
+      // bubbles rising from the floor
+      for (let i = 0; i < 3; i++){
+        const life = 34, ph = (tick + Math.floor(hash(d, i, 41) * life)) % life, [X, Y] = px(14 + hash(d, i, 42) * 20 + Math.sin((tick + i * 9) / 4) * 0.6, 33 - ph * 0.62);
+        const c = L.fL2[0] && rgb32(mix(FIELD[a][1], '#FFFFFF', 0.55));
+        if (S > 1.3 && ph > 6){ put(X - 1, Y, c); put(X + 1, Y, c); put(X, Y - 1, c); put(X, Y + 1, c); put(X - 1, Y - 1, rgb32('#FFFFFF')); } else put(X, Y, c);
+      }
+      // a school of small fish crossing behind (Fish, Dolphin, Shark: darting), jellyfish
+      // glowing as they drift up (Whale)
+      if (a >= 2 && a <= 4){
+        const life = a === 4 ? 60 : 90, ph = (tick + d * 13) % life, fc = rgb32(mix(FIELD[a][1], '#FFFFFF', 0.32)), fd = rgb32(mix(FIELD[a][1], '#FFFFFF', 0.18));
+        for (let i = 0; i < 4; i++){
+          const uu = 9 + (ph / life) * 32 - (i % 2) * 2.2 - i * 0.6, vv = 13 + (i % 2) * 1.6 + Math.sin((tick + i * 5) / 5) * 0.5 + (i > 1 ? 2.4 : 0), [X, Y] = px(uu, vv);
+          put(X, Y, fc); put(X - 1, Y, fc); put(X - 2, Y, fd); if (S > 1.3){ put(X - 1, Y - 1, fd); put(X - 1, Y + 1, fd); put(X - 3, Y - 1, fd); put(X - 3, Y + 1, fd); }
+        }
+      }
+      if (a === 5) for (let i = 0; i < 3; i++){
+        const life = 120, ph = (tick + Math.floor(hash(d, i, 61) * life)) % life, puls = (tick + i * 4) % 10 < 5, [X, Y] = px(12 + hash(d, i, 62) * 24 + Math.sin((tick + i * 11) / 12) * 1.2, 33 - ph * 0.2);
+        const bell = rgb32(mix(GEM[a][1], '#FFFFFF', 0.2)), body2 = rgb32(GEM[a][0]), tent = rgb32(mix(FIELD[a][1], GEM[a][1], 0.6));
+        put(X, Y, bell); put(X - 1, Y, puls ? bell : body2); put(X + 1, Y, puls ? bell : body2); put(X, Y - 1, body2);
+        if (S > 1.3){ put(X - 2, Y + (puls ? 0 : 1), body2); put(X + 2, Y + (puls ? 0 : 1), body2); for (let k = 1; k <= 3; k++){ put(X - 1, Y + k + (k + tick) % 2, tent); put(X + 1, Y + k + (k + tick + 1) % 2, tent); } }
+        else { put(X, Y + 1, tent); put(X, Y + 2, tent); }
+      }
+      // specks drifting down in the deep
+      if (a >= 4) for (let i = 0; i < 10; i++){
+        const [X, Y] = px(11 + hash(d, i, 51) * 26 + Math.sin((tick + i * 7) / 9) * 0.8, 10 + ((tick * 0.12 + hash(d, i, 52) * 30) % 30));
+        put(X, Y, rgb32(mix(FIELD[a][1], a === 5 ? GEM[a][1] : '#FFFFFF', 0.45)));
+      }
+      void z;
+    }
     // rank d on canvas c (48 or 96 wide) at tick (eight a second; 0 is the still frame): a
     // sheen crosses the metal every six seconds, the gem pulses, a scan line runs up the
     // insignia every five, silver's wing tips sparkle and gold's embers rise; and each
     // creature's ornaments move (above)
     function paint(c, d, tick){
       const Z = c.width >= 96 ? 96 : 48, L = layersOf(d, Z), x = c.getContext('2d'), EM = Z, M = RANK_METAL[L.t], S = L.s, z = Z / 48, R1 = Math.max(1, Math.round(S));
-      const bufs = L.bufs || (L.bufs = [pixBuf(EM), pixBuf(EM)]);
+      const bufs = L.bufs || (L.bufs = [pixBuf(EM), pixBuf(EM), pixBuf(EM)]);
       let g = bufs[0];
       g.clear();
       const dot = (X, Y, col, n = 1) => { if (X < 0 || Y < 0 || X >= EM || Y >= EM) return; if (n === 1){ g.u[Y * EM + X] = rgb32(col); return; } g.fillStyle = col; g.fillRect(X, Y, n, n); };
@@ -42779,6 +43023,9 @@ const SquadHall = (() => {
       // what moves behind the shield (claws, teeth) and in front of it (the dolphins): the
       // frame for this tick
       for (const an of L.anims) if (!an.front) x.drawImage(an.frames[an.at(tick)].c, 0, 0);
+      x.drawImage(L.scene, 0, 0);
+      sceneFx(L, d, tick, bufs[2]);
+      bufs[2].flush(x);
       x.drawImage(L.back, 0, 0);
       for (const an of L.anims) if (an.front) x.drawImage(an.frames[an.at(tick)].c, 0, 0);
       g = bufs[1]; g.clear();
